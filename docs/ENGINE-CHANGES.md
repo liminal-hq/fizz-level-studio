@@ -88,3 +88,18 @@ Everything the game itself (`liminal-hq/lieutenant-fizz`) must change for the re
 - **Why.** The proofs run in `scratch/rust/`, a copy of the game's crates that matches the game today except for the proof modules. A copy can drift without anyone noticing.
 - **What changes.** The generated functions (E2) and the `assert_same` comparison live in the game; the scripts live beside the episode (for example `episodes/episode-1/levels/*.fizz`, `episodes/episode-1/overworlds/*.fizz`); a check script regenerates the Rust and fails if it differs from what is committed; `bun run validate` runs it.
 - **Check.** Changing one tile in a script without regenerating fails the check; changing a hand-written Rust level that has a script fails its proof test.
+
+## Fizz 2 (planned)
+
+The list above is about Lieutenant Fizz 1. Lieutenant Fizz 2 is a separate repository whose levels are baked from `.fizz` sources, so its needs are a different list, kept here only so the editor's side is visible. Each is a change in the Fizz 2 repository, owned by it:
+
+| Change | What the editor needs from it |
+| --- | --- |
+| `fizz-script`, a reusable `std` crate | The parser, lossless AST, printer and validator for the dialect, so the editor and the baker agree on what a script means |
+| `fizz-bake` (`fmt`, `lint`, `bake`, `check`, `dump`, `replay --pack`) | The baker, the lints and the disassembly the editor's dump view shows |
+| `LEVL` v2 | A rule count in the header and 32-byte rule records after the objects (rule table, no VM) |
+| A rules phase in the simulation | Triggers, channel actions and cues run as table rows, after the player, the chickens and the shots |
+| `LIGHT.FAP` and manifests | The world's pack, with digests that include the rule records and the decompiled lines |
+| Wall-kick left out | Fizz 2 has no wall-kick, so a level that only a kick can climb must be refused by the baker or by an editor check; this is open |
+
+The Fizz 1 export check (E120 to E122, W104) is the one place the editor writes back to the Fizz 1 game, and it uses the existing exporter, not a new engine change.

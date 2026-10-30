@@ -225,6 +225,97 @@ points
 
 **Limits to know about.** The game builds one overworld, `build_overworld()`, so several overworlds need a registry like the level table. The cleared-levels mask is 16 bits and the game already uses all of them (15 levels and the secret-found flag), so adding a level also means widening that mask.
 
+## The Fizz 2 dialect (planned)
+
+Lieutenant Fizz 2 bakes its levels from `.fizz` sources, so the language gains a dialect. **None of this is built in `packages/language` yet**; it is the approved design, and the Fizz 2 repository's `fizz-script` crate and `fizz-bake` tool are where the rules are first implemented (see [the relationship to the baker](ARCHITECTURE.md#7-fizz-2-and-the-baker-planned)). Where this section and the Fizz 2 repository disagree, the Fizz 2 repository wins, and this page is corrected.
+
+### A superset, not a fork
+
+- The first line of a Fizz 2 file is `script fizz2 0`. A file without it is a Fizz 1 script, and everything above in this document still holds for it.
+- **Every Fizz 1 script parses and prints in either target.** Only the Fizz 2 subset **lowers** to a level (the baker's `LEVL` record), so a Fizz 1 statement the game has no Fizz 2 equivalent for (`terrain`, `scatter`, `hover` and so on) is valid text and an error only when baking.
+- The parse is lossless: bad lines stay in the AST, comments and blank lines are kept, and a parsed file prints back unchanged. `fizz-bake fmt` is the printer.
+- The compile pipeline is parse (lossless AST), resolve, validate, lint, lower to `LEVL` v2, then re-read the result through the game's level view as a check.
+
+### The map block
+
+A level can be drawn as a grid instead of as fills. The example is illustrative; the exact header words and row-label spelling are fixed by the Fizz 2 `fizz-script` package, and this page follows it.
+
+```text
+script fizz2 0
+level "Light Switch" 16x12 id=light-1
+map
+  |................|  11
+  |..w.........#...|  10
+  |..#B==^~E.......|   9
+```
+
+- Each row sits between `|` bars and has exactly `w` characters, with an optional row label giving its `y`. `y` still counts up from the bottom as everywhere else.
+- A **legend** maps letters to tiles. The letters recorded so far are `. w # B = ^ ~ E / \ r R l L D b +`, which include the **slope** letters (`/` and `\`), and the legend also **reserves** letters for Fizz 1 tiles that have no Fizz 2 id, so a Fizz 1 level opens in Fizz 2 without losing them. Which letter means which tile is fixed by the Fizz 2 tile table and is not copied here until the editor needs it (open question 12 in [DECISIONS.md](DECISIONS.md)).
+- It is the most complete legend on purpose: the editor's palette, completion and the printer all read one table.
+
+### Positions: `x=`/`y=` and `at=`
+
+- `x=`/`y=` name a cell, and the object sits at its **centre**, as in Fizz 1.
+- `at=X,Y` is an **exact** position, in tile units, for an object that is not on a cell centre (for example one resting on a slope or a floor).
+- **The printer rule:** the printer writes `x=`/`y=` only for an exact cell centre and `at=` for everything else, so the same position always prints the same way.
+
+### Objects
+
+- Objects include the Fizz 1 items and enemies that Fizz 2 has, plus `chicken`, `soda` and `floor`.
+- **`id=` is required** on every object, and an object's index in the baked level is its position in the sorted order.
+- Objects are **stably sorted by kind** (ties keep file order), so the printer groups them and the order a reader sees is the order the level is built in.
+- Fizz 1's file-order rule still governs overlapping tile writes; it does not govern the object list.
+
+### Channels, locks and rules
+
+Doors are modelled as state, not as hard-wired colours:
+
+- **Channels are state.** A switched tile reads a channel. `channel 1,2 on` sets the start state explicitly.
+- **Keys and items are facts.** A pick-up or a stomp is something that happened, not a stored value.
+- **Locks are on the door.** `lock red-door key=red` says that door opens when the player holds the red key (planner recommendation, not yet confirmed: the lock opens the door by turning its channel off, and fires only while the door is closed).
+- **Rules** connect the two:
+
+```text
+channel 1 off                        // start state, explicit
+lock red-door key=red                // the key opens it
+allow W101                           // the door channel starts off on purpose
+when enter x=1..14 y=5..5 then channel 1 on at=15,21, sound door, caption clunk
+```
+
+The shape of a rule is `when <trigger> [if channel N on|off] then <action>[, <action>...] [repeat]`:
+
+| Part | Values |
+| --- | --- |
+| Trigger | `start`, `enter x= y=`, `take`, `shoot`, `stomp`, `stun`, `time` |
+| Guard | `if channel N on` or `if channel N off`, optional |
+| Channel action | `channel N on`, `channel N off` or `channel N toggle`, with an optional `at=` cell |
+| Cue | `sound X` and `caption Y`, from the shared tables only |
+| Flag | `repeat`, optional; without it a rule is expected to fire once |
+
+- **Compiled at bake time into fixed 32-byte records.** There is no virtual machine on DOS and no rule text on the device: the baker lowers each `when` to one record (trigger, flags, guard channel, two parameters, a channel action and a cue) and the simulation runs them as table rows, in table order, after the player, the chickens and the shots have moved.
+- **Limits:** 32 rules per level, one channel action and one cue per rule, no delayed actions and no repeating timers.
+- **Lint W101** warns when a door's channel starts off. A level that means it says `allow W101` (with a comment saying why), and the baker's `check` fails on any warning without an `allow`. The slice's start-open-then-close red door puzzle is the model case.
+- **Persistence.** Channels and which rules have fired are recommended to persist over a death; this is not yet confirmed (see the open questions).
+
+### Errors and lints
+
+- **E001 to E016** keep their meaning (the table above) and are reused as they are. Errors report `path:line:col`.
+- **E1xx** are new, for the dialect. Named so far: **E119** (conflicting rules or locks), **E120** (a lock that Fizz 1 cannot say), **E121** (any `when` in a Fizz 1 export), **E122** (a solid `floor` in a Fizz 1 export). The E12x block belongs to the Fizz 1 export check; the rest of E1xx is assigned as the validator is written, and this table is extended in the same change as each test that produces a code.
+- **W1xx** are lints: **W101** (door channel starts off) and **W104** (an `at=` position snapped to a cell centre in a Fizz 1 export). Others are assigned as lints are written.
+
+### Lowering to Fizz 1
+
+Exporting a Fizz 2 level to the Fizz 1 script is a lowering followed by a check:
+
+- A `map` becomes `blocks` fills.
+- `at=` positions snap to the nearest cell centre, with **W104** for each one that moved.
+- `chicken` becomes `gloop`.
+- A lock other than the standard keyed red and blue doors is **E120**.
+- Any `when` rule is **E121**; Fizz 1 has no rule layer.
+- A solid `floor` is **E122**.
+
+The editor runs this check live when its Target is Fizz 1 ([EDITOR.md](EDITOR.md#13-the-fizz-2-target-planned)).
+
 ## What v0 does not cover
 
 - **Arbitrary Rust.** Levels in `levels.rs` that use loops over computed positions, closures such as `let y = |k| ...`, constants, `if` or `.find(...)`, or `b.ground_at(...)` to place things, cannot be written. Skimming the rest of `levels.rs` finds these in several levels (closures that compute a crystal row from `k`, `.find(...)` over the map, `b.ground_at(...)` as an argument); a v0 script is a flat list of literal calls. (Plain `for x in [..] { b.crys(x) }` loops are covered by lists.)

@@ -17,6 +17,8 @@ A level and overworld editor for Lieutenant Fizz, built so that a person and Cla
 
 Fizz Level Studio is the level and overworld editor for Lieutenant Fizz, where a person and Claude (over MCP) design levels together. This folder holds the work so far: the builder language (a text language that compiles to the Rust `Builder` calls in `episodes/episode-1/game/src/levels.rs`), its Rust exporter and the proofs that it rebuilds every Episode 1 level and the overworld exactly, an MCP server for Claude, a copy of the interactive design prototype, and the spec for the real studio. It is a scratch project, not a git repository, and nothing in it touches the game's repository.
 
+**Planned: Fizz 2.** Lieutenant Fizz 2 bakes its levels from `.fizz` files in a dialect that is a superset of the Fizz 1 script (`script fizz2 0`): a `map` grid, exact `at=` positions, channels, locks and `when ... then ...` rules compiled at bake time into fixed records. The editor will gain a Target setting (Fizz 1 or Fizz 2) that greys out what Fizz 1 lacks and checks a Fizz 1 export. None of it is built yet; see `docs/LANGUAGE.md`, `docs/EDITOR.md` section 13 and `docs/DECISIONS.md`.
+
 ## Getting started
 
 You need [Bun](https://bun.sh) and the Node version in `.node-version`. The studio app itself is not built yet; what runs today is the language package, the MCP server and the proofs against the game.

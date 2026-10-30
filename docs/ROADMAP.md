@@ -11,6 +11,7 @@ The milestones in order, each with what it delivers, its exit criteria and what 
 | M4 Claude in the studio | M1, M2 |
 | M5 WebAssembly bridge | M2, M3 |
 | M6 Sprites and Rust levels | M3, M5 |
+| M7 Fizz 2 target (planned) | M2 (and the Fizz 2 repository's `fizz-script` and `fizz-bake`) |
 
 ## M0 — Spec
 
@@ -98,3 +99,22 @@ The first slice of the real studio, built on the overworld because it is the nex
 - A Rust-written level opens, takes a painted edit, exports, and the game shows the edit while the Rust function is unchanged.
 
 **Depends on:** M5 (level data from WebAssembly), M3 (registry).
+
+## M7 — Fizz 2 target (planned)
+
+Nothing here is started. It follows the Fizz 2 repository's own plan (the level source, locks as data, rules in the simulation, the `fizz-script` crates and `fizz-bake`) and can begin once M2's editor exists.
+
+**Delivers:**
+
+- In `packages/language`: the `script fizz2 0` header, the `map` block with the full legend, `at=` and the printer rule, `chicken`, `soda`, `floor`, required `id=`, objects sorted by kind, `channel`, `lock`, `when ... then ...` and `allow`, the E1xx errors and the W1xx lints, all agreeing with `fizz-script` through a shared conformance corpus.
+- The Fizz 1 export: lowering and the check (E120 to E122, W104).
+- In the editor: the Target setting and greying out, snap to floor, close all doors, the Rules window, inline rule lints, the dump view and the Channels lens (`EDITOR.md` section 13).
+- MCP: `target` on `get_level`, rule-aware `run_checks`, and a dump tool (`MCP.md` section 2).
+
+**Exit criteria:**
+
+- Every script in the conformance corpus parses, prints back unchanged and reports the same codes and positions as `fizz-script`.
+- A Fizz 2 level that uses rules exports to Fizz 1 with the expected E121 errors, and one that does not exports with only W104 warnings for moved items.
+- The dump view equals `fizz-bake dump` for the Light world's levels.
+
+**Depends on:** M2 (the editor), and the Fizz 2 repository's baker. Whether the editor loads `fizz-script` as WebAssembly or keeps its own parser is not decided.

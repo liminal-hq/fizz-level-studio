@@ -218,3 +218,28 @@ From the Guide's last step, checked against the code:
 - **Not built:** Pan; New, Save as, Export, Preferences and Quit; dragging a room's corners or a lift's whole path; Patrol range and Replace with; Grid; the title-bar window buttons.
 
 The Guide's "Not built" list also says the editor does not show enemy walking paths; that line predates the Paths lens, which the same list's "Works" column and the prototype include (computed in JavaScript, approximate on slopes).
+
+## 13. The Fizz 2 target (planned)
+
+Nothing in this section is built. It says what the editor needs so that a future implementer builds one editor for both games; the dialect itself is in [LANGUAGE.md](LANGUAGE.md#the-fizz-2-dialect-planned).
+
+### The Target setting
+
+- A **Target** setting, **Fizz 1** or **Fizz 2**, belongs to the project and shows in the title bar. A file that starts `script fizz2 0` opens with Target Fizz 2; any other opens with Fizz 1. Changing it never rewrites the script by itself.
+- With Target Fizz 1, everything Fizz 1 lacks is **greyed out** with a reason on hover: the map grid's slope and reserved letters that have no Fizz 1 tile, `chicken`, `floor`, `at=` placement, locks, channels as rule state, and the rule tools.
+- With Target Fizz 1, the editor also runs the **Fizz 1 export check** live and shows its findings inline and in the Checks window: E120 (a lock Fizz 1 cannot say), E121 (any `when` rule), E122 (a solid `floor`) and W104 (an `at=` position that will snap to a cell centre, shown on the canvas as an arrow from the exact position to the cell it would take). Exporting is refused while an E12x error stands; warnings do not block it.
+- With Target Fizz 2, the Fizz 2 checks run instead: required `id=`, bounds, channels, limits (32 rules), conflicts (E119) and the W1xx lints.
+
+### Editor features this implies
+
+- **Snap items to the floor.** A command (and a modifier while dragging) that drops the selected items to the surface below them and writes the position as `at=`, not `x=`/`y=`. The printer rule applies: a position that lands on an exact cell centre is written as `x=`/`y=`.
+- **Close all doors.** One command that sets every door channel's start state to closed, so a level that was tested open can be put back in one undo step. It writes the explicit `channel` start line and removes the need for `allow W101` where the doors now start closed.
+- **Rule authoring UI.** A Rules window lists `when ... then ...` lines as sentences with a trigger, a guard, up to two actions and a repeat flag, and a trigger rectangle you drag on the canvas (for `enter x= y=`). Locks are set on the door itself in the Object window. Rule and lock lines are studio-owned lines in the sense of section 4: the studio rewrites them in place and never touches a hand-written line beside them.
+- **Rule lints inline.** W101, E119 and the limits appear as squiggles in the script panel and badges on the door, with Use this fix where there is one (for example adding `allow W101` with a comment, or flipping the channel).
+- **Dump view.** A read-only view of what the baker would produce for the level: the sorted object list with indices, the rule table as records, and the bake's own disassembly (`fizz-bake dump`), so what the person sees is what the game runs. It is a view, not an editor, and says so.
+- **A Channels lens.** Draws each channel's switches, doors and rule triggers with one colour per channel, in the style of the existing Links lens.
+
+### What the editor does not do
+
+- It does not run the rules. Rule behaviour belongs to the Fizz 2 simulation (the game owns the rules), reached through the same WebAssembly bridge as the Paths lens and the playtest bot.
+- It does not bake. The baker writes the packs, manifests and digests; the editor only shows its output.

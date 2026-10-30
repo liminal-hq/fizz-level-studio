@@ -134,6 +134,21 @@ Rewriting a line is a new kind of history entry: it records the line number, the
 | `describe_word` | `word`, `scope?` (`level`, `overworld`) | The `docs.ts` entry: kind, section, syntax, example, note, fields, field notes |
 | `check_lines` | `lines`, `file?` | The parser's verdict on lines without storing anything, for drafting |
 
+### Fizz 2 (planned)
+
+Not built, and not before the dialect exists in the language package (`ROADMAP.md`, M7). The same rules apply: validated by the language package, mode-obeying, and rule and lock lines are studio-owned lines.
+
+| Tool | Input | Effect |
+| --- | --- | --- |
+| `get_level` (extended) | none | Also returns the Target (`fizz1` or `fizz2`), the channels with their start states, the locks and the rules as sentences |
+| `list_rules` | `file?` | Every `when ... then ...` rule with its line, trigger, guard, actions and flags, and the lint codes that apply to it |
+| `add_rule`, `set_rule` | the rule's fields | Writes one rule line as a proposal; refused on any error, including the 32-rule limit |
+| `set_channel` | `channel`, `state` | Writes the explicit start state; proposes `allow W101` only when the person asks |
+| `run_checks` (extended) | `target?` | Adds the Fizz 2 checks (ids, bounds, channels, limits, conflicts, W1xx lints) or, for Fizz 1, the export check (E120 to E122, W104) |
+| `get_dump` | `file?` | Read only: the baker's disassembly of the level (objects and rule records), when the baker is available; otherwise a message that it was not run |
+
+`run_checks` keeps the rule that it says which checks ran and which did not (G-TRUST-4): a dump or a bake that was not available is reported as "not run", never as passed.
+
 ## 3. Propose and direct in the studio
 
 - **Propose** (the default): Claude's change is a pending proposal. The studio shows it as dashed purple ghosts and as hunks in Review changes. Nothing reaches the file until the person presses Accept (or Accept all). Reject leaves the file byte-identical.

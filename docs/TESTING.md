@@ -92,7 +92,7 @@ H=$PWD/design/project node tools/design-harness/all.cjs               # for all.
 
 ## 6. Gaps
 
-- **No CI.** Nothing runs these on a change; this folder is not a git repository.
+- **CI runs only part of it.** `.forgejo/workflows/ci.yml` lints the Markdown and runs the language and MCP tests; the proofs need Rust and the game's crates and run locally.
 - **The proofs run in a copy.** `scratch/rust/` can drift from the game; until the proofs move into the game (ENGINE-CHANGES E12), diff the copy before trusting a run.
 - **Statements without an equality proof.** `ladder`, `stairs-right`, `stairs-left`, `vine-nook`, `mural`, `wall-behind` and `liquid` are covered by the kitchen-sink compile-and-run and by unit tests of the text they export, but no real level script uses them (the `levels/real/` scripts are written as fills).
 - **The rasteriser check is partial.** `verify-rasteriser.ts` compares tiles, items, spawns and the start; platforms, rooms, the arena and switches are compared only by the Rust proof.
@@ -104,3 +104,16 @@ H=$PWD/design/project node tools/design-harness/all.cjs               # for all.
 - **The gap rule is not physics.** The 3/4/5 widths are the stated design rule.
 - **No playtest from the studio.** The game's bot (`playtest.rs`) has routes for 15 levels in its own tests; the Citadel has none.
 - **No performance measurements** of the studio. Parse plus rasterise of the slowest real level (Frosting Spire) averages 0.35 ms, and the overworld 0.71 ms, in Bun 1.3.10 on an AMD Ryzen 7 7700X (20 runs after a warm-up).
+
+## 7. Planned: the Fizz 2 dialect
+
+None of these tests exist. They are what the dialect needs, so the implementer knows what done means.
+
+- **Conformance corpus.** A folder of Fizz 2 scripts, each with its expected printed output and its expected error and lint codes with `path:line:col`. The language package runs it with `bun test`; the Fizz 2 repository's `fizz-script` runs the same files, so the two parsers cannot drift.
+- **Round trip.** Every script, valid or not, prints back byte for byte; `x=`/`y=` versus `at=` follows the printer rule.
+- **One test per code.** Every E1xx and W1xx code has a script that produces it and a test that says so, and every code in `LANGUAGE.md` has one.
+- **Superset.** Every Fizz 1 script in `levels/` and `overworlds/` parses and prints unchanged under the Fizz 2 parser, and `bun run prove:all` stays green.
+- **Fizz 1 export.** A Fizz 2 level with a `map`, an `at=` off a cell centre, a `chicken`, a non-standard lock, a `when` and a solid `floor` exports with exactly the expected W104, E120, E121 and E122.
+- **Rule limits.** 32 rules pass, 33 is an error; two channel actions on one rule is an error; a `when` that names a missing channel is an error.
+- **Dump parity.** The dump view and `fizz-bake dump` give the same records for a corpus level (needs the baker).
+- **Not covered by tests here:** the rules' behaviour in the simulation, which the Fizz 2 repository's replay golden owns.

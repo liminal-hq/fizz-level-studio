@@ -25,3 +25,6 @@ When two goals conflict, the higher one wins. Trust comes before speed of editin
 | 17 | G-PERF-1 | Paint within one frame | Measured in the studio: the 95th percentile from pointer event to updated canvas and script is under 16 ms on Marshmallow Meadows (220 × 32). Parse plus rasterise of a whole level is already under 1 ms in Bun on a desktop (0.35 ms for Frosting Spire). |
 | 18 | G-PERF-2 | Open a level in under a second | Measured from choosing a starter level to the first drawn frame, for every Episode 1 level and the overworld. |
 | 19 | G-PERF-3 | Proof in under two minutes | `time bash scripts/prove-all.sh` with a warm Cargo cache. Not timed yet. |
+| 20 | G-F2-1 | The editor and the baker agree | A conformance corpus of Fizz 2 scripts with expected error codes, positions and printed output passes in the language package and in `fizz-script`; a script the editor accepts for Fizz 2 passes `fizz-bake check`. Today: not built. |
+| 21 | G-F2-2 | A Fizz 1 export is never silent | Exporting a Fizz 2 level to Fizz 1 reports every E120, E121 and E122 error and every W104 snap, and the exported script has none of them. Today: not built. |
+| 22 | G-F2-3 | Rules show as the game runs them | The dump view equals `fizz-bake dump` for the same script, record for record. Today: not built. |

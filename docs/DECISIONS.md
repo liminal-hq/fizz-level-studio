@@ -25,3 +25,40 @@ The decisions taken for Fizz Level Studio by its owner, Scott Morris, each with 
 | D19 | The **line park (logo 28)** is the logo direction: one circle holding a chocolate river, three crystals, a candy tree and the flag, in a single gradient line | Not recorded beyond the owner's choice | The other logo explorations in `Logos*.dc.html` (Ben in the rising-fizz style, the planet variations, crystals, rivers and trees) |
 | D20 | `crystal` is a blocks statement (`b.crys(x)`, a decorative tile on the ground), distinct from the `crystal-switch` enemy | That is what `b.crys` is | `crystal` as an enemy, as the first sketch had |
 | D21 | Coordinates outside the level are refused (E013) | The `Builder` silently ignores out-of-range writes, so a typo would vanish | Accepting them as the `Builder` does |
+| D22 | `.fizz` is a **superset of the Fizz 1 script** for Fizz 2, with first line `script fizz2 0`; every Fizz 1 script parses and prints, and only the Fizz 2 subset lowers | One language for both games; the editor and the Fizz 2 baker read the same files | A separate Fizz 2 language |
+| D23 | The Fizz 2 parser lives in its own reusable `std` crate, `fizz-script`, called by `fizz-bake`; the slice pack is `LIGHT.FAP` | The baker and any other host tool share one parser | Parsing inside `fizz-bake` only |
+| D24 | `x=`/`y=` name a cell centre and `at=` is exact; the printer writes `x=`/`y=` only for an exact cell centre | A position has one printed form | Writing `at=` everywhere, or `x=`/`y=` with fractions |
+| D25 | Objects are **stably sorted by kind**, `id=` is required, and an object's index is its sorted position | Indices stay stable across edits and the printer's output is canonical | File-order objects without ids |
+| D26 | The legend is the **most complete** one, including slope letters and reserved letters for Fizz 1 tiles that have no Fizz 2 id | A Fizz 1 level opens in Fizz 2 without losing tiles | A minimal legend that grows as needed |
+| D27 | Error codes **E001 to E016 are reused** and new ones are **E1xx**, all reported as `path:line:col`; lints are W1xx | Existing messages, tests and habits carry over | Renumbering |
+| D28 | **Channels are state; switched tiles read a channel; keys and items are facts; locks sit on the door; a `when ... then ...` rule layer connects them**, compiled at bake time into fixed rule records with **no VM and no rule text on DOS** | The DOS build stays small and deterministic, and a door is described by what it reads | Hard-wired red and blue doors; a scripting VM |
+| D29 | The start state is **explicit** (`channel 1,2 on`), and **W101** warns when a door channel starts off, silenced by `allow W101` | A door that starts open is usually a mistake, and sometimes a puzzle | Defaulting silently |
+| D30 | The editor has a **Target** setting (Fizz 1 or Fizz 2) that greys out what Fizz 1 lacks and runs the **Fizz 1 export check** (E120 to E122, W104) | One editor for both games, with no silent loss on export | Two editors; exporting without a check |
+| D31 | The rule layer is built in the Fizz 2 work's second milestone, not deferred | The slice's door puzzle needs it | Deferring rules |
+
+## Decisions log
+
+### 2026-10-30 — The Fizz 2 dialect and the rule layer
+
+The owner approved the Fizz 2 plan for level source, the rule layer and the baker. D22 to D31 above are its decisions that touch this studio. In short:
+
+- `.fizz` is a superset of the Fizz 1 script (`script fizz2 0`); Fizz 1 export is a lowering plus a check, with `at=` snapping reported as W104, `chicken` becoming `gloop`, non-standard locks as E120, any `when` as E121 and a solid `floor` as E122.
+- Positions: `x=`/`y=` for a cell centre, `at=` for exact, printed by one rule; objects sorted by kind with a required `id=`; the legend includes slopes and reserved Fizz 1 letters.
+- The door model is channels, locks and a `when ... then ...` rule layer compiled into 32-byte records at bake time, with no VM on DOS. The baker is `fizz-script` plus `fizz-bake` in the Fizz 2 repository, and the first pack is `LIGHT.FAP`.
+
+**Not decided yet.** The planner's open questions, with its recommendations, are awaiting the owner:
+
+1. A conditional hash step for trigger rules only (recommended yes).
+2. Channels and fired-rule bits persisting over a death (recommended yes).
+3. W101 silenced by `allow W101` with a comment (recommended yes).
+4. The slice gaining the door puzzle (recommended yes).
+5. The limits: 32 rules, 32-byte records, two action slots.
+6. Captions: shared-table ids only at first.
+7. One directory per world, `assets/levels/light/`.
+8. Bumping `LEVL` to v2 (recommended).
+9. All of the Fizz 1 language parses and prints, only the Fizz 2 subset lowers.
+10. The W1xx family, with `bake check` failing on any warning without an `allow`.
+11. A lock opens (its channel goes off) and fires only while closed.
+12. No delayed actions or repeating timers at first.
+
+The editor's own open questions follow from these: whether it keeps a TypeScript parser or loads `fizz-script` as WebAssembly (and the conformance corpus either way), which letters mean which tiles in the legend, how the editor should refuse a shaft that only a wall-kick could climb, and where the E1xx and W1xx codes beyond those named are assigned.

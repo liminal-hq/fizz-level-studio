@@ -26,6 +26,8 @@ The studio has four parts, three of which exist today in this folder:
 3. **The design prototype** (`design/project/Proto.dc.html`) — an interactive design of the editor: the Ultimate layout, tools, objects, the overworld designer, lenses, the script panel with completion, and the starter levels. It is a design, not the product: Claude's ideas are canned, nothing is saved and the playtest bot is a stand-in.
 4. **The studio application** — not built. This spec describes it.
 
+A fifth part is planned: **the Fizz 2 target**. Lieutenant Fizz 2 bakes its levels from `.fizz` sources written in a dialect that is a superset of the Fizz 1 script (`script fizz2 0`), with a map grid, exact positions, channels, locks and a `when ... then ...` rule layer, and the editor gains a Target setting (Fizz 1 or Fizz 2) with a Fizz 1 export check. None of it is built; see §6.1, `docs/LANGUAGE.md` and `docs/EDITOR.md` section 13.
+
 What has been proven, exactly:
 
 - All 16 levels of Episode 1, rebuilt from their scripts through the exporter, equal the game's levels exactly, including each level's fingerprint (`scripts/prove-all.sh`). The studio's rasteriser agrees with the game on every tile, item, enemy and start of all 16.
@@ -207,6 +209,15 @@ An overworld script has `overworld`, `start`, `area` lines, a `blocks` section (
 
 Note: the "What v0 does not cover" list at the end of `docs/LANGUAGE.md` predates the overworld module and the 16-level proof; its "Overworld maps" and "Proof coverage" items are superseded by the overworld section above it and by `scripts/prove-all.sh`.
 
+### 6.1 The Fizz 2 dialect (planned)
+
+- **A superset.** First line `script fizz2 0`. Every Fizz 1 script still parses and prints; only the Fizz 2 subset lowers to a level.
+- **Syntax.** A `map` block with a legend (slope letters and letters reserved for Fizz 1 tiles without a Fizz 2 id), `at=` for exact positions beside `x=`/`y=` for cell centres (the printer writes `x=`/`y=` only for exact cell centres), `chicken`, `soda`, `floor`, a required `id=` on every object, and objects stably sorted by kind. Errors reuse E001 to E016 and add E1xx; lints are W1xx.
+- **Doors and rules.** Channels are state, switched tiles read a channel, keys and items are facts, locks sit on the door, and `when <trigger> [if channel N on|off] then <actions>` rules are compiled at bake time into fixed 32-byte records, with no VM and no rule text on DOS. `channel 1,2 on` sets the start state, and W101 warns when a door channel starts off unless the level says `allow W101`.
+- **The baker.** `fizz-script` (the parser crate) and `fizz-bake` in the Fizz 2 repository decide what a script bakes to (`LEVL` v2, `LIGHT.FAP`, manifests, digests). The editor must agree with them.
+- **Fizz 1 export.** A lowering plus a check: `map` to blocks, `at=` snapped with W104, `chicken` to `gloop`, E120 for a non-standard lock, E121 for any `when`, E122 for a solid `floor`.
+- **What is not decided** is listed in [docs/DECISIONS.md](docs/DECISIONS.md) (the 2026-10-30 log entry) and in §11 below.
+
 ## 7. Architecture
 
 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) has the detail. The layers, and which owns what:
@@ -360,6 +371,19 @@ Status values: **Proven** — built in `packages/language` or `packages/mcp` and
 | R-ENG-01 | Widen the requirement mask so a 16th level fits | Not built | ENGINE-CHANGES E4 |
 | R-ENG-02 | A level and overworld registry the exporter can write to | Not built | ENGINE-CHANGES E3, E5 |
 
+### Fizz 2 target (planned)
+
+| Id | Requirement | Status | Evidence |
+| --- | --- | --- | --- |
+| R-F2-01 | `script fizz2 0` is a superset of the Fizz 1 script: every Fizz 1 script parses and prints unchanged | Not built | `docs/LANGUAGE.md` |
+| R-F2-02 | `map` grid with the full legend, `at=` versus `x=`/`y=` with the printer rule, `chicken`, `soda`, `floor`, required `id=`, objects sorted by kind | Not built | `docs/LANGUAGE.md` |
+| R-F2-03 | `channel`, `lock`, `when ... then ...` and `allow`, with the 32-rule limit | Not built | `docs/LANGUAGE.md` |
+| R-F2-04 | Errors E1xx and lints W1xx, with W101 | Not built | `docs/LANGUAGE.md` |
+| R-F2-05 | A Target setting that greys out what Fizz 1 lacks and runs the Fizz 1 export check (E120 to E122, W104) | Not built | `docs/EDITOR.md` section 13 |
+| R-F2-06 | Snap to floor writing `at=`, close all doors, a Rules window, rule lints inline | Not built | `docs/EDITOR.md` section 13 |
+| R-F2-07 | A dump view equal to the baker's disassembly | Not built | `docs/EDITOR.md` section 13 |
+| R-F2-08 | The editor and `fizz-script` agree through a shared conformance corpus | Not built | `docs/TESTING.md` section 7 |
+
 ### Performance requirements
 
 | Id | Requirement | Status | Evidence |
@@ -381,6 +405,10 @@ Status values: **Proven** — built in `packages/language` or `packages/mcp` and
 | Q7 | How is the playtest route given for a new level? | The bot needs waypoints (`Waypoint::stand`, `Waypoint::gate`); the Rust tests write them by hand per level. |
 | Q8 | Is the level table's `icon` (sprite) set by the script, the overworld point, or the registry? | See ENGINE-CHANGES E10. |
 | Q9 | How do two processes share the sidecar safely? | Today the server and the CLI read-modify-write it with no lock. |
+| Q10 | Does the editor keep a TypeScript parser for the Fizz 2 dialect or load `fizz-script` as WebAssembly? | Not decided; a shared conformance corpus is needed either way (`docs/ARCHITECTURE.md` section 7). |
+| Q11 | Which legend letter means which tile, and how are the E1xx and W1xx codes beyond those named assigned? | Fixed by the Fizz 2 repository's tile table and validator; this spec follows it. |
+| Q12 | The Fizz 2 planner's twelve open questions (a conditional hash step, channels persisting over a death, captions, limits, lock semantics and more) | Listed in `docs/DECISIONS.md`, awaiting the owner. |
+| Q13 | How is a shaft that only a wall-kick could climb refused, given Fizz 2 has no wall-kick? | Open; the baker or an editor check. |
 
 ## 12. Risks
 
@@ -395,6 +423,7 @@ Status values: **Proven** — built in `packages/language` or `packages/mcp` and
 | Claude proposals go stale | Accepting writes something that no longer fits | `accept` revalidates against the current file (built); show the conflict in the studio |
 | The playtest bot is slow in a browser | The studio stalls | Run it in a worker with a tick budget per step (E9) |
 | The design prototype is mistaken for the product | Canned behaviour is relied on | The prototype labels canned parts; this spec marks every requirement's status |
+| Two parsers drift (TypeScript here, Rust in `fizz-script`) | The editor accepts a script the baker rejects, or the reverse | A shared conformance corpus in both repositories' tests (G-F2-1) |
 
 ## 13. Milestones
 
@@ -409,3 +438,4 @@ Status values: **Proven** — built in `packages/language` or `packages/mcp` and
 | M4 Claude in the studio | The MCP server attached to the live studio: selection, ghosts, accept and reject buttons, object tools |
 | M5 WebAssembly bridge | Level data from the game, a level built from a script inside the sim, enemy paths, the playtest bot |
 | M6 Sprites and Rust levels | The sprite picker and level sprites, editing on top of Rust-written levels |
+| M7 Fizz 2 target (planned) | The Fizz 2 dialect, the Target setting, the Fizz 1 export check, rule authoring and the dump view |
