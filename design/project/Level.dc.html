@@ -1,0 +1,286 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Crater Fields in blocks</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@500;600;700&display=swap">
+<style>body{margin:0;background:#050507}button{font-family:inherit;cursor:pointer}button:focus-visible{outline:2px solid #ffaa40;outline-offset:2px}code{font-family:'JetBrains Mono',monospace;font-size:0.9em;color:#ffaa40;background:rgba(255,255,255,0.06);padding:1px 6px;border-radius:4px}</style>
+</helmet>
+<div style="box-sizing:border-box;width:100%;min-height:900px;background:#050507;color:#e0e0e0;font-family:Inter,system-ui,sans-serif;font-size:15px;line-height:1.65">
+<div style="box-sizing:border-box;max-width:1180px;margin:0 auto;padding:40px 24px 80px;display:flex;flex-direction:column;gap:40px">
+
+  <header style="display:flex;flex-direction:column;gap:12px">
+    <span style="font-size:13px;color:#b4bfce">Fizz Level Studio · a real level, in blocks</span>
+    <h1 style="margin:0;font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:40px;line-height:1.15;letter-spacing:-0.02em;color:#fff">Crater Fields, block by block</h1>
+    <p style="margin:0;max-width:820px;color:#b4bfce;font-size:17px">This is the first level of Episode 1 drawn on the editor's block grid, from the game's own level data: 192 blocks across, 28 high, with every item and enemy where the game puts it. Click any block to see what is in it.</p>
+  </header>
+
+  <!-- answers -->
+  <section style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px">
+    <sc-for list="{{answers}}" as="a" hint-placeholder-count="3">
+      <div style="border:1px solid rgba(255,255,255,0.12);border-radius:14px;background:rgba(255,255,255,0.03);padding:18px 20px;display:flex;flex-direction:column;gap:8px">
+        <span style="font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:18px;color:#fff">{{a.q}}</span>
+        <span style="color:#b4bfce;font-size:14.5px">{{a.a}}</span>
+      </div>
+    </sc-for>
+  </section>
+
+  <!-- whole level -->
+  <section style="display:flex;flex-direction:column;gap:14px">
+    <h2 style="margin:0;font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:26px;color:#fff">The whole level</h2>
+    <div style="overflow:auto;border:1px solid rgba(255,255,255,0.14);border-radius:12px;background:#0f0e1a;padding:12px">
+      <div style="position:relative;width:1152px;height:96px;flex:none">
+        <sc-for list="{{overview.runs}}" as="r" hint-placeholder-count="60"><div style="position:absolute;{{r.style}}"></div></sc-for>
+        <sc-for list="{{overview.marks}}" as="m" hint-placeholder-count="50"><div style="position:absolute;width:6px;height:6px;border-radius:50%;{{m.style}}"></div></sc-for>
+        <div style="position:absolute;box-sizing:border-box;border:2px solid #ffaa40;border-radius:3px;pointer-events:none;{{overview.frame}}"></div>
+      </div>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center"><span style="font-size:13px;color:#b4bfce">Look closer at</span>
+      <sc-for list="{{windows}}" as="w" hint-placeholder-count="5"><button aria-pressed="{{w.on}}" onClick="{{w.pick}}" style="min-height:44px;padding:0 16px;border-radius:999px;font-size:13.5px;font-family:'JetBrains Mono',monospace;{{w.style}}">{{w.label}}</button></sc-for>
+    </div>
+  </section>
+
+  <!-- zoomed view -->
+  <section style="display:flex;flex-direction:column;gap:14px">
+    <h2 style="margin:0;font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:26px;color:#fff">Blocks {{zoom.range}}</h2>
+    <div style="display:flex;flex-wrap:wrap;gap:24px;align-items:flex-start">
+      <div style="flex:none;max-width:100%;overflow:auto;border:1px solid rgba(255,255,255,0.14);border-radius:12px;background:#0f0e1a">
+        <div onMouseDown="{{zoom.click}}" role="img" aria-label="{{zoom.alt}}" style="position:relative;width:960px;height:384px;flex:none;cursor:crosshair;background-image:linear-gradient(rgba(255,255,255,0.05) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.05) 1px,transparent 1px);background-size:24px 24px">
+          <sc-for list="{{zoom.runs}}" as="r" hint-placeholder-count="40"><div style="position:absolute;box-sizing:border-box;display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:12px;color:rgba(255,255,255,0.7);pointer-events:none;{{r.style}}">{{r.glyph}}</div></sc-for>
+          <sc-if value="{{zoom.hl.show}}" hint-placeholder-val="{{false}}"><div style="position:absolute;box-sizing:border-box;border:2px solid #ffaa40;border-radius:4px;background:rgba(255,170,64,0.1);pointer-events:none;{{zoom.hl.style}}"></div></sc-if>
+          <sc-for list="{{zoom.things}}" as="t" hint-placeholder-count="12"><div style="position:absolute;box-sizing:border-box;display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-weight:500;font-size:16px;line-height:1;pointer-events:none;{{t.style}}">{{t.glyph}}</div></sc-for>
+          <sc-if value="{{zoom.sel.show}}" hint-placeholder-val="{{false}}"><div style="position:absolute;box-sizing:border-box;border:2px solid #fff;border-radius:3px;pointer-events:none;{{zoom.sel.style}}"></div></sc-if>
+        </div>
+      </div>
+      <div style="flex:1 1 280px;min-width:0;display:flex;flex-direction:column;gap:12px">
+        <div style="border:1px solid rgba(255,170,64,0.45);border-radius:14px;background:rgba(255,170,64,0.05);padding:16px 18px;display:flex;flex-direction:column;gap:6px">
+          <span style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#ffaa40">{{info.where}}</span>
+          <span style="color:#fff">{{info.tile}}</span>
+          <span style="color:#b4bfce;font-size:14px">{{info.things}}</span>
+          <span style="color:#b4bfce;font-size:13.5px">{{info.script}}</span>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <span style="font-size:13px;color:#b4bfce">Key</span>
+          <div style="display:flex;flex-wrap:wrap;gap:6px 14px;font-size:13px;color:#e0e0e0"><sc-for list="{{legend}}" as="k" hint-placeholder-count="14"><span style="display:inline-flex;align-items:center;gap:6px"><span style="width:16px;height:16px;border-radius:3px;display:inline-flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:11px;{{k.style}}">{{k.glyph}}</span>{{k.name}}</span></sc-for></div>
+        </div>
+        <div style="font-size:13px;color:#b4bfce">Blocks are numbered from the bottom, so y 0 is the lowest row. Rows 16 to 27 are empty except the tall wall at x 171, so this view stops at row 15.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- rows of snacks -->
+  <section style="display:flex;flex-direction:column;gap:14px">
+    <h2 style="margin:0;font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:26px;color:#fff">Rows of snacks</h2>
+    <p style="margin:0;max-width:820px;color:#b4bfce">Each snack sits in the middle of one block, so a row of snacks close together is a row of neighbouring blocks. One line of script does it: <code>row cheezie x=17..20 y=7</code> is four cheezies on blocks 17, 18, 19 and 20. Add <code>by=3</code> to leave gaps. Choose a row to see it in the level.</p>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(330px,1fr));gap:12px">
+      <sc-for list="{{rows}}" as="r" hint-placeholder-count="6">
+        <button onClick="{{r.pick}}" style="text-align:left;border-radius:12px;padding:14px 16px;display:flex;flex-direction:column;gap:4px;min-height:44px;{{r.style}}"><span style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#fff">{{r.line}}</span><span style="font-size:13.5px;color:#b4bfce">{{r.what}}</span></button>
+      </sc-for>
+    </div>
+  </section>
+
+  <!-- verification -->
+  <section style="display:flex;flex-direction:column;gap:14px">
+    <h2 style="margin:0;font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:26px;color:#fff">How we know it is the real level</h2>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px">
+      <sc-for list="{{checks}}" as="c" hint-placeholder-count="4"><div style="border:1px solid rgba(46,198,106,0.4);border-radius:12px;background:rgba(46,198,106,0.05);padding:14px 16px;display:flex;flex-direction:column;gap:2px"><span style="font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:22px;color:#fff">{{c.big}}</span><span style="color:#b4bfce;font-size:13.5px">{{c.small}}</span></div></sc-for>
+    </div>
+    <ul style="margin:0;padding-left:22px;display:flex;flex-direction:column;gap:8px;color:#b4bfce;max-width:880px">
+      <sc-for list="{{how}}" as="h" hint-placeholder-count="4"><li>{{h}}</li></sc-for>
+    </ul>
+  </section>
+
+  <section style="border:1px solid rgba(251,191,36,0.5);border-radius:14px;background:rgba(251,191,36,0.05);padding:18px 20px;display:flex;flex-direction:column;gap:8px">
+    <span style="font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:18px;color:#fff">A mismatch to know about</span>
+    <span style="color:#e0e0e0;font-size:14.5px">The real language counts <code>y</code> up from the bottom, so ground is a low number and the sky is a high one, as on this page. The prototype's small sample level counts rows from the top, so its script shows different numbers for the same picture, and that sample is not a real level. The walkthrough's paint demo now counts from the bottom like real scripts. Making the prototype load this real level, with the same numbering, is the fix.</span>
+  </section>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":3200}}'>
+class Component extends DCLogic {
+  // The game's own tile data for crater(), one string per row from y 0 (the bottom) to y 27, one character per block (0 to 9, then a to z).
+  tileRows() {
+    return [
+      '211111111111111111111111111111111111111111111111111111100011111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111112',
+      '211111111111111111111111111115555111111111111111111111100011111111111111111111111111111111111111111111111555555111111111111111111111111111111111111111111111111111111111111111111111111111111112',
+      '211111111111111111111111111115555111111111111111111111100011111111111111111111111111111111111111111111111555555111111111111111111111111111111111111111111111111111111111111111111111111111111112',
+      '211111111111111111111111111110000111111111111111111111100011111111111111111111111111111111111111111111111000000111111111111111111111111111111111111111111111111111111111111111111111111111111112',
+      '2000000000g000611111111700g000000000000008911111111111100011111111111ab00000044440000000000611111111111170000000000000g0089111111111111111111117000000g00000444000000006111111111111111111111112',
+      '2000000000000006111111700000000000000000000891111111111000111111111ab000000000000000000000006111111111170003300000000000000891111111111111111170000000000000000000000000611111111111111111111112',
+      '200000000000000000000000000000000000000000000000000000000000g00000000000000000000000000000000611111111700000000000000000000008911111111111111700000000000000000000000000000c000000g0000000h00002',
+      '20000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000g000000000000000000000000000000000000000000000000000000000000000000000000c00000000000000h00002',
+      '200000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000200000000000000000002',
+      '200000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000200000000000000000002',
+      '200000003330000000000000000000000000000000000000022200000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000200000000000000000002',
+      '200000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000200000000000000000002',
+      '200000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000003333000000000000000000000000000000000000200000000000000000002',
+      '200000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000200000000000000000002',
+      '200000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000200000000000000000002',
+      '200000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000200000000000000000002',
+      '200000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000200000000000000000002',
+      '200000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000200000000000000000002',
+      '200000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000200000000000000000002',
+      '200000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000200000000000000000002',
+      '200000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000200000000000000000002',
+      '200000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000200000000000000000002',
+      '200000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000200000000000000000002',
+      '200000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000200000000000000000002',
+      '200000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000200000000000000000002',
+      '200000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000200000000000000000002',
+      '200000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000200000000000000000002',
+      '200000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000200000000000000000002'
+    ];
+  }
+  itemData() {
+    return [['Cheezie',17,7],['Cheezie',18,7],['Cheezie',19,7],['Cheezie',20,7],['Cheezie',29,7],['Cheezie',30,7],['Cheezie',31,7],['Cheezie',32,7],['Soda',36,5],['Choc',46,8],['Choc',49,8],['Choc',52,8],['Cookie',50,11],['Cheezie',105,8],['Cheezie',106,8],['Cheezie',107,8],['Cheezie',108,8],['Cheezie',109,8],['Cheezie',110,8],['Cheezie',72,5],['Cheezie',73,5],['Cheezie',74,5],['Choc',94,8],['Choc',96,8],['Choc',98,8],['Choc',100,8],['Soda',125,9],['Cheezie',128,8],['Cheezie',130,8],['Cheezie',132,8],['Cheezie',134,8],['Cheezie',136,8],['KeyRed',132,13],['Choc',146,5],['Choc',149,5],['Choc',152,5],['Cookie',157,7],['Cheezie',175,7],['Cheezie',177,7],['Cheezie',179,7],['Cheezie',181,7],['Cookie',9,11],['Cheezie',8,11],['Cheezie',10,11]];
+  }
+  spawnData() {
+    return [['Gloop',35,4],['Gloop',62,6],['Gloop',85,4],['Hopper',97,7],['Hopper',148,4],['Marsh',115,4],['Pod',136,7],['Drone',88,7],['Drone',165,7]];
+  }
+  tileDefs() {
+    return {
+      '1': { name: 'fill (ground)', bg: '#2b2540', glyph: '' },
+      '2': { name: 'block (wall)', bg: '#6a58a8', glyph: '' },
+      '3': { name: 'one-way platform', bg: 'linear-gradient(#ffaa40 0 30%, transparent 30%)', glyph: '' },
+      '4': { name: 'spikes', bg: 'rgba(244,63,94,0.18)', glyph: '^' },
+      '5': { name: 'chocolate pool', bg: '#7a4527', glyph: '~' },
+      '6': { name: 'slope up, right (45°)', bg: '#4d3f80', glyph: '/' },
+      '7': { name: 'slope up, left (45°)', bg: '#4d3f80', glyph: '\\' },
+      '8': { name: 'gentle slope down, a', bg: '#4d3f80', glyph: '\\' },
+      '9': { name: 'gentle slope down, b', bg: '#4d3f80', glyph: '\\' },
+      'a': { name: 'gentle slope up, a', bg: '#4d3f80', glyph: '/' },
+      'b': { name: 'gentle slope up, b', bg: '#4d3f80', glyph: '/' },
+      'c': { name: 'red door', bg: '#b3263f', glyph: '' },
+      'g': { name: 'crystal', bg: 'rgba(34,211,238,0.28)', glyph: '◇' },
+      'h': { name: 'exit', bg: 'rgba(46,198,106,0.32)', glyph: '>' }
+    };
+  }
+  thingGlyphs() {
+    return {
+      Cheezie: ['•', '#fbbf24'], Soda: ['s', '#22d3ee'], Choc: ['c', '#d9a27c'], Cookie: ['o', '#f0c27a'], KeyRed: ['k', '#f43f5e'],
+      Gloop: ['g', '#f43f5e'], Hopper: ['h', '#f43f5e'], Marsh: ['m', '#f43f5e'], Pod: ['p', '#f43f5e'], Drone: ['d', '#f43f5e']
+    };
+  }
+  snackRows() {
+    return [
+      { line: 'row cheezie x=17..20 y=7', what: 'Four cheezies on four neighbouring blocks, the closest a row can be.', x0: 17, x1: 20, y: 7, win: 0 },
+      { line: 'row cheezie x=29..32 y=7', what: 'Another four in a row, just after the first chocolate pool.', x0: 29, x1: 32, y: 7, win: 0 },
+      { line: 'row choc x=46..52 y=8 by=3', what: 'By 3 leaves two empty blocks between each: blocks 46, 49 and 52.', x0: 46, x1: 52, y: 8, win: 1 },
+      { line: 'row cheezie x=72..74 y=5', what: 'Three on neighbouring blocks.', x0: 72, x1: 74, y: 5, win: 2 },
+      { line: 'row cheezie x=105..110 y=8', what: 'Six in a row, the longest in the level.', x0: 105, x1: 110, y: 8, win: 2 },
+      { line: 'row cheezie x=128..136 y=8 by=2', what: 'By 2 leaves one empty block between each, five in all.', x0: 128, x1: 136, y: 8, win: 3 }
+    ];
+  }
+  defaults() { return { win: 0, sel: null, hl: null }; }
+  cur() { return Object.assign({}, this.defaults(), this.state || {}); }
+  starts() { return [0, 38, 76, 114, 152]; }
+  runsOf(rows, x0, x1) {
+    const out = [];
+    rows.forEach((row, y) => {
+      let x = Math.max(0, x0);
+      while (x < Math.min(192, x1)) {
+        const c = row[x];
+        if (c === '0') { x++; continue; }
+        let e = x;
+        while (e + 1 < Math.min(192, x1) && row[e + 1] === c) e++;
+        out.push({ x: x, y: y, len: e - x + 1, id: c });
+        x = e + 1;
+      }
+    });
+    return out;
+  }
+  renderVals() {
+    const s = this.cur();
+    const rows = this.tileRows(), defs = this.tileDefs(), glyphs = this.thingGlyphs();
+    const items = this.itemData(), spawns = this.spawnData();
+    const starts = this.starts();
+    const x0 = starts[s.win], x1 = x0 + 40;
+    const T = 24, O = 6;
+
+    const overview = {
+      runs: this.runsOf(rows, 0, 192).filter((r) => r.y < 16).map((r) => ({ style: 'left:' + (r.x * O) + 'px;top:' + ((15 - r.y) * O) + 'px;width:' + (r.len * O) + 'px;height:' + O + 'px;background:' + (defs[r.id] ? (defs[r.id].bg.indexOf('gradient') >= 0 ? '#ffaa40' : defs[r.id].bg) : '#888') })),
+      marks: items.map((i) => ({ style: 'left:' + (i[1] * O) + 'px;top:' + ((15 - i[2]) * O) + 'px;background:' + glyphs[i[0]][1] })).concat(spawns.map((p) => ({ style: 'left:' + (p[1] * O) + 'px;top:' + ((15 - p[2]) * O) + 'px;background:#f43f5e;border-radius:1px' }))),
+      frame: 'left:' + (x0 * O - 1) + 'px;top:-1px;width:' + (40 * O + 2) + 'px;height:' + (16 * O + 2) + 'px'
+    };
+    const windows = starts.map((st, i) => { const on = i === s.win; return { label: st + '–' + (st + 39), on: on ? 'true' : 'false', style: 'border:1px solid ' + (on ? '#ffaa40' : 'rgba(255,255,255,0.18)') + ';background:' + (on ? 'rgba(255,170,64,0.12)' : 'transparent') + ';color:' + (on ? '#ffffff' : '#b4bfce'), pick: () => this.setState({ win: i, sel: null, hl: null }) }; });
+
+    const zrun = [];
+    this.runsOf(rows, x0, x1).filter((r) => r.y < 16).forEach((r) => {
+      const d = defs[r.id] || { bg: '#888', glyph: '?' };
+      const cells = d.glyph ? r.len : 1;
+      const w = d.glyph ? 1 : r.len;
+      for (let k = 0; k < cells; k++) zrun.push({ style: 'left:' + ((r.x + k - x0) * T) + 'px;top:' + ((15 - r.y) * T) + 'px;width:' + (w * T) + 'px;height:' + T + 'px;background:' + d.bg, glyph: d.glyph });
+    });
+    const things = [];
+    items.forEach((i) => { if (i[1] >= x0 && i[1] < x1 && i[2] < 16) { const g = glyphs[i[0]]; things.push({ glyph: g[0], style: 'left:' + ((i[1] - x0) * T) + 'px;top:' + ((15 - i[2]) * T) + 'px;width:' + T + 'px;height:' + T + 'px;color:' + g[1] }); } });
+    spawns.forEach((p) => { if (p[1] >= x0 && p[1] < x1 && p[2] < 16) { const g = glyphs[p[0]]; things.push({ glyph: g[0], style: 'left:' + ((p[1] - x0) * T) + 'px;top:' + ((15 - p[2]) * T) + 'px;width:' + T + 'px;height:' + T + 'px;color:' + g[1] + ';background:rgba(244,63,94,0.16);border-radius:4px' }); } });
+    if (3 >= x0 && 3 < x1) things.push({ glyph: '@', style: 'left:' + ((3 - x0) * T) + 'px;top:' + ((15 - 4) * T) + 'px;width:' + T + 'px;height:' + T + 'px;color:#ffffff' });
+
+    const hl = s.hl && s.hl.x1 >= x0 && s.hl.x0 < x1 ? { show: true, style: 'left:' + ((Math.max(s.hl.x0, x0) - x0) * T - 2) + 'px;top:' + ((15 - s.hl.y) * T - 2) + 'px;width:' + ((Math.min(s.hl.x1, x1 - 1) - Math.max(s.hl.x0, x0) + 1) * T + 4) + 'px;height:' + (T + 4) + 'px' } : { show: false, style: '' };
+    const sel = s.sel && s.sel.x >= x0 && s.sel.x < x1 ? { show: true, style: 'left:' + ((s.sel.x - x0) * T) + 'px;top:' + ((15 - s.sel.y) * T) + 'px;width:' + T + 'px;height:' + T + 'px' } : { show: false, style: '' };
+
+    const tileAt = (x, y) => rows[y][x];
+    let info = { where: 'Click a block', tile: 'Nothing chosen yet.', things: 'Each block holds one kind of tile. Items and enemies are listed separately and sit in the middle of a block.', script: '' };
+    if (s.sel) {
+      const x = s.sel.x, y = s.sel.y, c = tileAt(x, y);
+      const here = items.filter((i) => i[1] === x && i[2] === y).map((i) => i[0].toLowerCase()).concat(spawns.filter((p) => p[1] === x && p[2] === y).map((p) => p[0].toLowerCase() + ' (enemy)'));
+      if (x === 3 && y === 4) here.push('Ben\'s start');
+      const row = this.snackRows().filter((r) => y === r.y && x >= r.x0 && x <= r.x1)[0];
+      info = {
+        where: 'x ' + x + ', y ' + y,
+        tile: c === '0' ? 'Empty air: no tile.' : 'Tile: ' + (defs[c] ? defs[c].name : 'id ' + c),
+        things: here.length ? 'On this block: ' + here.join(', ') + '.' : 'Nothing is placed on this block.',
+        script: row ? 'Written by the line: ' + row.line : ''
+      };
+    }
+    const zoom = {
+      range: x0 + ' to ' + (x1 - 1), alt: 'Crater Fields, blocks ' + x0 + ' to ' + (x1 - 1) + ', rows 0 to 15',
+      runs: zrun, things: things, hl: hl, sel: sel,
+      click: (e) => {
+        const el = e && e.currentTarget;
+        if (!el || !el.getBoundingClientRect) return;
+        const r = el.getBoundingClientRect();
+        const k = r.width / 960;
+        const cx = Math.floor((e.clientX - r.left) / k / T), cy = Math.floor((e.clientY - r.top) / k / T);
+        if (cx < 0 || cx > 39 || cy < 0 || cy > 15) return;
+        this.setState({ sel: { x: x0 + cx, y: 15 - cy } });
+      }
+    };
+
+    const legend = [['1', 'fill'], ['2', 'block'], ['3', 'one-way'], ['4', 'spikes'], ['5', 'chocolate'], ['6', 'slope'], ['c', 'red door'], ['g', 'crystal'], ['h', 'exit']].map((k) => ({ name: k[1], glyph: defs[k[0]].glyph, style: 'background:' + defs[k[0]].bg + ';color:#e0e0e0' }))
+      .concat([['•', 'cheezie', '#fbbf24'], ['s', 'soda', '#22d3ee'], ['c', 'chocolate bar', '#d9a27c'], ['o', 'cookie', '#f0c27a'], ['k', 'red key', '#f43f5e'], ['g h m p d', 'enemies', '#f43f5e'], ['@', 'Ben\'s start', '#ffffff']].map((k) => ({ name: k[1], glyph: k[0].length > 1 ? 'g' : k[0], style: 'color:' + k[2] })));
+
+    const rowsV = this.snackRows().map((r) => { const on = !!(s.hl && s.hl.x0 === r.x0 && s.hl.y === r.y); return Object.assign({}, r, { style: 'border:1px solid ' + (on ? '#ffaa40' : 'rgba(255,255,255,0.14)') + ';background:' + (on ? 'rgba(255,170,64,0.08)' : 'rgba(255,255,255,0.03)'), pick: () => this.setState({ win: r.win, hl: { x0: r.x0, x1: r.x1, y: r.y }, sel: null }) }); });
+
+    return {
+      answers: [
+        { q: 'How big is a block?', a: 'One block is one tile. In the game a tile is 16 by 16 sprite pixels (the engine\'s TILE_PX is 16), drawn larger to fit the screen. The editor draws a block 32 px wide at its starting zoom and steps through 16, 24, 32 and 48; this page uses 24.' },
+        { q: 'One snack per block?', a: 'Yes: the language puts each item in the middle of a whole block, so two snacks cannot share one. A tight row is a row of neighbouring blocks, written in one line with row. The game itself stores items at any position, but the script language does not write fractional ones yet.' },
+        { q: 'Do these blocks match the real level?', a: 'Yes, for this level. The data on this page is the game\'s own, and the studio\'s block renderer agrees with it on every one of 5,376 blocks, all 44 items, all 9 enemies and the start. Only Crater Fields has been checked so far.' }
+      ],
+      overview: overview, windows: windows, zoom: zoom, info: info, legend: legend, rows: rowsV,
+      checks: [
+        { big: '5,376 of 5,376', small: 'blocks agree with the game' },
+        { big: '44 of 44', small: 'items, in order, at the same cells' },
+        { big: '9 of 9', small: 'enemies, at the same heights' },
+        { big: 'Start agrees', small: 'Ben begins at block 3, row 4' }
+      ],
+      how: [
+        'The game builds Crater Fields in its own Rust code. A test in a scratch copy of the game\'s crates writes out every tile, item and enemy that code makes.',
+        'The studio reads the level script (crater.fizz) and draws it with its own block renderer, the one Claude uses to look at a level.',
+        'A script compares the two, block by block, item by item, enemy by enemy. This page draws the game\'s data directly, so what you see here is what the game builds.',
+        'Earlier, the exporter\'s Rust for the same script was shown to build a level identical to the hand-written one, down to a fingerprint of the whole level. Only this one level has been checked; other levels are not scripted yet.'
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

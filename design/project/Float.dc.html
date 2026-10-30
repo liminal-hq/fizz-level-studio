@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Floating panels arrangement</title>
+<script src="./support.js"></script>
+<script src="./level-data.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@500;600;700&display=swap">
+<style>body{margin:0;background:#050507}button{font-family:inherit;cursor:pointer}button:focus-visible,input:focus-visible{outline:2px solid #ffaa40;outline-offset:1px}</style>
+</helmet>
+<div style="width:1440px;height:900px;box-sizing:border-box;display:flex;flex-direction:column;background:#050507;color:#e0e0e0;font-family:Inter,system-ui,sans-serif;font-size:13px;overflow:hidden">
+
+  <div style="height:40px;flex:none;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;padding:0 12px 0 16px;background:#0c0c10;border-bottom:1px solid rgba(255,255,255,0.08)">
+    <span style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:14px;background:linear-gradient(135deg,#ffaa40,#f43f5e,#a78bfa);-webkit-background-clip:text;background-clip:text;color:transparent">fizz level studio</span>
+    <span style="font-weight:500;color:#fff">Crater Fields — draft</span>
+    <div style="display:flex;justify-content:flex-end;gap:2px">
+      <button aria-label="Minimise" style="width:36px;height:28px;border:none;border-radius:6px;background:transparent;color:#b4bfce"><svg aria-hidden="true" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 8h10"/></svg></button>
+      <button aria-label="Maximise" style="width:36px;height:28px;border:none;border-radius:6px;background:transparent;color:#b4bfce"><svg aria-hidden="true" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="10" height="10" rx="1.5"/></svg></button>
+      <button aria-label="Close" style="width:36px;height:28px;border:none;border-radius:6px;background:transparent;color:#b4bfce"><svg aria-hidden="true" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 4l8 8M12 4l-8 8"/></svg></button>
+    </div>
+  </div>
+
+  <div style="position:relative;flex-grow:1;min-height:0;background-color:#050507;background-image:radial-gradient(rgba(255,255,255,0.07) 1px,transparent 1px);background-size:24px 24px">
+
+    <div style="position:absolute;left:32px;top:32px;display:grid;grid-template-columns:repeat({{cols}},24px);grid-auto-rows:24px;border:1px solid rgba(255,255,255,0.14);border-radius:4px;background:#0f0e1a;box-shadow:0 4px 24px rgba(0,0,0,0.45);overflow:hidden">
+      <sc-for list="{{cells}}" as="c" hint-placeholder-count="20">
+        <div style="width:24px;height:24px;box-sizing:border-box;background:{{c.bg}};outline:{{c.outline}};outline-offset:-1px;opacity:{{c.opacity}};display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:500;line-height:1;color:{{c.ink}}">{{c.glyph}}</div>
+      </sc-for>
+    </div>
+
+    <!-- dock hints -->
+    <div style="position:absolute;right:12px;top:12px;bottom:12px;width:60px;border:1.5px dashed rgba(255,170,64,0.4);border-radius:12px;display:flex;align-items:center;justify-content:center"><span style="writing-mode:vertical-rl;color:#ffaa40;font-size:12px">Drop here to dock</span></div>
+
+    <!-- tools panel -->
+    <div style="position:absolute;left:32px;top:440px;width:200px;border-radius:12px;border:1px solid rgba(255,255,255,0.1);background:rgba(20,20,25,0.7);backdrop-filter:blur(10px);box-shadow:0 10px 30px rgba(0,0,0,0.3);overflow:hidden">
+      <div style="display:flex;align-items:center;gap:8px;padding:8px 12px;border-bottom:1px solid rgba(255,255,255,0.08);cursor:grab"><svg aria-hidden="true" width="12" height="12" viewBox="0 0 12 12" fill="#7c8796"><circle cx="3" cy="3" r="1.2"/><circle cx="9" cy="3" r="1.2"/><circle cx="3" cy="6" r="1.2"/><circle cx="9" cy="6" r="1.2"/><circle cx="3" cy="9" r="1.2"/><circle cx="9" cy="9" r="1.2"/></svg><span style="font-weight:500;color:#fff">Tiles</span></div>
+      <div style="padding:10px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px">
+        <sc-for list="{{palette}}" as="p" hint-placeholder-count="8">
+          <button style="display:flex;align-items:center;gap:8px;min-height:36px;padding:0 8px;border-radius:8px;border:1px solid {{p.ring}};background:{{p.fill}};color:#e0e0e0;font-size:12px"><span style="width:16px;height:16px;border-radius:3px;background:{{p.sw}};flex:none"></span>{{p.name}}</button>
+        </sc-for>
+      </div>
+    </div>
+
+    <!-- Claude panel -->
+    <div style="position:absolute;left:260px;top:440px;width:340px;border-radius:12px;border:1px solid rgba(167,139,250,0.4);background:rgba(20,20,25,0.7);backdrop-filter:blur(10px);box-shadow:0 10px 30px rgba(0,0,0,0.3);overflow:hidden">
+      <div style="display:flex;align-items:center;gap:8px;padding:8px 12px;border-bottom:1px solid rgba(255,255,255,0.08);cursor:grab"><span style="width:8px;height:8px;border-radius:50%;background:#a78bfa"></span><span style="font-weight:500;color:#fff">Claude</span><span style="flex-grow:1"></span><span style="color:#7c8796;font-size:12px">Propose</span></div>
+      <div style="padding:14px;display:flex;flex-direction:column;gap:12px">
+        <div style="color:#b4bfce;line-height:1.5">I put three stepping stones over the chocolate pool, shown as ghosts on the level.</div>
+        <div style="display:flex;gap:8px"><button style="min-height:44px;padding:0 16px;border-radius:999px;border:none;background:#ffaa40;color:#050507;font-weight:600">Accept</button><button style="min-height:44px;padding:0 16px;border-radius:999px;border:1px solid rgba(255,255,255,0.22);background:transparent;color:#e0e0e0;font-weight:500">Not that</button></div>
+      </div>
+    </div>
+
+    <!-- floating editor -->
+    <div style="position:absolute;left:640px;top:300px;width:600px;height:400px;border-radius:12px;border:1px solid rgba(255,255,255,0.22);background:rgba(12,12,16,0.92);backdrop-filter:blur(10px);box-shadow:0 20px 60px rgba(0,0,0,0.6);display:flex;flex-direction:column;overflow:hidden">
+      <div style="flex:none;display:flex;align-items:center;gap:8px;padding:0 8px 0 12px;height:40px;border-bottom:1px solid rgba(255,255,255,0.08);cursor:grab">
+        <svg aria-hidden="true" width="12" height="12" viewBox="0 0 12 12" fill="#7c8796"><circle cx="3" cy="3" r="1.2"/><circle cx="9" cy="3" r="1.2"/><circle cx="3" cy="6" r="1.2"/><circle cx="9" cy="6" r="1.2"/><circle cx="3" cy="9" r="1.2"/><circle cx="9" cy="9" r="1.2"/></svg>
+        <span style="font-weight:500;color:#fff;font-family:'JetBrains Mono',monospace;font-size:12px">crater.fizz</span>
+        <span style="flex-grow:1"></span>
+        <button style="min-height:28px;padding:0 10px;border-radius:6px;border:1px solid rgba(255,255,255,0.14);background:transparent;color:#b4bfce;font-size:12px">Dock beside</button>
+        <button style="min-height:28px;padding:0 10px;border-radius:6px;border:1px solid rgba(255,255,255,0.14);background:transparent;color:#b4bfce;font-size:12px">Pin on top</button>
+      </div>
+      <div style="flex-grow:1;min-height:0;padding:10px 0;font-family:'JetBrains Mono',monospace;font-size:12px;line-height:1.65;overflow:hidden">
+        <sc-for list="{{lines}}" as="l" hint-placeholder-count="20">
+          <div style="display:flex;background:{{l.bg}}"><span style="width:40px;flex:none;text-align:right;padding-right:12px;color:#7c8796;box-sizing:border-box">{{l.n}}</span><span style="width:14px;flex:none;color:#a78bfa">{{l.mark}}</span><span style="white-space:pre;color:{{l.ink}}">{{l.text}}</span></div>
+        </sc-for>
+      </div>
+      <div style="position:absolute;right:4px;bottom:4px;width:14px;height:14px;border-right:2px solid #7c8796;border-bottom:2px solid #7c8796;border-radius:0 0 6px 0"></div>
+    </div>
+
+    <!-- palette pill -->
+    <div style="position:absolute;left:640px;bottom:20px;display:flex;align-items:center;gap:10px;padding:6px 16px;border-radius:999px;border:1px solid rgba(255,255,255,0.1);background:rgba(20,20,25,0.55);backdrop-filter:blur(10px);color:#b4bfce;font-size:12px"><span>Panels</span><span style="color:#7c8796">Tiles</span><span style="color:#a78bfa">Claude</span><span style="color:#ffaa40">Script</span><span style="color:#7c8796">Checks</span></div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const lv = window.FizzLevel.cells({ ghosts: true });
+    const lines = window.FizzLevel.script().map((r, i) => ({
+      n: i + 1, mark: r[1], text: r[0], bg: r[1] ? 'rgba(167,139,250,0.14)' : 'transparent',
+      ink: (/^[a-z]+$/.test(r[0]) && r[0] !== '') ? '#ffaa40' : (r[1] ? '#fff' : '#e0e0e0')
+    }));
+    const pal = [['Fill', '#2b2540'], ['Block', '#6a58a8'], ['One-way', '#ffaa40'], ['Chocolate', '#7a4527'], ['Spikes', '#f43f5e'], ['Gloop', '#f43f5e'], ['Cheezie', '#fbbf24'], ['Soda', '#22d3ee']];
+    return { cols: lv.cols, cells: lv.cells, lines: lines, palette: pal.map((p, i) => ({ name: p[0], sw: p[1], ring: i === 1 ? '#ffaa40' : 'rgba(255,255,255,0.08)', fill: i === 1 ? 'rgba(255,170,64,0.1)' : 'transparent' })) };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,102 @@
+// Meteor Mesa: rebuilt from the game's own data by tools/decompile-level.ts.
+level "Meteor Mesa" 200x30 ground=4 id=meteor-mesa
+theme open-sky
+area crater-fields
+start 3,4
+
+blocks
+  block x=0 y=0..29
+  fill x=1..19 y=0..3
+  fill x=23..42 y=0..5
+  fill x=46..61 y=0..6
+  fill x=68..96 y=0..4
+  fill x=105..124 y=0..4
+  fill x=130..146 y=0..5
+  fill x=150..166 y=0..3
+  fill x=173..198 y=0..3
+  block x=199 y=0..29
+  one-way x=169..170 y=3
+  crystal-tile x=8 y=4
+  slope-r45 x=12 y=4
+  fill x=13..19 y=4
+  fill x=150..157 y=4
+  slope-l45 x=158 y=4
+  crystal-tile x=182 y=4
+  exit x=195 y=4..5
+  slope-r45 x=13 y=5
+  fill x=14..19 y=5
+  fill x=68..79 y=5
+  slope-l45 x=80 y=5
+  spike x=86..88 y=5
+  crystal-tile x=110 y=5
+  slope-r45 x=113 y=5
+  fill x=114..124 y=5
+  fill x=150..156 y=5
+  slope-l45 x=157 y=5
+  crystal-tile x=30 y=6
+  slope-r45 x=32 y=6
+  fill x=33..42 y=6
+  fill x=68..78 y=6
+  slope-l45 x=79 y=6
+  slope-r45 x=114 y=6
+  fill x=115..124 y=6
+  fill x=130..137 y=6
+  slope-l45 x=138 y=6
+  crystal-tile x=154 y=6
+  slope-r45 x=33 y=7
+  fill x=34..41 y=7
+  slope-l45 x=42 y=7
+  crystal-tile x=50 y=7
+  slope-r22a x=52 y=7
+  slope-r22b x=53 y=7
+  fill x=54..61 y=7
+  one-way x=64..65 y=7
+  fill x=68..77 y=7
+  slope-l45 x=78 y=7
+  slope-r45 x=115 y=7
+  fill x=116..124 y=7
+  fill x=130..136 y=7
+  slope-l45 x=137 y=7
+  slope-r45 x=34 y=8
+  fill x=35..40 y=8
+  slope-l45 x=41 y=8
+  crystal-tile x=74 y=8
+  slope-r45 x=116 y=8
+  fill x=117..124 y=8
+  one-way x=127..128 y=8
+  fill x=130..135 y=8
+  slope-l45 x=136 y=8
+  crystal-tile x=121 y=9
+  hover from=97,4.5 to=103,4.5 speed=0.3
+
+treats
+  row cheezie x=6..10 y=6
+  row choc x=20..24 y=9 by=2
+  row cheezie x=35..40 y=11
+  cookie x=38 y=11
+  soda x=40 y=11
+  row choc x=43..45 y=9 by=2
+  row cheezie x=62..68 y=10
+  row cheezie x=70..76 y=10 by=2
+  row cheezie x=85..89 y=8
+  row choc x=98..102 y=8 by=2
+  row cheezie x=118..122 y=11
+  soda x=122 y=11
+  cookie x=127 y=10
+  row choc x=130..134 y=11 by=2
+  row cheezie x=147..150 y=9
+  row choc x=167..172 y=7
+  row cookie x=185..188 y=6 by=3
+
+enemies
+  gloop x=26 y=6
+  gloop x=48 y=7
+  gloop x=72 y=8
+  gloop x=180 y=4
+  hopper x=57 y=8
+  hopper x=120 y=9
+  hopper x=162 y=4
+  gloop x=154 y=6
+  pod x=108 y=5
+  drone x=84.5 y=11.5
+  drone x=141 y=12.5

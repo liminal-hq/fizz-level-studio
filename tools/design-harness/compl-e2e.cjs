@@ -1,0 +1,37 @@
+const { chromium } = require('/home/scott/source/liminal-hq/lieutenant-fizz/node_modules/@playwright/test');
+const results = []; const ok = (n, c, x) => results.push((c ? 'PASS ' : 'FAIL ') + n + (x ? ' — ' + x : ''));
+(async () => {
+  const exe = process.env.HOME + '/.cache/ms-playwright/chromium_headless_shell-1228/chrome-headless-shell-linux64/chrome-headless-shell';
+  const b = await chromium.launch({ executablePath: exe, args: ['--mute-audio'] });
+  const p = await b.newPage({ viewport: { width: 1440, height: 900 } });
+  const errs = []; p.on('console', (m) => { if (m.type() === 'error' && !/attribute d:/.test(m.text())) errs.push(m.text().slice(0, 200)); }); p.on('pageerror', (e) => errs.push('pageerror ' + e));
+  await p.goto('http://127.0.0.1:8765/Proto.dc.html'); await p.waitForTimeout(3500);
+  const txt = () => p.evaluate(() => document.body.innerText);
+  const box = p.locator('#typeline');
+  await box.click(); await box.fill('pa'); await p.waitForTimeout(300);
+  ok('typing "pa" suggests paint', (await p.locator('[role=option]').count()) >= 1 && /paint/.test(await p.locator('[role=listbox]').innerText()), (await p.locator('[role=listbox]').innerText().catch(() => '')).split('\n').slice(0, 3).join('|'));
+  await p.screenshot({ path: process.env.H + '/compl1.png' });
+  await box.press('Tab'); await p.waitForTimeout(250);
+  ok('Tab accepts it', (await box.inputValue()) === 'paint ', JSON.stringify(await box.inputValue()));
+  await box.pressSequentially('on'); await p.waitForTimeout(250);
+  ok('after paint, tile words are offered', /one-way/.test(await p.locator('[role=listbox]').innerText()));
+  await box.press('Tab'); await box.pressSequentially('x'); await p.waitForTimeout(250);
+  ok('fields are offered after the tile', /x=/.test(await p.locator('[role=listbox]').innerText()));
+  await box.fill('hover fr'); await p.waitForTimeout(250);
+  ok('hover offers its fields', /from=/.test(await p.locator('[role=listbox]').innerText()));
+  await box.fill('hover from=3,6 to=9,6 speed=0.3 size=3x0.5 dwell=1'); await p.waitForTimeout(150);
+  await box.press('Enter'); await p.waitForTimeout(400);
+  await p.getByRole('button', { name: 'Expand objects' }).click().catch(() => {}); await p.waitForTimeout(250);
+  ok('a typed hover line adds a lift', /Lift 3,6 to 9,6|Lift 3,7 to 9,7/.test(await txt()) && /hover from=3,6 to=9,6 speed=0.3 size=3x0.5 dwell=1/.test(await txt()), (await txt()).match(/Lift [^\n]*/g) + '');
+  await box.fill('gl'); await p.waitForTimeout(250);
+  ok('enemy words are offered', /gloop/.test(await p.locator('[role=listbox]').innerText()));
+  await box.press('Escape'); await p.waitForTimeout(150);
+  ok('Escape closes the list', (await p.locator('[role=listbox]').count()) === 0);
+  await box.fill('');
+  // Paths lens
+  await p.getByRole('button', { name: 'Paths' }).click(); await p.waitForTimeout(500);
+  const t = await txt();
+  ok('the paths lens tags a gloop', /gloop: \d+ tiles/.test(t) || /marsh: turns only at walls/.test(t), t.match(/(gloop|marsh|drone|hopper):[^\n]*/g) + '');
+  await p.screenshot({ path: process.env.H + '/paths1.png' });
+  console.log(results.join('\n')); console.log('errors', errs); await b.close();
+})().catch((e) => { console.log(results.join('\n')); console.log('CRASH', e); process.exit(1); });

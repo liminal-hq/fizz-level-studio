@@ -1,0 +1,399 @@
+{
+  "v": 3,
+  "attachments": {},
+  "boards": {
+    "Canvas.dc.html": {
+      "h": 900,
+      "title": "B \u00b7 Canvas first",
+      "w": 1440,
+      "x": 0,
+      "y": 1800
+    },
+    "Chat.dc.html": {
+      "h": 900,
+      "title": "D \u00b7 Conversation first",
+      "w": 1440,
+      "x": 3040,
+      "y": 1800
+    },
+    "Float.dc.html": {
+      "h": 900,
+      "title": "E \u00b7 Floating panels",
+      "w": 1440,
+      "x": 0,
+      "y": 3000
+    },
+    "Language.dc.html": {
+      "h": 900,
+      "title": "The builder language",
+      "w": 1120,
+      "x": 2720,
+      "y": 0
+    },
+    "Logos.dc.html": {
+      "h": 900,
+      "title": "Logo ideas",
+      "w": 1440,
+      "x": 0,
+      "y": 4300
+    },
+    "Logos2.dc.html": {
+      "h": 900,
+      "title": "Ben logo ideas",
+      "w": 1440,
+      "x": 1520,
+      "y": 4300
+    },
+    "Main.dc.html": {
+      "h": 900,
+      "is_interactive": true,
+      "title": "A \u00b7 Workbench (interactive)",
+      "w": 1440,
+      "x": 0,
+      "y": 0
+    },
+    "Overlay.dc.html": {
+      "h": 900,
+      "title": "G \u00b7 Layered overlay",
+      "w": 1440,
+      "x": 3040,
+      "y": 3000
+    },
+    "Script.dc.html": {
+      "h": 900,
+      "title": "C \u00b7 Script first",
+      "w": 1440,
+      "x": 1520,
+      "y": 1800
+    },
+    "Split.dc.html": {
+      "h": 900,
+      "title": "F \u00b7 Side-by-side split",
+      "w": 1440,
+      "x": 1520,
+      "y": 3000
+    },
+    "Tools.dc.html": {
+      "h": 900,
+      "title": "The MCP surface",
+      "w": 1120,
+      "x": 1520,
+      "y": 0
+    },
+    "Work1.dc.html": {
+      "h": 900,
+      "title": "H1 \u00b7 Snapped panels",
+      "w": 1440,
+      "x": 0,
+      "y": 5600
+    },
+    "Work2.dc.html": {
+      "h": 900,
+      "title": "H2 \u00b7 Overlay editor",
+      "w": 1440,
+      "x": 1520,
+      "y": 5600
+    },
+    "Work3.dc.html": {
+      "h": 900,
+      "title": "H3 \u00b7 Conversation led",
+      "w": 1440,
+      "x": 3040,
+      "y": 5600
+    },
+    "Workspace.dc.html": {
+      "h": 900,
+      "title": "H \u00b7 Design workspace",
+      "w": 1440,
+      "x": 4560,
+      "y": 3000
+    },
+    "Logos3.dc.html": {
+      "x": 3040,
+      "y": 4300,
+      "w": 1440,
+      "h": 900,
+      "title": "Game feature logo ideas"
+    },
+    "Work4.dc.html": {
+      "x": 0,
+      "y": 6720,
+      "w": 1440,
+      "h": 900,
+      "title": "H4 \u00b7 Docked tabs and review"
+    },
+    "Work5.dc.html": {
+      "x": 1520,
+      "y": 6720,
+      "w": 1440,
+      "h": 900,
+      "title": "H5 \u00b7 Context ring and history"
+    },
+    "Work6.dc.html": {
+      "x": 3040,
+      "y": 6720,
+      "w": 1440,
+      "h": 900,
+      "title": "H6 \u00b7 Popped-out script and navigator"
+    },
+    "Logos4.dc.html": {
+      "x": 4560,
+      "y": 4300,
+      "w": 1440,
+      "h": 900,
+      "title": "Crystals, rivers and trees"
+    },
+    "Icon.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "title": "The line park",
+      "page": "icon"
+    },
+    "IconApp.dc.html": {
+      "x": 1520,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "title": "The icon in use",
+      "page": "icon"
+    },
+    "Ultimate.dc.html": {
+      "x": 0,
+      "y": 8000,
+      "w": 1440,
+      "h": 900,
+      "title": "Ultimate editor"
+    },
+    "UltimateMenus.dc.html": {
+      "x": 1520,
+      "y": 8000,
+      "w": 1440,
+      "h": 900,
+      "title": "Ultimate editor \u2014 menus and popped-out script"
+    },
+    "Proto.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "title": "Fizz Level Studio prototype",
+      "is_interactive": true,
+      "page": "proto"
+    },
+    "Guide.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 1280,
+      "h": 1400,
+      "title": "Using the level editor",
+      "expand": "fill",
+      "is_interactive": true,
+      "page": "guide"
+    },
+    "Manual.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 1280,
+      "h": 7941,
+      "title": "The Fizz builder language manual",
+      "expand": "fill",
+      "is_interactive": true,
+      "page": "manual"
+    },
+    "Level.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 1280,
+      "h": 2600,
+      "title": "Crater Fields, block by block",
+      "expand": "fill",
+      "is_interactive": true,
+      "page": "level"
+    }
+  },
+  "createdOnFiles": {
+    "at": "2026-10-17T15:00:00Z",
+    "v": 1
+  },
+  "designSystems": [
+    {
+      "artifact": "https://claude.ai/artifact/FhrbvjS3frpdu96pM6dnRH",
+      "copiedAt": "2026-10-17T15:00:00Z",
+      "namespace": "liminal-hq",
+      "title": "Liminal HQ Design System",
+      "version": "1792218057-1390"
+    }
+  ],
+  "launch": {
+    "view": "canvas"
+  },
+  "notes": {
+    "arr": {
+      "kind": "title1",
+      "maxW": 6000,
+      "text": "Four ways to arrange the whole workspace \u2014 the code editor moves, docks or floats",
+      "w": 240,
+      "x": 0,
+      "y": 2760
+    },
+    "head": {
+      "kind": "title1",
+      "maxW": 3840,
+      "text": "Fizz Level Studio \u2014 a level editor Claude can sit inside",
+      "w": 240,
+      "x": 0,
+      "y": -300
+    },
+    "logo": {
+      "kind": "title1",
+      "maxW": 1440,
+      "text": "Six logo ideas, drawn by an Opus agent",
+      "w": 240,
+      "x": 0,
+      "y": 4060
+    },
+    "logo2": {
+      "kind": "title1",
+      "maxW": 1440,
+      "text": "Six more, with Ben in the rising-fizz style",
+      "w": 240,
+      "x": 1520,
+      "y": 4060
+    },
+    "opts": {
+      "kind": "title1",
+      "maxW": 4480,
+      "text": "Four layouts to choose from \u2014 A is the workbench above",
+      "w": 240,
+      "x": 0,
+      "y": 1560
+    },
+    "q1": {
+      "fill": "orange",
+      "text": "Decided: levels get our own builder language that compiles to the Rust Builder calls. Open: the exact grammar, and what row(...) should be called.",
+      "w": 420,
+      "x": 0,
+      "y": 940
+    },
+    "q2": {
+      "fill": "green",
+      "text": "Decided: Claude proposes by default (ghosts you accept); direct editing is a switch you turn on yourself, for drafts.",
+      "w": 420,
+      "x": 460,
+      "y": 940
+    },
+    "q3": {
+      "fill": "teal",
+      "text": "Idea: the playtest bot (playtest.rs) as an MCP tool, so Claude can check a level is finishable before offering it.",
+      "w": 420,
+      "x": 920,
+      "y": 940
+    },
+    "work": {
+      "kind": "title1",
+      "maxW": 4480,
+      "text": "Workspace iterations \u2014 the level is the background, every panel floats, snaps and resizes",
+      "w": 240,
+      "x": 0,
+      "y": 5360
+    },
+    "logo3": {
+      "x": 3040,
+      "y": 4060,
+      "kind": "title1",
+      "w": 240,
+      "maxW": 1440,
+      "text": "Six variations on the planet, from the game itself"
+    },
+    "work2": {
+      "x": 0,
+      "y": 6480,
+      "kind": "title1",
+      "w": 240,
+      "maxW": 4480,
+      "text": "Three more workspace iterations, built by an Opus agent"
+    },
+    "logo4": {
+      "x": 4560,
+      "y": 4060,
+      "kind": "title1",
+      "w": 240,
+      "maxW": 1440,
+      "text": "Crystals, chocolate rivers and trees, then the blended park"
+    },
+    "ult": {
+      "x": 0,
+      "y": 7760,
+      "kind": "title1",
+      "w": 240,
+      "maxW": 2960,
+      "text": "The ultimate editor \u2014 H4, H5 and H6 blended, with the Liminal desktop chrome"
+    },
+    "dec": {
+      "x": 1380,
+      "y": 940,
+      "w": 420,
+      "fill": "orange",
+      "text": "Decided: the Ultimate layout is the home layout, and the line park (28) is the logo direction. Next: a richer prototype, the language and Rust exporter, then the MCP server."
+    }
+  },
+  "order": [
+    "Main.dc.html",
+    "Tools.dc.html",
+    "Language.dc.html",
+    "Canvas.dc.html",
+    "Script.dc.html",
+    "Chat.dc.html",
+    "Float.dc.html",
+    "Split.dc.html",
+    "Overlay.dc.html",
+    "Workspace.dc.html",
+    "Logos.dc.html",
+    "Work1.dc.html",
+    "Work2.dc.html",
+    "Work3.dc.html",
+    "Logos2.dc.html",
+    "Logos3.dc.html",
+    "Work4.dc.html",
+    "Work5.dc.html",
+    "Work6.dc.html",
+    "Logos4.dc.html",
+    "Icon.dc.html",
+    "IconApp.dc.html",
+    "Ultimate.dc.html",
+    "UltimateMenus.dc.html",
+    "Proto.dc.html",
+    "Guide.dc.html",
+    "Manual.dc.html",
+    "Level.dc.html"
+  ],
+  "pages": [
+    {
+      "id": "studio",
+      "name": "Studio"
+    },
+    {
+      "id": "icon",
+      "name": "Icon"
+    },
+    {
+      "id": "proto",
+      "name": "Prototype"
+    },
+    {
+      "id": "guide",
+      "name": "Walkthrough"
+    },
+    {
+      "id": "manual",
+      "name": "Language manual"
+    },
+    {
+      "id": "level",
+      "name": "Real level"
+    }
+  ],
+  "title": "Fizz Level Studio"
+}

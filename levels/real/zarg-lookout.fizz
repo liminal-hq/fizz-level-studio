@@ -1,0 +1,173 @@
+// Zarg Lookout: rebuilt from the game's own data by tools/decompile-level.ts.
+level "Zarg Lookout" 40x84 ground=4 id=zarg-lookout
+theme building
+area crater-fields
+start 3,3
+
+blocks
+  block x=0 y=0..80
+  fill x=1..38 y=0..2
+  block x=39 y=0..80
+  wall-bg x=1..13 y=3
+  crystal-tile x=14 y=3
+  wall-bg x=15..17 y=3
+  rung x=18 y=3..10
+  wall-bg x=19..35 y=3..10
+  red-door x=36 y=3..10
+  wall-bg x=37 y=3..4
+  exit x=38 y=3..4
+  wall-bg x=1..17 y=4..10
+  wall-bg x=37..38 y=5..10
+  fill x=1..17 y=11
+  rung-top x=18 y=11
+  fill x=19..38 y=11
+  wall-bg x=1..19 y=12
+  crystal-tile x=20 y=12
+  wall-bg x=21..23 y=12
+  slope-r45 x=24 y=12
+  fill x=25..32 y=12
+  wall-bg x=33..38 y=12..19
+  wall-bg x=1..24 y=13
+  slope-r45 x=25 y=13
+  fill x=26..32 y=13
+  wall-bg x=1..25 y=14
+  slope-r45 x=26 y=14
+  fill x=27..32 y=14
+  wall-bg x=1..26 y=15
+  slope-r45 x=27 y=15
+  fill x=28..32 y=15
+  wall-bg x=1..27 y=16
+  slope-r45 x=28 y=16
+  fill x=29..32 y=16
+  wall-bg x=1..28 y=17
+  slope-r45 x=29 y=17
+  fill x=30..32 y=17
+  wall-bg x=1..29 y=18
+  slope-r45 x=30 y=18
+  fill x=31..32 y=18
+  wall-bg x=1..30 y=19
+  slope-r45 x=31 y=19
+  fill x=32 y=19
+  wall-bg x=1..31 y=20
+  slope-r45 x=32 y=20
+  fill x=33..38 y=20
+  wall-bg x=1..35 y=21..28
+  rung x=36 y=21..28
+  wall-bg x=37..38 y=21..28
+  fill x=1..35 y=29
+  rung-top x=36 y=29
+  fill x=37..38 y=29
+  wall-bg x=1..5 y=30..37
+  fill x=6..13 y=30
+  slope-l45 x=14 y=30
+  wall-bg x=15..21 y=30
+  crystal-tile x=22 y=30
+  wall-bg x=23..38 y=30
+  fill x=6..12 y=31
+  slope-l45 x=13 y=31
+  wall-bg x=14..38 y=31
+  fill x=6..11 y=32
+  slope-l45 x=12 y=32
+  wall-bg x=13..38 y=32
+  fill x=6..10 y=33
+  slope-l45 x=11 y=33
+  wall-bg x=12..38 y=33
+  fill x=6..9 y=34
+  slope-l45 x=10 y=34
+  wall-bg x=11..38 y=34
+  fill x=6..8 y=35
+  slope-l45 x=9 y=35
+  wall-bg x=10..38 y=35
+  fill x=6..7 y=36
+  slope-l45 x=8 y=36
+  wall-bg x=9..38 y=36
+  fill x=6 y=37
+  slope-l45 x=7 y=37
+  wall-bg x=8..38 y=37
+  fill x=1..5 y=38
+  slope-l45 x=6 y=38
+  wall-bg x=7..38 y=38
+  wall-bg x=1..2 y=39..46
+  rung x=3 y=39..46
+  wall-bg x=4..38 y=39..46
+  fill x=1..2 y=47
+  rung-top x=3 y=47
+  fill x=4..38 y=47
+  wall-bg x=1..11 y=48
+  crystal-tile x=12 y=48
+  wall-bg x=13..38 y=48
+  wall-bg x=1..38 y=49..55
+  fill x=1..17 y=56
+  wall-bg x=18..20 y=56
+  fill x=21..38 y=56
+  wall-bg x=1..14 y=57
+  crystal-tile x=15 y=57
+  wall-bg x=16..25 y=57
+  slope-r45 x=26 y=57
+  fill x=27..34 y=57
+  wall-bg x=35..38 y=57..64
+  wall-bg x=1..26 y=58
+  slope-r45 x=27 y=58
+  fill x=28..34 y=58
+  wall-bg x=1..27 y=59
+  slope-r45 x=28 y=59
+  fill x=29..34 y=59
+  wall-bg x=1..28 y=60
+  slope-r45 x=29 y=60
+  fill x=30..34 y=60
+  wall-bg x=1..29 y=61
+  slope-r45 x=30 y=61
+  fill x=31..34 y=61
+  wall-bg x=1..30 y=62
+  slope-r45 x=31 y=62
+  fill x=32..34 y=62
+  wall-bg x=1..31 y=63
+  slope-r45 x=32 y=63
+  fill x=33..34 y=63
+  wall-bg x=1..32 y=64
+  slope-r45 x=33 y=64
+  fill x=34 y=64
+  wall-bg x=1..33 y=65
+  slope-r45 x=34 y=65
+  fill x=35..38 y=65
+  wall-bg x=1..36 y=66..73
+  rung x=37 y=66..73
+  wall-bg x=38 y=66..73
+  fill x=1..36 y=74
+  rung-top x=37 y=74
+  fill x=38 y=74
+  hover from=18,47.5 to=18,56.5 speed=0.1 size=3x0.5 dwell=2
+
+treats
+  row cheezie x=6..11 y=3
+  row cheezie x=8..18 y=12 by=2
+  row cheezie x=34..37 y=21
+  row cheezie x=16..26 y=30 by=2
+  row cheezie x=12..22 y=48 by=2
+  row cheezie x=22..24 y=57
+  row cheezie x=36..38 y=66
+  row cheezie x=8..18 y=75 by=2
+  soda x=14 y=12
+  soda x=24 y=48
+  cookie x=20 y=30
+  cookie x=30 y=48
+  cookie x=28 y=75
+  row choc x=3..5 y=39
+  row choc x=8..12 y=57 by=2
+  key-red x=19 y=75
+
+enemies
+  gloop x=14 y=3
+  hopper x=24 y=3
+  gloop x=12 y=12
+  gloop x=20 y=30
+  hopper x=30 y=30
+  gloop x=28 y=48
+  pod x=8 y=57
+  gloop x=14 y=57
+  gloop x=14 y=75
+  hopper x=26 y=75
+  bat x=10 y=55.3
+  bat x=14 y=55.3
+  bat x=28 y=55.3
+  bat x=33 y=55.3

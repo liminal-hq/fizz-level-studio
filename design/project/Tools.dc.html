@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>The MCP surface</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@500;600;700&display=swap">
+<style>body{margin:0;background:#050507}</style>
+</helmet>
+<div style="width:1120px;height:900px;box-sizing:border-box;padding:48px;background:#050507;color:#e0e0e0;font-family:Inter,system-ui,sans-serif;font-size:14px;line-height:1.5;display:flex;flex-direction:column;gap:28px;overflow:hidden">
+
+  <div style="display:flex;flex-direction:column;gap:8px">
+    <h1 style="margin:0;font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:36px;letter-spacing:-0.02em;color:#fff">What Claude can touch</h1>
+    <p style="margin:0;max-width:760px;color:#b4bfce;font-size:16px">The studio runs a small MCP server on your machine. Claude reads freely and writes in one of two modes you choose: it proposes changes as a ghost layer you accept, or it edits the level directly with undo.</p>
+  </div>
+
+  <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px">
+    <sc-for list="{{groups}}" as="g" hint-placeholder-count="3">
+      <div style="border:1px solid rgba(255,255,255,0.1);border-radius:12px;background:rgba(255,255,255,0.02);padding:20px;display:flex;flex-direction:column;gap:14px">
+        <div style="display:flex;align-items:center;gap:10px">
+          <span style="width:8px;height:8px;border-radius:50%;background:{{g.dot}}"></span>
+          <span style="font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:16px;color:#fff">{{g.name}}</span>
+        </div>
+        <div style="color:#7c8796;font-size:13px">{{g.blurb}}</div>
+        <div style="display:flex;flex-direction:column;gap:12px">
+          <sc-for list="{{g.tools}}" as="t" hint-placeholder-count="4">
+            <div style="display:flex;flex-direction:column;gap:2px">
+              <span style="font-family:'JetBrains Mono',monospace;font-size:13px;color:{{g.dot}}">{{t.name}}</span>
+              <span style="color:#b4bfce;font-size:13px">{{t.what}}</span>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </sc-for>
+  </div>
+
+  <div style="display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:20px;flex-grow:1;min-height:0">
+    <div style="border:1px solid rgba(255,255,255,0.1);border-radius:12px;background:#0c0c10;padding:20px;display:flex;flex-direction:column;gap:12px;overflow:hidden">
+      <div style="font-size:12px;color:#7c8796">A write, as Claude sends it: script lines</div>
+      <pre style="margin:0;font-family:'JetBrains Mono',monospace;font-size:12px;line-height:1.6;color:#e0e0e0;white-space:pre-wrap">edit_level({
+  "level": "crater",
+  "title": "Stepping stones over the pool",
+  "why": "Pool is 5 tiles wide, no landing spot",
+  "add": [
+    "paint one-way x=26,28,30 y=9",
+    "paint cheezie x=26,28,30 y=8"
+  ]
+})
+→ { "step": "s_0007", "mode": "propose", "status": "pending" }</pre>
+    </div>
+    <div style="border:1px solid rgba(255,255,255,0.1);border-radius:12px;background:rgba(255,255,255,0.02);padding:20px;display:flex;flex-direction:column;gap:12px">
+      <div style="font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:16px;color:#fff">Ground rules</div>
+      <ul style="margin:0;padding-left:18px;display:flex;flex-direction:column;gap:8px;color:#b4bfce">
+        <li>In propose mode, accept and reject are not tools. They exist only in the studio window.</li>
+        <li>A write is a list of script lines, so it can be shown as ghosts, applied, or undone as one step. Direct edits join your undo history.</li>
+        <li>Tile and entity names come from the game's own tables, not a copy that can drift.</li>
+        <li>You can edit while a proposal is open. If your edit overlaps a ghost, Claude is told and the ghost is dropped.</li>
+      </ul>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1120,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      groups: [
+        {
+          name: 'Look', dot: '#22d3ee', blurb: 'Read-only. Always allowed.',
+          tools: [
+            { name: 'get_level', what: 'The whole level: size, tiles, entities, items, theme.' },
+            { name: 'get_region', what: 'A rectangle of it, for large levels.' },
+            { name: 'list_kinds', what: 'Every tile, enemy and item the game knows, with sizes and traits.' },
+            { name: 'run_checks', what: 'Start, exit, reachability and the playtest bot.' }
+          ]
+        },
+        {
+          name: 'Write', dot: '#a78bfa', blurb: 'Lands as ghosts or as a direct edit, per your mode.',
+          tools: [
+            { name: 'edit_level', what: 'Script lines to add, change or remove, as one step. Ghosts or direct, per mode.' },
+            { name: 'add_note', what: 'Pin a comment to a tile or an area, such as “too tight here”.' },
+            { name: 'undo', what: 'Reverts Claude’s last step, and only its own.' }
+          ]
+        },
+        {
+          name: 'Watch', dot: '#ffaa40', blurb: 'Lets Claude follow what you are doing.',
+          tools: [
+            { name: 'get_selection', what: 'The area you have selected, and your tool.' },
+            { name: 'get_changes', what: 'What changed since Claude last looked.' },
+            { name: 'get_proposal_state', what: 'Whether a proposal was accepted, edited or dismissed, and why if you said.' }
+          ]
+        }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Script first layout</title>
+<script src="./support.js"></script>
+<script src="./level-data.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@500;600;700&display=swap">
+<style>body{margin:0;background:#050507}button{font-family:inherit;cursor:pointer}button:focus-visible,input:focus-visible{outline:2px solid #ffaa40;outline-offset:1px}</style>
+</helmet>
+<div style="width:1440px;height:900px;box-sizing:border-box;display:flex;flex-direction:column;background:#050507;color:#e0e0e0;font-family:Inter,system-ui,sans-serif;font-size:13px;overflow:hidden">
+
+  <div style="height:40px;flex:none;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;padding:0 12px 0 16px;background:#0c0c10;border-bottom:1px solid rgba(255,255,255,0.08)">
+    <span style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:14px;background:linear-gradient(135deg,#ffaa40,#f43f5e,#a78bfa);-webkit-background-clip:text;background-clip:text;color:transparent">fizz level studio</span>
+    <span style="font-weight:500;color:#fff">crater.fizz</span>
+    <div style="display:flex;justify-content:flex-end;gap:2px">
+      <button aria-label="Minimise" style="width:36px;height:28px;border:none;border-radius:6px;background:transparent;color:#b4bfce"><svg aria-hidden="true" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 8h10"/></svg></button>
+      <button aria-label="Maximise" style="width:36px;height:28px;border:none;border-radius:6px;background:transparent;color:#b4bfce"><svg aria-hidden="true" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="10" height="10" rx="1.5"/></svg></button>
+      <button aria-label="Close" style="width:36px;height:28px;border:none;border-radius:6px;background:transparent;color:#b4bfce"><svg aria-hidden="true" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 4l8 8M12 4l-8 8"/></svg></button>
+    </div>
+  </div>
+
+  <div style="flex-grow:1;min-height:0;display:flex">
+
+    <div style="width:220px;flex:none;box-sizing:border-box;padding:16px 8px;background:#0c0c10;border-right:1px solid rgba(255,255,255,0.08);display:flex;flex-direction:column;gap:4px">
+      <div style="padding:0 8px 8px;font-size:12px;color:#7c8796">Episode 1 levels</div>
+      <sc-for list="{{files}}" as="f" hint-placeholder-count="6">
+        <div style="padding:8px 10px;border-radius:4px;background:{{f.fill}};color:{{f.ink}};display:flex;justify-content:space-between;font-family:'JetBrains Mono',monospace;font-size:12px"><span>{{f.name}}</span><span style="color:#7c8796">{{f.tag}}</span></div>
+      </sc-for>
+    </div>
+
+    <!-- editor -->
+    <div style="width:560px;flex:none;display:flex;flex-direction:column;border-right:1px solid rgba(255,255,255,0.08)">
+      <div style="height:40px;flex:none;display:flex;align-items:flex-end;padding:0 12px;border-bottom:1px solid rgba(255,255,255,0.08)">
+        <span style="padding:10px 12px;border-bottom:2px solid #ffaa40;color:#fff;font-weight:500">crater.fizz</span>
+      </div>
+      <div style="flex-grow:1;min-height:0;padding:12px 0;font-family:'JetBrains Mono',monospace;font-size:12.5px;line-height:1.7;overflow:hidden">
+        <sc-for list="{{lines}}" as="l" hint-placeholder-count="20">
+          <div style="display:flex;background:{{l.bg}}">
+            <span style="width:44px;flex:none;text-align:right;padding-right:14px;color:#7c8796;box-sizing:border-box">{{l.n}}</span>
+            <span style="width:16px;flex:none;color:#a78bfa">{{l.mark}}</span>
+            <span style="white-space:pre;color:{{l.ink}}">{{l.text}}</span>
+          </div>
+        </sc-for>
+      </div>
+      <div style="flex:none;padding:12px 16px;border-top:1px solid rgba(255,255,255,0.08);background:rgba(167,139,250,0.08);display:flex;align-items:center;gap:12px">
+        <span style="width:8px;height:8px;border-radius:50%;background:#a78bfa"></span>
+        <span style="flex-grow:1;color:#b4bfce">Claude suggests lines 22 and 23</span>
+        <button style="min-height:44px;padding:0 16px;border-radius:999px;border:none;background:#ffaa40;color:#050507;font-weight:600">Accept</button>
+        <button style="min-height:44px;padding:0 16px;border-radius:999px;border:1px solid rgba(255,255,255,0.22);background:transparent;color:#e0e0e0;font-weight:500">Not that</button>
+      </div>
+    </div>
+
+    <!-- live preview -->
+    <div style="flex-grow:1;min-width:0;display:flex;flex-direction:column;background:#050507">
+      <div style="height:40px;flex:none;display:flex;align-items:center;padding:0 16px;gap:12px;border-bottom:1px solid rgba(255,255,255,0.08)">
+        <span style="color:#7c8796">Live preview</span><span style="flex-grow:1"></span><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#b4bfce">hover a line to find it here</span>
+      </div>
+      <div style="flex-grow:1;min-height:0;padding:16px;display:flex;flex-direction:column;gap:16px;align-items:flex-start">
+        <div style="display:grid;grid-template-columns:repeat({{cols}},16px);grid-auto-rows:16px;border:1px solid rgba(255,255,255,0.14);border-radius:4px;background:#0f0e1a;overflow:hidden">
+          <sc-for list="{{cells}}" as="c" hint-placeholder-count="20">
+            <div style="width:16px;height:16px;box-sizing:border-box;background:{{c.bg}};outline:{{c.outline}};outline-offset:-1px;opacity:{{c.opacity}};display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:500;line-height:1;color:{{c.ink}}">{{c.glyph}}</div>
+          </sc-for>
+        </div>
+        <div style="width:100%;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px">
+          <div style="border:1px solid rgba(255,255,255,0.08);border-radius:12px;background:rgba(255,255,255,0.03);padding:16px"><div style="font-size:12px;color:#7c8796">Problems</div><div style="margin-top:6px;color:#b4bfce;line-height:1.5">Pool at x 26 to 30 has no landing spot.<br>Start and exit are both set.</div></div>
+          <div style="border:1px solid rgba(255,255,255,0.08);border-radius:12px;background:rgba(255,255,255,0.03);padding:16px"><div style="font-size:12px;color:#7c8796">Selected line 18</div><div style="margin-top:6px;color:#b4bfce;line-height:1.5">Highlights 6 cells on the level and tells Claude which line you mean.</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="height:28px;flex:none;display:flex;align-items:center;gap:20px;padding:0 16px;background:#0c0c10;border-top:1px solid rgba(255,255,255,0.08);font-size:12px;color:#7c8796">
+    <span>Script</span><span style="font-family:'JetBrains Mono',monospace">Ln 18, Col 14</span><span style="flex-grow:1"></span><span>Compiles to Builder calls · 1 problem</span>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const lv = window.FizzLevel.cells({ ghosts: true });
+    const src = [
+      ['level "Crater Fields" 40x16 ground=12', ''],
+      ['theme crater   area crater-fields', ''],
+      ['start 2,11     exit 37,11', ''],
+      ['', ''],
+      ['terrain', ''],
+      ['  flat 17, gap 3, flat 20', ''],
+      ['  pool 5 at 26', ''],
+      ['', ''],
+      ['treats', ''],
+      ['  cheezie x=5..7 y=10', ''],
+      ['  cheezie x=12..14 y=7', ''],
+      ['  soda    x=23 y=8', ''],
+      ['', ''],
+      ['enemies', ''],
+      ['  gloop 9   hopper 14   bat 31,6', ''],
+      ['', ''],
+      ['blocks', ''],
+      ['  block   x=22..23 y=9..11', ''],
+      ['', ''],
+      ['edits', ''],
+      ['  paint spikes    x=33..34 y=11', ''],
+      ['  paint one-way   x=26,28,30 y=9', '+'],
+      ['  paint cheezie   x=26,28,30 y=8', '+']
+    ];
+    const lines = src.map((r, i) => {
+      const t = r[0];
+      const head = /^[a-z]+$/.test(t) && t !== '';
+      return {
+        n: i + 1, mark: r[1], text: t,
+        bg: r[1] ? 'rgba(167,139,250,0.14)' : (i === 17 ? 'rgba(255,255,255,0.04)' : 'transparent'),
+        ink: head ? '#ffaa40' : (r[1] ? '#fff' : '#e0e0e0')
+      };
+    });
+    const files = ['crater', 'caves', 'citadel', 'meteor-mesa', 'zarg-lookout', 'marshmallow-meadows'].map((n, i) => ({
+      name: n + '.fizz', tag: i === 0 ? 'draft' : '', fill: i === 0 ? 'rgba(255,170,64,0.1)' : 'transparent', ink: i === 0 ? '#ffaa40' : '#b4bfce'
+    }));
+    return { lines: lines, files: files, cols: lv.cols, cells: lv.cells };
+  }
+}
+</script>
+</body>
+</html>

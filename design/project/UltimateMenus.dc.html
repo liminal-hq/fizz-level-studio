@@ -1,0 +1,385 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Ultimate level studio, menus</title>
+<script src="./support.js"></script>
+<script src="./level-data.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@500;600;700&display=swap">
+<style>body{margin:0;background:#050507}button{font-family:inherit;cursor:pointer}button:focus-visible,input:focus-visible{outline:2px solid #ffaa40;outline-offset:1px}input[type=range]{accent-color:#ffaa40}</style>
+</helmet>
+<div style="width:1440px;height:900px;box-sizing:border-box;position:relative;display:flex;flex-direction:column;background:#050507;color:#e0e0e0;font-family:Inter,system-ui,sans-serif;font-size:13px;overflow:hidden">
+
+  <!-- Liminal title bar: app menu at the start, the title centred, GNOME controls at the end -->
+  <div style="height:40px;flex:none;box-sizing:border-box;display:grid;grid-template-columns:minmax(min-content,1fr) minmax(0,auto) minmax(min-content,1fr);align-items:center;column-gap:8px;padding:0 8px;background:#0c0c10;border-bottom:1px solid rgba(255,255,255,0.08)">
+    <div style="display:flex;align-items:center;gap:8px;min-width:0">
+      <button aria-haspopup="menu" aria-expanded="true" aria-label="Application menu" style="display:inline-flex;align-items:center;gap:8px;height:28px;padding:0 8px;border:none;border-radius:6px;background:rgba(255,255,255,0.14);color:#e0e0e0;font-weight:600;font-size:13px">
+        <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M2.5 4.5h11M2.5 8h11M2.5 11.5h11"/></svg>
+        <span aria-hidden="true" style="width:16px;height:16px;border-radius:4px;background:linear-gradient(135deg,#ffaa40,#f43f5e,#a78bfa)"></span>
+        <span>Fizz Level Studio</span>
+      </button>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:center;min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;color:#e0e0e0">Crater Fields — Episode 1 · draft</div>
+    <div style="display:flex;align-items:center;justify-content:flex-end;gap:8px;min-width:0">
+      <span style="display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 10px;border-radius:999px;border:1px solid rgba(167,139,250,0.4);color:#e0e0e0;font-size:12px"><span style="width:7px;height:7px;border-radius:50%;background:#a78bfa"></span>Claude over MCP</span>
+      <div role="group" aria-label="Window controls" style="display:flex;align-items:center;gap:2px">
+        <button aria-label="Minimise" title="Minimise" style="position:relative;width:28px;height:28px;padding:0;border:none;background:transparent;color:#e0e0e0;display:inline-flex;align-items:center;justify-content:center"><span aria-hidden="true" style="position:absolute;inset:2px;border-radius:50%;background:rgba(255,255,255,0.06)"></span><svg aria-hidden="true" style="position:relative" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><path d="M3.5 8.5h9"/></svg></button>
+        <button aria-label="Maximise" title="Maximise" style="position:relative;width:28px;height:28px;padding:0;border:none;background:transparent;color:#e0e0e0;display:inline-flex;align-items:center;justify-content:center"><span aria-hidden="true" style="position:absolute;inset:2px;border-radius:50%;background:rgba(255,255,255,0.06)"></span><svg aria-hidden="true" style="position:relative" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><rect x="3.5" y="3.5" width="9" height="9" rx="1"/></svg></button>
+        <button aria-label="Close" title="Close" style="position:relative;width:28px;height:28px;padding:0;border:none;background:transparent;color:#e0e0e0;display:inline-flex;align-items:center;justify-content:center"><span aria-hidden="true" style="position:absolute;inset:2px;border-radius:50%;background:rgba(255,255,255,0.06)"></span><svg aria-hidden="true" style="position:relative" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><path d="M4 4l8 8M12 4l-8 8"/></svg></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- menu bar -->
+  <div role="menubar" aria-label="Application menu" style="height:34px;flex:none;box-sizing:border-box;display:flex;align-items:center;gap:2px;padding:3px 8px;background:#0c0c10;border-bottom:1px solid rgba(255,255,255,0.08)">
+    <sc-for list="{{menus}}" as="m" hint-placeholder-count="7">
+      <button role="menuitem" aria-haspopup="menu" aria-expanded="false" style="height:28px;min-width:28px;padding:0 10px;border:none;border-radius:6px;background:transparent;color:#e0e0e0;font-size:13px;white-space:nowrap">{{m.label}}</button>
+    </sc-for>
+    <span style="flex-grow:1"></span>
+    <span style="font-size:12px;color:#b4bfce;padding-right:4px">Script popped out to Display 2 · right-click anything on the level for its menu</span>
+  </div>
+
+  <!-- the level is the workspace; every window floats over it -->
+  <div style="position:relative;flex-grow:1;min-height:0;overflow:hidden;background-color:#0a0a12;background-image:linear-gradient(rgba(255,255,255,0.035) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.035) 1px,transparent 1px);background-size:32px 32px;background-position:130px 60px">
+    <div style="position:absolute;left:130px;top:60px;width:1280px;height:512px;box-sizing:border-box;outline:1px solid rgba(255,255,255,0.14);background:#0f0e1a;display:grid;grid-template-columns:repeat({{cols}},32px);grid-auto-rows:32px">
+      <sc-for list="{{cells}}" as="c" hint-placeholder-count="20">
+        <div style="width:32px;height:32px;box-sizing:border-box;background:{{c.bg}};outline:{{c.outline}};outline-offset:-1px;opacity:{{c.opacity}};display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:16px;font-weight:500;line-height:1;color:{{c.ink}}">{{c.glyph}}</div>
+      </sc-for>
+    </div>
+
+    <!-- gap lens: each gap coloured by what crosses it -->
+    <sc-for list="{{gaps}}" as="g" hint-placeholder-count="2">
+      <div style="position:absolute;left:{{g.x}}px;top:{{g.y}}px;width:{{g.w}}px;height:{{g.h}}px;box-sizing:border-box;border:1px solid {{g.ink}};background:{{g.fill}}"></div>
+      <div style="position:absolute;left:{{g.lx}}px;top:{{g.ly}}px;height:26px;box-sizing:border-box;padding:0 10px;border-radius:999px;border:1px solid {{g.ink}};background:rgba(12,12,16,0.9);display:flex;align-items:center;gap:6px;font-size:12px;color:#e0e0e0;white-space:nowrap"><span style="font-family:'JetBrains Mono',monospace;font-weight:500;color:{{g.ink}}">{{g.n}}</span>{{g.note}}</div>
+    </sc-for>
+
+    <!-- label on Claude's ghosts -->
+    <div style="position:absolute;left:962px;top:288px;height:24px;box-sizing:border-box;padding:0 10px;border-radius:999px;border:1px dashed #a78bfa;background:rgba(12,12,16,0.88);display:flex;align-items:center;gap:6px;font-size:12px;color:#e0e0e0;white-space:nowrap"><span style="width:6px;height:6px;border-radius:50%;background:#a78bfa"></span>Claude · 2 pending</div>
+
+    <!-- selection: the box and its label; the ring gives way to the right-click menu -->
+    <div style="position:absolute;left:415px;top:409px;width:38px;height:38px;box-sizing:border-box;border-radius:4px;border:2px solid #ffaa40"></div>
+
+    <!-- tools rail -->
+    <div style="position:absolute;left:8px;top:8px;width:60px;box-sizing:border-box;padding:8px;border-radius:12px;border:1px solid rgba(255,255,255,0.1);background:rgba(20,20,25,0.72);backdrop-filter:blur(10px);box-shadow:0 10px 30px rgba(0,0,0,0.3);display:flex;flex-direction:column;align-items:center;gap:4px">
+      <sc-for list="{{tools}}" as="t" hint-placeholder-count="6">
+        <button aria-label="{{t.label}}" title="{{t.label}}" style="width:44px;height:44px;border-radius:8px;border:1px solid {{t.ring}};background:{{t.fill}};color:{{t.ink}};font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:500">{{t.key}}</button>
+      </sc-for>
+    </div>
+
+    <!-- left group: Palette and Outliner as tabs -->
+    <div style="position:absolute;left:76px;top:8px;width:252px;height:208px;border-radius:12px;border:1px solid rgba(255,255,255,0.1);background:rgba(20,20,25,0.72);backdrop-filter:blur(10px);box-shadow:0 10px 30px rgba(0,0,0,0.3);display:flex;flex-direction:column;overflow:hidden">
+      <div style="height:44px;flex:none;display:flex;align-items:stretch;padding-left:8px;border-bottom:1px solid rgba(255,255,255,0.08)">
+        <span style="display:flex;align-items:center;padding-right:4px;cursor:grab"><svg aria-hidden="true" width="12" height="12" viewBox="0 0 12 12" fill="#7c8796"><circle cx="3" cy="3" r="1.2"/><circle cx="9" cy="3" r="1.2"/><circle cx="3" cy="6" r="1.2"/><circle cx="9" cy="6" r="1.2"/><circle cx="3" cy="9" r="1.2"/><circle cx="9" cy="9" r="1.2"/></svg></span>
+        <button style="height:44px;padding:0 10px;border:none;border-bottom:2px solid #ffaa40;background:transparent;color:#fff;font-weight:500;font-size:12.5px">Palette</button>
+        <button style="height:44px;padding:0 10px;border:none;border-bottom:2px solid transparent;background:transparent;color:#b4bfce;font-size:12.5px">Outliner</button>
+        <span style="flex-grow:1"></span>
+        <span style="align-self:center;font-size:12px;color:#ffaa40;padding-right:4px">Block</span>
+        <button aria-label="Group options" style="width:44px;height:44px;border:none;background:transparent;color:#b4bfce;display:inline-flex;align-items:center;justify-content:center"><svg aria-hidden="true" width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><circle cx="3" cy="8" r="1.4"/><circle cx="8" cy="8" r="1.4"/><circle cx="13" cy="8" r="1.4"/></svg></button>
+      </div>
+      <div style="padding:10px;display:grid;grid-template-columns:repeat(4,1fr);gap:6px">
+        <sc-for list="{{palette}}" as="p" hint-placeholder-count="12"><button aria-label="{{p.name}}" title="{{p.name}}" style="height:44px;border-radius:8px;border:1px solid {{p.ring}};background:{{p.fill}};display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:500;color:{{p.ink}}"><span style="width:20px;height:20px;border-radius:4px;background:{{p.sw}};display:inline-flex;align-items:center;justify-content:center">{{p.glyph}}</span></button></sc-for>
+      </div>
+    </div>
+
+    <!-- history track: who changed what, Claude's proposals after Now -->
+    <div style="position:absolute;left:336px;top:8px;width:560px;height:120px;border-radius:12px;border:1px solid rgba(255,255,255,0.1);background:rgba(20,20,25,0.72);backdrop-filter:blur(10px);box-shadow:0 10px 30px rgba(0,0,0,0.3);overflow:hidden">
+      <div style="height:44px;display:flex;align-items:center;gap:12px;padding-left:12px;border-bottom:1px solid rgba(255,255,255,0.08);cursor:grab">
+        <svg aria-hidden="true" width="12" height="12" viewBox="0 0 12 12" fill="#7c8796"><circle cx="3" cy="3" r="1.2"/><circle cx="9" cy="3" r="1.2"/><circle cx="3" cy="6" r="1.2"/><circle cx="9" cy="6" r="1.2"/><circle cx="3" cy="9" r="1.2"/><circle cx="9" cy="9" r="1.2"/></svg>
+        <span style="font-weight:500;color:#fff">History</span>
+        <span style="display:flex;align-items:center;gap:6px;font-size:12px;color:#b4bfce"><span style="width:8px;height:8px;border-radius:50%;background:#ffaa40"></span>You</span>
+        <span style="display:flex;align-items:center;gap:6px;font-size:12px;color:#b4bfce"><span style="width:8px;height:8px;border-radius:50%;background:#a78bfa"></span>Claude</span>
+        <span style="display:flex;align-items:center;gap:6px;font-size:12px;color:#b4bfce"><span style="width:8px;height:8px;border-radius:50%;border:1.5px dashed #a78bfa;box-sizing:border-box"></span>Proposed</span>
+        <span style="flex-grow:1"></span>
+        <button aria-label="Collapse history" style="width:44px;height:44px;border:none;background:transparent;color:#b4bfce;display:inline-flex;align-items:center;justify-content:center"><svg aria-hidden="true" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 10l4-4 4 4"/></svg></button>
+      </div>
+      <div style="position:relative;height:76px">
+        <div style="position:absolute;left:16px;width:336px;top:20px;height:2px;background:rgba(255,255,255,0.22)"></div>
+        <div style="position:absolute;left:352px;width:192px;top:20px;height:0;border-top:2px dashed rgba(167,139,250,0.6)"></div>
+        <sc-for list="{{events}}" as="e" hint-placeholder-count="6">
+          <div style="position:absolute;left:{{e.x}}px;top:14px;width:80px;display:flex;flex-direction:column;gap:4px">
+            <span style="width:14px;height:14px;box-sizing:border-box;border-radius:50%;border:{{e.ring}};background:{{e.dot}};box-shadow:{{e.halo}}"></span>
+            <span style="font-size:11px;color:{{e.whoInk}}">{{e.who}}</span>
+            <span style="font-size:11.5px;color:#e0e0e0;line-height:1.25;margin-top:-2px">{{e.what}}</span>
+          </div>
+        </sc-for>
+        <div style="position:absolute;left:351px;top:10px;width:2px;height:22px;background:#ffaa40"></div>
+        <span style="position:absolute;left:340px;top:-2px;font-size:11px;font-weight:600;color:#ffaa40">Now</span>
+      </div>
+    </div>
+
+    <!-- checks -->
+    <div style="position:absolute;left:904px;top:8px;width:220px;height:120px;border-radius:12px;border:1px solid rgba(255,255,255,0.1);background:rgba(20,20,25,0.72);backdrop-filter:blur(10px);box-shadow:0 10px 30px rgba(0,0,0,0.3);overflow:hidden">
+      <div style="height:44px;display:flex;align-items:center;gap:8px;padding-left:12px;border-bottom:1px solid rgba(255,255,255,0.08);cursor:grab"><svg aria-hidden="true" width="12" height="12" viewBox="0 0 12 12" fill="#7c8796"><circle cx="3" cy="3" r="1.2"/><circle cx="9" cy="3" r="1.2"/><circle cx="3" cy="6" r="1.2"/><circle cx="9" cy="6" r="1.2"/><circle cx="3" cy="9" r="1.2"/><circle cx="9" cy="9" r="1.2"/></svg><span style="font-weight:500;color:#fff">Checks</span><span style="flex-grow:1"></span><span style="font-size:12px;color:#b4bfce">2 of 3 run</span><button aria-label="Collapse checks" style="width:44px;height:44px;border:none;background:transparent;color:#b4bfce;display:inline-flex;align-items:center;justify-content:center"><svg aria-hidden="true" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 10l4-4 4 4"/></svg></button></div>
+      <div style="padding:6px 12px;display:flex;flex-direction:column;gap:0">
+        <sc-for list="{{checks}}" as="k" hint-placeholder-count="3"><div style="height:22px;display:flex;align-items:center;gap:8px;color:#b4bfce;font-size:12.5px"><span style="width:8px;height:8px;border-radius:50%;background:{{k.dot}}"></span><span style="flex-grow:1">{{k.label}}</span><span style="font-family:'JetBrains Mono',monospace;font-size:11.5px;color:{{k.ink}}">{{k.state}}</span></div></sc-for>
+      </div>
+    </div>
+
+    <!-- lens toolbar over the level, with the playtest bot -->
+    <div style="position:absolute;left:336px;top:136px;width:788px;height:52px;box-sizing:border-box;padding:4px 8px 4px 12px;border-radius:999px;border:1px solid rgba(255,255,255,0.1);background:rgba(20,20,25,0.72);backdrop-filter:blur(10px);box-shadow:0 10px 30px rgba(0,0,0,0.3);display:flex;align-items:center;gap:6px">
+      <span style="font-size:12px;color:#b4bfce;padding-right:4px">Lenses</span>
+      <sc-for list="{{lenses}}" as="z" hint-placeholder-count="4"><button aria-pressed="{{z.on}}" style="height:44px;padding:0 12px;border-radius:999px;border:1px solid {{z.edge}};background:{{z.fill}};color:{{z.ink}};font-size:12.5px;display:inline-flex;align-items:center;gap:6px"><span style="width:7px;height:7px;border-radius:50%;background:{{z.dot}}"></span>{{z.name}}</button></sc-for>
+      <span style="font-size:11.5px;color:#b4bfce;padding-left:6px;white-space:nowrap">Gaps: ≤3 clears · 4 tight · 5+ ledge</span>
+      <span style="flex-grow:1"></span>
+      <button style="height:44px;padding:0 16px 0 12px;border-radius:999px;border:1px solid #22d3ee;background:rgba(34,211,238,0.1);color:#e0e0e0;font-weight:500;display:inline-flex;align-items:center;gap:8px"><svg aria-hidden="true" width="14" height="14" viewBox="0 0 16 16" fill="#22d3ee"><path d="M4 2.5l9 5.5-9 5.5z"/></svg>Run playtest bot</button>
+    </div>
+
+    <!-- inspector with the tuning controls for the selection -->
+    <div style="position:absolute;left:1132px;top:8px;width:300px;height:328px;border-radius:12px;border:1px solid rgba(255,170,64,0.4);background:rgba(20,20,25,0.72);backdrop-filter:blur(10px);box-shadow:0 10px 30px rgba(0,0,0,0.3);display:flex;flex-direction:column;overflow:hidden">
+      <div style="height:44px;flex:none;display:flex;align-items:center;gap:8px;padding-left:12px;border-bottom:1px solid rgba(255,255,255,0.08);cursor:grab"><svg aria-hidden="true" width="12" height="12" viewBox="0 0 12 12" fill="#7c8796"><circle cx="3" cy="3" r="1.2"/><circle cx="9" cy="3" r="1.2"/><circle cx="3" cy="6" r="1.2"/><circle cx="9" cy="6" r="1.2"/><circle cx="3" cy="9" r="1.2"/><circle cx="9" cy="9" r="1.2"/></svg><span style="font-weight:500;color:#fff">Inspector</span><span style="flex-grow:1"></span><span style="font-size:12px;color:#b4bfce">Last change: you</span><button aria-label="Collapse inspector" style="width:44px;height:44px;border:none;background:transparent;color:#b4bfce;display:inline-flex;align-items:center;justify-content:center"><svg aria-hidden="true" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 10l4-4 4 4"/></svg></button></div>
+      <div style="padding:10px;display:flex;flex-direction:column;gap:8px">
+        <div style="height:32px;display:flex;align-items:center;gap:10px"><span style="width:28px;height:28px;border-radius:4px;background:#3a1620;color:#f43f5e;display:inline-flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-weight:500">g</span><span style="font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:16px;color:#fff">Gloop</span><span style="flex-grow:1"></span><span style="font-size:12px;color:#b4bfce">enemy</span></div>
+        <div style="display:flex;gap:8px">
+          <div style="flex:1;display:flex;border-radius:8px;border:1px solid rgba(255,255,255,0.14);overflow:hidden">
+            <button aria-label="Move left one tile" style="width:44px;height:44px;border:none;background:transparent;color:#e0e0e0;font-size:16px">−</button>
+            <label for="pos-x" style="position:absolute;left:-9999px">Position x</label>
+            <input id="pos-x" type="text" value="x 9" style="flex:1;min-width:0;height:44px;box-sizing:border-box;border:none;border-left:1px solid rgba(255,255,255,0.08);border-right:1px solid rgba(255,255,255,0.08);background:#050507;color:#e0e0e0;text-align:center;font-family:'JetBrains Mono',monospace;font-size:13px">
+            <button aria-label="Move right one tile" style="width:44px;height:44px;border:none;background:transparent;color:#e0e0e0;font-size:16px">+</button>
+          </div>
+          <div style="flex:1;display:flex;border-radius:8px;border:1px solid rgba(255,255,255,0.14);overflow:hidden">
+            <button aria-label="Move up one tile" style="width:44px;height:44px;border:none;background:transparent;color:#e0e0e0;font-size:16px">−</button>
+            <label for="pos-y" style="position:absolute;left:-9999px">Position y</label>
+            <input id="pos-y" type="text" value="y 11" style="flex:1;min-width:0;height:44px;box-sizing:border-box;border:none;border-left:1px solid rgba(255,255,255,0.08);border-right:1px solid rgba(255,255,255,0.08);background:#050507;color:#e0e0e0;text-align:center;font-family:'JetBrains Mono',monospace;font-size:13px">
+            <button aria-label="Move down one tile" style="width:44px;height:44px;border:none;background:transparent;color:#e0e0e0;font-size:16px">+</button>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px"><span style="width:56px;color:#b4bfce">Facing</span><div style="flex:1;display:flex;padding:2px;border-radius:999px;border:1px solid rgba(255,255,255,0.14)"><button aria-pressed="true" style="flex:1;height:40px;border:none;border-radius:999px;background:rgba(255,170,64,0.18);color:#fff;font-weight:500">Left</button><button aria-pressed="false" style="flex:1;height:40px;border:none;border-radius:999px;background:transparent;color:#b4bfce">Right</button></div></div>
+        <div style="display:flex;align-items:center;gap:10px;height:44px"><label for="patrol" style="width:56px;color:#b4bfce">Patrol</label><input id="patrol" type="range" min="1" max="8" value="5" style="flex:1;height:44px;margin:0"><span style="width:56px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:12px;color:#e0e0e0">5 tiles</span></div>
+        <div style="display:flex;align-items:center;gap:10px;white-space:nowrap"><span style="width:56px;color:#b4bfce">Script</span><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#ffaa40">line 15</span><span style="flex-grow:1"></span><button style="height:44px;padding:0 14px;border-radius:999px;border:1px solid rgba(255,255,255,0.22);background:transparent;color:#e0e0e0;font-weight:500;white-space:nowrap">Show in script</button></div>
+      </div>
+    </div>
+
+    <!-- right group: Review changes and Claude as tabs, snapped under the inspector -->
+    <div style="position:absolute;left:1132px;top:344px;width:300px;height:474px;border-radius:12px;border:1px solid rgba(167,139,250,0.4);background:rgba(20,20,25,0.72);backdrop-filter:blur(10px);box-shadow:0 10px 30px rgba(0,0,0,0.3);display:flex;flex-direction:column;overflow:hidden">
+      <div style="height:44px;flex:none;display:flex;align-items:stretch;padding-left:8px;border-bottom:1px solid rgba(255,255,255,0.08)">
+        <span style="display:flex;align-items:center;padding-right:4px;cursor:grab"><svg aria-hidden="true" width="12" height="12" viewBox="0 0 12 12" fill="#7c8796"><circle cx="3" cy="3" r="1.2"/><circle cx="9" cy="3" r="1.2"/><circle cx="3" cy="6" r="1.2"/><circle cx="9" cy="6" r="1.2"/><circle cx="3" cy="9" r="1.2"/><circle cx="9" cy="9" r="1.2"/></svg></span>
+        <button style="height:44px;padding:0 10px;border:none;border-bottom:2px solid #a78bfa;background:transparent;color:#fff;font-weight:500;font-size:12.5px;display:flex;align-items:center;gap:6px">Review changes<span style="padding:1px 7px;border-radius:999px;background:rgba(167,139,250,0.18);color:#e0e0e0;font-size:11px">2</span></button>
+        <button style="height:44px;padding:0 10px;border:none;border-bottom:2px solid transparent;background:transparent;color:#b4bfce;font-size:12.5px;display:flex;align-items:center;gap:6px"><span style="width:7px;height:7px;border-radius:50%;background:#a78bfa"></span>Claude</button>
+        <span style="flex-grow:1"></span>
+        <button aria-label="Group options" style="width:44px;height:44px;border:none;background:transparent;color:#b4bfce;display:inline-flex;align-items:center;justify-content:center"><svg aria-hidden="true" width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><circle cx="3" cy="8" r="1.4"/><circle cx="8" cy="8" r="1.4"/><circle cx="13" cy="8" r="1.4"/></svg></button>
+      </div>
+      <div style="flex-grow:1;min-height:0;padding:10px;display:flex;flex-direction:column;gap:8px;overflow:hidden">
+        <div style="font-size:12px;color:#b4bfce;line-height:1.5">Claude proposes stones over the pool, with a cheezie on each. Accepting a hunk writes it into crater.fizz.</div>
+        <sc-for list="{{hunks}}" as="h" hint-placeholder-count="2">
+          <div style="border:1px solid rgba(167,139,250,0.4);border-radius:12px;background:rgba(167,139,250,0.06);padding:10px;display:flex;flex-direction:column;gap:6px">
+            <div style="display:flex;flex-direction:column;gap:2px"><span style="font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:13.5px;color:#fff;line-height:1.2">{{h.title}}</span><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#b4bfce">{{h.meta}}</span></div>
+            <div style="border-radius:8px;background:#050507;padding:4px 0;font-family:'JetBrains Mono',monospace;font-size:11.5px;line-height:1.5">
+              <sc-for list="{{h.rows}}" as="r" hint-placeholder-count="2">
+                <div style="display:flex;background:{{r.bg}}"><span style="width:30px;flex:none;text-align:right;padding-right:6px;box-sizing:border-box;color:#7c8796">{{r.n}}</span><span style="width:12px;flex:none;color:#a78bfa">{{r.mark}}</span><span style="white-space:pre;color:{{r.ink}};overflow:hidden;text-overflow:ellipsis">{{r.text}}</span></div>
+              </sc-for>
+            </div>
+            <div style="display:flex;gap:6px;margin-top:2px"><button style="min-height:44px;padding:0 16px;border-radius:999px;border:none;background:#ffaa40;color:#050507;font-weight:600">Accept</button><button style="min-height:44px;padding:0 14px;border-radius:999px;border:1px solid rgba(255,255,255,0.22);background:transparent;color:#e0e0e0;font-weight:500">Reject</button><span style="flex-grow:1"></span><button aria-label="{{h.show}}" title="{{h.show}}" style="width:44px;height:44px;border-radius:999px;border:1px solid rgba(255,255,255,0.14);background:transparent;color:#b4bfce;display:inline-flex;align-items:center;justify-content:center"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1.5 8s2.4-4.5 6.5-4.5S14.5 8 14.5 8 12.1 12.5 8 12.5 1.5 8 1.5 8z"/><circle cx="8" cy="8" r="2"/></svg></button></div>
+          </div>
+        </sc-for>
+      </div>
+      <div style="flex:none;display:flex;gap:8px;padding:10px;border-top:1px solid rgba(255,255,255,0.08)">
+        <button style="flex:1;min-height:44px;border-radius:999px;border:none;background:#ffaa40;color:#050507;font-weight:600">Accept both</button>
+        <button style="flex:1;min-height:44px;border-radius:999px;border:1px solid rgba(255,255,255,0.22);background:transparent;color:#e0e0e0;font-weight:500">Reject both</button>
+      </div>
+    </div>
+
+    <!-- bottom group: Navigator, the script's tab (now on Display 2) and Playtest -->
+    <div style="position:absolute;left:76px;top:570px;width:360px;height:248px;border-radius:12px;border:1px solid rgba(255,255,255,0.1);background:rgba(20,20,25,0.72);backdrop-filter:blur(10px);box-shadow:0 10px 30px rgba(0,0,0,0.3);overflow:hidden">
+      <div style="height:44px;display:flex;align-items:stretch;padding-left:8px;border-bottom:1px solid rgba(255,255,255,0.08)">
+        <span style="display:flex;align-items:center;padding-right:4px;cursor:grab"><svg aria-hidden="true" width="12" height="12" viewBox="0 0 12 12" fill="#7c8796"><circle cx="3" cy="3" r="1.2"/><circle cx="9" cy="3" r="1.2"/><circle cx="3" cy="6" r="1.2"/><circle cx="9" cy="6" r="1.2"/><circle cx="3" cy="9" r="1.2"/><circle cx="9" cy="9" r="1.2"/></svg></span>
+        <button style="height:44px;padding:0 8px;border:none;border-bottom:2px solid #ffaa40;background:transparent;color:#fff;font-weight:500;font-size:12.5px">Navigator</button>
+        <button title="The script is open in its own window on Display 2" style="height:44px;padding:0 8px;border:none;border-bottom:2px solid transparent;background:transparent;color:#b4bfce;font-size:12px;font-family:'JetBrains Mono',monospace;display:flex;align-items:center;gap:6px">crater.fizz<span style="font-family:Inter,system-ui,sans-serif;padding:1px 7px;border-radius:999px;border:1px solid rgba(34,211,238,0.5);font-size:11px;white-space:nowrap">Display 2</span></button>
+        <button style="height:44px;padding:0 8px;border:none;border-bottom:2px solid transparent;background:transparent;color:#b4bfce;font-size:12.5px">Playtest</button>
+        <span style="flex-grow:1"></span>
+        <button aria-label="Group options" style="width:44px;height:44px;border:none;background:transparent;color:#b4bfce;display:inline-flex;align-items:center;justify-content:center"><svg aria-hidden="true" width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><circle cx="3" cy="8" r="1.4"/><circle cx="8" cy="8" r="1.4"/><circle cx="13" cy="8" r="1.4"/></svg></button>
+      </div>
+      <div style="padding:10px 12px;display:flex;flex-direction:column;gap:8px">
+        <div style="display:flex;gap:12px;align-items:flex-start">
+          <div style="position:relative;width:320px;flex:none;display:grid;grid-template-columns:repeat({{cols}},8px);grid-auto-rows:8px;border-radius:4px;background:#0f0e1a;overflow:hidden">
+            <sc-for list="{{cells}}" as="c" hint-placeholder-count="20"><div style="width:8px;height:8px;box-sizing:border-box;background:{{c.bg}};outline:{{c.outline}};outline-offset:-1px"></div></sc-for>
+            <sc-for list="{{footprints}}" as="f" hint-placeholder-count="5"><div style="position:absolute;left:{{f.x}}px;top:{{f.y}}px;width:{{f.w}}px;height:{{f.h}}px;background:rgba(255,255,255,0.16)"></div></sc-for>
+            <div style="position:absolute;left:0;top:0;width:320px;height:128px;box-sizing:border-box;border:2px solid #ffaa40;border-radius:2px;cursor:move"></div>
+            <div style="position:absolute;left:208px;top:64px;width:40px;height:16px;box-sizing:border-box;border:1.5px dashed #a78bfa;border-radius:2px"></div>
+            <div style="position:absolute;left:71px;top:87px;width:10px;height:10px;box-sizing:border-box;border:1.5px solid #fff;border-radius:2px"></div>
+          </div>
+        </div>
+        <div style="display:flex;gap:6px">
+          <sc-for list="{{marks}}" as="m" hint-placeholder-count="5"><button style="min-height:44px;padding:0 11px;border-radius:999px;border:1px solid {{m.edge}};background:transparent;color:{{m.ink}};font-size:12px">{{m.name}}</button></sc-for>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- app menu, open from the hamburger -->
+  <div role="menu" aria-label="Application menu" style="position:absolute;left:8px;top:40px;z-index:40;box-sizing:border-box;width:330px;padding:4px;color:#e0e0e0;background:#16161c;border:1px solid rgba(255,255,255,0.14);border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,0.45);font-size:13px">
+    <sc-for list="{{app.g1}}" as="i" hint-placeholder-count="3"><div role="menuitem" style=" {{i.style}}"><span aria-hidden="true" style="width:16px;height:16px;flex:none;display:inline-flex;align-items:center;justify-content:center;color:{{i.iconInk}}"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="{{i.d}}"/></svg></span><span style="flex:1;white-space:nowrap">{{i.label}}</span><span style="margin-left:24px;font-family:'JetBrains Mono',monospace;font-size:12px;color:{{i.keyInk}}">{{i.key}}</span><svg aria-hidden="true" style="flex:none;margin-left:8px;opacity:{{i.chev}}" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3.5L10.5 8 6 12.5"/></svg></div></sc-for>
+    <div role="separator" style="height:1px;margin:4px 0;background:rgba(255,255,255,0.14)"></div>
+    <sc-for list="{{app.g2}}" as="i" hint-placeholder-count="3"><div role="menuitem" style=" {{i.style}}"><span aria-hidden="true" style="width:16px;height:16px;flex:none;display:inline-flex;align-items:center;justify-content:center;color:{{i.iconInk}}"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="{{i.d}}"/></svg></span><span style="flex:1;white-space:nowrap">{{i.label}}</span><span style="margin-left:24px;font-family:'JetBrains Mono',monospace;font-size:12px;color:{{i.keyInk}}">{{i.key}}</span><svg aria-hidden="true" style="flex:none;margin-left:8px;opacity:{{i.chev}}" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3.5L10.5 8 6 12.5"/></svg></div></sc-for>
+    <div role="separator" style="height:1px;margin:4px 0;background:rgba(255,255,255,0.14)"></div>
+    <sc-for list="{{app.g3}}" as="i" hint-placeholder-count="2"><div role="menuitem" aria-haspopup="menu" aria-expanded="{{i.open}}" style=" {{i.style}}"><span aria-hidden="true" style="width:16px;height:16px;flex:none;display:inline-flex;align-items:center;justify-content:center;color:{{i.iconInk}}"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="{{i.d}}"/></svg></span><span style="flex:1;white-space:nowrap">{{i.label}}</span><span style="margin-left:24px;font-family:'JetBrains Mono',monospace;font-size:12px;color:{{i.keyInk}}">{{i.key}}</span><svg aria-hidden="true" style="flex:none;margin-left:8px;opacity:{{i.chev}}" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3.5L10.5 8 6 12.5"/></svg></div></sc-for>
+    <div role="separator" style="height:1px;margin:4px 0;background:rgba(255,255,255,0.14)"></div>
+    <sc-for list="{{app.g4}}" as="i" hint-placeholder-count="3"><div role="menuitem" style=" {{i.style}}"><span aria-hidden="true" style="width:16px;height:16px;flex:none;display:inline-flex;align-items:center;justify-content:center;color:{{i.iconInk}}"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="{{i.d}}"/></svg></span><span style="flex:1;white-space:nowrap">{{i.label}}</span><span style="margin-left:24px;font-family:'JetBrains Mono',monospace;font-size:12px;color:{{i.keyInk}}">{{i.key}}</span><svg aria-hidden="true" style="flex:none;margin-left:8px;opacity:{{i.chev}}" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3.5L10.5 8 6 12.5"/></svg></div></sc-for>
+    <div role="separator" style="height:1px;margin:4px 0;background:rgba(255,255,255,0.14)"></div>
+    <sc-for list="{{app.g5}}" as="i" hint-placeholder-count="1"><div role="menuitem" style=" {{i.style}}"><span aria-hidden="true" style="width:16px;height:16px;flex:none;display:inline-flex;align-items:center;justify-content:center;color:{{i.iconInk}}"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="{{i.d}}"/></svg></span><span style="flex:1;white-space:nowrap">{{i.label}}</span><span style="margin-left:24px;font-family:'JetBrains Mono',monospace;font-size:12px;color:{{i.keyInk}}">{{i.key}}</span><svg aria-hidden="true" style="flex:none;margin-left:8px;opacity:{{i.chev}}" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3.5L10.5 8 6 12.5"/></svg></div></sc-for>
+  </div>
+
+  <!-- the Lenses submenu, open beside its row -->
+  <div role="menu" aria-label="Lenses" style="position:absolute;left:334px;top:226px;z-index:41;box-sizing:border-box;min-width:250px;padding:4px;color:#e0e0e0;background:#16161c;border:1px solid rgba(255,255,255,0.14);border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,0.45);font-size:13px">
+    <sc-for list="{{sub.g1}}" as="i" hint-placeholder-count="4"><div role="menuitemcheckbox" aria-checked="{{i.checked}}" style=" {{i.style}}"><span aria-hidden="true" style="width:16px;height:16px;flex:none;display:inline-flex;align-items:center;justify-content:center;color:{{i.iconInk}}"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="{{i.d}}"/></svg></span><span style="flex:1;white-space:nowrap">{{i.label}}</span><span style="margin-left:24px;font-family:'JetBrains Mono',monospace;font-size:12px;color:{{i.keyInk}}">{{i.key}}</span></div></sc-for>
+    <div role="separator" style="height:1px;margin:4px 0;background:rgba(255,255,255,0.14)"></div>
+    <sc-for list="{{sub.g2}}" as="i" hint-placeholder-count="2"><div role="menuitem" style=" {{i.style}}"><span aria-hidden="true" style="width:16px;height:16px;flex:none;display:inline-flex;align-items:center;justify-content:center;color:{{i.iconInk}}"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="{{i.d}}"/></svg></span><span style="flex:1;white-space:nowrap">{{i.label}}</span><span style="margin-left:24px;font-family:'JetBrains Mono',monospace;font-size:12px;color:{{i.keyInk}}">{{i.key}}</span></div></sc-for>
+  </div>
+
+  <!-- right-click menu on the selected gloop -->
+  <svg aria-hidden="true" style="position:absolute;left:444px;top:512px;z-index:43" width="18" height="22" viewBox="0 0 18 22"><path d="M2 2l13 9-6 1.5L12 19l-2.6 1.2-3-6.4L2 17.5z" fill="#fff" stroke="#050507" stroke-width="1.4" stroke-linejoin="round"/></svg>
+  <div role="menu" aria-label="Gloop" style="position:absolute;left:450px;top:519px;z-index:42;box-sizing:border-box;min-width:236px;padding:4px;color:#e0e0e0;background:#16161c;border:1px solid rgba(255,255,255,0.14);border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,0.45);font-size:13px">
+    <div role="presentation" style="padding:6px 8px 2px;font-size:11px;font-weight:600;color:#7c8796">Gloop · x 9, y 11 · line 15</div>
+    <sc-for list="{{ctx.g1}}" as="i" hint-placeholder-count="3"><div role="menuitem" style=" {{i.style}}"><span aria-hidden="true" style="width:16px;height:16px;flex:none;display:inline-flex;align-items:center;justify-content:center;color:{{i.iconInk}}"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="{{i.d}}"/></svg></span><span style="flex:1;white-space:nowrap">{{i.label}}</span><span style="margin-left:24px;font-family:'JetBrains Mono',monospace;font-size:12px;color:{{i.keyInk}}">{{i.key}}</span><svg aria-hidden="true" style="flex:none;margin-left:8px;opacity:{{i.chev}}" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3.5L10.5 8 6 12.5"/></svg></div></sc-for>
+    <div role="separator" style="height:1px;margin:4px 0;background:rgba(255,255,255,0.14)"></div>
+    <sc-for list="{{ctx.g2}}" as="i" hint-placeholder-count="4"><div role="menuitem" style=" {{i.style}}"><span aria-hidden="true" style="width:16px;height:16px;flex:none;display:inline-flex;align-items:center;justify-content:center;color:{{i.iconInk}}"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="{{i.d}}"/></svg></span><span style="flex:1;white-space:nowrap">{{i.label}}</span><span style="margin-left:24px;font-family:'JetBrains Mono',monospace;font-size:12px;color:{{i.keyInk}}">{{i.key}}</span><svg aria-hidden="true" style="flex:none;margin-left:8px;opacity:{{i.chev}}" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3.5L10.5 8 6 12.5"/></svg></div></sc-for>
+    <div role="separator" style="height:1px;margin:4px 0;background:rgba(255,255,255,0.14)"></div>
+    <sc-for list="{{ctx.g3}}" as="i" hint-placeholder-count="2"><div role="menuitem" style=" {{i.style}}"><span aria-hidden="true" style="width:16px;height:16px;flex:none;display:inline-flex;align-items:center;justify-content:center;color:{{i.iconInk}}"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="{{i.d}}"/></svg></span><span style="flex:1;white-space:nowrap">{{i.label}}</span><span style="margin-left:24px;font-family:'JetBrains Mono',monospace;font-size:12px;color:{{i.keyInk}}">{{i.key}}</span><svg aria-hidden="true" style="flex:none;margin-left:8px;opacity:{{i.chev}}" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3.5L10.5 8 6 12.5"/></svg></div></sc-for>
+    <div role="separator" style="height:1px;margin:4px 0;background:rgba(255,255,255,0.14)"></div>
+    <sc-for list="{{ctx.g4}}" as="i" hint-placeholder-count="1"><div role="menuitem" style=" {{i.style}}"><span aria-hidden="true" style="width:16px;height:16px;flex:none;display:inline-flex;align-items:center;justify-content:center;color:{{i.iconInk}}"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="{{i.d}}"/></svg></span><span style="flex:1;white-space:nowrap">{{i.label}}</span><span style="margin-left:24px;font-family:'JetBrains Mono',monospace;font-size:12px;color:{{i.keyInk}}">{{i.key}}</span><svg aria-hidden="true" style="flex:none;margin-left:8px;opacity:{{i.chev}}" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3.5L10.5 8 6 12.5"/></svg></div></sc-for>
+  </div>
+
+  <!-- the popped-out script: its own OS window, on the second display -->
+  <div style="position:absolute;left:770px;top:504px;width:660px;height:388px;z-index:30;border-radius:0;border:1px solid rgba(255,255,255,0.22);background:#0c0c10;box-shadow:0 30px 90px rgba(0,0,0,0.8),0 0 0 1px rgba(0,0,0,0.6);display:flex;flex-direction:column;overflow:hidden">
+    <div style="height:40px;flex:none;box-sizing:border-box;display:grid;grid-template-columns:minmax(min-content,1fr) minmax(0,auto) minmax(min-content,1fr);align-items:center;column-gap:8px;padding:0 8px;background:#0c0c10;border-bottom:1px solid rgba(255,255,255,0.08)">
+      <div style="display:flex;align-items:center;gap:8px;min-width:0">
+        <span style="display:inline-flex;align-items:center;gap:8px;height:28px;padding:0 8px;font-weight:600;color:#e0e0e0"><span aria-hidden="true" style="width:16px;height:16px;border-radius:4px;background:linear-gradient(135deg,#ffaa40,#f43f5e,#a78bfa)"></span>Fizz Level Studio</span>
+        <span style="padding:1px 8px;border-radius:999px;border:1px solid rgba(34,211,238,0.5);color:#e0e0e0;font-size:11px">Display 2</span>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:center;min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;color:#e0e0e0">crater.fizz — Crater Fields</div>
+      <div role="group" aria-label="Script window controls" style="display:flex;align-items:center;justify-content:flex-end;gap:2px">
+        <button aria-label="Minimise script window" style="position:relative;width:28px;height:28px;padding:0;border:none;background:transparent;color:#e0e0e0;display:inline-flex;align-items:center;justify-content:center"><span aria-hidden="true" style="position:absolute;inset:2px;border-radius:50%;background:rgba(255,255,255,0.06)"></span><svg aria-hidden="true" style="position:relative" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><path d="M3.5 8.5h9"/></svg></button>
+        <button aria-label="Maximise script window" style="position:relative;width:28px;height:28px;padding:0;border:none;background:transparent;color:#e0e0e0;display:inline-flex;align-items:center;justify-content:center"><span aria-hidden="true" style="position:absolute;inset:2px;border-radius:50%;background:rgba(255,255,255,0.06)"></span><svg aria-hidden="true" style="position:relative" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><rect x="3.5" y="3.5" width="9" height="9" rx="1"/></svg></button>
+        <button aria-label="Close script window" style="position:relative;width:28px;height:28px;padding:0;border:none;background:transparent;color:#e0e0e0;display:inline-flex;align-items:center;justify-content:center"><span aria-hidden="true" style="position:absolute;inset:2px;border-radius:50%;background:rgba(255,255,255,0.06)"></span><svg aria-hidden="true" style="position:relative" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><path d="M4 4l8 8M12 4l-8 8"/></svg></button>
+      </div>
+    </div>
+    <div style="height:52px;flex:none;display:flex;align-items:center;gap:8px;padding:0 12px;border-bottom:1px solid rgba(255,255,255,0.08)">
+      <button style="min-height:44px;padding:0 14px;border-radius:999px;border:1px solid rgba(255,255,255,0.22);background:transparent;color:#e0e0e0;font-weight:500;display:flex;align-items:center;gap:8px;white-space:nowrap"><svg aria-hidden="true" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="12" height="10" rx="1.5"/><path d="M2 10h12"/></svg>Dock back into the studio</button>
+      <button aria-pressed="true" style="min-height:44px;padding:0 14px;border-radius:999px;border:1px solid #ffaa40;background:rgba(255,170,64,0.1);color:#fff;white-space:nowrap">Following selection</button>
+      <span style="flex-grow:1"></span>
+      <span style="font-size:12px;color:#b4bfce;white-space:nowrap">Builder language</span>
+    </div>
+    <div style="flex-grow:1;min-height:0;padding:6px 0;font-family:'JetBrains Mono',monospace;font-size:12px;line-height:1.6;overflow:hidden;columns:2;column-gap:0;column-fill:auto">
+      <sc-for list="{{allLines}}" as="l" hint-placeholder-count="23">
+        <div style="display:flex;background:{{l.bg}};break-inside:avoid"><span style="width:40px;flex:none;text-align:right;padding-right:10px;color:#7c8796;box-sizing:border-box">{{l.n}}</span><span style="width:14px;flex:none;color:#a78bfa">{{l.mark}}</span><span style="white-space:pre;color:{{l.ink}}">{{l.text}}</span></div>
+      </sc-for>
+    </div>
+    <div style="height:28px;flex:none;display:flex;align-items:center;gap:16px;padding:0 12px;background:#121218;border-top:1px solid rgba(255,255,255,0.08);font-size:11.5px;color:#b4bfce">
+      <span style="color:#a78bfa">2 lines from Claude, pending</span><span>Start ok · Exit ok · Playtest bot not run</span><span style="flex-grow:1"></span><span style="font-family:'JetBrains Mono',monospace">Ln 15</span>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const T = 32, L = 130, TOP = 60;
+    const lv = window.FizzLevel.cells({ ghosts: true });
+    const all = window.FizzLevel.script();
+    const lines = all.map((r, i) => ({
+      n: i + 1, mark: r[1], text: r[0],
+      bg: r[1] ? 'rgba(167,139,250,0.14)' : (i === 14 ? 'rgba(255,170,64,0.16)' : 'transparent'),
+      ink: (/^[a-z]+$/.test(r[0]) && r[0] !== '') ? '#ffaa40' : (r[1] ? '#fff' : '#e0e0e0')
+    })).slice(3);
+    const menus = ['File', 'Edit', 'View', 'Level', 'Claude', 'Window', 'Help'].map((m) => ({ label: m }));
+    const tools = [['Paint', 'B'], ['Erase', 'E'], ['Pick', 'I'], ['Select', 'S'], ['Stamp', 'T'], ['Pan', 'H']].map((t, i) => ({ label: t[0], key: t[1], ring: i === 3 ? '#ffaa40' : 'rgba(255,255,255,0.08)', fill: i === 3 ? 'rgba(255,170,64,0.1)' : 'transparent', ink: i === 3 ? '#ffaa40' : '#b4bfce' }));
+    const pal = [['Fill', '#2b2540', '', '#e0e0e0'], ['Block', '#6a58a8', '', '#e0e0e0'], ['One-way platform', 'linear-gradient(#ffaa40 0 35%, #1a1626 35%)', '', '#e0e0e0'], ['Chocolate pool', '#7a4527', '~', '#d9a27c'],
+      ['Spikes', 'transparent', '^', '#f43f5e'], ['Gloop', 'transparent', 'g', '#f43f5e'], ['Hopper', 'transparent', 'h', '#f43f5e'], ['Bat', 'transparent', 'b', '#f43f5e'],
+      ['Cheezie', 'transparent', '•', '#fbbf24'], ['Soda', 'transparent', 's', '#22d3ee'], ['Start marker', 'transparent', '@', '#ffffff'], ['Exit marker', 'rgba(46,198,106,0.3)', '>', '#2ec66a']];
+    const palette = pal.map((p, i) => ({ name: p[0], sw: p[1], glyph: p[2], ink: p[3], ring: i === 1 ? '#ffaa40' : 'rgba(255,255,255,0.08)', fill: i === 1 ? 'rgba(255,170,64,0.1)' : 'transparent' }));
+    // gap lens: 3 or fewer tiles clears with a normal jump, 4 only with a jump timed within a tenth of a second, 5 and up needs a ledge
+    const gapRule = (w) => w <= 3 ? ['#2ec66a', 'rgba(46,198,106,0.22)', 'a jump clears it'] : (w === 4 ? ['#fbbf24', 'rgba(251,191,36,0.22)', 'tight: a tenth of a second'] : ['#f43f5e', 'rgba(244,63,94,0.2)', 'needs a ledge']);
+    const gaps = [[17, 3, 12, 1], [26, 5, 12, 2]].map((g) => {
+      const r = gapRule(g[1]);
+      return { x: L + g[0] * T, y: TOP + g[2] * T, w: g[1] * T, h: g[3] * T, ink: r[0], fill: r[1], n: g[1] + ' wide', note: r[2], lx: L + g[0] * T - 2, ly: TOP + g[2] * T - 30 };
+    });
+    const you = { whoInk: '#ffaa40', dot: '#ffaa40', ring: 'none', halo: 'none' };
+    const direct = { whoInk: '#a78bfa', dot: '#a78bfa', ring: 'none', halo: '0 0 0 4px rgba(167,139,250,0.3)' };
+    const proposed = { whoInk: '#a78bfa', dot: 'transparent', ring: '2px dashed #a78bfa', halo: 'none' };
+    const ev = [[16, 'You', 'Terrain and the pool', you], [100, 'You', 'Treats and enemies', you], [184, 'Claude', 'Soda at x 23', direct], [268, 'You', 'Spikes near the exit', you], [372, 'Proposed', 'Stones over the pool', proposed], [456, 'Proposed', 'A cheezie on each', proposed]];
+    const events = ev.map((e) => Object.assign({ x: e[0], who: e[1], what: e[2] }, e[3]));
+    const items = [['Paint', 'B'], ['Erase', 'E'], ['Select', 'S'], ['Ask Claude', 'Ask'], ['Show in script', '{ }'], ['Stamp', 'T'], ['Pick', 'I'], ['Inspect', 'Info']];
+    const cx = L + 9 * T + T / 2, cy = TOP + 11 * T + T / 2;
+    const ring = items.map((t, i) => {
+      const a = (-90 + i * 45) * Math.PI / 180;
+      const claude = t[0] === 'Ask Claude', on = t[0] === 'Select';
+      return {
+        label: t[0], key: t[1], size: t[1].length > 1 ? 11 : 13,
+        x: Math.round(cx + 72 * Math.cos(a) - 22), y: Math.round(cy + 72 * Math.sin(a) - 22),
+        edge: claude ? '#a78bfa' : (on ? '#ffaa40' : 'rgba(255,255,255,0.14)'),
+        fill: claude ? '#3b2f63' : (on ? '#3a2810' : '#16161c'),
+        ink: claude ? '#fff' : (on ? '#ffaa40' : '#e0e0e0')
+      };
+    });
+    const checks = [['Has a start', 'ok', '#2ec66a', '#2ec66a'], ['Has an exit', 'ok', '#2ec66a', '#2ec66a'], ['Playtest bot', 'not run', '#7c8796', '#b4bfce']].map((c) => ({ label: c[0], state: c[1], dot: c[2], ink: c[3] }));
+    const lz = [['Gaps', true, '#2ec66a'], ['Ghosts', true, '#a78bfa'], ['Reach', false, '#7c8796'], ['Hazards', false, '#7c8796']];
+    const lenses = lz.map((z) => ({ name: z[0], on: z[1] ? 'true' : 'false', dot: z[2], edge: z[1] ? z[2] : 'rgba(255,255,255,0.14)', fill: z[1] ? (z[0] === 'Gaps' ? 'rgba(46,198,106,0.12)' : 'rgba(167,139,250,0.14)') : 'transparent', ink: z[1] ? '#fff' : '#b4bfce' }));
+    const row = (n, mark) => ({ n: n, mark: mark, text: all[n - 1][0].trim(), bg: mark ? 'rgba(167,139,250,0.16)' : 'transparent', ink: mark ? '#fff' : '#b4bfce' });
+    const hunks = [
+      { title: 'Stepping stones over the pool', meta: 'after line 21 · 3 one-way tiles', rows: [row(21, ''), row(22, '+')], show: 'Show the stepping stones on the level' },
+      { title: 'A cheezie on each stone', meta: 'after line 22 · 3 treats', rows: [row(23, '+')], show: 'Show the cheezies on the level' }
+    ];
+    // navigator: window footprints in minimap pixels (8 px per tile, so a quarter of workspace pixels)
+    const wins = [[76, 8, 252, 208], [336, 8, 560, 120], [904, 8, 220, 120], [336, 136, 788, 52], [1132, 8, 300, 810], [8, 8, 60, 300], [76, 570, 360, 248]];
+    const footprints = [];
+    wins.forEach((w) => {
+      const x0 = Math.max(0, (w[0] - L) / 4), y0 = Math.max(0, (w[1] - TOP) / 4);
+      const x1 = Math.min(320, (w[0] + w[2] - L) / 4), y1 = Math.min(128, (w[1] + w[3] - TOP) / 4);
+      if (x1 - x0 > 1 && y1 - y0 > 1) footprints.push({ x: x0, y: y0, w: x1 - x0, h: y1 - y0 });
+    });
+    const marks = [['Start', 'rgba(255,255,255,0.22)', '#e0e0e0'], ['Gloop', '#ffaa40', '#ffaa40'], ['Pool', 'rgba(255,255,255,0.22)', '#e0e0e0'], ['Ghosts', '#a78bfa', '#e0e0e0'], ['Exit', 'rgba(255,255,255,0.22)', '#e0e0e0']].map((m) => ({ name: m[0], edge: m[1], ink: m[2] }));
+    // menus: every row's style is computed here; the hovered row takes the accent fill
+    const ICON = {
+      newf: 'M4 2h5l3 3v9H4z M9 2v3h3', open: 'M2 4h4l1.5 1.5H14v8H2z', clock: 'M8 4.5V8l2.5 1.5 M8 14A6 6 0 1 0 8 2a6 6 0 0 0 0 12z',
+      save: 'M3 3h8l2 2v8H3z M5 3v4h5V3 M5 13V9h6v4', saveas: 'M3 3h8l2 2v8H3z M5 13V9h6v4 M10 1.5l2 2', exportf: 'M8 10V2 M5 5l3-3 3 3 M2 10v3h12v-3',
+      eye: 'M1.5 8s2.4-4.5 6.5-4.5S14.5 8 14.5 8 12.1 12.5 8 12.5 1.5 8 1.5 8z M8 10a2 2 0 1 0 0-4 2 2 0 0 0 0 4z', layout: 'M2 3h12v10H2z M6 3v10 M6 8h8',
+      gear: 'M8 10.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z M8 1.5v2 M8 12.5v2 M1.5 8h2 M12.5 8h2 M3.4 3.4l1.4 1.4 M11.2 11.2l1.4 1.4 M3.4 12.6l1.4-1.4 M11.2 4.8l1.4-1.4',
+      keys: 'M2 4h12v8H2z M4.5 6.5h1 M7.5 6.5h1 M10.5 6.5h1 M5 9.5h6', info: 'M8 14A6 6 0 1 0 8 2a6 6 0 0 0 0 12z M8 7v4 M8 4.5v.5', power: 'M8 2v6 M4.5 4.5a5 5 0 1 0 7 0',
+      braces: 'M6 2.5c-2 0-2 1.5-2 3S4 8 2.5 8C4 8 4 9.5 4 10.5s0 3 2 3 M10 2.5c2 0 2 1.5 2 3S12 8 13.5 8C12 8 12 9.5 12 10.5s0 3-2 3', spark: 'M8 2l1.5 4.5L14 8l-4.5 1.5L8 14l-1.5-4.5L2 8l4.5-1.5z',
+      flip: 'M2 8h12 M5 5L2 8l3 3 M11 5l3 3-3 3', patrol: 'M3 8h10 M3 5v6 M13 5v6', swap: 'M3 5h9 M10 3l2 2-2 2 M13 11H4 M6 9l-2 2 2 2', dup: 'M5 5h8v8H5z M3 11V3h8',
+      cut: 'M4.5 11.5a2 2 0 1 0 0-4 2 2 0 0 0 0 4z M11.5 11.5a2 2 0 1 0 0-4 2 2 0 0 0 0 4z M6 9l7-6.5 M10 9L3 2.5', trash: 'M3 4h10 M6 4V2.5h4V4 M4.5 4l.7 9.5h5.6L11.5 4 M7 7v4 M9 7v4',
+      check: 'M3.5 8.5l3 3 6-7', none: ''
+    };
+    const ROW = 'display:flex;align-items:center;gap:8px;box-sizing:border-box;height:28px;padding:0 8px;border-radius:6px;';
+    const item = (label, key, icon, o) => {
+      o = o || {};
+      const hot = !!o.hot, danger = !!o.danger;
+      return {
+        label: label, key: key || '', d: ICON[icon || 'none'], chev: o.sub ? 1 : 0, open: o.open ? 'true' : 'false', checked: o.checked === undefined ? 'false' : (o.checked ? 'true' : 'false'),
+        style: ROW + (hot ? 'background:#ffaa40;color:#0a0a0c' : (danger ? 'color:#f43f5e' : 'color:#e0e0e0')),
+        iconInk: hot ? '#0a0a0c' : (danger ? '#f43f5e' : (o.claude ? '#a78bfa' : '#b4bfce')),
+        keyInk: hot ? 'rgba(10,10,12,0.85)' : '#7c8796'
+      };
+    };
+    const app = {
+      g1: [item('New level…', 'Ctrl+N', 'newf'), item('Open…', 'Ctrl+O', 'open'), item('Open recent', '', 'clock', { sub: true })],
+      g2: [item('Save', 'Ctrl+S', 'save'), item('Save as…', 'Ctrl+Shift+S', 'saveas'), item('Export', '', 'exportf', { sub: true })],
+      g3: [item('Lenses', '', 'eye', { sub: true, hot: true, open: true }), item('Reset window layout', 'Ctrl+Shift+0', 'layout')],
+      g4: [item('Preferences…', 'Ctrl+,', 'gear'), item('Keyboard shortcuts', 'Ctrl+?', 'keys'), item('About Fizz Level Studio', '', 'info')],
+      g5: [item('Quit', 'Ctrl+Q', 'power')]
+    };
+    const sub = {
+      g1: [item('Gaps', 'Alt+1', 'check', { checked: true }), item('Ghosts', 'Alt+2', 'check', { checked: true }), item('Reach', 'Alt+3', 'none', { checked: false }), item('Hazards', 'Alt+4', 'none', { checked: false })],
+      g2: [item('Grid', 'Ctrl+\'', 'none', { checked: false }), item('Hide all lenses', 'Ctrl+Shift+L', 'none')]
+    };
+    const ctx = {
+      g1: [item('Inspect', 'I', 'info'), item('Show in script', 'Ctrl+J', 'braces'), item('Ask Claude about this', 'Ctrl+K', 'spark', { hot: true, claude: true })],
+      g2: [item('Flip facing', 'F', 'flip'), item('Patrol range', '', 'patrol', { sub: true }), item('Replace with', '', 'swap', { sub: true }), item('Duplicate', 'Ctrl+D', 'dup')],
+      g3: [item('Cut', 'Ctrl+X', 'cut'), item('Copy', 'Ctrl+C', 'dup')],
+      g4: [item('Delete', 'Del', 'trash', { danger: true })]
+    };
+    const allLines = all.map((r, i) => ({
+      n: i + 1, mark: r[1], text: r[0],
+      bg: r[1] ? 'rgba(167,139,250,0.14)' : (i === 14 ? 'rgba(255,170,64,0.16)' : 'transparent'),
+      ink: (/^[a-z]+$/.test(r[0]) && r[0] !== '') ? '#ffaa40' : (r[1] ? '#fff' : '#e0e0e0')
+    }));
+    return { cols: lv.cols, cells: lv.cells, lines: lines, allLines: allLines, menus: menus, tools: tools, palette: palette, gaps: gaps, events: events, ring: ring, checks: checks, lenses: lenses, hunks: hunks, footprints: footprints, marks: marks, app: app, sub: sub, ctx: ctx };
+  }
+}
+</script>
+</body>
+</html>

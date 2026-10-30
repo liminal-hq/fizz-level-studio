@@ -1,0 +1,11 @@
+{
+  "name": "@fizz-level-studio/mcp",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "bun test"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.1"
+  }
+}

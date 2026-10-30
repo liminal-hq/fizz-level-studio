@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Canvas first layout</title>
+<script src="./support.js"></script>
+<script src="./level-data.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@500;600;700&display=swap">
+<style>body{margin:0;background:#050507}button{font-family:inherit;cursor:pointer}button:focus-visible,input:focus-visible{outline:2px solid #ffaa40;outline-offset:1px}</style>
+</helmet>
+<div style="width:1440px;height:900px;box-sizing:border-box;display:flex;flex-direction:column;background:#050507;color:#e0e0e0;font-family:Inter,system-ui,sans-serif;font-size:13px;overflow:hidden">
+
+  <div style="height:40px;flex:none;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;padding:0 12px 0 16px;background:#0c0c10;border-bottom:1px solid rgba(255,255,255,0.08)">
+    <span style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:14px;background:linear-gradient(135deg,#ffaa40,#f43f5e,#a78bfa);-webkit-background-clip:text;background-clip:text;color:transparent">fizz level studio</span>
+    <span style="font-weight:500;color:#fff">Crater Fields — draft</span>
+    <div style="display:flex;justify-content:flex-end;gap:2px">
+      <button aria-label="Minimise" style="width:36px;height:28px;border:none;border-radius:6px;background:transparent;color:#b4bfce"><svg aria-hidden="true" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 8h10"/></svg></button>
+      <button aria-label="Maximise" style="width:36px;height:28px;border:none;border-radius:6px;background:transparent;color:#b4bfce"><svg aria-hidden="true" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="10" height="10" rx="1.5"/></svg></button>
+      <button aria-label="Close" style="width:36px;height:28px;border:none;border-radius:6px;background:transparent;color:#b4bfce"><svg aria-hidden="true" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 4l8 8M12 4l-8 8"/></svg></button>
+    </div>
+  </div>
+
+  <div style="position:relative;flex-grow:1;min-height:0;background-color:#050507;background-image:radial-gradient(rgba(255,255,255,0.07) 1px,transparent 1px);background-size:24px 24px">
+
+    <div style="position:absolute;left:150px;top:64px;display:grid;grid-template-columns:repeat({{cols}},26px);grid-auto-rows:26px;border:1px solid rgba(255,255,255,0.14);border-radius:4px;background:#0f0e1a;box-shadow:0 4px 24px rgba(0,0,0,0.45);overflow:hidden">
+      <sc-for list="{{cells}}" as="c" hint-placeholder-count="20">
+        <div style="width:26px;height:26px;box-sizing:border-box;background:{{c.bg}};outline:{{c.outline}};outline-offset:-1px;opacity:{{c.opacity}};display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:500;line-height:1;color:{{c.ink}}">{{c.glyph}}</div>
+      </sc-for>
+    </div>
+
+    <!-- floating tools -->
+    <div style="position:absolute;left:16px;top:64px;width:112px;box-sizing:border-box;padding:8px;border-radius:12px;border:1px solid rgba(255,255,255,0.1);background:rgba(20,20,25,0.55);backdrop-filter:blur(10px);display:flex;flex-direction:column;gap:6px">
+      <sc-for list="{{tools}}" as="t" hint-placeholder-count="5">
+        <button style="min-height:44px;border-radius:8px;border:1px solid {{t.ring}};background:{{t.fill}};color:{{t.ink}};font-size:13px;font-weight:500;display:flex;align-items:center;justify-content:space-between;padding:0 10px"><span>{{t.label}}</span><span style="font-family:'JetBrains Mono',monospace;font-size:11px;opacity:0.6">{{t.key}}</span></button>
+      </sc-for>
+    </div>
+
+    <!-- minimap -->
+    <div style="position:absolute;right:16px;top:64px;width:216px;box-sizing:border-box;padding:12px;border-radius:12px;border:1px solid rgba(255,255,255,0.1);background:rgba(20,20,25,0.55);backdrop-filter:blur(10px);display:flex;flex-direction:column;gap:8px">
+      <div style="display:flex;justify-content:space-between;font-size:12px;color:#7c8796"><span>Whole level</span><span style="font-family:'JetBrains Mono',monospace">192 × 28</span></div>
+      <div style="height:56px;border-radius:4px;background:#0f0e1a;border:1px solid rgba(255,255,255,0.08);position:relative;overflow:hidden">
+        <div style="position:absolute;left:0;right:0;bottom:0;height:18px;background:#2b2540"></div>
+        <div style="position:absolute;left:0;top:0;width:44px;height:100%;border:1.5px solid #ffaa40;box-sizing:border-box;background:rgba(255,170,64,0.1)"></div>
+        <div style="position:absolute;left:104px;top:6px;width:32px;height:44px;border:1.5px dashed #a78bfa;box-sizing:border-box;border-radius:2px"></div>
+      </div>
+      <div style="font-size:12px;color:#7c8796;line-height:1.5">Orange is your view. Purple is where Claude is looking.</div>
+    </div>
+
+    <!-- palette pill -->
+    <div style="position:absolute;left:150px;bottom:20px;display:flex;align-items:center;gap:4px;padding:6px;border-radius:999px;border:1px solid rgba(255,255,255,0.1);background:rgba(20,20,25,0.55);backdrop-filter:blur(10px)">
+      <sc-for list="{{palette}}" as="p" hint-placeholder-count="10">
+        <button aria-label="{{p.name}}" title="{{p.name}}" style="width:44px;height:44px;border-radius:50%;border:1px solid {{p.ring}};background:{{p.fill}};color:#e0e0e0;display:flex;align-items:center;justify-content:center"><span style="width:22px;height:22px;border-radius:4px;background:{{p.sw}};display:inline-flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:500;color:{{p.ink}}">{{p.glyph}}</span></button>
+      </sc-for>
+    </div>
+
+    <!-- Claude dock -->
+    <div style="position:absolute;right:16px;bottom:20px;width:380px;box-sizing:border-box;padding:16px;border-radius:16px;border:1px solid rgba(167,139,250,0.4);background:rgba(20,20,25,0.7);backdrop-filter:blur(10px);display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;align-items:center;gap:8px"><span style="width:8px;height:8px;border-radius:50%;background:#a78bfa"></span><span style="font-family:'Space Grotesk',sans-serif;font-weight:600;color:#fff">Claude</span><span style="flex-grow:1"></span><span style="font-size:12px;color:#7c8796">Propose mode</span></div>
+      <div style="color:#b4bfce;line-height:1.5">The chocolate pool has nothing to land on. I put three stepping stones over it, shown as ghosts.</div>
+      <div style="display:flex;gap:8px">
+        <button style="min-height:44px;padding:0 16px;border-radius:999px;border:none;background:#ffaa40;color:#050507;font-weight:600">Accept</button>
+        <button style="min-height:44px;padding:0 16px;border-radius:999px;border:1px solid rgba(255,255,255,0.22);background:transparent;color:#e0e0e0;font-weight:500">Not that</button>
+      </div>
+      <label for="ask" style="font-size:12px;color:#7c8796">Ask Claude</label>
+      <input id="ask" type="text" placeholder="Make the middle harder, but fair" style="min-height:44px;box-sizing:border-box;padding:0 12px;border-radius:8px;border:1px solid rgba(255,255,255,0.14);background:#050507;color:#e0e0e0;font-family:inherit;font-size:13px">
+    </div>
+  </div>
+
+  <div style="height:28px;flex:none;display:flex;align-items:center;gap:20px;padding:0 16px;background:#0c0c10;border-top:1px solid rgba(255,255,255,0.08);font-size:12px;color:#7c8796">
+    <span>Painting with Block</span><span style="font-family:'JetBrains Mono',monospace">x 22, y 9</span><span style="flex-grow:1"></span><span>Saved to crater.fizz</span>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const lv = window.FizzLevel.cells({ ghosts: true });
+    const tools = ['Paint|B', 'Erase|E', 'Pick|I', 'Select|S', 'Stamp|T'].map((t, i) => ({
+      label: t.split('|')[0], key: t.split('|')[1],
+      ring: i === 0 ? '#ffaa40' : 'rgba(255,255,255,0.1)',
+      fill: i === 0 ? 'rgba(255,170,64,0.1)' : 'transparent',
+      ink: i === 0 ? '#ffaa40' : '#e0e0e0'
+    }));
+    const pal = [['Fill', '#2b2540', ''], ['Block', '#6a58a8', ''], ['One-way', '#ffaa40', ''], ['Chocolate', '#7a4527', '~'], ['Spikes', '#3a1620', '^'], ['Gloop', '#3a1620', 'g'], ['Hopper', '#3a1620', 'h'], ['Bat', '#3a1620', 'b'], ['Cheezie', '#3a2f10', '•'], ['Soda', '#0f2f36', 's']];
+    const ink = { Chocolate: '#d9a27c', Spikes: '#f43f5e', Gloop: '#f43f5e', Hopper: '#f43f5e', Bat: '#f43f5e', Cheezie: '#fbbf24', Soda: '#22d3ee' };
+    return {
+      cols: lv.cols, cells: lv.cells, tools: tools,
+      palette: pal.map((p, i) => ({ name: p[0], sw: p[1], glyph: p[2], ink: ink[p[0]] || '#e0e0e0', ring: i === 1 ? '#ffaa40' : 'transparent', fill: i === 1 ? 'rgba(255,170,64,0.1)' : 'transparent' }))
+    };
+  }
+}
+</script>
+</body>
+</html>

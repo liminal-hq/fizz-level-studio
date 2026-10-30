@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Overlay editor over the level</title>
+<script src="./support.js"></script>
+<script src="./level-data.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@500;600;700&display=swap">
+<style>body{margin:0;background:#050507}button{font-family:inherit;cursor:pointer}button:focus-visible,input:focus-visible{outline:2px solid #ffaa40;outline-offset:1px}</style>
+</helmet>
+<div style="width:1440px;height:900px;box-sizing:border-box;display:flex;flex-direction:column;background:#050507;color:#e0e0e0;font-family:Inter,system-ui,sans-serif;font-size:13px;overflow:hidden">
+
+  <div style="height:40px;flex:none;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;padding:0 12px 0 16px;background:#0c0c10;border-bottom:1px solid rgba(255,255,255,0.08)">
+    <span style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:14px;background:linear-gradient(135deg,#ffaa40,#f43f5e,#a78bfa);-webkit-background-clip:text;background-clip:text;color:transparent">fizz level studio</span>
+    <span style="font-weight:500;color:#fff">Crater Fields — draft</span>
+    <div style="display:flex;justify-content:flex-end;gap:2px">
+      <button aria-label="Minimise" style="width:36px;height:28px;border:none;border-radius:6px;background:transparent;color:#b4bfce"><svg aria-hidden="true" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 8h10"/></svg></button>
+      <button aria-label="Maximise" style="width:36px;height:28px;border:none;border-radius:6px;background:transparent;color:#b4bfce"><svg aria-hidden="true" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="10" height="10" rx="1.5"/></svg></button>
+      <button aria-label="Close" style="width:36px;height:28px;border:none;border-radius:6px;background:transparent;color:#b4bfce"><svg aria-hidden="true" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 4l8 8M12 4l-8 8"/></svg></button>
+    </div>
+  </div>
+
+  <div style="position:relative;flex-grow:1;min-height:0;background-color:#0f0e1a;overflow:hidden">
+    <div style="position:absolute;left:0;top:96px;display:grid;grid-template-columns:repeat({{cols}},36px);grid-auto-rows:36px">
+      <sc-for list="{{cells}}" as="c" hint-placeholder-count="20">
+        <div style="width:36px;height:36px;box-sizing:border-box;background:{{c.bg}};outline:{{c.outline}};outline-offset:-1px;opacity:{{c.opacity}};display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:18px;font-weight:500;line-height:1;color:{{c.ink}}">{{c.glyph}}</div>
+      </sc-for>
+    </div>
+
+    <!-- tool rail -->
+    <div style="position:absolute;left:8px;top:8px;width:56px;box-sizing:border-box;padding:8px 0;border-radius:12px;border:1px solid rgba(255,255,255,0.1);background:rgba(20,20,25,0.72);backdrop-filter:blur(10px);display:flex;flex-direction:column;align-items:center;gap:6px">
+      <sc-for list="{{tools}}" as="t" hint-placeholder-count="6">
+        <button aria-label="{{t.label}}" title="{{t.label}}" style="width:40px;height:40px;border-radius:8px;border:1px solid {{t.ring}};background:{{t.fill}};color:{{t.ink}};font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:500">{{t.key}}</button>
+      </sc-for>
+    </div>
+
+    <!-- collapsed outliner and palette -->
+    <div style="position:absolute;left:72px;top:8px;display:flex;align-items:center;gap:8px;padding:0 14px;height:44px;border-radius:999px;border:1px solid rgba(255,255,255,0.1);background:rgba(20,20,25,0.72);backdrop-filter:blur(10px);color:#b4bfce">Outliner <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#7c8796">13 items</span></div>
+    <div style="position:absolute;left:50%;top:8px;transform:translateX(-50%);display:flex;align-items:center;gap:4px;padding:4px 6px;border-radius:999px;border:1px solid rgba(255,255,255,0.1);background:rgba(20,20,25,0.72);backdrop-filter:blur(10px)">
+      <sc-for list="{{palette}}" as="p" hint-placeholder-count="8">
+        <button aria-label="{{p.name}}" title="{{p.name}}" style="width:36px;height:36px;border-radius:50%;border:1px solid {{p.ring}};background:{{p.fill}};display:flex;align-items:center;justify-content:center"><span style="width:18px;height:18px;border-radius:4px;background:{{p.sw}}"></span></button>
+      </sc-for>
+    </div>
+
+    <!-- minimap -->
+    <div style="position:absolute;right:8px;top:8px;width:216px;box-sizing:border-box;padding:12px;border-radius:12px;border:1px solid rgba(255,255,255,0.1);background:rgba(20,20,25,0.72);backdrop-filter:blur(10px)">
+      <div style="display:flex;justify-content:space-between;font-size:12px;color:#7c8796;margin-bottom:8px"><span>Whole level</span><span style="font-family:'JetBrains Mono',monospace">192 × 28</span></div>
+      <div style="height:48px;border-radius:4px;background:#0f0e1a;border:1px solid rgba(255,255,255,0.08);position:relative;overflow:hidden"><div style="position:absolute;left:0;right:0;bottom:0;height:14px;background:#2b2540"></div><div style="position:absolute;left:0;top:0;width:60px;height:100%;border:1.5px solid #ffaa40;box-sizing:border-box;background:rgba(255,170,64,0.1)"></div></div>
+    </div>
+
+    <!-- inspector popover beside the selection -->
+    <div style="position:absolute;left:350px;top:476px;width:224px;box-sizing:border-box;padding:14px;border-radius:12px;border:1px solid rgba(255,170,64,0.5);background:rgba(20,20,25,0.9);backdrop-filter:blur(10px);box-shadow:0 10px 30px rgba(0,0,0,0.4);display:flex;flex-direction:column;gap:8px">
+      <div style="display:flex;align-items:center;gap:10px"><span style="width:24px;height:24px;border-radius:4px;background:#3a1620;color:#f43f5e;display:inline-flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-weight:500">g</span><span style="font-family:'Space Grotesk',sans-serif;font-weight:600;color:#fff">Gloop</span><span style="flex-grow:1"></span><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#ffaa40">line 15</span></div>
+      <div style="color:#b4bfce;font-size:12px">x 9 · follows your selection</div>
+    </div>
+
+    <!-- editor sheet -->
+    <div style="position:absolute;left:72px;right:8px;bottom:8px;height:270px;border-radius:12px;border:1px solid rgba(255,255,255,0.22);background:rgba(12,12,16,0.84);backdrop-filter:blur(14px);box-shadow:0 -10px 40px rgba(0,0,0,0.5);display:flex;flex-direction:column;overflow:hidden">
+      <div style="flex:none;display:flex;justify-content:center;padding-top:6px;cursor:ns-resize"><span style="width:44px;height:4px;border-radius:2px;background:#7c8796"></span></div>
+      <div style="flex:none;display:flex;align-items:center;gap:8px;padding:0 12px 6px">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#fff;font-weight:500">crater.fizz</span>
+        <span style="color:#7c8796;font-size:12px">· height 270 px, drag the handle</span>
+        <span style="flex-grow:1"></span>
+        <span style="display:inline-flex;gap:6px;color:#7c8796;font-size:12px;align-items:center">Show or hide <kbd style="font-family:'JetBrains Mono',monospace;font-size:11px;padding:2px 8px;border-radius:4px;border:1px solid rgba(255,255,255,0.22);color:#e0e0e0">Ctrl E</kbd></span>
+        <button style="min-height:28px;padding:0 10px;border-radius:6px;border:1px solid rgba(255,255,255,0.14);background:transparent;color:#b4bfce;font-size:12px">Snap to side</button>
+      </div>
+      <div style="flex-grow:1;min-height:0;display:flex;border-top:1px solid rgba(255,255,255,0.08)">
+        <div style="flex-grow:1;min-width:0;padding:6px 0;font-family:'JetBrains Mono',monospace;font-size:12px;line-height:1.65;overflow:hidden;columns:2;column-gap:0">
+          <sc-for list="{{lines}}" as="l" hint-placeholder-count="20">
+            <div style="display:flex;background:{{l.bg}};break-inside:avoid"><span style="width:44px;flex:none;text-align:right;padding-right:12px;color:#7c8796;box-sizing:border-box">{{l.n}}</span><span style="width:14px;flex:none;color:#a78bfa">{{l.mark}}</span><span style="white-space:pre;color:{{l.ink}}">{{l.text}}</span></div>
+          </sc-for>
+        </div>
+        <div style="width:300px;flex:none;box-sizing:border-box;padding:14px;border-left:1px solid rgba(255,255,255,0.08);display:flex;flex-direction:column;gap:10px">
+          <div style="display:flex;align-items:center;gap:8px"><span style="width:8px;height:8px;border-radius:50%;background:#a78bfa"></span><span style="font-weight:500;color:#fff">Claude</span></div>
+          <div style="color:#b4bfce;line-height:1.5">Lines 22 and 23 match the ghosts above the pool.</div>
+          <div style="display:flex;gap:8px"><button style="min-height:44px;padding:0 16px;border-radius:999px;border:none;background:#ffaa40;color:#050507;font-weight:600">Accept</button><button style="min-height:44px;padding:0 16px;border-radius:999px;border:1px solid rgba(255,255,255,0.22);background:transparent;color:#e0e0e0;font-weight:500">Not that</button></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const lv = window.FizzLevel.cells({ ghosts: true });
+    const lines = window.FizzLevel.script().map((r, i) => ({
+      n: i + 1, mark: r[1], text: r[0], bg: r[1] ? 'rgba(167,139,250,0.14)' : 'transparent',
+      ink: (/^[a-z]+$/.test(r[0]) && r[0] !== '') ? '#ffaa40' : (r[1] ? '#fff' : '#e0e0e0')
+    }));
+    const tools = [['Paint', 'B'], ['Erase', 'E'], ['Pick', 'I'], ['Select', 'S'], ['Stamp', 'T'], ['Pan', 'H']].map((t, i) => ({ label: t[0], key: t[1], ring: i === 0 ? '#ffaa40' : 'rgba(255,255,255,0.08)', fill: i === 0 ? 'rgba(255,170,64,0.1)' : 'transparent', ink: i === 0 ? '#ffaa40' : '#b4bfce' }));
+    const pal = [['Fill', '#2b2540'], ['Block', '#6a58a8'], ['One-way', '#ffaa40'], ['Chocolate', '#7a4527'], ['Spikes', '#f43f5e'], ['Gloop', '#f43f5e'], ['Cheezie', '#fbbf24'], ['Soda', '#22d3ee']];
+    return { cols: lv.cols, cells: lv.cells, lines: lines, tools: tools, palette: pal.map((p, i) => ({ name: p[0], sw: p[1], ring: i === 1 ? '#ffaa40' : 'transparent', fill: i === 1 ? 'rgba(255,170,64,0.1)' : 'transparent' })) };
+  }
+}
+</script>
+</body>
+</html>

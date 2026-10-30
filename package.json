@@ -1,0 +1,11 @@
+{
+  "name": "fizz-level-studio",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "bun test packages/language",
+    "test:mcp": "bun test packages/mcp",
+    "prove": "bash scripts/prove-crater.sh",
+    "prove:all": "bash scripts/prove-all.sh"
+  }
+}

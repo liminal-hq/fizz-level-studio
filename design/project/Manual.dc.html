@@ -1,0 +1,557 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>The Fizz builder language manual</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@500;600;700&display=swap">
+<style>body{margin:0;background:#050507}button{font-family:inherit;cursor:pointer}button:focus-visible,input:focus-visible,a:focus-visible{outline:2px solid #ffaa40;outline-offset:2px}a{color:#ffaa40}a:hover{color:#ffc27a}code{font-family:'JetBrains Mono',monospace;font-size:0.9em;color:#ffaa40;background:rgba(255,255,255,0.06);padding:1px 6px;border-radius:4px}section{scroll-margin-top:16px}</style>
+</helmet>
+<div style="box-sizing:border-box;width:100%;min-height:900px;background:#050507;color:#e0e0e0;font-family:Inter,system-ui,sans-serif;font-size:15px;line-height:1.65">
+<div style="box-sizing:border-box;max-width:1180px;margin:0 auto;padding:40px 24px 96px;display:flex;flex-direction:column;gap:56px">
+
+  <!-- title -->
+  <header style="display:flex;flex-direction:column;gap:12px">
+    <span style="font-size:13px;color:#b4bfce">Fizz Level Studio · language manual</span>
+    <h1 style="margin:0;font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:42px;line-height:1.12;letter-spacing:-0.02em;color:#fff">The Fizz builder language</h1>
+    <p style="margin:0;max-width:780px;color:#b4bfce;font-size:17px">A Fizz script is a plain text description of one level, written and read by the studio, by a person and by Claude. A small exporter turns it into the Rust calls that a hand-written level makes, so the game does not change. This is version 0.</p>
+    <nav aria-label="Sections" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px">
+      <sc-for list="{{toc}}" as="t" hint-placeholder-count="8"><a href="{{t.href}}" style="min-height:44px;box-sizing:border-box;padding:0 14px;border:1px solid rgba(255,255,255,0.14);border-radius:999px;color:#e0e0e0;text-decoration:none;font-size:13.5px;display:inline-flex;align-items:center">{{t.label}}</a></sc-for>
+    </nav>
+  </header>
+
+  <!-- quick start -->
+  <section id="start" style="display:flex;flex-direction:column;gap:20px">
+    <h2 style="margin:0;font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:30px;color:#fff">In one minute</h2>
+    <div style="display:flex;flex-wrap:wrap;gap:24px;align-items:flex-start">
+      <pre style="flex:1 1 420px;min-width:0;margin:0;padding:20px;border-radius:12px;border:1px solid rgba(255,255,255,0.14);background:#0c0c10;font-family:'JetBrains Mono',monospace;font-size:13px;line-height:1.7;color:#e0e0e0;overflow:auto">level "Crater Fields" 192x28 ground=4 id=crater
+start 3,4
+
+terrain
+  flat 14, up 2, flat 6, down 2
+
+blocks
+  block   x=49..51 y=10
+
+treats
+  soda    x=36 y=5
+
+enemies
+  gloop   x=35,62,85
+
+edits   // painted in the studio
+  paint one-way x=26,28,30 y=9</pre>
+      <div style="flex:1 1 360px;min-width:0;display:flex;flex-direction:column;gap:14px;color:#b4bfce">
+        <p style="margin:0">Each line does one thing. The first line names the level, its size in tiles, the ground height it starts at, and which level it is. <code>start</code> says where Ben begins.</p>
+        <p style="margin:0">The sections are labels for readers: <code>terrain</code> lays down the ground, <code>blocks</code> places tiles and platforms, <code>treats</code> places things to collect, and <code>enemies</code> places things that bite.</p>
+        <p style="margin:0">The last block, <code>edits</code>, is where the studio and Claude record what was painted by hand, so the lines you wrote are never rewritten.</p>
+        <div style="padding:14px 16px;border-radius:12px;border:1px solid rgba(255,170,64,0.45);background:rgba(255,170,64,0.06);color:#e0e0e0"><strong style="color:#fff">The one rule that matters:</strong> statements run top to bottom, in file order. Later lines can overwrite earlier tiles, and items and enemies are stored in the order you wrote them. Section headers never reorder anything, and a section can appear again later.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- anatomy -->
+  <section id="anatomy" style="display:flex;flex-direction:column;gap:20px">
+    <h2 style="margin:0;font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:30px;color:#fff">Anatomy of a script</h2>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px">
+      <sc-for list="{{rules}}" as="r" hint-placeholder-count="6">
+        <div style="border:1px solid rgba(255,255,255,0.1);border-radius:12px;background:rgba(255,255,255,0.03);padding:16px 18px;display:flex;flex-direction:column;gap:6px">
+          <span style="font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:16px;color:#fff">{{r.title}}</span>
+          <span style="color:#b4bfce;font-size:14.5px">{{r.body}}</span>
+          <span style="font-family:'JetBrains Mono',monospace;font-size:12.5px;color:#ffaa40;white-space:pre-wrap">{{r.sample}}</span>
+        </div>
+      </sc-for>
+    </div>
+    <div style="font-size:14px;color:#b4bfce">Coordinates are tile units. <code>y</code> grows upwards and row 0 is the bottom of the world, as in the game's builder. Coordinates must fall inside the level: the Builder quietly ignores a tile written outside it, so the parser refuses instead, and a typo cannot vanish.</div>
+  </section>
+
+  <!-- checker -->
+  <section id="try" style="display:flex;flex-direction:column;gap:20px">
+    <h2 style="margin:0;font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:30px;color:#fff">Try a line</h2>
+    <p style="margin:0;max-width:820px;color:#b4bfce">Type a line for the <code>edits</code> block (<code>paint</code>, <code>clear</code> or <code>place</code>) and see what the language says about it, on a 192 by 28 level like Crater Fields. The answers are the parser's own: this checker was compared line for line with the real one on more than 100,000 generated lines and agreed on every one. It covers the edits block only; the rest of the language is in the reference below.</p>
+    <div style="border:1px solid rgba(255,170,64,0.4);border-radius:16px;background:rgba(255,170,64,0.04);padding:22px;display:flex;flex-direction:column;gap:14px">
+      <label for="chk" style="font-size:13px;color:#b4bfce">A line from the edits block</label>
+      <input id="chk" type="text" spellcheck="false" autocomplete="off" value="{{chk.value}}" onChange="{{chk.change}}" onInput="{{chk.change}}" style="min-height:52px;box-sizing:border-box;padding:0 16px;border-radius:10px;border:1px solid {{chk.edge}};background:#050507;color:#fff;font-family:'JetBrains Mono',monospace;font-size:15px">
+      <div style="display:flex;flex-wrap:wrap;gap:8px"><sc-for list="{{chk.chips}}" as="c" hint-placeholder-count="8"><button onClick="{{c.pick}}" style="min-height:44px;padding:0 14px;border-radius:999px;border:1px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.03);color:#e0e0e0;font-family:'JetBrains Mono',monospace;font-size:12.5px">{{c.text}}</button></sc-for></div>
+      <sc-if value="{{chk.isEmpty}}" hint-placeholder-val="{{true}}"><div style="color:#b4bfce;font-size:14px">Type a line, or pick one of the examples above.</div></sc-if>
+      <sc-if value="{{chk.isErr}}" hint-placeholder-val="{{false}}">
+        <div role="status" style="border:1px solid rgba(251,113,133,0.55);border-radius:12px;background:rgba(251,113,133,0.08);padding:14px 16px;display:flex;flex-direction:column;gap:6px">
+          <div style="display:flex;gap:10px;align-items:baseline;flex-wrap:wrap"><span style="font-family:'JetBrains Mono',monospace;font-weight:500;color:#fda4af">{{chk.code}}</span><span style="color:#fff">{{chk.msg}}</span></div>
+          <div style="color:#b4bfce;font-size:14px">Fix: {{chk.fix}}</div>
+        </div>
+      </sc-if>
+      <sc-if value="{{chk.isOk}}" hint-placeholder-val="{{false}}">
+        <div role="status" style="border:1px solid rgba(46,198,106,0.55);border-radius:12px;background:rgba(46,198,106,0.07);padding:14px 16px;display:flex;flex-direction:column;gap:10px">
+          <div style="color:#fff">It parses. {{chk.summary}}</div>
+          <div style="font-size:12.5px;color:#b4bfce">What the exporter writes for it, in order:</div>
+          <pre style="margin:0;padding:12px 14px;border-radius:8px;background:#050507;border:1px solid rgba(255,255,255,0.08);font-family:'JetBrains Mono',monospace;font-size:12.5px;line-height:1.6;color:#e0e0e0;white-space:pre-wrap">{{chk.rust}}</pre>
+        </div>
+      </sc-if>
+    </div>
+  </section>
+
+  <!-- statements -->
+  <section id="reference" style="display:flex;flex-direction:column;gap:20px">
+    <h2 style="margin:0;font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:30px;color:#fff">Statement reference</h2>
+    <p style="margin:0;max-width:820px;color:#b4bfce">Every statement, with its shape, the Builder call it becomes, and an example. Fields come in any order after the keyword. In shapes, <code>RANGE</code> is <code>a..b</code> (whole numbers, both ends included, low to high), a single number <code>n</code> means <code>n..n</code>, and <code>LIST</code> is values separated by commas.</p>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center">
+      <sc-for list="{{cats}}" as="c" hint-placeholder-count="7"><button aria-pressed="{{c.on}}" onClick="{{c.pick}}" style="min-height:44px;padding:0 16px;border-radius:999px;font-size:13.5px;{{c.style}}">{{c.label}}<span style="margin-left:8px;font-family:'JetBrains Mono',monospace;font-size:12px;color:#b4bfce">{{c.count}}</span></button></sc-for>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px;max-width:520px"><label for="find" style="font-size:13px;color:#b4bfce;white-space:nowrap">Search</label><input id="find" type="text" spellcheck="false" autocomplete="off" placeholder="plat, row, ladder…" value="{{find.value}}" onChange="{{find.change}}" onInput="{{find.change}}" style="flex:1;min-width:0;min-height:44px;box-sizing:border-box;padding:0 14px;border-radius:8px;border:1px solid rgba(255,255,255,0.18);background:#0c0c10;color:#fff;font-family:inherit;font-size:14px"></div>
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <sc-for list="{{statements}}" as="s" hint-placeholder-count="6">
+        <div style="border:1px solid rgba(255,255,255,0.1);border-radius:12px;background:rgba(255,255,255,0.03);padding:16px 18px;display:flex;flex-direction:column;gap:10px">
+          <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center"><span style="font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:18px;color:#fff">{{s.name}}</span><span style="padding:2px 10px;border-radius:999px;border:1px solid rgba(255,255,255,0.18);font-size:12px;color:#b4bfce">{{s.cat}}</span></div>
+          <div style="display:flex;flex-wrap:wrap;gap:16px 28px">
+            <div style="flex:1 1 300px;min-width:0;display:flex;flex-direction:column;gap:2px"><span style="font-size:12px;color:#b4bfce">Shape</span><span style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#ffaa40;word-break:break-word">{{s.syntax}}</span></div>
+            <div style="flex:1 1 300px;min-width:0;display:flex;flex-direction:column;gap:2px"><span style="font-size:12px;color:#b4bfce">Becomes</span><span style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#e0e0e0;word-break:break-word">{{s.builder}}</span></div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:2px"><span style="font-size:12px;color:#b4bfce">Example</span><span style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#fff;word-break:break-word">{{s.example}}</span></div>
+          <div style="color:#b4bfce;font-size:14.5px">{{s.note}}</div>
+          <sc-if value="{{s.canTry}}" hint-placeholder-val="{{false}}"><div><button onClick="{{s.tryIt}}" style="min-height:44px;padding:0 16px;border-radius:999px;border:1px solid #ffaa40;background:rgba(255,170,64,0.1);color:#fff;font-weight:500">Put this in the checker</button></div></sc-if>
+        </div>
+      </sc-for>
+      <sc-if value="{{noStatements}}" hint-placeholder-val="{{false}}"><div style="padding:18px;border:1px dashed rgba(255,255,255,0.22);border-radius:12px;color:#b4bfce">No statement matches that search. Try a shorter word, or choose All.</div></sc-if>
+    </div>
+  </section>
+
+  <!-- words -->
+  <section id="words" style="display:flex;flex-direction:column;gap:20px">
+    <h2 style="margin:0;font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:30px;color:#fff">The words</h2>
+    <p style="margin:0;max-width:820px;color:#b4bfce">Words are lower case, with digits and hyphens. Names map to the game's own tables, so a misspelling is caught with a suggestion instead of becoming a wrong tile.</p>
+    <div role="tablist" aria-label="Word lists" style="display:flex;flex-wrap:wrap;gap:8px">
+      <sc-for list="{{wordTabs}}" as="w" hint-placeholder-count="5"><button role="tab" aria-selected="{{w.on}}" onClick="{{w.pick}}" style="min-height:44px;padding:0 16px;border-radius:999px;font-size:13.5px;{{w.style}}">{{w.label}}<span style="margin-left:8px;font-family:'JetBrains Mono',monospace;font-size:12px;color:#b4bfce">{{w.count}}</span></button></sc-for>
+    </div>
+    <div style="font-size:14px;color:#b4bfce">{{words.about}}</div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px"><sc-for list="{{words.items}}" as="i" hint-placeholder-count="20"><span style="padding:5px 12px;border-radius:8px;border:1px solid rgba(255,255,255,0.14);background:rgba(255,255,255,0.03);font-family:'JetBrains Mono',monospace;font-size:13px;color:#e0e0e0">{{i}}</span></sc-for></div>
+  </section>
+
+  <!-- edits -->
+  <section id="edits" style="display:flex;flex-direction:column;gap:20px">
+    <h2 style="margin:0;font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:30px;color:#fff">The edits block</h2>
+    <p style="margin:0;max-width:820px;color:#b4bfce">The edits block is where the studio and Claude record changes made on the canvas, so the script you wrote stays exactly as you wrote it.</p>
+    <ol style="margin:0;padding-left:24px;display:flex;flex-direction:column;gap:10px;max-width:880px;color:#e0e0e0">
+      <sc-for list="{{editRules}}" as="r" hint-placeholder-count="8"><li>{{r}}</li></sc-for>
+    </ol>
+    <pre style="margin:0;max-width:640px;padding:16px 18px;border-radius:12px;border:1px solid rgba(255,255,255,0.14);background:#0c0c10;font-family:'JetBrains Mono',monospace;font-size:13px;line-height:1.7;color:#e0e0e0">edits   // painted in the studio, by you or Claude
+  paint one-way x=26,28,30 y=9
+  clear         x=12..14 y=8
+  place cheezie x=26,28,30 y=10</pre>
+    <div style="color:#b4bfce;font-size:14.5px;max-width:880px">Items are not tiles. Adding an enemy, a lift, a room or a switch channel is an edit. Removing a hand-written item, moving an enemy or changing the terrain is not an edit in v0: change the hand-written line, as a deliberate rewrite by a person or by Claude on request.</div>
+  </section>
+
+  <!-- errors -->
+  <section id="errors" style="display:flex;flex-direction:column;gap:20px">
+    <h2 style="margin:0;font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:30px;color:#fff">When a line is wrong</h2>
+    <p style="margin:0;max-width:820px;color:#b4bfce">The parser reports at most one problem per line, with the line number, a code, what is wrong and a suggested fix. A bad line stays in the script, so the file still prints back unchanged. Choose a code to read about it.</p>
+    <div style="display:flex;flex-wrap:wrap;gap:24px;align-items:flex-start">
+      <div role="listbox" aria-label="Error codes" style="flex:0 1 300px;min-width:240px;display:flex;flex-direction:column;gap:4px">
+        <sc-for list="{{errs}}" as="e" hint-placeholder-count="16"><button role="option" aria-selected="{{e.on}}" onClick="{{e.pick}}" style="min-height:44px;box-sizing:border-box;padding:0 14px;border-radius:8px;text-align:left;display:flex;gap:12px;align-items:center;{{e.style}}"><span style="font-family:'JetBrains Mono',monospace;font-size:13px;{{e.codeStyle}}">{{e.code}}</span><span style="font-size:13.5px">{{e.title}}</span></button></sc-for>
+      </div>
+      <div style="flex:1 1 420px;min-width:0;border:1px solid rgba(255,255,255,0.14);border-radius:16px;background:rgba(255,255,255,0.03);padding:22px;display:flex;flex-direction:column;gap:12px">
+        <div style="display:flex;gap:12px;align-items:baseline;flex-wrap:wrap"><span style="font-family:'JetBrains Mono',monospace;font-size:20px;color:#fda4af">{{err.code}}</span><span style="font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:22px;color:#fff">{{err.title}}</span></div>
+        <div style="color:#e0e0e0">{{err.meaning}}</div>
+        <div style="display:flex;flex-direction:column;gap:2px"><span style="font-size:12px;color:#b4bfce">Looks like</span><span style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#e0e0e0;word-break:break-word">{{err.example}}</span></div>
+        <div style="display:flex;flex-direction:column;gap:2px"><span style="font-size:12px;color:#b4bfce">The suggested fix</span><span style="color:#b4bfce;font-size:14.5px">{{err.fix}}</span></div>
+        <sc-if value="{{err.canTry}}" hint-placeholder-val="{{false}}"><div><button onClick="{{err.tryIt}}" style="min-height:44px;padding:0 16px;border-radius:999px;border:1px solid #fb7185;background:rgba(251,113,133,0.1);color:#fff;font-weight:500">Make this error in the checker</button></div></sc-if>
+        <sc-if value="{{err.cantTry}}" hint-placeholder-val="{{false}}"><div style="font-size:13px;color:#b4bfce">The checker covers only the edits block, so it cannot produce this one. It comes from the rest of the script.</div></sc-if>
+      </div>
+    </div>
+  </section>
+
+  <!-- worked example -->
+  <section id="example" style="display:flex;flex-direction:column;gap:20px">
+    <h2 style="margin:0;font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:30px;color:#fff">Read a real script</h2>
+    <p style="margin:0;max-width:820px;color:#b4bfce">This is <code>crater.fizz</code>, the script for the first level of Episode 1. Its export builds a level identical to the hand-written <code>crater()</code>: the two were compared tile by tile, spawn by spawn and by fingerprint. Choose a line to see what it does.</p>
+    <div style="display:flex;flex-wrap:wrap;gap:24px;align-items:flex-start">
+      <div style="flex:1.3 1 460px;min-width:0;border:1px solid rgba(255,255,255,0.14);border-radius:12px;background:#0c0c10;padding:10px 0;font-family:'JetBrains Mono',monospace;font-size:12.5px;line-height:1.55;overflow:auto">
+        <sc-for list="{{script}}" as="l" hint-placeholder-count="30"><button onClick="{{l.pick}}" aria-pressed="{{l.on}}" style="display:flex;width:100%;min-height:24px;box-sizing:border-box;padding:0;border:none;text-align:left;font-family:inherit;font-size:inherit;line-height:inherit;{{l.style}}"><span style="width:40px;flex:none;text-align:right;padding-right:12px;color:#7c8796;box-sizing:border-box">{{l.n}}</span><span style="white-space:pre;color:{{l.ink}}">{{l.text}}</span></button></sc-for>
+      </div>
+      <div style="flex:1 1 340px;min-width:0;border:1px solid rgba(255,170,64,0.4);border-radius:16px;background:rgba(255,170,64,0.04);padding:20px;display:flex;flex-direction:column;gap:12px">
+        <div style="font-family:'JetBrains Mono',monospace;font-size:12.5px;color:#ffaa40">Line {{note.n}}</div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#fff;word-break:break-word">{{note.text}}</div>
+        <div style="color:#e0e0e0;font-size:14.5px">{{note.what}}</div>
+        <sc-if value="{{note.hasRust}}" hint-placeholder-val="{{true}}"><div style="display:flex;flex-direction:column;gap:2px"><span style="font-size:12px;color:#b4bfce">The exporter writes</span><pre style="margin:0;padding:10px 12px;border-radius:8px;background:#050507;border:1px solid rgba(255,255,255,0.08);font-family:'JetBrains Mono',monospace;font-size:12.5px;line-height:1.6;color:#e0e0e0;white-space:pre-wrap">{{note.rust}}</pre></div></sc-if>
+      </div>
+    </div>
+  </section>
+
+  <!-- overworlds -->
+  <section id="overworld" style="display:flex;flex-direction:column;gap:20px">
+    <h2 style="margin:0;font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:30px;color:#fff">Overworld scripts</h2>
+    <p style="margin:0;max-width:820px;color:#b4bfce">An overworld is a second kind of script, told apart by its header. It describes the map the player walks between levels: tiles, areas, routes and the points that launch levels. A game with several overworlds has several files.</p>
+    <pre style="margin:0;max-width:760px;padding:16px 18px;border-radius:12px;border:1px solid rgba(255,255,255,0.14);background:#0c0c10;font-family:'JetBrains Mono',monospace;font-size:13px;line-height:1.7;color:#e0e0e0;overflow:auto">overworld "Overworld" 60x44 id=main
+start 9.2,8.2
+area gumdrop-isle x=20..29 y=18..27   // the first area to match a tile decides it
+blocks
+  grass x=0..59 y=0..43
+  river x=24..25 y=0..43
+  path from=8,9 to=14,6               // a route: x first, then y
+  scatter                             // trees and rocks on free grass
+  house-a x=7 y=17
+points
+  saucer at=8,10
+  level crater at=14,6
+  level meteor-mesa at=16,14 req=crater
+  tele crater-down at=12,19 with=meadows-up req=crater
+  level citadel at=44,6 req=frosting-spire,cocoa-foundry big
+  sign 0 at=8,16</pre>
+    <ul style="margin:0;padding-left:22px;display:flex;flex-direction:column;gap:8px;max-width:880px;color:#e0e0e0">
+      <li>Hand painting and the Rust way live together. Fills, routes and the scatter are the same helpers the game\'s Rust builder uses, so a script can mix painted tiles with generated ones, and the exporter writes the same calls.</li>
+      <li>The scatter keeps clear of every point in the file and every route drawn before it, whatever the order of the sections. Each tile rolls the game\'s own hash, so moving a point or a route changes the trees near it and nowhere else.</li>
+      <li>Teleporters have names. The game pairs them by their place in the point list, and the exporter works the numbers out from the file order.</li>
+      <li>The Episode 1 overworld, written this way, rebuilds the game\'s overworld exactly: all 2,640 tiles including its 200 trees and 32 rocks, all 27 points, the five areas and the start.</li>
+      <li>The game builds one overworld today, so several overworlds need a registry like the level table. Adding a level also means widening the 16-bit mask of cleared levels, which the 15 levels and the secret-found flag already fill.</li>
+    </ul>
+  </section>
+
+  <!-- the editor -->
+  <section id="editor" style="display:flex;flex-direction:column;gap:20px">
+    <h2 style="margin:0;font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:30px;color:#fff">How it all works in the editor</h2>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:16px">
+      <div style="border:1px solid rgba(255,255,255,0.1);border-radius:12px;background:rgba(255,255,255,0.03);padding:16px 18px;display:flex;flex-direction:column;gap:6px"><span style="font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:16px;color:#fff">Starter levels</span><span style="color:#b4bfce;font-size:14.5px">File, Open starter level lists all 16 levels of Episode 1, the overworld and a small sample draft, each rebuilt from the game\'s own data. Crater Fields keeps its hand-written script; the others are written out as fills, so they are exact but not tidy.</span></div>
+      <div style="border:1px solid rgba(255,255,255,0.1);border-radius:12px;background:rgba(255,255,255,0.03);padding:16px 18px;display:flex;flex-direction:column;gap:6px"><span style="font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:16px;color:#fff">Tiles and objects are different</span><span style="color:#b4bfce;font-size:14.5px">Tiles are painted, many cells at a time, and each paint adds a line to the end of the edits block. Objects (lifts, rooms, the boss arena, switch channels, and on an overworld the level points, teleporters, signs and the saucer) have a few properties and one line each. The studio owns that line: change an object and its line is rewritten in place, which is why moving a lift does not add a second one. Lines you did not touch are never rewritten.</span></div>
+      <div style="border:1px solid rgba(255,255,255,0.1);border-radius:12px;background:rgba(255,255,255,0.03);padding:16px 18px;display:flex;flex-direction:column;gap:6px"><span style="font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:16px;color:#fff">The object tools</span><span style="color:#b4bfce;font-size:14.5px">In a level, Lift (L) drags from one end to the other, Room (R) drags a rectangle and Arena (A) drags a width. With Select, drag the A and B ends of a lift to move it, or drag a room. The Objects window lists everything, edits the selected object field by field, and sets which switch channels start on. Delete removes the selected object, and Undo brings it back.</span></div>
+      <div style="border:1px solid rgba(255,255,255,0.1);border-radius:12px;background:rgba(255,255,255,0.03);padding:16px 18px;display:flex;flex-direction:column;gap:6px"><span style="font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:16px;color:#fff">The overworld designer</span><span style="color:#b4bfce;font-size:14.5px">Open the overworld and paint it like a level. Pick Point (P) and a kind in the Objects window, then click the map; drag a point to move it. A level point changes which level it launches with the arrows on its Level field, and its Unlocks chips set which levels must be cleared first. The Links lens draws the unlock lines and the teleporter pairs, and the Areas lens outlines the regions.</span></div>
+      <div style="border:1px solid rgba(255,255,255,0.1);border-radius:12px;background:rgba(255,255,255,0.03);padding:16px 18px;display:flex;flex-direction:column;gap:6px"><span style="font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:16px;color:#fff">The Paths lens</span><span style="color:#b4bfce;font-size:14.5px">Shows where walking enemies go, worked out from the game\'s rules: a gloop walks until a wall or until the ground ahead ends, a marsh turns only at walls, a drone flies a fixed oval and a hopper wakes inside a box. Slopes are approximate. The real editor asks the game itself for exact paths, once the game exports them.</span></div>
+      <div style="border:1px solid rgba(255,255,255,0.1);border-radius:12px;background:rgba(255,255,255,0.03);padding:16px 18px;display:flex;flex-direction:column;gap:6px"><span style="font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:16px;color:#fff">Code completion</span><span style="color:#b4bfce;font-size:14.5px">Start typing in the box under the script. Suggestions come from the language docs: statement words first, then tile or item words after paint and place, then field names such as from= and dwell=, then values for req= and with=. Arrow keys move, Tab accepts, Escape closes, and Enter adds the line as before. Every word in this manual is in the list.</span></div>
+      <div style="border:1px solid rgba(255,255,255,0.1);border-radius:12px;background:rgba(255,255,255,0.03);padding:16px 18px;display:flex;flex-direction:column;gap:6px"><span style="font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:16px;color:#fff">Scripts and Rust together</span><span style="color:#b4bfce;font-size:14.5px">A level can be a script that exports to Rust, or hand-written procedural Rust that the editor reads by its data, as it did for all 16. Terrain runs, scatter, routes and the ladder and stairs statements keep the generated, procedural style inside a script, and painted fills sit beside them.</span></div>
+    </div>
+  </section>
+
+  <!-- limits -->
+  <section id="limits" style="display:flex;flex-direction:column;gap:20px">
+    <h2 style="margin:0;font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:30px;color:#fff">What version 0 does not do</h2>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px">
+      <sc-for list="{{limits}}" as="l" hint-placeholder-count="6">
+        <div style="border:1px solid rgba(255,255,255,0.1);border-radius:12px;background:rgba(255,255,255,0.03);padding:16px 18px;display:flex;flex-direction:column;gap:6px"><span style="font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:16px;color:#fff">{{l.title}}</span><span style="color:#b4bfce;font-size:14.5px">{{l.body}}</span></div>
+      </sc-for>
+    </div>
+  </section>
+
+  <!-- tools -->
+  <section id="tools" style="display:flex;flex-direction:column;gap:20px">
+    <h2 style="margin:0;font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:30px;color:#fff">Using it from the command line</h2>
+    <pre style="margin:0;max-width:880px;padding:18px 20px;border-radius:12px;border:1px solid rgba(255,255,255,0.14);background:#0c0c10;font-family:'JetBrains Mono',monospace;font-size:13px;line-height:1.75;color:#e0e0e0;overflow:auto"># parse, report errors, and check that printing gives the text back
+bun packages/language/src/cli.ts check levels/crater.fizz
+
+# write `fn crater_fizz() -> LevelData` for the game
+bun packages/language/src/cli.ts export levels/crater.fizz crater_fizz out.rs
+
+# the tests, and the proof that crater.fizz rebuilds crater()
+bun test packages/language
+bash scripts/prove-crater.sh</pre>
+    <div style="max-width:880px;color:#b4bfce;font-size:14.5px">The generated function calls the Builder's private pieces, so it has to live in <code>levels.rs</code> or in a child module of it that starts with <code>use super::*;</code>. The exporter writes the function only: a new level still needs its id constant and its row in the level table by hand.</div>
+  </section>
+
+  <footer style="color:#7c8796;font-size:13px;border-top:1px solid rgba(255,255,255,0.08);padding-top:20px">This manual is written from <code>docs/LANGUAGE.md</code> and the language package in the experiments project, and the examples were run through the real parser. If they ever disagree, the package wins.</footer>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":3000}}'>
+class Component extends DCLogic {
+  defaults() { return { cat: 'all', q: '', line: 'paint one-way x=26,28,30 y=9', wtab: 'tiles', err: 'E002', ex: 8 }; }
+  cur() { return Object.assign({}, this.defaults(), this.state || {}); }
+
+  // ---- the checker: a subset of the real parser (paint, clear, place), compared with it line for line ----
+  tiles() { return ['empty','fill','block','one-way','spike','choc','slope-r45','slope-l45','slope-r22a','slope-r22b','slope-l22a','slope-l22b','red-door','blue-door','green-door','bridge','mural-origin','mural-part','crystal-tile','exit','grass','path','river','tree','rock','conveyor-l','conveyor-r','furnace','wall-bg','rung','rung-top','facade','gate','gate-2','gate-3','vine','cracked','house-a','house-b','shop','fountain']; }
+  items() { return ['cheezie','choc','cookie','soda','key-red','key-blue','key-green','usb']; }
+  tileConst() { return { 'empty': 'EMPTY', 'fill': 'FILL', 'block': 'BLOCK', 'one-way': 'PLAT', 'spike': 'SPIKE', 'choc': 'CHOC', 'slope-r45': 'R45', 'slope-l45': 'L45', 'slope-r22a': 'R22A', 'slope-r22b': 'R22B', 'slope-l22a': 'L22A', 'slope-l22b': 'L22B', 'red-door': 'DOOR_R', 'blue-door': 'DOOR_B', 'green-door': 'DOOR_G', 'bridge': 'BRIDGE', 'mural-origin': 'MURAL', 'mural-part': 'MURAL_PART', 'crystal-tile': 'CRYS', 'exit': 'EXIT', 'grass': 'GRASS', 'path': 'PATH', 'river': 'RIVER', 'tree': 'TREE', 'rock': 'ROCK', 'conveyor-l': 'CONV_L', 'conveyor-r': 'CONV_R', 'furnace': 'FURNACE', 'wall-bg': 'WALLBG', 'rung': 'RUNG', 'rung-top': 'RUNG_TOP', 'facade': 'FACADE', 'gate': 'GATE', 'gate-2': 'GATE_2', 'gate-3': 'GATE_3', 'vine': 'VINE', 'cracked': 'CRACKED', 'house-a': 'HOUSE_A', 'house-b': 'HOUSE_B', 'shop': 'SHOP', 'fountain': 'FOUNTAIN' }; }
+  itemConst() { return { 'cheezie': 'Cheezie', 'choc': 'Choc', 'cookie': 'Cookie', 'soda': 'Soda', 'key-red': 'KeyRed', 'key-blue': 'KeyBlue', 'key-green': 'KeyGreen', 'usb': 'Usb' }; }
+  dist(a, b) {
+    const d = [];
+    for (let i = 0; i <= a.length; i++) { d.push([i]); for (let j = 1; j <= b.length; j++) d[i].push(i ? 0 : j); }
+    for (let i = 1; i <= a.length; i++) for (let j = 1; j <= b.length; j++) d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+    return d[a.length][b.length];
+  }
+  fizzCheck(src) {
+    const W = 192, H = 28;
+    const TILES = this.tiles(), ITEMS = this.items();
+    const raw = String(src == null ? '' : src);
+    const text = raw.replace(/\/\/.*$/, '').trim().replace(/,\s+/g, ',');
+    if (!text) return { empty: true };
+    const E = (code, msg, fix) => ({ ok: false, code: code, msg: msg, fix: fix });
+    const toks = text.split(/\s+/);
+    const verb = toks[0];
+    const OTHER = ['gloop','hopper','marsh','beetle','bat','pod','phantom','roller','sentry','drone','boss','switch','terminal','cage','mirror','swivel','crystal-switch','press','target','glyph','cameo','hover','channel','room','secret-room'];
+    if (OTHER.indexOf(verb) >= 0) return E('', 'The real parser accepts `' + verb + '` in the edits block, but this checker covers only paint, clear and place', 'write `paint`, `clear` or `place` here, or check the line in a script with the command line');
+    if (verb !== 'paint' && verb !== 'clear' && verb !== 'place') return E('E001', 'unknown statement `' + verb + '` in `edits`', '`edits` takes: paint, clear, place');
+    const takes = verb === 'paint' ? 'TILE x=LIST y=LIST' : (verb === 'place' ? 'ITEM x=LIST y=LIST' : 'x=LIST y=LIST');
+    const fields = {}; let unknown = null; const bare = [];
+    const table = verb === 'paint' ? TILES : ITEMS, label = verb === 'paint' ? 'tile' : 'item';
+    for (let i = 1; i < toks.length; i++) {
+      const t = toks[i];
+      const eq = t.indexOf('=');
+      if (eq < 0) { bare.push(t); continue; }
+      const key = t.slice(0, eq);
+      if (fields[key] !== undefined) return E('E009', 'field `' + key + '=` is given twice', 'keep one `' + key + '=`');
+      fields[key] = t.slice(eq + 1);
+      if (key !== 'x' && key !== 'y' && unknown === null) unknown = key;
+    }
+    let word = null, extra = bare;
+    if (verb !== 'clear') {
+      if (!bare.length) return verb === 'paint' ? E('E003', 'missing tile name', 'write `paint one-way x=26,28 y=9`') : E('E003', 'missing item kind', 'write `place cheezie x=26,28 y=8`');
+      word = bare[0]; extra = bare.slice(1);
+      if (table.indexOf(word) < 0) {
+        const low = word.toLowerCase();
+        let near = null;
+        if (table.indexOf(low) >= 0) near = low;
+        else {
+          let best = 99;
+          table.forEach((t2) => { const d = this.dist(low, t2); if (d < best) { best = d; near = t2; } });
+          if (best > 2) near = null;
+        }
+        return near ? E('E002', 'unknown ' + label + ' `' + word + '`', 'did you mean `' + near + '`?') : E('E002', 'unknown ' + label + ' `' + word + '`', 'use one of: ' + table.join(', '));
+      }
+    }
+    const out = {};
+    const keys = ['x', 'y'];
+    for (let k = 0; k < 2; k++) {
+      const kk = keys[k], v = fields[kk];
+      if (v === undefined) return E('E003', 'missing field `' + kk + '=`', 'add `' + (kk === 'x' ? (verb === 'clear' ? 'x=12..14' : 'x=26,28,30') : (verb === 'paint' ? 'y=9' : 'y=8')) + '`');
+      if (v === '') return E('E003', 'field `' + kk + '=` has no value', 'write a value after `' + kk + '=`');
+      const ranges = [];
+      const parts = v.split(',');
+      for (let p = 0; p < parts.length; p++) {
+        const s = parts[p]; let m;
+        if ((m = /^(\d+)$/.exec(s))) ranges.push([+m[1], +m[1]]);
+        else if ((m = /^(\d+)\.\.(\d+)$/.exec(s))) {
+          if (+m[1] > +m[2]) return E('E005', '`' + kk + '=` range ' + s + ' runs backwards', 'write it as ' + m[2] + '..' + m[1]);
+          ranges.push([+m[1], +m[2]]);
+        } else if (/^-\d+$/.test(s)) ranges.push([+s, +s]);
+        else return E('E004', '`' + kk + '=` must be a whole number or a range such as 3..7, found `' + s + '`', 'write `a` or `a..b` with whole numbers');
+      }
+      out[kk] = ranges;
+    }
+    if (extra.length) return E('E009', 'unexpected `' + extra[0] + '`', 'this statement takes: ' + takes);
+    if (unknown !== null) return E('E009', 'unknown field `' + unknown + '=`', 'this statement takes: ' + takes);
+    for (let q = 0; q < 2; q++) {
+      const ax = keys[q], max = ax === 'x' ? W - 1 : H - 1;
+      for (let r = 0; r < out[ax].length; r++) {
+        const lo = out[ax][r][0], hi = out[ax][r][1];
+        if (lo < 0 || hi > max) return E('E013', ax + ' ' + (lo === hi ? lo : lo + '..' + hi) + ' is outside the level (' + ax + ' runs 0..' + max + ')', 'keep ' + ax + ' within 0..' + max + ', or change the size on the `level` line');
+      }
+    }
+    return { ok: true, verb: verb, word: word, x: out.x, y: out.y };
+  }
+  expand(rs) { const o = []; rs.forEach((r) => { for (let n = r[0]; n <= r[1]; n++) o.push(n); }); return o; }
+  rustFor(res) {
+    const lines = [];
+    if (res.verb === 'place') {
+      const k = this.itemConst()[res.word];
+      this.expand(res.x).forEach((x) => this.expand(res.y).forEach((y) => lines.push('b.item(ItemKind::' + k + ', ' + x + ', ' + y + ');')));
+    } else {
+      const c = res.verb === 'clear' ? 'EMPTY' : this.tileConst()[res.word];
+      res.x.forEach((xr) => res.y.forEach((yr) => lines.push('b.fill(' + xr[0] + ', ' + xr[1] + ', ' + yr[0] + ', ' + yr[1] + ', ' + c + ');')));
+    }
+    return lines;
+  }
+
+  // ---- reference data ----
+  statementData() {
+    const S = (cat, name, syntax, builder, example, note, canTry) => ({ cat: cat, name: name, syntax: syntax, builder: builder, example: example, note: note, canTry: !!canTry });
+    return [
+      S('Header', 'level', 'level "NAME" WxH ground=N id=LEVELID', 'Builder::new(W, H, N), and the id used by b.out(...)', 'level "Crater Fields" 192x28 ground=4 id=crater', 'The first statement, exactly once. The id must name a level the game already has: the theme and area come from the game\'s level table by that id.'),
+      S('Header', 'theme, area', 'theme THEME   area AREA', 'nothing is emitted', 'theme crater   area crater-fields', 'Optional. They are checked against the level table, and a line that contradicts the table for that id is an error (E014).'),
+      S('Header', 'start', 'start X,Y', 'the start argument of b.out(ID, (X, Y), ...)', 'start 3,4', 'Required, once. Where Ben begins.'),
+      S('Header', 'arena', 'arena x=RANGE floor=N', 'Some(Arena { x0, x1, floor }) as the last argument of b.out', 'arena x=118..147 floor=4', 'At most once. Without it the level has no arena.'),
+      S('Header', 'walls', 'walls', 'b.walls()', 'walls', 'One line, no body. It may appear more than once, as the Builder\'s walls() may be called more than once.'),
+      S('Terrain', 'terrain segments', 'SEGMENT N { , SEGMENT N }', 'b.run(&[(Seg::Flat, 14), (Seg::Up, 2), ...])', 'flat 14, up 2, flat 6, down 2, flat 5', 'Under a terrain header. Each line is one run, and the ground height carries on from line to line. The words are flat, up, down, up22, down22, gap, pool, spikes, belt-r and belt-l. A count must be at least 1 (E015).'),
+      S('Terrain', 'liquid', 'liquid choc | furnace', 'b.liquid = FURNACE;', 'liquid furnace', 'Chooses what the pool segments on later lines are filled with.'),
+      S('Blocks', 'a tile fill', 'TILE x=RANGE y=RANGE', 'b.fill(x0, x1, y0, y1, TILE)', 'block x=49..51 y=10', 'Any tile word fills the rectangle: block, red-door, exit and the rest of the tile list. Later fills overwrite earlier ones.'),
+      S('Blocks', 'plat', 'plat x=RANGE y=N', 'b.plat(x0, x1, y)', 'plat x=107..108 y=5', 'A platform.'),
+      S('Blocks', 'hover', 'hover from=X,Y to=X,Y speed=S [size=WxH] [dwell=SECONDS]', 'b.hover(x0, y0, x1, y1, speed), or b.plats.push(Platform::new(...).sized(w, h).with_dwell(d)) when a size or a rest time is given', 'hover from=18,47.5 to=18,56.5 speed=0.1 size=3x0.5 dwell=2', 'A moving platform between two points. size= is its width and height (2 by 0.5 if left out) and dwell= is the seconds it rests at each end (0, constant motion, if left out). Zarg Lookout\'s lift uses both.'),
+      S('Blocks', 'channel', 'channel LIST on|off', 'b.map.set_switch(ch, on), once per channel', 'channel 1,2,3 on', 'Sets which switch channels start on. A gate blocks while its channel is on, and a crystal switch turns it off. Mirror Shafts starts with channels 1, 2 and 3 on.'),
+      S('Blocks', 'crystal', 'crystal x=LIST', 'b.crys(x), once per value', 'crystal x=10,26,60,98', 'Decorative crystal on the ground. It reads the ground height, so a terrain line has to come earlier in the file (E011). It is not the crystal-switch enemy.'),
+      S('Blocks', 'room, secret-room', 'room x=RANGE y=RANGE', 'b.room(x0, y0, x1, y1)', 'room x=1..5 y=22..25', 'Rooms hide behind a facade. The Builder takes x0, y0, x1, y1 in that order, and the script hides the difference.'),
+      S('Blocks', 'wall-behind', 'wall-behind x=RANGE y=RANGE', 'b.wall_behind(x0, x1, y0, y1)', 'wall-behind x=1..9 y=1..9', 'A backdrop wall.'),
+      S('Blocks', 'mural', 'mural x=N y=N', 'b.mural(x, y)', 'mural x=2 y=8', 'A wall mural; its picture is three tiles by two.'),
+      S('Blocks', 'ladder', 'ladder x=N y=RANGE', 'b.ladder(x, y0, y1)', 'ladder x=4 y=4..9', 'Standing row first, ledge row second.'),
+      S('Blocks', 'stairs', 'stairs-right x=N y=N count=N', 'b.stairs_right(x, y, count)', 'stairs-right x=30 y=4 count=3', 'stairs-left works the same way.'),
+      S('Blocks', 'vine-nook', 'vine-nook x=N foot=N shelf=N dir=1|-1 depth=N h=N', 'b.vine_nook(x, foot, shelf, dir, depth, h)', 'vine-nook x=10 foot=21 shelf=24 dir=1 depth=3 h=3', 'A climbable vine nook in a cave wall.'),
+      S('Treats', 'an item', 'ITEM x=LIST y=N', 'b.item(ItemKind::ITEM, x, y), once per value', 'soda x=36 y=5', 'Items sit in whole tile cells (the game stores them at the cell centre). Words: cheezie, choc, cookie, soda, key-red, key-blue, key-green, usb.'),
+      S('Treats', 'row', 'row ITEM x=A..B y=N [by=S]', 'b.row(ItemKind::ITEM, A, count, N, S)', 'row cheezie x=17..20 y=7', 'A horizontal run of items. A is the first cell, B the last, by is the step (1 if left out), and the count is worked out. If B cannot be reached from A in whole steps the parser refuses and offers the two nearest ranges that work (E012).'),
+      S('Treats', 'pogo-cache', 'pogo-cache x=RANGE rise=N', 'b.pogo_cache(x0, x1, rise)', 'pogo-cache x=8..10 rise=7', 'A snack ledge for a pogo bounce. It reads the ground height, so it needs terrain above it in the file.'),
+      S('Enemies', 'a spawn', 'KIND x=LIST', 'b.ent(Kind::KIND, x), once per value', 'gloop x=35,62,85', 'The height comes from the ground at that x. x may be fractional. Kinds include gloop, hopper, marsh, bat, pod, drone, sentry and the props switch, terminal and mirror; the full list is under The words.'),
+      S('Enemies', 'a spawn at a height', 'KIND x=LIST y=N', 'b.ent_at(Kind::KIND, x, y)', 'drone x=88.5 y=7.5', 'Gives the spawn an explicit height.'),
+      S('Enemies', 'ride', 'KIND x=LIST y=N ride', 'b.rider(Kind::KIND, x, y)', 'hopper x=9 y=5 ride', 'Needs an explicit y. It cannot be combined with dir= (E016).'),
+      S('Enemies', 'dir', 'KIND x=LIST y=N dir=N', 'b.ent_dir(Kind::KIND, x, y, dir)', 'mirror x=11 y=6 dir=1', 'Needs an explicit y. Mirrors and swivels take a direction this way.'),
+      S('Edits', 'paint', 'paint TILE x=LIST y=LIST', 'b.fill(...) for each pair of ranges, x first then y', 'paint one-way x=26,28,30 y=9', 'Sets cells to a tile. It takes tile words only: an item such as cheezie is not a tile (use place).', true),
+      S('Edits', 'clear', 'clear x=LIST y=LIST', 'b.fill(..., EMPTY) for each pair of ranges', 'clear x=12..14 y=8', 'Empties tiles. It does not remove items, enemies, platforms or rooms.', true),
+      S('Edits', 'place', 'place ITEM x=LIST y=LIST', 'b.item(...) once per cell, x first then y', 'place cheezie x=26,28,30 y=10', 'Adds items, after every hand-written item.', true),
+      S('Overworld', 'overworld', 'overworld "Name" WxH id=ID', 'OverworldBuilder::new(w, h)', 'overworld "Overworld" 60x44 id=main', 'The header of an overworld script, which holds one overworld instead of one level.'),
+      S('Overworld', 'area', 'area NAME x=RANGE y=RANGE', 'b.areas.push(AreaRect { ... })', 'area crater-fields x=0..24 y=0..22', 'A region of the map that belongs to an area. The first one to match a tile decides it, so list a lake before the regions around it.'),
+      S('Overworld', 'path', 'path from=X,Y to=X,Y', 'b.path(x0, y0, x1, y1)', 'path from=8,9 to=14,6', 'A route that runs x first and then y. With x= and y= instead it fills the path tile.'),
+      S('Overworld', 'scatter', 'scatter', 'b.scatter()', 'scatter', 'Trees and rocks on free grass by each area\'s rates. It keeps clear of every point and every path drawn before it, and each tile rolls the same way every time.'),
+      S('Overworld', 'level', 'level LEVEL at=X,Y [req=LIST] [big] [hidden]', 'b.points.push(MapPoint { kind: Level, ... })', 'level meteor-mesa at=16,14 req=crater', 'A level on the map. req lists the levels to clear first, or secret.'),
+      S('Overworld', 'tele', 'tele NAME at=X,Y with=NAME [req=LIST] [hidden]', 'b.points.push(MapPoint { kind: Tele, to: index })', 'tele crater-down at=12,19 with=meadows-up req=crater', 'A teleporter. The game pairs them by index; the script pairs by name.'),
+      S('Overworld', 'saucer, sign', 'saucer at=X,Y   sign N at=X,Y', 'b.points.push(MapPoint { kind: Saucer or Sign, ... })', 'sign 0 at=8,16', 'The saucer where the map begins, and a signpost with a text number.')
+    ];
+  }
+  errorData() {
+    const D = (code, title, meaning, example, fix, repro) => ({ code: code, title: title, meaning: meaning, example: example, fix: fix, repro: repro || '' });
+    return [
+      D('E001', 'Unknown statement', 'The first word of a line is not a statement the current section takes.', 'unknown statement `plot` in `edits`', 'The parser suggests a near match ("did you mean `plat`?") or lists the words the section takes.', 'plot x=3 y=9'),
+      D('E002', 'Unknown name', 'A tile, item, kind, segment, level id, theme or area word is not in the game\'s table.', 'unknown tile `blok`', 'A near match, such as "did you mean `block`?", or the list of valid names. A word that is the wrong sort of thing, such as cheezie after paint, gets the list.', 'paint blok x=3..5 y=9'),
+      D('E003', 'Missing field or word', 'A required field or word is not there, or a field has no value.', 'missing field `y=`', 'The parser writes the field you left out, with an example value, such as add `y=9`.', 'paint block x=3..5'),
+      D('E004', 'Malformed value', 'A number, range, list or header is not written the way the language reads it.', '`x=` must be a whole number or a range such as 3..7, found `a`', 'Write whole numbers, or a range as a..b.', 'paint block x=a y=9'),
+      D('E005', 'Range runs backwards', 'A range such as 5..3 starts above where it ends.', '`x=` range 5..3 runs backwards', 'Write the range low to high.', 'paint block x=5..3 y=9'),
+      D('E006', 'Duplicate statement', 'level, start, theme, area, arena or a second edits block appears twice.', 'a second `start` line', 'Keep one.'),
+      D('E007', 'Statement before the header', 'A statement comes before the level header, or there is no header at all.', 'the script has no `level` header', 'Start the file with level "Name" 192x28 ground=4 id=crater.'),
+      D('E008', 'Statement in the wrong place', 'A statement sits under another section\'s header, before any section, or a non-edit follows the edits header.', '`soda` belongs under `treats`, not `enemies`', 'Move it under the header the parser names.'),
+      D('E009', 'Unknown field or stray word', 'A field the statement does not take, a repeated field, or a word that does not belong.', 'unknown field `z=`', 'The parser lists the fields the statement takes, or asks you to keep one of a repeated field.', 'paint block x=3..5 y=9 z=1'),
+      D('E010', 'No start line', 'Every level needs a start.', 'the script has no `start` line', 'Add start 3,4 (or wherever Ben should begin).'),
+      D('E011', 'Needs terrain first', 'crystal, a spawn without y= and pogo-cache read the ground height, so a terrain line has to come earlier in the file.', '`crystal` reads the ground height, but no terrain line comes before it', 'Move it below the terrain lines.'),
+      D('E012', 'A row does not land on its step', 'The last cell of a row cannot be reached from the first in whole steps.', 'x=46..53 does not end on a step of 3 from 46', 'The parser offers the two nearest ranges that work: x=46..52 by=3 (3 items) or x=46..55 by=3.'),
+      D('E013', 'Outside the level', 'A coordinate falls outside the level. The Builder would ignore it silently; the parser refuses so a typo cannot vanish.', 'x 190..200 is outside the level (x runs 0..191)', 'Keep within the bounds, or change the size on the level line.', 'paint block x=190..200 y=9'),
+      D('E014', 'Contradicts the level table', 'A theme or area line disagrees with what the game\'s table says for that id.', 'theme `caves` contradicts id `crater`', 'Write the table\'s value, or drop the line.'),
+      D('E015', 'Count or size too small', 'A count or size that must be at least 1, or a level smaller than 3 by 3.', 'the count after `flat` must be at least 1, found 0', 'Use 1 or more, or delete the line.'),
+      D('E016', 'A spawn the Builder cannot make', 'dir= and ride need an explicit y=, and ride cannot be combined with dir=.', '`dir=` and `ride` need an explicit `y=`', 'Add y=, or drop one of ride and dir=.')
+    ];
+  }
+  scriptLines() {
+    return ['// Crater Fields: the first level of Episode 1. Mirrors `fn crater()` in levels.rs call for call.', 'level "Crater Fields" 192x28 ground=4 id=crater', 'theme crater', 'area crater-fields', 'start 3,4', '', 'terrain', '  flat 14, up 2, flat 6, down 2, flat 5', '  pool 4, flat 8, up22 2, flat 10, gap 3, flat 9, down22 2, flat 6', '  spikes 4, flat 10, up 3, flat 8, down 3', '  pool 6, flat 10, up22 3, flat 14, down 3, flat 12', '  spikes 3, flat 8, up 2, flat 22', '', 'walls', '', 'blocks', '  block    x=49..51 y=10', '  plat     x=107..108 y=5', '  plat     x=131..134 y=12', '  red-door x=171 y=6..7', '  block    x=171 y=8..27', '  exit     x=186 y=6..7', '  crystal  x=10,26,60,98,118,150,178', '', 'treats', '  row cheezie x=17..20 y=7', '  row cheezie x=29..32 y=7', '  soda        x=36 y=5', '  row choc    x=46..52 y=8 by=3', '  cookie      x=50 y=11', '  row cheezie x=105..110 y=8', '  row cheezie x=72..74 y=5', '  row choc    x=94..100 y=8 by=2', '  soda        x=125 y=9', '  row cheezie x=128..136 y=8 by=2', '  key-red     x=132 y=13', '  row choc    x=146..152 y=5 by=3', '  cookie      x=157 y=7', '  row cheezie x=175..181 y=7 by=2', '  pogo-cache  x=8..10 rise=7   // a snack ledge for a pogo bounce, after the other treats', '', 'enemies', '  gloop  x=35,62,85', '  hopper x=97,148', '  marsh  x=115', '  pod    x=136', '  drone  x=88.5,165.5 y=7.5'];
+  }
+  noteFor(n) {
+    const N = {
+      1: ['A comment. Comments are kept exactly as written and print back unchanged.', ''],
+      2: ['The header: the level\'s name, its size in tiles (192 across, 28 high), the ground height it starts at, and which level it is.', 'let mut b = Builder::new(192, 28, 4);\n// and CRATER is used by b.out(...) at the end'],
+      3: ['An optional check. The game\'s level table already says Crater Fields uses the crater theme; the parser confirms the line agrees.', '// nothing is written'],
+      4: ['Same idea for the area on the overworld map.', '// nothing is written'],
+      5: ['Where Ben starts: tile 3 across, 4 up.', 'b.out(CRATER, (3.0, 4.0), None)'],
+      7: ['A section label. Sections are for readers; they never change the order things run in.', ''],
+      8: ['One run of terrain: 14 flat tiles, a slope up over 2, 6 flat, down over 2, 5 flat. The ground height carries on into the next line.', 'b.run(&[(Seg::Flat, 14), (Seg::Up, 2), (Seg::Flat, 6), (Seg::Down, 2), (Seg::Flat, 5)]);'],
+      9: ['A pool 4 tiles wide (chocolate unless a liquid line says otherwise), then ground, a gentle slope, and a gap of 3 that a jump clears.', 'b.run(&[(Seg::Pool, 4), (Seg::Flat, 8), (Seg::Up22, 2), ...]);'],
+      10: ['Spikes, then flat ground and a hill. Each terrain line is one run.', 'b.run(&[(Seg::Spikes, 4), (Seg::Flat, 10), ...]);'],
+      11: ['A second pool, 6 wide: past the 5-tile mark, so it needs a ledge to cross.', 'b.run(&[(Seg::Pool, 6), (Seg::Flat, 10), ...]);'],
+      12: ['The last run of ground, ending the level\'s floor.', 'b.run(&[(Seg::Spikes, 3), (Seg::Flat, 8), (Seg::Up, 2), (Seg::Flat, 22)]);'],
+      14: ['Builds the level\'s boundary walls.', 'b.walls();'],
+      16: ['A section label for tiles and platforms.', ''],
+      17: ['A block of tile, 3 wide and 1 high, at row 10.', 'b.fill(49, 51, 10, 10, BLOCK);'],
+      18: ['A platform from tile 107 to 108 at row 5.', 'b.plat(107, 108, 5);'],
+      20: ['A red door two tiles tall. The tile word red-door is the game\'s DOOR_R.', 'b.fill(171, 171, 6, 7, DOOR_R);'],
+      21: ['A wall of block above the door, from row 8 up to row 27. A fill, like any other tile word.', 'b.fill(171, 171, 8, 27, BLOCK);'],
+      22: ['The level\'s exit, two tiles tall.', 'b.fill(186, 186, 6, 7, EXIT);'],
+      23: ['Seven crystals on the ground. One call per value, in the order written. It reads the ground height, which is why terrain comes first in the file.', 'b.crys(10);\nb.crys(26);\nb.crys(60);\n// ...and four more'],
+      25: ['A section label for things to collect.', ''],
+      26: ['A row of 4 cheezies, cells 17 to 20, all on row 7.', 'b.row(ItemKind::Cheezie, 17, 4, 7, 1);'],
+      28: ['One soda at a whole tile cell.', 'b.item(ItemKind::Soda, 36, 5);'],
+      29: ['Chocolate every 3 tiles: cells 46, 49 and 52. By 3 means a step of 3, so the count is worked out as 3. A last cell that does not land on a step would be E012.', 'b.row(ItemKind::Choc, 46, 3, 8, 3);'],
+      30: ['A cookie, placed by cell.', 'b.item(ItemKind::Cookie, 50, 11);'],
+      36: ['A red key. The word is key-red; the game calls it KeyRed.', 'b.item(ItemKind::KeyRed, 132, 13);'],
+      40: ['A snack ledge for a pogo bounce. The comment after the statement is kept as written. It reads the ground height, so it comes after the terrain.', 'b.pogo_cache(8, 10, 7);'],
+      42: ['A section label for enemies.', ''],
+      43: ['Three gloops, one call per value. The height comes from the ground at each x.', 'b.ent(Kind::Gloop, 35.0);\nb.ent(Kind::Gloop, 62.0);\nb.ent(Kind::Gloop, 85.0);'],
+      44: ['Two hoppers.', 'b.ent(Kind::Hopper, 97.0);\nb.ent(Kind::Hopper, 148.0);'],
+      45: ['A marshmallow blob.', 'b.ent(Kind::Marsh, 115.0);'],
+      46: ['A pod.', 'b.ent(Kind::Pod, 136.0);'],
+      47: ['Two drones at an explicit height of 7.5, with x fractional.', 'b.ent_at(Kind::Drone, 88.5, 7.5);\nb.ent_at(Kind::Drone, 165.5, 7.5);']
+    };
+    if (N[n]) return N[n];
+    const t = this.scriptLines()[n - 1];
+    if (t.trim() === '') return ['A blank line. Blank lines are kept as written.', ''];
+    if (/^\s*row /.test(t)) return ['Another row of items: the first cell, the last cell, the row and an optional step.', ''];
+    if (/^\s*(block|plat|exit|red-door)/.test(t)) return ['A tile or platform, like the lines above it.', ''];
+    return ['A line like the ones around it.', ''];
+  }
+  limitData() {
+    return [
+      { title: 'No arbitrary Rust', body: 'Levels that compute positions in loops, closures or conditionals cannot be written as they are. A script is a flat list of literal statements, with terrain runs, scatter and the macros for the procedural parts. A level written as procedural Rust is read by its data and exported scripts sit beside it.' },
+      { title: 'No raw map access', body: 'Writing straight into the map and the low-level ground helpers are not in the language. A single tile is paint. Lifts with a size and a rest time, and switch channels, are statements.' },
+      { title: 'Items sit on whole cells', body: 'An item takes explicit whole cells, so two snacks cannot share a block and a row is neighbouring blocks. Fractional positions are not in the language yet.' },
+      { title: 'One overworld, a full mask', body: 'The overworlds are scripts, but the game builds one. Several need a registry like the level table, and a new level needs the cleared-levels mask widened from 16 bits.' },
+      { title: 'New levels need registering', body: 'The exporter writes the function only. A new level still needs its id constant, its row in the level table, the level count and the function pointer by hand; id= must name an existing constant.' },
+      { title: 'Edits add, objects rewrite', body: 'Tile edits are added to the end. Objects are rewritten in place by the studio. There is still no edit that deletes a hand-written item or moves a hand-written enemy.' },
+      { title: 'Paths are approximate', body: 'The Paths lens works from the rules in JavaScript and treats slopes loosely. Exact paths for every enemy need the game to export them.' },
+      { title: 'All 16 levels and the overworld proven', body: 'Every level and the overworld, written as scripts, rebuild the game\'s data exactly, including each level\'s fingerprint. That proves the language can say them, not that the scripts read well.' }
+    ];
+  }
+  wordLists() {
+    return {
+      tiles: { label: 'Tiles', about: 'Used in the blocks section and after paint. empty exists for clear, but is not a word the blocks section takes. one-way is the game\'s PLAT; mural-origin is MURAL and crystal-tile is CRYS, renamed so they do not clash with the mural and crystal statements.', items: this.tiles() },
+      items: { label: 'Items', about: 'Things to collect. Used after place and in the treats section. A cheezie is an item, not a tile, so paint cheezie is an error.', items: this.items() },
+      kinds: { label: 'Enemies and props', about: 'Spawn kinds for the enemies section. crystal-switch is the enemy; the decorative ground crystal is the crystal statement.', items: ['gloop','hopper','marsh','beetle','bat','pod','phantom','roller','sentry','drone','boss','switch','terminal','cage','mirror','swivel','crystal-switch','press','target','glyph','cameo'] },
+      segs: { label: 'Terrain', about: 'The segments a terrain line is made of, each followed by a count of 1 or more.', items: ['flat','up','down','up22','down22','gap','pool','spikes','belt-r','belt-l'] },
+      ids: { label: 'Level ids', about: 'The ids after id=. Each is a constant in the game\'s levels file and a row in its level table, which fixes the theme and area. Themes: crater, caves, citadel, open-sky, building, theatre, shaft, foundry.', items: ['crater','caves','citadel','meteor-mesa','zarg-lookout','marshmallow-meadows','bonbon-playhouse','fudge-bog','mirror-shafts','sugar-glass-gallery','frosting-flats','frosting-spire','cocoa-foundry','gumdrop-isle','whisper-hollow','saucer'] }
+    };
+  }
+  renderVals() {
+    const s = this.cur();
+    const toc = [['start', 'In one minute'], ['anatomy', 'Anatomy'], ['try', 'Try a line'], ['reference', 'Statements'], ['words', 'Words'], ['edits', 'Edits'], ['errors', 'Errors'], ['example', 'A real script'], ['overworld', 'Overworlds'], ['editor', 'In the editor'], ['limits', 'Limits'], ['tools', 'Command line']].map((t) => ({ href: '#' + t[0], label: t[1] }));
+    const rules = [
+      { title: 'One line, one thing', body: 'Blank lines and comment lines are kept as written. A comment starts with // and runs to the end of the line.', sample: '  soda x=36 y=5   // a comment' },
+      { title: 'Indentation is ignored', body: 'Two spaces under a section header is the convention, and it is what the studio uses for lines it adds.', sample: 'treats\n  soda x=36 y=5' },
+      { title: 'Words and fields', body: 'Words are lower case, with digits and hyphens. A field is key=value with no spaces around the equals sign; spaces after the commas in a list are fine.', sample: 'gloop x=35, 62, 85' },
+      { title: 'Numbers and ranges', body: 'Plain decimals: 7, 88.5, -2. A range a..b includes both ends, whole numbers, low to high. A single number n is the range n..n.', sample: 'x=49..51   x=3   x=10,26,60' },
+      { title: 'The header comes first', body: 'The first statement is level, exactly once, and start is required. theme, area, start and arena appear at most once. walls may repeat.', sample: 'level "Crater Fields" 192x28 ground=4 id=crater' },
+      { title: 'Edits come last', body: 'The edits block appears at most once and is last. Only paint, clear, place, enemy statements, hover, channel, room and secret-room may follow it.', sample: 'edits\n  paint one-way x=26 y=9' }
+    ];
+    const chips = ['paint one-way x=26,28,30 y=9', 'place cheezie x=26,28,30 y=8', 'clear x=12..14 y=8', 'paint blok x=3..5 y=9', 'paint cheezie x=3 y=9', 'paint block x=5..3 y=9', 'paint block x=190..200 y=9', 'paint block x=3..5', 'plot x=3 y=9'].map((t) => ({ text: t, pick: () => this.setState({ line: t }) }));
+    const res = this.fizzCheck(s.line);
+    const rustLines = res.ok ? this.rustFor(res) : [];
+    const shown = rustLines.length > 10 ? rustLines.slice(0, 10).concat(['// ...and ' + (rustLines.length - 10) + ' more']) : rustLines;
+    let summary = '';
+    if (res.ok) {
+      const cells = this.expand(res.x).length * this.expand(res.y).length;
+      summary = (res.verb === 'paint' ? 'It paints ' + cells + (cells === 1 ? ' cell' : ' cells') + ' with ' + res.word + '.' : (res.verb === 'clear' ? 'It clears ' + cells + (cells === 1 ? ' cell' : ' cells') + '.' : 'It places ' + cells + ' ' + res.word + (cells === 1 ? '' : 's') + '.')) + ' Edits run last, after everything else in the script.';
+    }
+    const chk = {
+      value: s.line, isEmpty: !!res.empty, isErr: res.ok === false, isOk: !!res.ok,
+      code: res.code || '', msg: res.msg || '', fix: res.fix || '', summary: summary, rust: shown.join('\n'),
+      edge: res.ok === false ? 'rgba(251,113,133,0.7)' : (res.ok ? 'rgba(46,198,106,0.7)' : 'rgba(255,255,255,0.22)'),
+      chips: chips,
+      change: (e) => this.setState({ line: e && e.target ? String(e.target.value) : '' })
+    };
+
+    const all = this.statementData();
+    const cats = ['All', 'Header', 'Terrain', 'Blocks', 'Treats', 'Enemies', 'Edits', 'Overworld'];
+    const q = s.q.trim().toLowerCase();
+    const match = (x) => (s.cat === 'all' || x.cat.toLowerCase() === s.cat) && (!q || (x.name + ' ' + x.syntax + ' ' + x.example + ' ' + x.note + ' ' + x.builder).toLowerCase().indexOf(q) >= 0);
+    const catsV = cats.map((c) => {
+      const id = c.toLowerCase(), on = s.cat === id;
+      return { label: c, count: String(id === 'all' ? all.length : all.filter((x) => x.cat === c).length), on: on ? 'true' : 'false', style: 'border:1px solid ' + (on ? '#ffaa40' : 'rgba(255,255,255,0.18)') + ';background:' + (on ? 'rgba(255,170,64,0.12)' : 'transparent') + ';color:' + (on ? '#ffffff' : '#b4bfce'), pick: () => this.setState({ cat: id }) };
+    });
+    const statements = all.filter(match).map((x) => Object.assign({}, x, { tryIt: () => this.setState({ line: x.example }) }));
+    const find = { value: s.q, change: (e) => this.setState({ q: e && e.target ? String(e.target.value) : '' }) };
+
+    const WL = this.wordLists();
+    const wordTabs = Object.keys(WL).map((k) => { const on = s.wtab === k; return { label: WL[k].label, count: String(WL[k].items.length), on: on ? 'true' : 'false', style: 'border:1px solid ' + (on ? '#ffaa40' : 'rgba(255,255,255,0.18)') + ';background:' + (on ? 'rgba(255,170,64,0.12)' : 'transparent') + ';color:' + (on ? '#ffffff' : '#b4bfce'), pick: () => this.setState({ wtab: k }) }; });
+    const words = { about: WL[s.wtab].about, items: WL[s.wtab].items };
+
+    const editRules = [
+      'Hand-written lines are never rewritten. The studio adds new lines and leaves every earlier byte of the file as it was.',
+      'Edits are appended after the last non-blank line. If there is no edits header yet, the studio adds one blank line and the bare header first.',
+      'Edits run last, in file order, after every other statement. A later line wins over an earlier one, and over anything the hand-written sections built.',
+      'paint TILE x=LIST y=LIST sets every cell in the x list by the y list to the tile, one fill per pair of ranges. It takes tile words only.',
+      'clear x=LIST y=LIST empties those cells. It clears tiles only, not items, enemies, platforms or rooms.',
+      'place ITEM x=LIST y=LIST adds items, one per cell, after every hand-written item.',
+      'The block takes paint, clear and place, enemy statements, hover, channel, room and secret-room. Anything else after the edits header is E008.',
+      'Edits are undone by deleting or editing their lines. The studio treats the block as an append-only log, and a person may tidy it.'
+    ];
+
+    const errs = this.errorData();
+    const errsV = errs.map((e) => { const on = s.err === e.code; return { code: e.code, title: e.title, on: on ? 'true' : 'false', style: 'border:1px solid ' + (on ? '#fb7185' : 'transparent') + ';background:' + (on ? 'rgba(251,113,133,0.1)' : 'transparent') + ';color:' + (on ? '#ffffff' : '#b4bfce'), codeStyle: 'color:' + (on ? '#fda4af' : '#7c8796'), pick: () => this.setState({ err: e.code }) }; });
+    const cur = errs.filter((e) => e.code === s.err)[0] || errs[1];
+    const err = { code: cur.code, title: cur.title, meaning: cur.meaning, example: cur.example, fix: cur.fix, canTry: !!cur.repro, cantTry: !cur.repro, tryIt: () => { this.setState({ line: cur.repro }); } };
+
+    const lines = this.scriptLines();
+    const script = lines.map((t, i) => {
+      const n = i + 1, on = s.ex === n;
+      const head = ['terrain', 'blocks', 'treats', 'enemies', 'walls'].indexOf(t.trim()) >= 0;
+      const isLevel = /^(level|theme|area|start)\b/.test(t);
+      return { n: n, text: t === '' ? ' ' : t, on: on ? 'true' : 'false', ink: /^\s*\/\//.test(t) ? '#7c8796' : (head ? '#ffaa40' : (isLevel ? '#c4b5fd' : '#e0e0e0')), style: 'background:' + (on ? 'rgba(255,170,64,0.18)' : 'transparent') + ';cursor:pointer;color:#e0e0e0', pick: () => this.setState({ ex: n }) };
+    });
+    const nn = this.noteFor(s.ex);
+    const note = { n: s.ex, text: lines[s.ex - 1].trim() === '' ? '(blank line)' : lines[s.ex - 1].trim(), what: nn[0], rust: nn[1], hasRust: !!nn[1] };
+
+    return { toc: toc, rules: rules, chk: chk, cats: catsV, statements: statements, noStatements: statements.length === 0, find: find, wordTabs: wordTabs, words: words, editRules: editRules, errs: errsV, err: err, script: script, note: note, limits: this.limitData() };
+  }
+}
+</script>
+</body>
+</html>

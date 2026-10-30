@@ -1,0 +1,423 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Using the level editor</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@500;600;700&display=swap">
+<style>body{margin:0;background:#050507}button{font-family:inherit;cursor:pointer}button:focus-visible,input:focus-visible{outline:2px solid #ffaa40;outline-offset:2px}input[type=range]{accent-color:#ffaa40}img{max-width:100%;height:auto;display:block}</style>
+</helmet>
+<div style="box-sizing:border-box;width:100%;min-height:900px;background:#050507;color:#e0e0e0;font-family:Inter,system-ui,sans-serif;font-size:15px;line-height:1.6">
+<div style="box-sizing:border-box;max-width:1180px;margin:0 auto;padding:40px 24px 80px;display:flex;flex-direction:column;gap:28px">
+
+  <!-- header -->
+  <div style="display:flex;flex-direction:column;gap:10px">
+    <span style="font-size:13px;color:#b4bfce">Fizz Level Studio · walkthrough</span>
+    <h1 style="margin:0;font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:40px;line-height:1.15;letter-spacing:-0.02em;color:#fff">Using the level editor</h1>
+    <p style="margin:0;max-width:760px;color:#b4bfce;font-size:17px">Twelve short steps through the prototype: painting, the tiles, the script, working with Claude, the lenses and the windows. Each step has a screenshot with numbered parts, and most have something you can try right here.</p>
+    <p style="margin:0;max-width:760px;color:#b4bfce;font-size:14px">The editor itself is on the Prototype page. The screenshots come from it, and the demos on this page are small copies of its behaviour. Claude's ideas in the prototype are three canned ones plus one fixed rule that checks the gaps, and nothing is saved.</p>
+  </div>
+
+  <!-- step navigation -->
+  <nav aria-label="Steps" style="display:flex;flex-wrap:wrap;gap:8px">
+    <sc-for list="{{nav}}" as="n" hint-placeholder-count="10">
+      <button aria-current="{{n.current}}" onClick="{{n.pick}}" style="min-height:44px;padding:0 14px;border-radius:999px;font-size:13.5px;display:inline-flex;align-items:center;gap:8px;{{n.style}}"><span style="font-family:'JetBrains Mono',monospace;font-size:12px;{{n.numStyle}}">{{n.num}}</span>{{n.label}}</button>
+    </sc-for>
+  </nav>
+
+  <!-- the current step -->
+  <div style="display:flex;flex-wrap:wrap;gap:28px;align-items:flex-start">
+
+    <div style="flex:1 1 380px;min-width:0;display:flex;flex-direction:column;gap:16px">
+      <div style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#ffaa40">Step {{step.num}} of 12</div>
+      <h2 style="margin:0;font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:30px;line-height:1.2;letter-spacing:-0.01em;color:#fff">{{step.title}}</h2>
+      <p style="margin:0;color:#e0e0e0;font-size:16px">{{step.lead}}</p>
+      <ul style="margin:0;padding-left:20px;display:flex;flex-direction:column;gap:8px;color:#b4bfce">
+        <sc-for list="{{step.points}}" as="p" hint-placeholder-count="4"><li>{{p}}</li></sc-for>
+      </ul>
+      <sc-if value="{{step.hasLegend}}" hint-placeholder-val="{{true}}">
+        <div style="display:flex;flex-direction:column;gap:8px;margin-top:4px">
+          <div style="font-size:13px;color:#b4bfce">Numbers in the screenshot</div>
+          <sc-for list="{{step.legend}}" as="l" hint-placeholder-count="4">
+            <div style="display:flex;gap:10px;align-items:flex-start"><span style="flex:none;width:24px;height:24px;border-radius:50%;background:#ffaa40;color:#050507;display:inline-flex;align-items:center;justify-content:center;font-weight:600;font-size:13px">{{l.n}}</span><span style="color:#e0e0e0;font-size:14.5px;line-height:1.5;padding-top:1px">{{l.text}}</span></div>
+          </sc-for>
+        </div>
+      </sc-if>
+      <div style="display:flex;gap:10px;margin-top:8px;flex-wrap:wrap">
+        <button onClick="{{prev}}" aria-disabled="{{prevDis}}" style="min-height:44px;padding:0 18px;border-radius:999px;border:1px solid rgba(255,255,255,0.22);background:transparent;font-weight:500;{{prevStyle}}">Back</button>
+        <button onClick="{{next}}" aria-disabled="{{nextDis}}" style="min-height:44px;padding:0 22px;border-radius:999px;border:none;font-weight:600;{{nextStyle}}">{{nextLabel}}</button>
+      </div>
+    </div>
+
+    <div style="flex:1.25 1 460px;min-width:0;display:flex;flex-direction:column;gap:20px">
+      <sc-for list="{{step.images}}" as="im" hint-placeholder-count="1">
+        <figure style="margin:0;display:flex;flex-direction:column;gap:8px">
+          <div style="border:1px solid rgba(255,255,255,0.14);border-radius:12px;overflow:hidden;background:#0c0c10"><img src="{{im.src}}" alt="{{im.alt}}"></div>
+          <figcaption style="font-size:13px;color:#b4bfce">{{im.caption}}</figcaption>
+        </figure>
+      </sc-for>
+
+      <!-- demo: paint and watch the script -->
+      <sc-if value="{{demo.paint}}" hint-placeholder-val="{{true}}">
+        <div style="border:1px solid rgba(255,170,64,0.4);border-radius:16px;background:rgba(255,170,64,0.04);padding:20px;display:flex;flex-direction:column;gap:14px">
+          <div style="display:flex;flex-direction:column;gap:2px"><span style="font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:18px;color:#fff">Try it: paint and watch the script</span><span style="font-size:13.5px;color:#b4bfce">Choose a tool, then click cells. The lines under edits are what the editor would write. Numbers count from the bottom left, so y=0 is the bottom row, as in the game. A cell holds one thing; for a run of snacks, paint neighbouring cells, which the script writes as one range such as x=3..6.</span></div>
+          <div role="group" aria-label="Tools" style="display:flex;flex-wrap:wrap;gap:8px">
+            <sc-for list="{{demo.tools}}" as="t" hint-placeholder-count="4"><button aria-pressed="{{t.on}}" onClick="{{t.pick}}" style="min-height:44px;padding:0 14px;border-radius:8px;font-size:13.5px;display:inline-flex;align-items:center;gap:8px;{{t.style}}"><span style="width:16px;height:16px;border-radius:3px;display:inline-flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:12px;{{t.chip}}">{{t.glyph}}</span>{{t.label}}</button></sc-for>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(14,minmax(0,1fr));gap:0;max-width:560px;border:1px solid rgba(255,255,255,0.14);border-radius:6px;overflow:hidden;background:#0f0e1a">
+            <sc-for list="{{demo.cells}}" as="c" hint-placeholder-count="28"><button aria-label="{{c.label}}" onClick="{{c.pick}}" style="aspect-ratio:1;min-width:0;padding:0;border:none;border-radius:0;font-family:'JetBrains Mono',monospace;font-size:15px;{{c.style}}">{{c.glyph}}</button></sc-for>
+          </div>
+          <pre style="margin:0;padding:12px 14px;border-radius:8px;background:#0c0c10;border:1px solid rgba(255,255,255,0.08);font-family:'JetBrains Mono',monospace;font-size:12.5px;line-height:1.6;color:#e0e0e0;white-space:pre-wrap">{{demo.script}}</pre>
+          <div><button onClick="{{demo.clear}}" style="min-height:44px;padding:0 16px;border-radius:999px;border:1px solid rgba(255,255,255,0.22);background:transparent;color:#e0e0e0;font-weight:500">Clear the demo</button></div>
+        </div>
+      </sc-if>
+
+      <!-- demo: the Claude loop -->
+      <sc-if value="{{demo.loop}}" hint-placeholder-val="{{false}}">
+        <div style="border:1px solid rgba(167,139,250,0.5);border-radius:16px;background:rgba(167,139,250,0.05);padding:20px;display:flex;flex-direction:column;gap:14px">
+          <div style="display:flex;flex-direction:column;gap:2px"><span style="font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:18px;color:#fff">Try it: ask, review, accept</span><span style="font-size:13.5px;color:#b4bfce">Pick how Claude writes, then ask for an idea. The idea is canned, as in the prototype.</span></div>
+          <div role="group" aria-label="When Claude writes" style="display:flex;gap:8px;flex-wrap:wrap">
+            <sc-for list="{{loop.modes}}" as="m" hint-placeholder-count="2"><button aria-pressed="{{m.on}}" onClick="{{m.pick}}" style="flex:1 1 150px;min-height:52px;padding:6px 12px;border-radius:8px;font-size:14px;font-weight:500;text-align:left;{{m.style}}">{{m.label}}<span style="display:block;font-size:12px;font-weight:400;color:#b4bfce">{{m.hint}}</span></button></sc-for>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(12,minmax(0,1fr));max-width:480px;border:1px solid rgba(255,255,255,0.14);border-radius:6px;overflow:hidden;background:#0f0e1a" role="img" aria-label="{{loop.alt}}">
+            <sc-for list="{{loop.cells}}" as="c" hint-placeholder-count="24"><div style="aspect-ratio:1;box-sizing:border-box;display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:14px;{{c.style}}">{{c.glyph}}</div></sc-for>
+          </div>
+          <div style="color:#e0e0e0;font-size:14.5px">{{loop.status}}</div>
+          <sc-for list="{{loop.hunks}}" as="h" hint-placeholder-count="2">
+            <div style="border:1px solid rgba(167,139,250,0.4);border-radius:12px;background:rgba(167,139,250,0.06);padding:12px 14px;display:flex;flex-direction:column;gap:8px">
+              <div style="display:flex;flex-direction:column"><span style="font-family:'Space Grotesk',sans-serif;font-weight:600;color:#fff">{{h.title}}</span><span style="font-family:'JetBrains Mono',monospace;font-size:12.5px;color:#c4b5fd">+ {{h.line}}</span></div>
+              <div style="display:flex;gap:8px"><button onClick="{{h.accept}}" style="min-height:44px;padding:0 18px;border-radius:999px;border:none;background:#ffaa40;color:#050507;font-weight:600">Accept</button><button onClick="{{h.reject}}" style="min-height:44px;padding:0 16px;border-radius:999px;border:1px solid rgba(255,255,255,0.22);background:transparent;color:#e0e0e0;font-weight:500">Reject</button></div>
+            </div>
+          </sc-for>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button onClick="{{loop.ask}}" style="min-height:44px;padding:0 18px;border-radius:999px;border:1px solid #a78bfa;background:rgba(167,139,250,0.16);color:#fff;font-weight:500">{{loop.askLabel}}</button>
+            <sc-if value="{{loop.canUndo}}" hint-placeholder-val="{{false}}"><button onClick="{{loop.undo}}" style="min-height:44px;padding:0 16px;border-radius:999px;border:1px solid rgba(255,170,64,0.6);background:transparent;color:#ffaa40;font-weight:600">Undo</button></sc-if>
+            <button onClick="{{loop.reset}}" style="min-height:44px;padding:0 16px;border-radius:999px;border:1px solid rgba(255,255,255,0.22);background:transparent;color:#e0e0e0;font-weight:500">Start again</button>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- demo: gap lens -->
+      <sc-if value="{{demo.lens}}" hint-placeholder-val="{{false}}">
+        <div style="border:1px solid rgba(46,198,106,0.45);border-radius:16px;background:rgba(46,198,106,0.04);padding:20px;display:flex;flex-direction:column;gap:14px">
+          <div style="display:flex;flex-direction:column;gap:2px"><span style="font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:18px;color:#fff">Try it: widen a gap</span><span style="font-size:13.5px;color:#b4bfce">The gaps lens colours a gap by whether a jump can clear it.</span></div>
+          <div style="display:flex;align-items:center;gap:12px;min-height:44px"><label for="gapw" style="color:#b4bfce;white-space:nowrap">Gap width</label><input id="gapw" type="range" min="1" max="7" step="1" value="{{lens.w}}" onChange="{{lens.change}}" style="flex:1;min-width:0;height:44px;margin:0"><span style="font-family:'JetBrains Mono',monospace;color:#fff;white-space:nowrap">{{lens.wText}}</span></div>
+          <div style="position:relative;padding-top:40px">
+            <div style="display:grid;grid-template-columns:repeat(16,minmax(0,1fr));border:1px solid rgba(255,255,255,0.14);border-radius:6px;overflow:hidden;background:#0f0e1a">
+              <sc-for list="{{lens.cells}}" as="c" hint-placeholder-count="16"><div style="aspect-ratio:1;box-sizing:border-box;{{c.style}}"></div></sc-for>
+            </div>
+            <div style="position:absolute;top:0;left:{{lens.tagLeft}}%;height:30px;box-sizing:border-box;padding:0 12px;border-radius:999px;background:rgba(12,12,16,0.92);display:flex;align-items:center;gap:8px;white-space:nowrap;font-size:13px;color:#e0e0e0;{{lens.tagStyle}}"><span style="font-family:'JetBrains Mono',monospace;font-weight:500;{{lens.inkStyle}}">{{lens.wText}}</span>{{lens.note}}</div>
+          </div>
+          <div style="font-size:13px;color:#b4bfce">The rule comes from the game's level notes: gaps up to 3 tiles wide clear with a normal jump, a gap of 4 only with a jump timed within a tenth of a second of the edge, and anything wider needs a ledge or a hover platform.</div>
+        </div>
+      </sc-if>
+
+      <!-- demo: snapping -->
+      <sc-if value="{{demo.snap}}" hint-placeholder-val="{{false}}">
+        <div style="border:1px solid rgba(34,211,238,0.45);border-radius:16px;background:rgba(34,211,238,0.04);padding:20px;display:flex;flex-direction:column;gap:14px">
+          <div style="display:flex;flex-direction:column;gap:2px"><span style="font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:18px;color:#fff">Try it: bring a window to the edge</span><span style="font-size:13.5px;color:#b4bfce">Slide the window toward the left edge of the workspace and see where it lands.</span></div>
+          <div style="display:flex;align-items:center;gap:12px;min-height:44px"><label for="snapd" style="color:#b4bfce;white-space:nowrap">Distance</label><input id="snapd" type="range" min="0" max="30" step="1" value="{{snap.d}}" onChange="{{snap.change}}" style="flex:1;min-width:0;height:44px;margin:0"><span style="font-family:'JetBrains Mono',monospace;color:#fff;white-space:nowrap">{{snap.dText}}</span></div>
+          <div style="position:relative;height:150px;border:1px solid rgba(255,255,255,0.14);border-radius:8px;background:#0f0e1a;overflow:hidden">
+            <sc-if value="{{snap.guide}}" hint-placeholder-val="{{false}}"><div style="position:absolute;top:0;bottom:0;width:1px;background:#ffaa40;box-shadow:0 0 6px rgba(255,170,64,0.7);left:{{snap.guideX}}px"></div></sc-if>
+            <div style="position:absolute;top:34px;width:150px;height:84px;box-sizing:border-box;border-radius:10px;border:1px solid rgba(255,255,255,0.22);background:rgba(20,20,25,0.9);display:flex;align-items:center;justify-content:center;color:#e0e0e0;font-size:13px;left:{{snap.x}}px">A window</div>
+          </div>
+          <div style="color:#e0e0e0;font-size:14.5px">{{snap.text}}</div>
+          <div style="font-size:13px;color:#b4bfce">The same 8 px reach applies to the other edges and to the edges of other windows, and orange guide lines show what it is locking to.</div>
+        </div>
+      </sc-if>
+
+      <!-- demo: pop out -->
+      <sc-if value="{{demo.pop}}" hint-placeholder-val="{{false}}">
+        <div style="border:1px solid rgba(255,255,255,0.22);border-radius:16px;background:rgba(255,255,255,0.03);padding:20px;display:flex;flex-direction:column;gap:14px">
+          <div style="display:flex;flex-direction:column;gap:2px"><span style="font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:18px;color:#fff">Try it: pop the script out</span><span style="font-size:13.5px;color:#b4bfce">Click the pop-out button on the script window, then dock it back.</span></div>
+          <div style="position:relative;height:210px;border:1px solid rgba(255,255,255,0.14);border-radius:8px;background:#0f0e1a;overflow:hidden">
+            <div style="position:absolute;left:12px;top:12px;width:42%;height:186px;box-sizing:border-box;border-radius:10px;border:1px solid rgba(255,255,255,0.22);background:rgba(20,20,25,0.9);display:flex;flex-direction:column">
+              <div style="height:40px;flex:none;display:flex;align-items:center;gap:6px;padding-left:12px;border-bottom:1px solid rgba(255,255,255,0.08);font-family:'JetBrains Mono',monospace;font-size:12px;color:#fff">crater.fizz<sc-if value="{{pop.on}}" hint-placeholder-val="{{false}}"><span style="font-family:Inter,system-ui,sans-serif;padding:1px 7px;border-radius:999px;border:1px solid rgba(34,211,238,0.5);font-size:11px">Display 2</span></sc-if></div>
+              <div style="padding:12px;font-size:13px;color:#b4bfce;line-height:1.5">{{pop.dockText}}</div>
+            </div>
+            <sc-if value="{{pop.on}}" hint-placeholder-val="{{false}}">
+              <div style="position:absolute;left:38%;top:34px;width:58%;height:164px;box-sizing:border-box;border:1px solid rgba(255,255,255,0.22);background:#0c0c10;box-shadow:0 20px 50px rgba(0,0,0,0.7);display:flex;flex-direction:column">
+                <div style="height:32px;flex:none;display:flex;align-items:center;gap:8px;padding:0 10px;border-bottom:1px solid rgba(255,255,255,0.08);background:#121218;font-size:12px;color:#e0e0e0"><span style="width:12px;height:12px;border-radius:3px;background:linear-gradient(135deg,#ffaa40,#f43f5e,#a78bfa)"></span>crater.fizz<span style="padding:1px 7px;border-radius:999px;border:1px solid rgba(34,211,238,0.5);font-size:11px">Display 2</span></div>
+                <div style="padding:10px 12px;font-family:'JetBrains Mono',monospace;font-size:12px;color:#e0e0e0;line-height:1.6;white-space:pre">terrain
+  flat 17, gap 3, flat 20
+edits
+  paint spike   x=33..34 y=4</div>
+              </div>
+            </sc-if>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap"><button onClick="{{pop.toggle}}" style="min-height:44px;padding:0 18px;border-radius:999px;border:1px solid rgba(255,255,255,0.22);background:transparent;color:#e0e0e0;font-weight:500">{{pop.label}}</button></div>
+        </div>
+      </sc-if>
+
+      <!-- demo: tile listing -->
+      <sc-if value="{{demo.tiles}}" hint-placeholder-val="{{false}}">
+        <div style="display:flex;flex-direction:column;gap:14px">
+          <sc-for list="{{tileGroups}}" as="g" hint-placeholder-count="6">
+            <div style="border:1px solid rgba(255,255,255,0.14);border-radius:12px;background:rgba(255,255,255,0.03);padding:16px;display:flex;flex-direction:column;gap:10px">
+              <span style="font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:16px;color:#fff">{{g.title}}</span>
+              <ul style="margin:0;padding:0;list-style:none;display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:8px 20px">
+                <sc-for list="{{g.tiles}}" as="t" hint-placeholder-count="6"><li style="display:flex;gap:10px;align-items:baseline;font-size:14px;color:#b4bfce"><span style="flex:0 0 112px;font-family:'JetBrains Mono',monospace;font-size:12.5px;color:#ffaa40">{{t.word}}</span><span style="flex:0 0 26px;font-family:'JetBrains Mono',monospace;font-size:12px;color:#7c8796">{{t.id}}</span><span>{{t.text}}</span></li></sc-for>
+              </ul>
+            </div>
+          </sc-for>
+        </div>
+      </sc-if>
+
+      <!-- shortcuts and honesty tables -->
+      <sc-if value="{{demo.status}}" hint-placeholder-val="{{false}}">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px">
+          <sc-for list="{{status}}" as="g" hint-placeholder-count="3">
+            <div style="border:1px solid rgba(255,255,255,0.14);border-radius:12px;background:rgba(255,255,255,0.03);padding:16px;display:flex;flex-direction:column;gap:10px">
+              <span style="display:flex;align-items:center;gap:8px;font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:16px;color:#fff"><span style="width:9px;height:9px;border-radius:50%;background:{{g.dot}}"></span>{{g.title}}</span>
+              <ul style="margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px;color:#b4bfce;font-size:14px">
+                <sc-for list="{{g.items}}" as="i" hint-placeholder-count="5"><li>{{i}}</li></sc-for>
+              </ul>
+            </div>
+          </sc-for>
+        </div>
+      </sc-if>
+      <sc-if value="{{demo.keys}}" hint-placeholder-val="{{false}}">
+        <div style="border:1px solid rgba(255,255,255,0.14);border-radius:12px;background:rgba(255,255,255,0.03);padding:16px;display:flex;flex-direction:column;gap:8px">
+          <span style="font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:16px;color:#fff">Shortcuts</span>
+          <div style="font-size:13.5px;color:#b4bfce">These work while the studio has keyboard focus: click the level first. They pause while you type in a box.</div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:6px 20px;font-size:14px">
+            <sc-for list="{{keys}}" as="k" hint-placeholder-count="8"><div style="display:flex;justify-content:space-between;gap:12px;color:#e0e0e0"><span>{{k.name}}</span><span style="font-family:'JetBrains Mono',monospace;font-size:12.5px;color:#b4bfce;white-space:nowrap">{{k.key}}</span></div></sc-for>
+          </div>
+        </div>
+      </sc-if>
+    </div>
+  </div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1400}}'>
+class Component extends DCLogic {
+  tileGroups() { return [{"title": "Ground and solids", "tiles": [{"word": "fill", "id": "1", "text": "Solid ground. The basic filler for terrain, and what fill-by-range lines write."}, {"word": "block", "id": "2", "text": "A solid block Ben can stand on and bump into."}, {"word": "cracked", "id": "37", "text": "A cracked wall: solid until a fizz shot hits it, then it and any cracked tiles touching it crumble away."}, {"word": "tree", "id": "23", "text": "A solid tree, for the overworld and park levels."}, {"word": "rock", "id": "24", "text": "A solid rock."}, {"word": "river", "id": "22", "text": "Solid river water on the overworld."}, {"word": "house-a", "id": "38", "text": "A solid town building, drawn over grass."}, {"word": "house-b", "id": "39", "text": "A second solid town building style."}, {"word": "shop", "id": "40", "text": "A solid shop front on the overworld."}, {"word": "fountain", "id": "41", "text": "A solid fountain on the overworld."}]}, {"title": "Platforms and climbing", "tiles": [{"word": "one-way", "id": "3", "text": "A platform Ben can jump up through and stand on. In the engine this is PLAT."}, {"word": "bridge", "id": "14", "text": "A bridge that is gone or there depending on its switch (channel 0)."}, {"word": "rung", "id": "28", "text": "A ladder rung Ben can climb. Not solid."}, {"word": "rung-top", "id": "29", "text": "The top rung of a ladder: climbable, and a one-way ledge Ben can stand on."}, {"word": "vine", "id": "36", "text": "A crystal vine on a cave wall. Not solid; Ben can climb it in any direction."}, {"word": "conveyor-l", "id": "25", "text": "A solid belt that carries Ben to the left."}, {"word": "conveyor-r", "id": "26", "text": "A solid belt that carries Ben to the right."}]}, {"title": "Slopes", "tiles": [{"word": "slope-r45", "id": "6", "text": "A 45 degree slope that rises toward the right, one tile wide."}, {"word": "slope-l45", "id": "7", "text": "A 45 degree slope that rises toward the left, one tile wide."}, {"word": "slope-r22a", "id": "8", "text": "The lower half of a gentle slope rising to the right (0 to half a tile). Place it left of slope-r22b."}, {"word": "slope-r22b", "id": "9", "text": "The upper half of a gentle slope rising to the right (half a tile to a full tile)."}, {"word": "slope-l22a", "id": "10", "text": "The higher half of a gentle slope falling to the right (a full tile to half a tile)."}, {"word": "slope-l22b", "id": "11", "text": "The lower half of a gentle slope falling to the right (half a tile to nothing). Place it right of slope-l22a."}]}, {"title": "Hazards", "tiles": [{"word": "spike", "id": "4", "text": "Spikes. Touching them kills Ben."}, {"word": "choc", "id": "5", "text": "A chocolate fudge pool. Lethal liquid."}, {"word": "furnace", "id": "27", "text": "Molten metal. Lethal liquid with its own look."}]}, {"title": "Doors, gates and exits", "tiles": [{"word": "red-door", "id": "12", "text": "A solid red cookie door, opened by the red key."}, {"word": "blue-door", "id": "13", "text": "A solid blue cookie door, opened by the blue key."}, {"word": "green-door", "id": "35", "text": "A solid green cookie door, opened by the green key."}, {"word": "gate", "id": "32", "text": "A gate that blocks a shaft while its switch is on; a crystal switch turns it off (channel 1)."}, {"word": "gate-2", "id": "33", "text": "The same, on its own switch channel 2, so a level can hold several puzzles."}, {"word": "gate-3", "id": "34", "text": "The same, on switch channel 3."}, {"word": "exit", "id": "17", "text": "The level exit."}]}, {"title": "Scenery and rooms", "tiles": [{"word": "grass", "id": "20", "text": "Grass. Not solid; ground cover for the overworld."}, {"word": "path", "id": "21", "text": "A path. Not solid."}, {"word": "crystal-tile", "id": "16", "text": "A decorative crystal on the ground. The script name differs from the game's CRYS so it does not clash with the crystal statement."}, {"word": "mural-origin", "id": "18", "text": "The bottom-left tile of a 3 by 2 wall mural, and the one that draws the whole picture."}, {"word": "mural-part", "id": "19", "text": "The other five tiles of a mural. They do not draw."}, {"word": "wall-bg", "id": "30", "text": "Decorative interior wall behind a building's rooms, stairs and ladders. Not solid."}, {"word": "facade", "id": "31", "text": "Paint that hides a room; it fades out while Ben is inside."}]}]; }
+  steps() {
+    const U = (id) => '/_blob/' + id;
+    return [
+      { label: 'The workspace', title: 'Find your way around', demo: '',
+        lead: 'The level is the canvas, and everything else is a window floating over it.',
+        points: ['Every window except the level can be dragged by its header, resized by its corner grip, collapsed with its chevron and snapped to the edges and to other windows.', 'Nothing here is fixed: the arrangement in the screenshot is just where the windows start.'],
+        legend: [{ n: 1, text: 'Menu bar, with the app menu (the hamburger) at the far left of the title bar.' }, { n: 2, text: 'Tool rail: Paint, Erase, Pick, Select and Stamp. Only Pan is shown muted, because it is not built.' }, { n: 3, text: 'Palette and Outliner, as tabs of one window.' }, { n: 4, text: 'History: who changed what, with Claude\'s pending ideas after the Now marker.' }, { n: 5, text: 'Lens bar: overlays for the level, and the playtest bot button.' }, { n: 6, text: 'Checks: start, exit and the playtest bot.' }, { n: 7, text: 'Inspector: the selected thing\'s position, facing and patrol, with Delete.' }, { n: 8, text: 'Review changes and Claude, as tabs of one window.' }, { n: 9, text: 'The script, in the builder language.' }, { n: 10, text: 'Navigator: the whole level, with a frame for what you can see.' }, { n: 11, text: 'The level itself.' }],
+        images: [{ src: U('95a2738fc96a945ec924898fb3f9b4a0'), alt: 'The editor at its starting arrangement, with eleven parts numbered', caption: 'The prototype at its starting arrangement.' }] },
+      { label: 'Paint', title: 'Paint, select and stamp', demo: 'paint',
+        lead: 'Pick a tool, pick a tile, then click or drag on the level.',
+        points: ['Paint (B) places the chosen tile. Drag to paint a run; the whole stroke is one step in the undo history.', 'Erase (E) clears cells. Pick (I) copies a cell\'s tile into the palette and switches to Paint.', 'Select (S) selects a cell, and dragging selects a rectangle. Copy (Ctrl+C) or Cut (Ctrl+X) keeps the filled cells, and Stamp (T) pastes them with the top-left corner on the cell you click, with a dashed preview that follows the pointer. A stamp is one undo step, and cells past the edge are skipped.', 'The palette lists every tile, treat and enemy the game has, grouped as terrain, hazards, treats, enemies and objects, then the start, exit and moving-platform markers. It scrolls; hover a chip for its name.'],
+        legend: [{ n: 1, text: 'The tool rail.' }, { n: 2, text: 'The palette: the tile Paint will place is outlined in orange.' }, { n: 3, text: 'The Stamp tool, switched on.' }, { n: 4, text: 'A dragged selection, with its size and the Ctrl+C hint.' }, { n: 5, text: 'The stamp preview following the pointer.' }],
+        images: [{ src: U('76b4ac744664d308fea82fd196601c5e'), alt: 'The tool rail and the palette, numbered', caption: 'Tools on the left, tiles beside them.' }, { src: U('aa5ca2720db3e480d035be20d2913098'), alt: 'A selected area and the dashed stamp preview', caption: 'Selecting an area, and the stamp preview.' }] },
+      { label: 'Tiles', title: 'Every tile, and what it does', demo: 'tiles',
+        lead: 'The palette and the script share one list of tiles. Each has a name you write after paint, or in the blocks section, and an id in the game.',
+        points: ['There are 40 tiles to paint with, plus empty, which clear writes. Names are lower case with hyphens, such as one-way or slope-r22a.', 'A tile fills one block. Items such as cheezies and sodas, and enemies, are not tiles: a cheezie goes down with place, not paint.', 'Solid tiles stop Ben, one-way tiles let him jump up through them, and the hazards kill on touch. Scenery tiles are not solid.', 'The whole list follows, grouped by what the tiles do. The ids are the game\'s own tile numbers.'],
+        legend: [], images: [] },
+      { label: 'The script', title: 'Read the script', demo: '',
+        lead: 'The level is also a short text in the builder language, always in sync with what you paint.',
+        points: ['The hand-written sections stay as they are. Every change you make becomes a line under edits, such as paint block x=3..5 y=2.', 'Lines that Claude wrote carry a purple + in the gutter, and lines still waiting for review are tinted.', 'Click a line to select its thing on the level. Selecting something on the level highlights its line, and the script scrolls to follow it unless you turn Following off. The mouse wheel and the scroll track move it by hand.', 'Show in script (in the Inspector, the context ring and the right-click menu) jumps straight to the line.', 'Type your own line in the box under the script, such as paint block x=3..5 y=9, clear x=2 y=11 or paint cheezie x=12 y=4, then press Enter or Add. It applies as one undo step. A line the editor cannot read gets a plain explanation and a suggested fix, and Use this fix fills the box in for you.'],
+        legend: [{ n: 1, text: 'The script tab, with Playtest beside it.' }, { n: 2, text: 'Following selection: on by default.' }, { n: 3, text: 'Claude\'s lines, pending review.' }, { n: 4, text: 'The scroll track, with a marker for the selected line and for Claude\'s lines.' }, { n: 5, text: 'The box for typing a line.' }, { n: 6, text: 'What was wrong, with a suggested line.' }, { n: 7, text: 'Use this fix.' }],
+        images: [{ src: U('f5be8085c17d658c71badf582bfc3957'), alt: 'The script window with four parts numbered', caption: 'The script window in two columns.' }, { src: U('7a5e8cb93aaabe80b9fb61e70fa90bc5'), alt: 'A misspelled tile name with an error and a suggested fix', caption: 'A typo in a typed line, with its fix.' }] },
+      { label: 'Ask Claude', title: 'Ask Claude', demo: 'loop',
+        lead: 'Choose how Claude writes, then ask for an idea.',
+        points: ['Propose shows the idea as dashed purple ghosts for you to accept or reject. Edit directly places it at once, with an Undo, and it joins your undo history.', 'You can ask from the Claude tab, from the context ring (Ask), from the Claude menu, or by right-clicking something and choosing Ask Claude about this.', 'In the prototype there is no AI: Ask Claude cycles through three canned ideas, and the window says so. A separate Check the gaps button is a fixed rule, also labelled as not AI: it proposes a one-way stone over the middle of every gap five or more tiles wide. In the real studio the same buttons would reach Claude over MCP.'],
+        legend: [{ n: 1, text: 'When Claude writes.' }, { n: 2, text: 'The two modes.' }, { n: 3, text: 'Ask Claude for an idea.' }, { n: 4, text: 'Check the gaps: a fixed rule, not AI.' }],
+        images: [{ src: U('7ffc25cab030c6ea0cb2d7b1d246055b'), alt: 'The Claude tab with its mode switch and ask button', caption: 'The Claude tab.' }] },
+      { label: 'Review', title: 'Review what Claude suggests', demo: 'loop',
+        lead: 'Every pending idea is listed as the script lines it would add.',
+        points: ['Accept writes that hunk into the level as one undo step. Reject drops it, and nothing changes. The eye button jumps to the ghosts on the level.', 'Accept both and Reject both deal with the whole idea at once.', 'The tab shows how many hunks are waiting, and the History track shows them after Now until you decide.'],
+        legend: [{ n: 1, text: 'Which idea this is. The prototype says plainly that it is canned.' }, { n: 2, text: 'A hunk: a small change you can take or leave on its own.' }, { n: 3, text: 'The lines it would add. The + marks Claude\'s lines.' }, { n: 4, text: 'Accept or reject everything.' }],
+        images: [{ src: U('c40e702b4127dcfd79dd7df1a48be759'), alt: 'The Review changes window with two hunks', caption: 'Two hunks waiting in Review changes.' }] },
+      { label: 'Lenses', title: 'See the level with lenses', demo: 'lens',
+        lead: 'Lenses draw extra information over the level without changing it.',
+        points: ['Gaps colours every gap in the current level by whether a jump clears it. Paint a gap wider or narrower and the colour follows.', 'Ghosts shows or hides Claude\'s pending tiles. Hazards outlines spikes and chocolate. Reach draws a rough three-tile box around your selection, and is labelled as a rough guide.', 'The same toggles are in the View menu and the app menu\'s Lenses submenu. The playtest bot button is a stand-in: it says so and shows no results.', 'Zoom: the Navigator\'s minus and plus buttons, or the - and = keys, step the tile size through 16, 24, 32 and 48 px. Everything on the level follows, and at 16 px the gap labels keep only the width so they do not overlap.'],
+        legend: [{ n: 1, text: 'The lens toggles.' }, { n: 2, text: 'A reminder of the gap rule.' }, { n: 3, text: 'A gap three wide: a jump clears it.' }, { n: 4, text: 'A pool five wide: it needs a ledge.' }],
+        images: [{ src: U('9c53b41d9676eca7ccaf8f1fd2c5b14e'), alt: 'The lens bar and two gaps on the level, one green and one rose', caption: 'The gaps lens at the start.' }, { src: U('bab79310f970251df5c0652a65c9186b'), alt: 'The whole level zoomed out to 16 px', caption: 'The same level at 16 px.' }] },
+      { label: 'Windows', title: 'Move, snap and resize windows', demo: 'snap',
+        lead: 'Arrange the workspace the way you like, and put it back when you want to.',
+        points: ['Drag a window by its header. Its edges snap within 8 px to the workspace edges, to an 8 px margin and to the edges of other windows, and orange guide lines show what it is locking to.', 'Resize with the corner grip. Windows have a minimum size so they stay usable.', 'The chevron collapses a window to its header. Window, Collapse all windows and Expand all windows do it for every window, and Reset window layout restores the starting arrangement.', 'Grab a window and it comes to the front.', 'Window, Save layout for this session keeps an arrangement for later in the same session, and Restore saved layout brings it back. Nothing is written to disk.'],
+        legend: [],
+        images: [{ src: U('8692fdc08497936ae15d49b0a908588d'), alt: 'The editor with several windows collapsed to their headers', caption: 'Windows collapsed to their headers, with the level showing through.' }] },
+      { label: 'Menus', title: 'Menus, right-click and shortcuts', demo: 'keys',
+        lead: 'The menu bar holds everything the windows do, and the right-click menu works on the thing under the cursor.',
+        points: ['The app menu (hamburger) has the file and window actions and the Lenses submenu. The bar has File, Edit, View, Level, Claude, Window and Help. Click one, then hover along the bar to move between menus.', 'Edit has Undo and Redo, which name the step they would undo or redo. Save only shows a message: nothing is written in the prototype.', 'Right-click a cell for Inspect, Show in script, Ask Claude about this, Flip facing (enemies only), Duplicate, Cut, Copy and Delete. Items that are not built are visible but muted.', 'Press ? for a card listing every shortcut. Click the level first: the keys work while the studio has focus, and they pause while you type in a box.'],
+        legend: [{ n: 1, text: 'The Claude menu in the menu bar.' }, { n: 2, text: 'Ask Claude for an idea.' }, { n: 3, text: 'Check the gaps, the rule-based idea.' }, { n: 4, text: 'Show in script, from the right-click menu.' }, { n: 5, text: 'Ask Claude about this thing.' }, { n: 6, text: 'A muted item: it is not built yet.' }],
+        images: [{ src: U('aa1e90093f0062d0abc8ed770bc44b32'), alt: 'The Claude menu open with three items', caption: 'The Claude menu.' }, { src: U('a162a7de37dcdd5780e1502970315bf4'), alt: 'The right-click menu on a gloop', caption: 'The right-click menu on a gloop, with the items numbered.' }, { src: U('47f570737b2ee7fc28bf67be136f91df'), alt: 'The keyboard shortcuts card', caption: 'The shortcuts card, opened with ?.' }] },
+      { label: 'Pop out', title: 'Pop the script out', demo: 'pop',
+        lead: 'Put the script on another display, or just beside the level.',
+        points: ['The pop-out button on the script window moves the script into its own window, labelled Display 2. It can be dragged and resized, and still follows your selection.', 'Dock back into the studio, or the window\'s close button, returns it to its place in the group.', 'While it is out, the script tab in the main window says so and offers a Dock back button.'],
+        legend: [{ n: 1, text: 'The window\'s own title bar and the Display 2 badge.' }, { n: 2, text: 'Dock back into the studio.' }, { n: 3, text: 'Following selection.' }, { n: 4, text: 'The selected line, highlighted.' }],
+        images: [{ src: U('7b227ac10b72d58280d43a018ec4aeb1'), alt: 'The script in its own window labelled Display 2', caption: 'The script popped out.' }] },
+      { label: 'Objects', title: 'Lifts, rooms, arenas and the overworld', demo: '',
+        lead: 'Tiles are painted. Objects are placed, selected and tuned, and each one is a single line in the script.',
+        points: ['In a level, pick Lift (L) and drag from one end to the other, Room (R) and drag a rectangle, or Arena (A) and drag a width. The Objects window lists them and edits the selected one field by field.', 'With Select, drag the A and B ends of a lift, or drag a room, to move it. The studio rewrites that object\'s own line in place, so moving a lift never adds a second one. Lines you wrote and did not touch are never rewritten.', 'Switch channels have no place on the map. The Objects window has a chip for each channel that starts on.', 'File, Open starter level, then Overworld, opens the map. Paint it like a level, pick Point (P) and click to add a level, a teleporter, a sign or the saucer, and drag a point to move it. A level point swaps its level with the arrows on its Level field, and its Unlocks chips say which levels must be cleared first.', 'The Links lens draws the unlock lines and the teleporter pairs, the Areas lens outlines the regions, and the Paths lens (in a level) shows where walking enemies go.', 'In the box under the script, suggestions appear as you type: statement words, tiles, items, fields and values. Arrow keys move, Tab accepts and Enter adds the line.'],
+        legend: [], images: [] },
+      { label: 'What is real', title: 'What is real, canned or not built', demo: 'status',
+        lead: 'The prototype is honest about its limits, and so is this list.',
+        points: ['It is a prototype of the design, not the finished editor. The things below are the line between them.'],
+        legend: [],
+        images: [] }
+    ];
+  }
+  defaults() { return { step: 0, cells: [], tool: 'block', loopMode: 'propose', loopGrid: {}, hunks: [], applied: false, prev: null, lensW: 3, snapD: 14, popped: false }; }
+  cur() { return Object.assign({}, this.defaults(), this.state || {}); }
+  fmtXs(xs) {
+    const out = []; let i = 0;
+    while (i < xs.length) { let j = i; while (j + 1 < xs.length && xs[j + 1] === xs[j] + 1) j++; out.push(j > i ? xs[i] + '..' + xs[j] : String(xs[i])); i = j + 1; }
+    return out.join(',');
+  }
+  tiles() {
+    return { block: { word: 'block', label: 'Block', glyph: '', chip: 'background:#6a58a8', bg: 'background:#6a58a8' }, oneway: { word: 'one-way', label: 'One-way', glyph: '', chip: 'background:linear-gradient(#ffaa40 0 40%,#1a1626 40%)', bg: 'background:linear-gradient(#ffaa40 0 30%,transparent 30%)' }, cheezie: { word: 'cheezie', label: 'Cheezie', glyph: '•', chip: 'background:#3a2f10;color:#fbbf24', bg: 'background:transparent;color:#fbbf24' } };
+  }
+  paintCell(i) {
+    const s = this.cur();
+    const cells = s.cells.length ? s.cells.slice() : new Array(84).fill('.');
+    cells[i] = s.tool === 'erase' ? '.' : s.tool;
+    this.setState({ cells: cells });
+  }
+  acceptHunk(id) {
+    const s = this.cur();
+    const h = s.hunks.filter((q) => q.id === id)[0];
+    if (!h) return;
+    const g = Object.assign({}, s.loopGrid);
+    h.cells.forEach((c) => { g[c[0] + ',' + c[1]] = c[2]; });
+    this.setState({ loopGrid: g, hunks: s.hunks.filter((q) => q.id !== id) });
+  }
+  go(n) { this.setState({ step: Math.max(0, Math.min(this.steps().length - 1, n)) }); }
+  hunkDefs() {
+    return [
+      { id: 'a', title: 'Stepping stones over the pool', line: 'paint one-way x=4,6,8 y=2', cells: [[4, 2, 'oneway'], [6, 2, 'oneway'], [8, 2, 'oneway']] },
+      { id: 'b', title: 'A cheezie on each stone', line: 'place cheezie x=4,6,8 y=3', cells: [[4, 1, 'cheezie'], [6, 1, 'cheezie'], [8, 1, 'cheezie']] }
+    ];
+  }
+  renderVals() {
+    const s = this.cur();
+    const steps = this.steps();
+    const st = steps[s.step];
+    const T = this.tiles();
+
+    const nav = steps.map((p, i) => {
+      const on = i === s.step;
+      return { num: String(i + 1), label: p.label, current: on ? 'step' : 'false', style: 'border:1px solid ' + (on ? '#ffaa40' : 'rgba(255,255,255,0.14)') + ';background:' + (on ? 'rgba(255,170,64,0.12)' : 'transparent') + ';color:' + (on ? '#ffffff' : '#b4bfce'), numStyle: 'color:' + (on ? '#ffaa40' : '#7c8796'), pick: () => this.go(i) };
+    });
+    const step = { num: s.step + 1, title: st.title, lead: st.lead, points: st.points, legend: st.legend, hasLegend: st.legend.length > 0, images: st.images };
+
+    // paint demo
+    const cells = s.cells.length ? s.cells : new Array(84).fill('.');
+    const demoCells = cells.map((v, i) => {
+      const x = i % 14, y = Math.floor(i / 14);
+      const t = T[v];
+      return { label: 'x ' + x + ', y ' + (5 - y) + (t ? ', ' + t.label : ', empty'), style: (t ? t.bg : 'background:transparent') + ';outline:1px solid rgba(255,255,255,0.05);outline-offset:-1px', glyph: t ? t.glyph : '', pick: () => this.paintCell(i) };
+    });
+    const lines = [];
+    for (let y = 5; y >= 0; y--) {
+      ['block', 'oneway', 'cheezie'].forEach((k) => {
+        const xs = [];
+        const ri = 5 - y;
+        for (let x = 0; x < 14; x++) if (cells[ri * 14 + x] === k) xs.push(x);
+        if (xs.length) lines.push('  paint ' + T[k].word.padEnd(8) + ' x=' + this.fmtXs(xs) + ' y=' + y);
+      });
+    }
+    const script = 'edits' + (lines.length ? '' : '   // none yet') + (lines.length ? '\n' + lines.join('\n') : '');
+    const tools = [['block', 'Block'], ['oneway', 'One-way'], ['cheezie', 'Cheezie'], ['erase', 'Erase']].map((t) => {
+      const on = s.tool === t[0];
+      const tile = T[t[0]];
+      return { label: t[1], on: on ? 'true' : 'false', glyph: t[0] === 'erase' ? 'x' : (tile ? tile.glyph : ''), chip: t[0] === 'erase' ? 'color:#b4bfce;border:1px solid rgba(255,255,255,0.3)' : tile.chip, style: 'border:1px solid ' + (on ? '#ffaa40' : 'rgba(255,255,255,0.14)') + ';background:' + (on ? 'rgba(255,170,64,0.1)' : 'transparent') + ';color:' + (on ? '#ffaa40' : '#e0e0e0'), pick: () => this.setState({ tool: t[0] }) };
+    });
+
+    // claude loop demo
+    const defs = this.hunkDefs();
+    const ghostAt = {};
+    s.hunks.forEach((h) => h.cells.forEach((c) => { ghostAt[c[0] + ',' + c[1]] = c[2]; }));
+    const loopCells = [];
+    for (let y = 0; y < 5; y++) for (let x = 0; x < 12; x++) {
+      const k = x + ',' + y;
+      const ground = y === 4;
+      const pool = ground && x >= 4 && x <= 8;
+      const placed = s.loopGrid[k];
+      const ghost = ghostAt[k];
+      let style = 'background:transparent', glyph = '';
+      if (ground && !pool) style = 'background:#2b2540';
+      if (pool) { style = 'background:#7a4527;color:#d9a27c'; glyph = '~'; }
+      const t = placed || ghost;
+      if (t) { style = T[t].bg; glyph = T[t].glyph; }
+      if (ghost && !placed) style += ';outline:1px dashed #a78bfa;outline-offset:-1px;opacity:0.9';
+      loopCells.push({ style: style, glyph: glyph });
+    }
+    const nPlaced = Object.keys(s.loopGrid).length;
+    let status = 'Nothing yet. Ask for an idea.';
+    if (s.hunks.length) status = 'Claude proposes ' + (s.hunks.length === 2 ? 'two changes' : 'one change') + ', shown as dashed ghosts. Nothing is in the level until you accept.';
+    else if (s.applied) status = 'Claude placed the idea directly. It is one step in the undo history, so Undo takes it back.';
+    else if (nPlaced) status = 'Accepted. The tiles are in the level and a script line would be written for each.';
+    const loop = {
+      modes: [['propose', 'Propose', 'Ghosts you accept'], ['direct', 'Edit directly', 'Placed, with undo']].map((m) => {
+        const on = s.loopMode === m[0];
+        return { label: m[1], hint: m[2], on: on ? 'true' : 'false', style: 'border:1px solid ' + (on ? '#a78bfa' : 'rgba(255,255,255,0.14)') + ';background:' + (on ? 'rgba(167,139,250,0.14)' : 'transparent') + ';color:' + (on ? '#ffffff' : '#b4bfce'), pick: () => this.setState({ loopMode: m[0] }) };
+      }),
+      cells: loopCells, status: status,
+      alt: 'A small strip of level with a chocolate pool and ' + (s.hunks.length ? 'ghost tiles proposed over it' : (nPlaced ? 'stepping stones and cheezies placed over it' : 'nothing placed over it')),
+      hunks: s.hunks.map((h) => ({ title: h.title, line: h.line, accept: () => this.acceptHunk(h.id), reject: () => this.setState({ hunks: s.hunks.filter((q) => q.id !== h.id) }) })),
+      askLabel: s.hunks.length || nPlaced ? 'Ask for another idea (the same canned one)' : 'Ask Claude for an idea',
+      canUndo: s.applied,
+      ask: () => {
+        if (s.loopMode === 'direct') {
+          const g = Object.assign({}, s.loopGrid);
+          defs.forEach((h) => h.cells.forEach((c) => { g[c[0] + ',' + c[1]] = c[2]; }));
+          this.setState({ loopGrid: g, hunks: [], applied: true, prev: s.loopGrid });
+        } else this.setState({ hunks: defs.map((h) => Object.assign({}, h)), applied: false });
+      },
+      undo: () => this.setState({ loopGrid: s.prev || {}, applied: false, prev: null }),
+      reset: () => this.setState({ loopGrid: {}, hunks: [], applied: false, prev: null })
+    };
+
+    // gap lens demo
+    const w = s.lensW;
+    const rule = w <= 3 ? { ink: '#2ec66a', fill: 'rgba(46,198,106,0.28)', note: 'a jump clears it' } : (w === 4 ? { ink: '#fbbf24', fill: 'rgba(251,191,36,0.28)', note: 'tight: a tenth of a second' } : { ink: '#f43f5e', fill: 'rgba(244,63,94,0.26)', note: 'needs a ledge' });
+    const gx = 3;
+    const lensCells = [];
+    for (let x = 0; x < 16; x++) {
+      const inGap = x >= gx && x < gx + w;
+      lensCells.push({ style: inGap ? 'background:' + rule.fill + ';border:1px solid ' + rule.ink : 'background:#2b2540' });
+    }
+    const lens = { w: w, wText: w + ' wide', cells: lensCells, note: rule.note, tagLeft: Math.round((gx / 16) * 1000) / 10, tagStyle: 'border:1px solid ' + rule.ink, inkStyle: 'color:' + rule.ink, change: (e) => this.setState({ lensW: Math.max(1, Math.min(7, parseInt(e && e.target ? e.target.value : 3, 10) || 3)) }) };
+
+    // snap demo
+    const d = s.snapD;
+    const targets = [0, 8];
+    let best = null;
+    targets.forEach((tg) => { const dd = Math.abs(d - tg); if (dd <= 8 && (!best || dd < best.dd)) best = { dd: dd, t: tg }; });
+    const landed = best ? best.t : d;
+    const snap = {
+      d: d, dText: d + ' px', x: landed, guide: !!best, guideX: best ? best.t : 0,
+      text: best ? (best.t === 0 ? 'Snapped to the workspace edge (0 px).' : 'Snapped to the 8 px margin beside the edge.') : 'Free: more than 8 px from any snap point, so the window stays where you put it.',
+      change: (e) => this.setState({ snapD: Math.max(0, Math.min(30, parseInt(e && e.target ? e.target.value : 14, 10) || 0)) })
+    };
+
+    // pop-out demo
+    const pop = { on: s.popped, label: s.popped ? 'Dock back into the studio' : 'Pop the script out', dockText: s.popped ? 'The script is open in its own window on Display 2. It still follows the selection there.' : 'terrain, treats, enemies, blocks and edits, with Claude\'s lines marked +.', toggle: () => this.setState({ popped: !s.popped }) };
+
+    const keys = [['Paint', 'B'], ['Erase', 'E'], ['Pick', 'I'], ['Select', 'S'], ['Stamp', 'T'], ['Undo', 'Ctrl+Z'], ['Redo', 'Ctrl+Shift+Z'], ['Copy', 'Ctrl+C'], ['Cut', 'Ctrl+X'], ['Duplicate', 'Ctrl+D'], ['Delete', 'Del'], ['Move a thing', 'Arrows'], ['Ask Claude', 'Ctrl+K'], ['Show in script', 'Ctrl+J'], ['Lenses', 'Alt+1 to Alt+4'], ['Zoom in, out', '= and -'], ['Reset window layout', 'Ctrl+Shift+0'], ['This card', '?'], ['Save (writes nothing)', 'Ctrl+S'], ['Close menus', 'Esc']].map((k) => ({ name: k[0], key: k[1] }));
+    const status3 = [
+      { title: 'Works', dot: '#2ec66a', items: ['Lifts, rooms, boss arenas and switch channels: placed with tools, dragged, edited in the Objects window and rewritten in place in the script', 'The overworld: open it, paint it, add and move level points, teleporters, signs and the saucer, set what unlocks each level', 'Code completion in the typed-line box, from the language docs', 'The Paths lens for walking enemies, from the game\'s rules (approximate on slopes)', 'File, Open starter level: all 16 levels of Episode 1, rebuilt from the game\'s own data, plus a small sample draft. Crater Fields opens first', 'Painting, erasing, picking, selecting, copying, cutting and stamping on a live level', 'The script, built from your edits, with Claude\'s lines marked, and typing your own lines', 'Accept, reject, accept all, reject all, and undo and redo', 'The four lenses, with the gaps computed from the level, and zoom from 16 to 48 px', 'Dragging, snapping, resizing and collapsing windows, and saving a layout for the session', 'Keyboard shortcuts, the menus, the right-click menu and the pop-out window'] },
+      { title: 'Canned', dot: '#a78bfa', items: ['Claude\'s ideas: a fixed list of three, no AI and no network', 'Check the gaps: a fixed rule, not AI', 'The playtest bot: a stand-in that plays nothing and shows no results', 'Save: shows a message, writes nothing; the saved layout lasts only for the session', 'Patrol and facing: stored, but no effect on the game'] },
+      { title: 'Not built', dot: '#7c8796', items: ['Pan', 'New, Save as, Export, Preferences and Quit', 'Exact enemy paths for every enemy: the Paths lens works from the game\'s rules in JavaScript, and the real editor will ask the game itself', 'Dragging a room\'s corners or a lift\'s whole path (the ends and the room body drag; the rest is in the Objects window)', 'Patrol range and Replace with', 'Grid', 'The window buttons in the title bar'] }
+    ];
+
+    const last = s.step === steps.length - 1, first = s.step === 0;
+    return {
+      nav: nav, step: step,
+      demo: { paint: st.demo === 'paint', loop: st.demo === 'loop', lens: st.demo === 'lens', snap: st.demo === 'snap', pop: st.demo === 'pop', status: st.demo === 'status', keys: st.demo === 'keys', tiles: st.demo === 'tiles', tools: tools, cells: demoCells, script: script, clear: () => this.setState({ cells: [] }) },
+      loop: loop, lens: lens, snap: snap, pop: pop, keys: keys, status: status3, tileGroups: this.tileGroups(),
+      prev: () => this.go(s.step - 1), next: () => this.go(s.step + 1),
+      prevDis: first ? 'true' : 'false', nextDis: last ? 'true' : 'false',
+      prevStyle: 'color:' + (first ? '#7c8796' : '#e0e0e0') + (first ? ';cursor:not-allowed' : ''),
+      nextStyle: last ? 'background:rgba(255,255,255,0.08);color:#7c8796;cursor:not-allowed' : 'background:#ffaa40;color:#050507',
+      nextLabel: last ? 'That is all of it' : 'Next: ' + steps[Math.min(steps.length - 1, s.step + 1)].label
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,390 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Fizz Level Studio</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@500;600;700&display=swap">
+<style>
+body{margin:0;background:#050507}
+button{font-family:inherit;cursor:pointer}
+button:focus-visible,input:focus-visible{outline:2px solid #ffaa40;outline-offset:1px}
+.cell:hover{filter:brightness(1.25)}
+</style>
+</helmet>
+<div style="width:1440px;height:900px;box-sizing:border-box;display:flex;flex-direction:column;background:#050507;color:#e0e0e0;font-family:Inter,system-ui,sans-serif;font-size:13px;overflow:hidden">
+
+  <!-- title bar -->
+  <div style="height:40px;flex:none;display:flex;align-items:center;gap:16px;padding:0 16px;background:#0c0c10;border-bottom:1px solid rgba(255,255,255,0.08)">
+    <span style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:14px;background:linear-gradient(135deg,#ffaa40,#f43f5e,#a78bfa);-webkit-background-clip:text;background-clip:text;color:transparent">fizz level studio</span>
+    <span style="color:#7c8796">Episode 1 · The Cocoa Caper</span>
+    <span style="color:#7c8796">/</span>
+    <span style="font-weight:500;color:#fff">Crater Fields (draft)</span>
+    <span style="flex-grow:1"></span>
+    <div style="display:flex;align-items:center;gap:8px">
+      <span style="display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:999px;background:rgba(255,170,64,0.15);color:#ffaa40;font-size:12px"><span style="width:6px;height:6px;border-radius:50%;background:#ffaa40"></span>Scott</span>
+      <span style="display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:999px;background:rgba(167,139,250,0.15);color:#a78bfa;font-size:12px"><span style="width:6px;height:6px;border-radius:50%;background:#a78bfa"></span>Claude · connected over MCP</span>
+    </div>
+  </div>
+
+  <div style="flex-grow:1;min-height:0;display:flex">
+
+    <!-- left: tools and palette -->
+    <div style="width:232px;flex:none;box-sizing:border-box;padding:16px;background:#0c0c10;border-right:1px solid rgba(255,255,255,0.08);display:flex;flex-direction:column;gap:20px;overflow:hidden">
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <div style="font-size:12px;color:#7c8796">Tool</div>
+        <div style="display:flex;gap:6px">
+          <sc-for list="{{tools}}" as="t" hint-placeholder-count="3">
+            <button onClick="{{t.pick}}" aria-pressed="{{t.on}}" style="flex:1;min-height:44px;border-radius:8px;border:1px solid {{t.ring}};background:{{t.fill}};color:{{t.ink}};font-size:12px;font-weight:500">{{t.label}}<span style="display:block;font-family:'JetBrains Mono',monospace;font-size:10px;opacity:0.7">{{t.key}}</span></button>
+          </sc-for>
+        </div>
+      </div>
+
+      <sc-for list="{{groups}}" as="g" hint-placeholder-count="3">
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <div style="font-size:12px;color:#7c8796">{{g.name}}</div>
+          <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px">
+            <sc-for list="{{g.items}}" as="p" hint-placeholder-count="4">
+              <button onClick="{{p.pick}}" aria-pressed="{{p.on}}" style="display:flex;align-items:center;gap:8px;min-height:36px;padding:0 8px;border-radius:8px;border:1px solid {{p.ring}};background:{{p.fill}};color:#e0e0e0;font-size:12px;text-align:left">
+                <span style="width:18px;height:18px;flex:none;border-radius:3px;background:{{p.swatch}};display:inline-flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:500;color:{{p.glyphInk}}">{{p.glyph}}</span>
+                <span>{{p.name}}</span>
+              </button>
+            </sc-for>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+
+    <!-- centre: the level -->
+    <div style="flex-grow:1;min-width:0;display:flex;flex-direction:column;background:#050507">
+      <div style="height:44px;flex:none;display:flex;align-items:center;gap:12px;padding:0 16px;border-bottom:1px solid rgba(255,255,255,0.08)">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#b4bfce">{{cols}} × {{rows}} tiles</span>
+        <span style="color:#7c8796">·</span>
+        <span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#b4bfce">{{hoverLabel}}</span>
+        <span style="flex-grow:1"></span>
+        <span style="color:#7c8796;font-size:12px">Painting with</span>
+        <span style="display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:8px;background:rgba(255,255,255,0.05);font-size:12px;color:#fff">{{currentName}}</span>
+      </div>
+
+      <div style="flex-grow:1;min-height:0;display:flex;align-items:center;justify-content:center;padding:16px">
+        <div style="position:relative;width:{{boardW}}px;height:{{boardH}}px;border:1px solid rgba(255,255,255,0.14);border-radius:4px;background:#0f0e1a;box-shadow:0 4px 24px rgba(0,0,0,0.45);display:grid;grid-template-columns:repeat({{cols}},20px);grid-auto-rows:20px;overflow:hidden">
+          <sc-for list="{{cells}}" as="c" hint-placeholder-count="20">
+            <div class="cell" onMouseDown="{{c.down}}" onMouseEnter="{{c.enter}}" style="width:20px;height:20px;box-sizing:border-box;background:{{c.bg}};outline:{{c.outline}};outline-offset:-1px;opacity:{{c.opacity}};display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:500;line-height:1;color:{{c.ink}};user-select:none;cursor:crosshair">{{c.glyph}}</div>
+          </sc-for>
+        </div>
+      </div>
+
+      <div style="height:32px;flex:none;display:flex;align-items:center;gap:20px;padding:0 16px;background:#0c0c10;border-top:1px solid rgba(255,255,255,0.08);font-size:12px;color:#7c8796">
+        <span>{{counts.tiles}} tiles</span><span>{{counts.enemies}} enemies</span><span>{{counts.items}} treats</span>
+        <span style="flex-grow:1"></span>
+        <span>Edits by hand and by Claude share one undo history</span>
+      </div>
+    </div>
+
+    <!-- right: Claude -->
+    <div style="width:340px;flex:none;box-sizing:border-box;background:#0c0c10;border-left:1px solid rgba(255,255,255,0.08);display:flex;flex-direction:column">
+      <div style="display:flex;padding:8px 12px 0;gap:4px;border-bottom:1px solid rgba(255,255,255,0.08)">
+        <sc-for list="{{tabs}}" as="tb" hint-placeholder-count="3">
+          <button onClick="{{tb.pick}}" aria-pressed="{{tb.on}}" style="padding:10px 10px;border:none;border-bottom:2px solid {{tb.ring}};background:transparent;color:{{tb.ink}};font-size:13px;font-weight:500;min-height:44px">{{tb.label}}</button>
+        </sc-for>
+      </div>
+
+      <sc-if value="{{isClaude}}" hint-placeholder-val="{{true}}">
+        <div style="flex-grow:1;min-height:0;display:flex;flex-direction:column;gap:16px;padding:16px;overflow:hidden">
+          <div style="display:flex;flex-direction:column;gap:10px;color:#b4bfce;font-size:13px;line-height:1.5">
+            <div style="display:flex;gap:10px"><span style="width:6px;height:6px;margin-top:7px;flex:none;border-radius:50%;background:#a78bfa"></span><span>Read the level, columns 0 to 39. One pit, a chocolate pool and two spike runs.</span></div>
+            <div style="display:flex;gap:10px"><span style="width:6px;height:6px;margin-top:7px;flex:none;border-radius:50%;background:#a78bfa"></span><span>The chocolate pool is 5 tiles wide with nothing to land on. Worth a route over it.</span></div>
+          </div>
+
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <div style="font-size:12px;color:#7c8796">When Claude writes</div>
+            <div style="display:flex;gap:6px">
+              <sc-for list="{{modes}}" as="m" hint-placeholder-count="2">
+                <button onClick="{{m.pick}}" aria-pressed="{{m.on}}" style="flex:1;min-height:52px;padding:6px 10px;border-radius:8px;border:1px solid {{m.ring}};background:{{m.fill}};color:{{m.ink}};font-size:13px;font-weight:500;text-align:left">{{m.label}}<span style="display:block;font-size:11px;font-weight:400;color:#7c8796">{{m.hint}}</span></button>
+              </sc-for>
+            </div>
+          </div>
+          <sc-if value="{{hasProposal}}" hint-placeholder-val="{{true}}">
+            <div style="border:1px solid rgba(167,139,250,0.5);border-radius:12px;background:rgba(167,139,250,0.08);padding:16px;display:flex;flex-direction:column;gap:12px">
+              <div style="font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:14px;color:#fff">Proposal: stepping stones over the pool</div>
+              <div style="color:#b4bfce;line-height:1.5">Three one-way platforms at x 26, 28 and 30, with a treat above each. Shown on the level as dashed ghosts. Nothing is saved until you accept.</div>
+              <div style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#7c8796">6 cells · 3 platforms · 3 treats</div>
+              <div style="display:flex;gap:8px">
+                <button onClick="{{accept}}" style="min-height:44px;padding:0 16px;border-radius:999px;border:none;background:#ffaa40;color:#050507;font-weight:600">Accept</button>
+                <button onClick="{{reject}}" style="min-height:44px;padding:0 16px;border-radius:999px;border:1px solid rgba(255,255,255,0.22);background:transparent;color:#e0e0e0;font-weight:500">Not that</button>
+              </div>
+            </div>
+          </sc-if>
+          <sc-if value="{{noProposal}}" hint-placeholder-val="{{false}}">
+            <div style="border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:16px;color:#b4bfce;line-height:1.5">{{proposalNote}}<div style="margin-top:12px"><button onClick="{{again}}" style="min-height:44px;padding:0 16px;border-radius:999px;border:1px solid rgba(255,255,255,0.22);background:transparent;color:#e0e0e0;font-weight:500">Ask for another idea</button></div></div>
+          </sc-if>
+
+          <sc-if value="{{hasApplied}}" hint-placeholder-val="{{false}}">
+            <div style="border:1px solid rgba(255,170,64,0.4);border-radius:12px;background:rgba(255,170,64,0.06);padding:16px;display:flex;flex-direction:column;gap:12px">
+              <div style="font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:14px;color:#fff">Claude placed stepping stones over the pool</div>
+              <div style="color:#b4bfce;line-height:1.5">Three one-way platforms and three treats went straight into the level. They are one step in the shared undo history.</div>
+              <div><button onClick="{{undo}}" style="min-height:44px;padding:0 16px;border-radius:999px;border:1px solid rgba(255,255,255,0.22);background:transparent;color:#e0e0e0;font-weight:500">Undo</button></div>
+            </div>
+          </sc-if>
+          <div style="flex-grow:1"></div>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <label for="ask" style="font-size:12px;color:#7c8796">Ask Claude about this level</label>
+            <input id="ask" type="text" placeholder="Make the middle harder, but fair" style="min-height:44px;box-sizing:border-box;padding:0 12px;border-radius:8px;border:1px solid rgba(255,255,255,0.14);background:#050507;color:#e0e0e0;font-family:inherit;font-size:13px">
+            <div style="font-size:12px;color:#7c8796">Selecting an area on the level sends it along as context.</div>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{isScript}}" hint-placeholder-val="{{false}}">
+        <div style="flex-grow:1;min-height:0;display:flex;flex-direction:column;gap:10px;padding:16px;overflow:hidden">
+          <div style="color:#b4bfce;line-height:1.5">The level as builder script. Painting adds lines under <span style="font-family:'JetBrains Mono',monospace;color:#ffaa40">edits</span>; Claude writes the same lines.</div>
+          <pre style="margin:0;flex-grow:1;min-height:0;overflow:auto;box-sizing:border-box;padding:12px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:#050507;font-family:'JetBrains Mono',monospace;font-size:11.5px;line-height:1.6;color:#e0e0e0;white-space:pre">{{scriptText}}</pre>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{isLevel}}" hint-placeholder-val="{{false}}">
+        <div style="padding:16px;display:flex;flex-direction:column;gap:14px">
+          <div style="display:flex;flex-direction:column;gap:6px"><label for="nm" style="font-size:12px;color:#7c8796">Name</label><input id="nm" type="text" value="Crater Fields" style="min-height:44px;box-sizing:border-box;padding:0 12px;border-radius:8px;border:1px solid rgba(255,255,255,0.14);background:#050507;color:#e0e0e0;font-family:inherit;font-size:13px"></div>
+          <div style="display:flex;flex-direction:column;gap:6px"><label for="th" style="font-size:12px;color:#7c8796">Theme</label><input id="th" type="text" value="Crater" style="min-height:44px;box-sizing:border-box;padding:0 12px;border-radius:8px;border:1px solid rgba(255,255,255,0.14);background:#050507;color:#e0e0e0;font-family:inherit;font-size:13px"></div>
+          <div style="display:flex;flex-direction:column;gap:6px"><label for="ar" style="font-size:12px;color:#7c8796">Overworld area</label><input id="ar" type="text" value="Crater Fields" style="min-height:44px;box-sizing:border-box;padding:0 12px;border-radius:8px;border:1px solid rgba(255,255,255,0.14);background:#050507;color:#e0e0e0;font-family:inherit;font-size:13px"></div>
+          <div style="color:#7c8796;line-height:1.5">Saved as a level file beside the episode. Claude can read and change these fields over MCP.</div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{isChecks}}" hint-placeholder-val="{{false}}">
+        <div style="padding:16px;display:flex;flex-direction:column;gap:10px">
+          <sc-for list="{{checks}}" as="k" hint-placeholder-count="4">
+            <div style="display:flex;align-items:center;gap:12px;padding:12px;border-radius:8px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08)">
+              <span style="width:8px;height:8px;flex:none;border-radius:50%;background:{{k.dot}}"></span>
+              <span style="flex-grow:1">{{k.label}}</span>
+              <span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:{{k.tone}}">{{k.state}}</span>
+            </div>
+          </sc-for>
+          <div style="color:#7c8796;line-height:1.5">Structural checks run as you edit. A playtest-bot run, which proves the level can be finished, is a button and an MCP tool.</div>
+        </div>
+      </sc-if>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  defs() {
+    return {
+      F: { name: 'Fill', group: 'Terrain', bg: '#2b2540', glyph: '', ink: '#e0e0e0' },
+      B: { name: 'Block', group: 'Terrain', bg: '#6a58a8', glyph: '', ink: '#e0e0e0' },
+      P: { name: 'One-way', group: 'Terrain', bg: 'linear-gradient(#ffaa40 0 5px, transparent 5px)', glyph: '', ink: '#e0e0e0', sw: '#ffaa40' },
+      C: { name: 'Chocolate', group: 'Terrain', bg: '#7a4527', glyph: '~', ink: '#d9a27c' },
+      S: { name: 'Spikes', group: 'Terrain', bg: 'transparent', glyph: '^', ink: '#f43f5e', sw: '#3a1620' },
+      D: { name: 'Red door', group: 'Terrain', bg: '#b3263f', glyph: '', ink: '#fff' },
+      G: { name: 'Gate', group: 'Terrain', bg: 'rgba(34,211,238,0.35)', glyph: '|', ink: '#22d3ee' },
+      o: { name: 'Ben start', group: 'Markers', bg: 'transparent', glyph: '@', ink: '#fff', sw: '#3d3a52' },
+      X: { name: 'Exit', group: 'Markers', bg: 'rgba(46,198,106,0.3)', glyph: '>', ink: '#2ec66a' },
+      g: { name: 'Gloop', group: 'Enemies', bg: 'transparent', glyph: 'g', ink: '#f43f5e', sw: '#3a1620' },
+      h: { name: 'Hopper', group: 'Enemies', bg: 'transparent', glyph: 'h', ink: '#f43f5e', sw: '#3a1620' },
+      b: { name: 'Bat', group: 'Enemies', bg: 'transparent', glyph: 'b', ink: '#f43f5e', sw: '#3a1620' },
+      c: { name: 'Cheezie', group: 'Treats', bg: 'transparent', glyph: '•', ink: '#fbbf24', sw: '#3a2f10' },
+      s: { name: 'Soda', group: 'Treats', bg: 'transparent', glyph: 's', ink: '#22d3ee', sw: '#0f2f36' },
+      k: { name: 'Red key', group: 'Treats', bg: 'transparent', glyph: 'k', ink: '#ffaa40', sw: '#3a2410' }
+    };
+  }
+  initial() {
+    const W = 40, H = 16;
+    const g = [];
+    for (let y = 0; y < H; y++) { g.push([]); for (let x = 0; x < W; x++) g[y].push('.'); }
+    for (let x = 0; x < W; x++) for (let y = 12; y < H; y++) g[y][x] = 'F';
+    for (let x = 17; x <= 19; x++) for (let y = 12; y < H; y++) g[y][x] = '.';
+    for (let x = 17; x <= 19; x++) g[15][x] = 'S';
+    for (let x = 26; x <= 30; x++) { g[12][x] = 'C'; g[13][x] = 'C'; }
+    for (let x = 12; x <= 14; x++) { g[8][x] = 'P'; g[7][x] = 'c'; }
+    for (let y = 9; y <= 11; y++) { g[y][22] = 'B'; g[y][23] = 'B'; }
+    g[8][23] = 's';
+    g[11][33] = 'S'; g[11][34] = 'S';
+    g[11][2] = 'o'; g[11][37] = 'X';
+    g[11][9] = 'g'; g[11][14] = 'h'; g[6][31] = 'b';
+    for (let x = 5; x <= 7; x++) g[10][x] = 'c';
+    return {
+      grid: g, tool: 'paint', cur: 'B', tab: 'claude', hover: null, proposal: true, note: '', mode: 'propose', applied: false, prev: null,
+      ghosts: [
+        { x: 26, y: 9, t: 'P' }, { x: 28, y: 9, t: 'P' }, { x: 30, y: 9, t: 'P' },
+        { x: 26, y: 8, t: 'c' }, { x: 28, y: 8, t: 'c' }, { x: 30, y: 8, t: 'c' }
+      ]
+    };
+  }
+  cur() { return Object.assign({}, this.initial(), this.state || {}); }
+  apply(x, y, e) {
+    const s = this.cur();
+    if (e && e.type === 'mouseenter' && e.buttons !== 1) { this.setState({ hover: x + ',' + y }); return; }
+    const grid = s.grid.map((r) => r.slice());
+    if (s.tool === 'pick') {
+      const v = grid[y][x];
+      if (v !== '.') this.setState({ cur: v, tool: 'paint', hover: x + ',' + y });
+      return;
+    }
+    grid[y][x] = s.tool === 'erase' ? '.' : s.cur;
+    this.setState({ grid: grid, hover: x + ',' + y });
+  }
+  renderVals() {
+    const s = this.cur();
+    const defs = this.defs();
+    const W = s.grid[0].length, H = s.grid.length;
+    const ghostAt = {};
+    if (s.proposal) s.ghosts.forEach((q) => { ghostAt[q.x + ',' + q.y] = q.t; });
+    const cells = [];
+    const counts = { tiles: 0, enemies: 0, items: 0 };
+    let hasStart = false, hasExit = false;
+    for (let y = 0; y < H; y++) {
+      for (let x = 0; x < W; x++) {
+        const v = s.grid[y][x];
+        const gh = ghostAt[x + ',' + y];
+        const code = gh || v;
+        const d = defs[code];
+        if (v !== '.') {
+          if ('FBPCSDG'.indexOf(v) >= 0) counts.tiles++;
+          if ('ghb'.indexOf(v) >= 0) counts.enemies++;
+          if ('csk'.indexOf(v) >= 0) counts.items++;
+          if (v === 'o') hasStart = true;
+          if (v === 'X') hasExit = true;
+        }
+        cells.push({
+          bg: d ? d.bg : 'transparent',
+          glyph: d ? d.glyph : '',
+          ink: d ? d.ink : '#fff',
+          outline: gh ? '1px dashed #a78bfa' : 'none',
+          opacity: gh ? 0.8 : 1,
+          down: () => this.apply(x, y, null),
+          enter: (e) => this.apply(x, y, e)
+        });
+      }
+    }
+    const order = ['Terrain', 'Markers', 'Enemies', 'Treats'];
+    const groups = order.map((name) => ({
+      name: name,
+      items: Object.keys(defs).filter((k) => defs[k].group === name).map((k) => {
+        const d = defs[k];
+        const on = s.cur === k && s.tool === 'paint';
+        return {
+          name: d.name,
+          glyph: d.glyph,
+          glyphInk: d.ink,
+          swatch: d.sw || (d.bg === 'transparent' ? '#1b1a28' : d.bg),
+          on: on,
+          ring: on ? '#ffaa40' : 'rgba(255,255,255,0.08)',
+          fill: on ? 'rgba(255,170,64,0.1)' : 'rgba(255,255,255,0.02)',
+          pick: () => this.setState({ cur: k, tool: 'paint' })
+        };
+      })
+    }));
+    const toolDefs = [{ id: 'paint', label: 'Paint', key: 'B' }, { id: 'erase', label: 'Erase', key: 'E' }, { id: 'pick', label: 'Pick', key: 'I' }];
+    const tools = toolDefs.map((t) => ({
+      label: t.label, key: t.key, on: s.tool === t.id,
+      ring: s.tool === t.id ? '#ffaa40' : 'rgba(255,255,255,0.14)',
+      fill: s.tool === t.id ? 'rgba(255,170,64,0.1)' : 'transparent',
+      ink: s.tool === t.id ? '#ffaa40' : '#e0e0e0',
+      pick: () => this.setState({ tool: t.id })
+    }));
+    const tabDefs = [{ id: 'claude', label: 'Claude' }, { id: 'script', label: 'Script' }, { id: 'level', label: 'Level' }, { id: 'checks', label: 'Checks' }];
+    const tabs = tabDefs.map((t) => ({
+      label: t.label, on: s.tab === t.id,
+      ring: s.tab === t.id ? '#ffaa40' : 'transparent',
+      ink: s.tab === t.id ? '#fff' : '#7c8796',
+      pick: () => this.setState({ tab: t.id })
+    }));
+    const checks = [
+      { label: 'Has a start for Ben', ok: hasStart },
+      { label: 'Has an exit', ok: hasExit },
+      { label: 'Treats placed (' + counts.items + ')', ok: counts.items > 0 },
+      { label: 'Playtest bot can finish it', ok: null }
+    ].map((c) => ({
+      label: c.label,
+      dot: c.ok === null ? '#7c8796' : (c.ok ? '#2ec66a' : '#fbbf24'),
+      state: c.ok === null ? 'not run' : (c.ok ? 'ok' : 'missing'),
+      tone: c.ok === null ? '#7c8796' : (c.ok ? '#2ec66a' : '#fbbf24')
+    }));
+    const names = { F: 'fill', B: 'block', P: 'one-way', C: 'chocolate', S: 'spikes', D: 'red-door', G: 'gate', o: 'start', X: 'exit', g: 'gloop', h: 'hopper', b: 'bat', c: 'cheezie', s: 'soda', k: 'red-key', '.': 'clear' };
+    const base = this.initial().grid;
+    const lines = [];
+    for (let y = 0; y < H; y++) {
+      let x = 0;
+      while (x < W) {
+        if (s.grid[y][x] === base[y][x]) { x++; continue; }
+        const v = s.grid[y][x];
+        let e = x;
+        while (e + 1 < W && s.grid[y][e + 1] === v && base[y][e + 1] !== v) e++;
+        lines.push((v === '.' ? 'clear' : 'paint ' + names[v]).padEnd(16) + (e > x ? 'x=' + x + '..' + e : 'x=' + x) + ' y=' + y);
+        x = e + 1;
+      }
+    }
+    const scriptText = [
+      'level "Crater Fields" 40x16 ground=12',
+      'theme crater   area crater-fields',
+      'start 2,11     exit 37,11',
+      '',
+      'terrain',
+      '  flat 17, gap 3, flat 20',
+      '  pool 5 at 26',
+      '',
+      'treats',
+      '  cheezie x=5..7 y=10',
+      '  cheezie x=12..14 y=7',
+      '  soda    x=23 y=8',
+      '',
+      'enemies',
+      '  gloop 9   hopper 14   bat 31,6',
+      '',
+      'edits' + (lines.length ? '' : '   // none yet')
+    ].concat(lines.slice(0, 40).map((l) => '  ' + l)).join('\n');
+    const hv = s.hover ? s.hover.split(',') : null;
+    return {
+      cells: cells, counts: counts, groups: groups, tools: tools, tabs: tabs, checks: checks,
+      cols: W, rows: H, boardW: W * 20 + 2, boardH: H * 20 + 2,
+      hoverLabel: hv ? 'x ' + hv[0] + ', y ' + hv[1] : 'x –, y –',
+      currentName: s.tool === 'erase' ? 'Eraser' : (s.tool === 'pick' ? 'Picker' : defs[s.cur].name),
+      isScript: s.tab === 'script', scriptText: scriptText, isClaude: s.tab === 'claude', isLevel: s.tab === 'level', isChecks: s.tab === 'checks',
+      hasProposal: s.proposal, noProposal: !s.proposal && !s.applied, hasApplied: s.applied,
+      modes: [
+        { id: 'propose', label: 'Propose', hint: 'Ghosts you accept' },
+        { id: 'direct', label: 'Edit directly', hint: 'Placed, with undo' }
+      ].map((m) => ({
+        label: m.label, hint: m.hint, on: s.mode === m.id,
+        ring: s.mode === m.id ? '#a78bfa' : 'rgba(255,255,255,0.14)',
+        fill: s.mode === m.id ? 'rgba(167,139,250,0.12)' : 'transparent',
+        ink: s.mode === m.id ? '#fff' : '#b4bfce',
+        pick: () => {
+          if (m.id === 'direct' && s.proposal) {
+            const grid = s.grid.map((r) => r.slice());
+            s.ghosts.forEach((q) => { grid[q.y][q.x] = q.t; });
+            this.setState({ mode: 'direct', grid: grid, prev: s.grid, proposal: false, applied: true, note: '' });
+          } else {
+            this.setState({ mode: m.id });
+          }
+        }
+      })),
+      undo: () => this.setState({ grid: s.prev || s.grid, applied: false, proposal: false, note: 'Undone. Claude is told the edit was reverted.' }),
+      proposalNote: s.note || 'No open proposals.',
+      accept: () => {
+        const grid = s.grid.map((r) => r.slice());
+        s.ghosts.forEach((q) => { grid[q.y][q.x] = q.t; });
+        this.setState({ grid: grid, proposal: false, applied: false, note: 'Accepted. The six cells are in the level and can be undone like any edit.' });
+      },
+      reject: () => this.setState({ proposal: false, note: 'Dismissed. Claude keeps the reason you gave, if any, for its next idea.' }),
+      again: () => {
+        if (s.mode === 'direct') {
+          const grid = s.grid.map((r) => r.slice());
+          s.ghosts.forEach((q) => { grid[q.y][q.x] = q.t; });
+          this.setState({ grid: grid, prev: s.grid, proposal: false, applied: true, note: '' });
+        } else {
+          this.setState({ proposal: true, applied: false, note: '' });
+        }
+      }
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Popped-out script and navigator</title>
+<script src="./support.js"></script>
+<script src="./level-data.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@500;600;700&display=swap">
+<style>body{margin:0;background:#050507}button{font-family:inherit;cursor:pointer}button:focus-visible,input:focus-visible{outline:2px solid #ffaa40;outline-offset:1px}</style>
+</helmet>
+<div style="width:1440px;height:900px;box-sizing:border-box;display:flex;flex-direction:column;background:#050507;color:#e0e0e0;font-family:Inter,system-ui,sans-serif;font-size:13px;overflow:hidden">
+
+  <div style="height:40px;flex:none;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;padding:0 12px 0 16px;background:#0c0c10;border-bottom:1px solid rgba(255,255,255,0.08)">
+    <span style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:14px;background:linear-gradient(135deg,#ffaa40,#f43f5e,#a78bfa);-webkit-background-clip:text;background-clip:text;color:transparent">fizz level studio</span>
+    <span style="font-weight:500;color:#fff">Crater Fields — draft</span>
+    <div style="display:flex;justify-content:flex-end;gap:2px">
+      <button aria-label="Minimise" style="width:36px;height:28px;border:none;border-radius:6px;background:transparent;color:#b4bfce"><svg aria-hidden="true" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 8h10"/></svg></button>
+      <button aria-label="Maximise" style="width:36px;height:28px;border:none;border-radius:6px;background:transparent;color:#b4bfce"><svg aria-hidden="true" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="10" height="10" rx="1.5"/></svg></button>
+      <button aria-label="Close" style="width:36px;height:28px;border:none;border-radius:6px;background:transparent;color:#b4bfce"><svg aria-hidden="true" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 4l8 8M12 4l-8 8"/></svg></button>
+    </div>
+  </div>
+
+  <!-- the level is the workspace, zoomed to the part the navigator frames -->
+  <div style="position:relative;flex-grow:1;min-height:0;background-color:#0f0e1a;overflow:hidden">
+    <div style="position:absolute;left:0;top:80px;display:grid;grid-template-columns:repeat({{view.cols}},48px);grid-auto-rows:48px">
+      <sc-for list="{{view.cells}}" as="c" hint-placeholder-count="20">
+        <div style="width:48px;height:48px;box-sizing:border-box;background:{{c.bg}};outline:{{c.outline}};outline-offset:-1px;opacity:{{c.opacity}};display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:24px;font-weight:500;line-height:1;color:{{c.ink}}">{{c.glyph}}</div>
+      </sc-for>
+    </div>
+
+    <!-- snap lines, shown while a window is dragged -->
+    <sc-for list="{{vlines}}" as="v" hint-placeholder-count="5">
+      <div style="position:absolute;left:{{v.at}}px;top:0;bottom:0;width:0;border-left:1px dashed rgba(34,211,238,{{v.alpha}})"></div>
+    </sc-for>
+    <sc-for list="{{hlines}}" as="h" hint-placeholder-count="3">
+      <div style="position:absolute;top:{{h.at}}px;left:0;right:0;height:0;border-top:1px dashed rgba(34,211,238,{{h.alpha}})"></div>
+    </sc-for>
+
+    <!-- the two lines the dragged inspector is locking to -->
+    <div style="position:absolute;left:1432px;top:0;bottom:0;width:0;border-left:2px solid #ffaa40"></div>
+    <div style="position:absolute;left:0;right:0;top:276px;height:0;border-top:2px solid #ffaa40"></div>
+
+    <!-- tools -->
+    <div style="position:absolute;left:8px;top:8px;width:60px;box-sizing:border-box;padding:8px;border-radius:12px;border:1px solid rgba(255,255,255,0.1);background:rgba(20,20,25,0.72);backdrop-filter:blur(10px);box-shadow:0 10px 30px rgba(0,0,0,0.3);display:flex;flex-direction:column;align-items:center;gap:4px">
+      <sc-for list="{{tools}}" as="t" hint-placeholder-count="6">
+        <button aria-label="{{t.label}}" title="{{t.label}}" style="width:44px;height:44px;border-radius:8px;border:1px solid {{t.ring}};background:{{t.fill}};color:{{t.ink}};font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:500">{{t.key}}</button>
+      </sc-for>
+    </div>
+
+    <!-- outliner -->
+    <div style="position:absolute;left:76px;top:8px;width:236px;height:256px;border-radius:12px;border:1px solid rgba(255,255,255,0.1);background:rgba(20,20,25,0.72);backdrop-filter:blur(10px);box-shadow:0 10px 30px rgba(0,0,0,0.3);overflow:hidden">
+      <div style="height:44px;display:flex;align-items:center;gap:8px;padding:0 12px;border-bottom:1px solid rgba(255,255,255,0.08);cursor:grab"><svg aria-hidden="true" width="12" height="12" viewBox="0 0 12 12" fill="#7c8796"><circle cx="3" cy="3" r="1.2"/><circle cx="9" cy="3" r="1.2"/><circle cx="3" cy="6" r="1.2"/><circle cx="9" cy="6" r="1.2"/><circle cx="3" cy="9" r="1.2"/><circle cx="9" cy="9" r="1.2"/></svg><span style="font-weight:500;color:#fff">Outliner</span></div>
+      <div style="padding:6px 8px;display:flex;flex-direction:column;gap:1px">
+        <sc-for list="{{outline}}" as="o" hint-placeholder-count="8">
+          <div style="padding:4px 8px 4px {{o.pad}}px;border-radius:4px;background:{{o.fill}};color:{{o.ink}};display:flex;justify-content:space-between;font-size:12.5px"><span>{{o.name}}</span><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#b4bfce">{{o.meta}}</span></div>
+        </sc-for>
+      </div>
+    </div>
+
+    <!-- palette -->
+    <div style="position:absolute;left:320px;top:8px;display:flex;align-items:center;gap:4px;padding:4px;border-radius:999px;border:1px solid rgba(255,255,255,0.1);background:rgba(20,20,25,0.72);backdrop-filter:blur(10px);box-shadow:0 10px 30px rgba(0,0,0,0.3)">
+      <sc-for list="{{palette}}" as="p" hint-placeholder-count="8"><button aria-label="{{p.name}}" title="{{p.name}}" style="width:44px;height:44px;border-radius:50%;border:1px solid {{p.ring}};background:{{p.fill}};display:flex;align-items:center;justify-content:center"><span style="width:20px;height:20px;border-radius:4px;background:{{p.sw}}"></span></button></sc-for>
+    </div>
+
+    <!-- snap map: the lines a dragged window can lock to -->
+    <div style="position:absolute;left:720px;top:8px;width:240px;height:220px;box-sizing:border-box;border-radius:12px;border:1px solid rgba(34,211,238,0.5);background:rgba(20,20,25,0.88);backdrop-filter:blur(10px);box-shadow:0 10px 30px rgba(0,0,0,0.4);overflow:hidden">
+      <div style="height:40px;display:flex;align-items:center;gap:8px;padding:0 12px;border-bottom:1px solid rgba(255,255,255,0.08)"><span style="width:8px;height:8px;border-radius:2px;border:1.5px solid #22d3ee"></span><span style="font-weight:500;color:#fff">Snap map</span><span style="flex-grow:1"></span><span style="font-size:12px;color:#b4bfce">while dragging</span></div>
+      <div style="position:relative;width:216px;height:129px;margin:10px auto 6px;border-radius:4px;border:1px solid rgba(255,255,255,0.14);background:#0f0e1a;overflow:hidden">
+        <sc-for list="{{map.v}}" as="v" hint-placeholder-count="5"><div style="position:absolute;left:{{v.at}}px;top:0;bottom:0;width:0;border-left:1px dashed {{v.ink}}"></div></sc-for>
+        <sc-for list="{{map.h}}" as="h" hint-placeholder-count="3"><div style="position:absolute;top:{{h.at}}px;left:0;right:0;height:0;border-top:1px dashed {{h.ink}}"></div></sc-for>
+        <sc-for list="{{map.rects}}" as="r" hint-placeholder-count="8"><div style="position:absolute;left:{{r.x}}px;top:{{r.y}}px;width:{{r.w}}px;height:{{r.h}}px;box-sizing:border-box;border-radius:2px;border:1px solid {{r.edge}};background:{{r.fill}}"></div></sc-for>
+      </div>
+      <div style="padding:0 12px;font-size:11.5px;color:#b4bfce;line-height:1.4">Inspector locks right and under Claude</div>
+    </div>
+
+    <!-- Claude -->
+    <div style="position:absolute;left:1132px;top:8px;width:300px;height:260px;border-radius:12px;border:1px solid rgba(167,139,250,0.4);background:rgba(20,20,25,0.72);backdrop-filter:blur(10px);box-shadow:0 10px 30px rgba(0,0,0,0.3);overflow:hidden">
+      <div style="height:44px;display:flex;align-items:center;gap:8px;padding:0 12px;border-bottom:1px solid rgba(255,255,255,0.08);cursor:grab"><span style="width:8px;height:8px;border-radius:50%;background:#a78bfa"></span><span style="font-weight:500;color:#fff">Claude</span></div>
+      <div style="padding:12px;display:flex;flex-direction:column;gap:10px">
+        <div style="color:#b4bfce;line-height:1.5">Three stepping stones over the pool, each with a cheezie, wait as ghosts. Lines 22–23 in the script window.</div>
+        <div style="display:flex;gap:8px"><button style="min-height:44px;padding:0 16px;border-radius:999px;border:none;background:#ffaa40;color:#050507;font-weight:600">Accept</button><button style="min-height:44px;padding:0 16px;border-radius:999px;border:1px solid rgba(255,255,255,0.22);background:transparent;color:#e0e0e0;font-weight:500">Not that</button></div>
+        <div style="display:flex;padding:2px;border-radius:999px;border:1px solid rgba(255,255,255,0.14)">
+          <button style="flex:1;min-height:44px;border:none;border-radius:999px;background:rgba(167,139,250,0.18);color:#fff;font-weight:500">Propose</button>
+          <button style="flex:1;min-height:44px;border:none;border-radius:999px;background:transparent;color:#b4bfce">Edit directly</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- inspector, mid-drag, and the spot it will lock into -->
+    <div style="position:absolute;left:1132px;top:276px;width:300px;height:170px;box-sizing:border-box;border-radius:12px;border:1.5px dashed #ffaa40;background:rgba(255,170,64,0.08)"></div>
+    <div style="position:absolute;left:1124px;top:283px;width:300px;height:170px;border-radius:12px;border:1px solid #ffaa40;background:rgba(20,20,25,0.88);backdrop-filter:blur(10px);box-shadow:0 24px 60px rgba(0,0,0,0.6);overflow:hidden">
+      <div style="height:44px;display:flex;align-items:center;gap:8px;padding:0 12px;border-bottom:1px solid rgba(255,255,255,0.08);cursor:grabbing"><svg aria-hidden="true" width="12" height="12" viewBox="0 0 12 12" fill="#ffaa40"><circle cx="3" cy="3" r="1.2"/><circle cx="9" cy="3" r="1.2"/><circle cx="3" cy="6" r="1.2"/><circle cx="9" cy="6" r="1.2"/><circle cx="3" cy="9" r="1.2"/><circle cx="9" cy="9" r="1.2"/></svg><span style="font-weight:500;color:#fff">Inspector</span></div>
+      <div style="padding:12px;display:flex;flex-direction:column;gap:10px">
+        <div style="display:flex;align-items:center;gap:10px"><span style="width:28px;height:28px;border-radius:4px;background:#3a1620;color:#f43f5e;display:inline-flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-weight:500">g</span><span style="font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:16px;color:#fff">Gloop</span></div>
+        <div style="display:grid;grid-template-columns:auto 1fr;gap:6px 16px;color:#b4bfce"><span style="color:#7c8796">Position</span><span style="font-family:'JetBrains Mono',monospace">x 9, y 11</span><span style="color:#7c8796">Script</span><span style="font-family:'JetBrains Mono',monospace;color:#ffaa40">line 15</span></div>
+      </div>
+    </div>
+    <span style="position:absolute;left:830px;top:250px;height:22px;padding:0 8px;border-radius:999px;background:#ffaa40;color:#050507;font-size:11.5px;font-weight:600;display:flex;align-items:center">Under Claude</span>
+    <span style="position:absolute;left:1352px;top:458px;height:22px;padding:0 8px;border-radius:999px;background:#ffaa40;color:#050507;font-size:11.5px;font-weight:600;display:flex;align-items:center">Right edge</span>
+
+    <!-- navigator: the whole level, and the frame you are looking through -->
+    <div style="position:absolute;left:8px;top:512px;width:504px;height:340px;border-radius:12px;border:1px solid rgba(255,255,255,0.1);background:rgba(20,20,25,0.72);backdrop-filter:blur(10px);box-shadow:0 10px 30px rgba(0,0,0,0.3);overflow:hidden">
+      <div style="height:44px;display:flex;align-items:center;gap:8px;padding-left:12px;border-bottom:1px solid rgba(255,255,255,0.08);cursor:grab">
+        <svg aria-hidden="true" width="12" height="12" viewBox="0 0 12 12" fill="#7c8796"><circle cx="3" cy="3" r="1.2"/><circle cx="9" cy="3" r="1.2"/><circle cx="3" cy="6" r="1.2"/><circle cx="9" cy="6" r="1.2"/><circle cx="3" cy="9" r="1.2"/><circle cx="9" cy="9" r="1.2"/></svg>
+        <span style="font-weight:500;color:#fff">Navigator</span><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#b4bfce">40 × 16</span>
+        <span style="flex-grow:1"></span>
+        <button aria-label="Zoom out" style="width:44px;height:44px;border:none;background:transparent;color:#b4bfce;display:inline-flex;align-items:center;justify-content:center"><svg aria-hidden="true" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 8h10"/></svg></button>
+        <span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#e0e0e0">133%</span>
+        <button aria-label="Zoom in" style="width:44px;height:44px;border:none;background:transparent;color:#b4bfce;display:inline-flex;align-items:center;justify-content:center"><svg aria-hidden="true" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 8h10M8 3v10"/></svg></button>
+      </div>
+      <div style="padding:12px;display:flex;flex-direction:column;gap:10px">
+        <div style="position:relative;width:480px;display:grid;grid-template-columns:repeat({{nav.cols}},12px);grid-auto-rows:12px;border-radius:4px;background:#0f0e1a;overflow:hidden">
+          <sc-for list="{{nav.cells}}" as="c" hint-placeholder-count="20">
+            <div style="width:12px;height:12px;box-sizing:border-box;background:{{c.bg}};outline:{{c.outline}};outline-offset:-1px;display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:9px;line-height:1;color:{{c.ink}}">{{c.glyph}}</div>
+          </sc-for>
+          <div style="position:absolute;left:120px;top:36px;width:360px;height:156px;box-sizing:border-box;border:2px solid #ffaa40;border-radius:2px;background:rgba(255,170,64,0.06);cursor:move"></div>
+          <div style="position:absolute;left:310px;top:94px;width:64px;height:28px;box-sizing:border-box;border:1.5px dashed #a78bfa;border-radius:3px"></div>
+          <div style="position:absolute;left:106px;top:130px;width:16px;height:16px;box-sizing:border-box;border:1.5px solid #fff;border-radius:3px"></div>
+        </div>
+        <div style="display:flex;gap:6px">
+          <sc-for list="{{marks}}" as="m" hint-placeholder-count="5"><button style="min-height:44px;padding:0 12px;border-radius:999px;border:1px solid {{m.edge}};background:transparent;color:{{m.ink}};font-size:12.5px">{{m.name}}</button></sc-for>
+        </div>
+        <div style="font-size:12px;color:#b4bfce">Drag the orange frame to move the view. The white square is your selection.</div>
+      </div>
+    </div>
+
+    <!-- where the script window used to sit -->
+    <div style="position:absolute;left:520px;top:752px;width:228px;height:100px;box-sizing:border-box;padding:10px 12px;border-radius:12px;border:1.5px dashed rgba(255,255,255,0.22);background:rgba(20,20,25,0.72);backdrop-filter:blur(10px);display:flex;flex-direction:column;justify-content:space-between">
+      <span style="font-size:12px;color:#b4bfce">Script is in its own window</span>
+      <button style="min-height:44px;border-radius:999px;border:1px solid rgba(255,255,255,0.22);background:transparent;color:#e0e0e0;font-weight:500">Bring it back</button>
+    </div>
+
+    <!-- the popped-out script: its own OS window, on the second display -->
+    <div style="position:absolute;left:760px;top:484px;width:664px;height:356px;border-radius:12px;border:1px solid rgba(255,255,255,0.22);background:#0c0c10;box-shadow:0 30px 90px rgba(0,0,0,0.8),0 0 0 1px rgba(0,0,0,0.6);display:flex;flex-direction:column;overflow:hidden">
+      <div style="height:36px;flex:none;display:flex;align-items:center;gap:10px;padding:0 6px 0 12px;background:#121218;border-bottom:1px solid rgba(255,255,255,0.08)">
+        <span style="width:12px;height:12px;border-radius:3px;background:linear-gradient(135deg,#ffaa40,#f43f5e,#a78bfa)"></span>
+        <span style="font-weight:500;color:#fff;font-size:12.5px">crater.fizz — Fizz Level Studio</span>
+        <span style="padding:1px 8px;border-radius:999px;border:1px solid rgba(34,211,238,0.5);color:#e0e0e0;font-size:11px">Display 2</span>
+        <span style="flex-grow:1"></span>
+        <button aria-label="Minimise script window" style="width:36px;height:28px;border:none;border-radius:6px;background:transparent;color:#b4bfce"><svg aria-hidden="true" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 8h10"/></svg></button>
+        <button aria-label="Maximise script window" style="width:36px;height:28px;border:none;border-radius:6px;background:transparent;color:#b4bfce"><svg aria-hidden="true" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="10" height="10" rx="1.5"/></svg></button>
+        <button aria-label="Close script window" style="width:36px;height:28px;border:none;border-radius:6px;background:transparent;color:#b4bfce"><svg aria-hidden="true" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 4l8 8M12 4l-8 8"/></svg></button>
+      </div>
+      <div style="height:52px;flex:none;display:flex;align-items:center;gap:8px;padding:0 12px;border-bottom:1px solid rgba(255,255,255,0.08)">
+        <button style="min-height:44px;padding:0 14px;border-radius:999px;border:1px solid rgba(255,255,255,0.22);background:transparent;color:#e0e0e0;font-weight:500;display:flex;align-items:center;gap:8px"><svg aria-hidden="true" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="12" height="10" rx="1.5"/><path d="M2 10h12"/></svg>Dock back into the studio</button>
+        <button style="min-height:44px;padding:0 14px;border-radius:999px;border:1px solid rgba(255,255,255,0.14);background:transparent;color:#b4bfce">Follow selection</button>
+        <span style="flex-grow:1"></span>
+        <span style="font-size:12px;color:#b4bfce">Builder language</span>
+      </div>
+      <div style="flex-grow:1;min-height:0;padding:6px 0;font-family:'JetBrains Mono',monospace;font-size:12px;line-height:1.5;overflow:hidden;columns:2;column-gap:0;column-fill:auto">
+        <sc-for list="{{lines}}" as="l" hint-placeholder-count="23">
+          <div style="display:flex;background:{{l.bg}};break-inside:avoid"><span style="width:36px;flex:none;text-align:right;padding-right:10px;color:#7c8796;box-sizing:border-box">{{l.n}}</span><span style="width:14px;flex:none;color:#a78bfa">{{l.mark}}</span><span style="white-space:pre;color:{{l.ink}}">{{l.text}}</span></div>
+        </sc-for>
+      </div>
+      <div style="height:28px;flex:none;display:flex;align-items:center;gap:16px;padding:0 12px;background:#121218;border-top:1px solid rgba(255,255,255,0.08);font-size:11.5px;color:#b4bfce">
+        <span style="color:#a78bfa">2 lines from Claude, pending</span><span>Start ok · Exit ok · Playtest bot not run</span><span style="flex-grow:1"></span><span style="font-family:'JetBrains Mono',monospace">Ln 22</span>
+      </div>
+      <div style="position:absolute;right:4px;bottom:4px;width:10px;height:10px;border-right:2px solid #7c8796;border-bottom:2px solid #7c8796;border-radius:0 0 5px 0;cursor:nwse-resize"></div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const view = window.FizzLevel.cells({ ghosts: true, x0: 10, x1: 39, y0: 3, y1: 15 });
+    const nav = window.FizzLevel.cells({ ghosts: true });
+    const lines = window.FizzLevel.script().map((r, i) => ({
+      n: i + 1, mark: r[1], text: r[0], bg: r[1] ? 'rgba(167,139,250,0.14)' : 'transparent',
+      ink: (/^[a-z]+$/.test(r[0]) && r[0] !== '') ? '#ffaa40' : (r[1] ? '#fff' : '#e0e0e0')
+    }));
+    const tools = [['Paint', 'B'], ['Erase', 'E'], ['Pick', 'I'], ['Select', 'S'], ['Stamp', 'T'], ['Pan', 'H']].map((t, i) => ({ label: t[0], key: t[1], ring: i === 3 ? '#ffaa40' : 'rgba(255,255,255,0.08)', fill: i === 3 ? 'rgba(255,170,64,0.1)' : 'transparent', ink: i === 3 ? '#ffaa40' : '#b4bfce' }));
+    const o = [['Crater Fields', '', 0], ['Terrain', '3', 14], ['Blocks', '1', 14], ['Treats', '7', 14], ['Enemies', '3', 14], ['Gloop', 'x 9', 30], ['Hopper', 'x 14', 30], ['Bat', 'x 31', 30]];
+    const outline = o.map((r) => ({ name: r[0], meta: r[1], pad: r[2] + 8, fill: r[0] === 'Gloop' ? 'rgba(255,170,64,0.1)' : 'transparent', ink: r[0] === 'Gloop' ? '#ffaa40' : (r[2] === 0 ? '#fff' : '#b4bfce') }));
+    const pal = [['Fill', '#2b2540'], ['Block', '#6a58a8'], ['One-way', '#ffaa40'], ['Chocolate', '#7a4527'], ['Spikes', '#f43f5e'], ['Gloop', '#f43f5e'], ['Cheezie', '#fbbf24'], ['Soda', '#22d3ee']];
+    const palette = pal.map((p, i) => ({ name: p[0], sw: p[1], ring: i === 1 ? '#ffaa40' : 'transparent', fill: i === 1 ? 'rgba(255,170,64,0.1)' : 'transparent' }));
+    // snap lines in workspace pixels; the locked pair is drawn separately in orange
+    const vx = [[8, 0.45], [76, 0.45], [312, 0.45], [720, 0.25], [1132, 0.45]];
+    const hy = [[8, 0.45], [504, 0.45], [852, 0.45]];
+    const vlines = vx.map((v) => ({ at: v[0], alpha: v[1] }));
+    const hlines = hy.map((h) => ({ at: h[0], alpha: h[1] }));
+    const k = 0.15, sc = (n) => Math.round(n * k * 10) / 10;
+    const win = [[8, 8, 60, 300], [76, 8, 236, 256], [320, 8, 392, 52], [720, 8, 240, 220], [1132, 8, 300, 260], [8, 512, 504, 340], [520, 752, 228, 100]];
+    const rects = win.map((w) => ({ x: sc(w[0]), y: sc(w[1]), w: sc(w[2]), h: sc(w[3]), edge: 'rgba(255,255,255,0.35)', fill: 'rgba(255,255,255,0.08)' }));
+    rects.push({ x: sc(1132), y: sc(276), w: sc(300), h: sc(170), edge: '#ffaa40', fill: 'rgba(255,170,64,0.3)' });
+    const map = {
+      v: vx.map((v) => ({ at: sc(v[0]), ink: 'rgba(34,211,238,0.6)' })).concat([{ at: sc(1432) - 1, ink: '#ffaa40' }]),
+      h: hy.map((h) => ({ at: sc(h[0]), ink: 'rgba(34,211,238,0.6)' })).concat([{ at: sc(276), ink: '#ffaa40' }]),
+      rects: rects
+    };
+    const marks = [['Start', 'rgba(255,255,255,0.22)', '#e0e0e0'], ['Gloop', 'rgba(255,255,255,0.22)', '#e0e0e0'], ['Pool', 'rgba(255,255,255,0.22)', '#e0e0e0'], ["Claude's ghosts", '#a78bfa', '#e0e0e0'], ['Exit', 'rgba(255,255,255,0.22)', '#e0e0e0']].map((m) => ({ name: m[0], edge: m[1], ink: m[2] }));
+    return { view: view, nav: nav, lines: lines, tools: tools, outline: outline, palette: palette, vlines: vlines, hlines: hlines, map: map, marks: marks };
+  }
+}
+</script>
+</body>
+</html>

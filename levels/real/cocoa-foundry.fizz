@@ -1,0 +1,112 @@
+// Cocoa Foundry: rebuilt from the game's own data by tools/decompile-level.ts.
+level "Cocoa Foundry" 214x30 ground=4 id=cocoa-foundry
+theme foundry
+area frosting-frontier
+start 3,4
+
+blocks
+  block x=0 y=0..29
+  fill x=1..212 y=0
+  block x=213 y=0..29
+  fill x=1..42 y=1..2
+  furnace x=43..45 y=1..2
+  fill x=46..79 y=1..3
+  furnace x=80..86 y=1..4
+  fill x=87..132 y=1..3
+  furnace x=133..135 y=1..2
+  fill x=136..167 y=1..2
+  furnace x=168..173 y=1..2
+  fill x=174..212 y=1..3
+  fill x=1..11 y=3
+  conveyor-r x=12..21 y=3
+  fill x=22..26 y=3
+  conveyor-l x=27..36 y=3
+  fill x=37..42 y=3
+  fill x=136..145 y=3
+  conveyor-r x=146..159 y=3
+  fill x=160..167 y=3
+  one-way x=170..171 y=3
+  crystal-tile x=172 y=3
+  crystal-tile x=6 y=4
+  crystal-tile x=30 y=4
+  crystal-tile x=52 y=4
+  slope-r45 x=54 y=4
+  fill x=55..79 y=4
+  fill x=87..123 y=4
+  slope-l45 x=124 y=4
+  crystal-tile x=130 y=4
+  crystal-tile x=150 y=4
+  blue-door x=180 y=4..5
+  crystal-tile x=190 y=4
+  crystal-tile x=204 y=4
+  exit x=208 y=4..5
+  slope-r45 x=55 y=5
+  fill x=56..61 y=5
+  conveyor-r x=62..75 y=5
+  fill x=76..79 y=5
+  fill x=87..94 y=5
+  conveyor-l x=95..104 y=5
+  fill x=105..122 y=5
+  slope-l45 x=123 y=5
+  crystal-tile x=70 y=6
+  crystal-tile x=90 y=6
+  crystal-tile x=108 y=6
+  spike x=112..114 y=6
+  block x=180 y=6..29
+  one-way x=88..90 y=8
+  one-way x=92..94 y=11
+  hover from=80,5.5 to=85,5.5 speed=0.28
+
+treats
+  key-blue x=93 y=12
+  row cheezie x=4..9 y=6
+  row cheezie x=12..21 y=6
+  row choc x=28..35 y=6
+  row cheezie x=38..42 y=6
+  row choc x=43..45 y=7
+  soda x=49 y=6
+  row cheezie x=62..75 y=8
+  row choc x=80..86 y=9
+  cookie x=90 y=9
+  cookie x=94 y=12
+  row cheezie x=96..105 y=8
+  row cheezie x=105..110 y=8
+  soda x=118 y=8
+  row cheezie x=125..130 y=6
+  row choc x=133..135 y=7
+  row cheezie x=146..159 y=6
+  row choc x=168..173 y=6
+  soda x=175 y=6
+  row cheezie x=182..196 y=6 by=2
+  row cookie x=198..204 y=6 by=3
+
+enemies
+  press x=24 y=7
+  press x=40 y=7
+  press x=50 y=7
+  press x=58 y=9
+  press x=68 y=9
+  press x=78 y=9
+  press x=100 y=9
+  press x=108 y=9
+  press x=118 y=9
+  press x=128 y=7
+  press x=140 y=7
+  press x=152 y=7
+  press x=164 y=7
+  press x=176 y=7
+  press x=186 y=7
+  press x=196 y=7
+  gloop x=24 y=4
+  gloop x=48 y=4
+  gloop x=120 y=6
+  gloop x=188 y=4
+  beetle x=59 y=6
+  beetle x=130 y=4
+  beetle x=163 y=4
+  phantom x=98 y=6
+  phantom x=142 y=4
+  sentry x=108 y=10.5
+  sentry x=192 y=9.5
+  drone x=60.5 y=12.5
+  drone x=140.5 y=11.5

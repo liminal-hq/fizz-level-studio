@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Design workspace arrangement</title>
+<script src="./support.js"></script>
+<script src="./level-data.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@500;600;700&display=swap">
+<style>body{margin:0;background:#050507}button{font-family:inherit;cursor:pointer}button:focus-visible,input:focus-visible{outline:2px solid #ffaa40;outline-offset:1px}</style>
+</helmet>
+<div style="width:1440px;height:900px;box-sizing:border-box;display:flex;flex-direction:column;background:#050507;color:#e0e0e0;font-family:Inter,system-ui,sans-serif;font-size:13px;overflow:hidden">
+
+  <div style="height:40px;flex:none;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;padding:0 12px 0 16px;background:#0c0c10;border-bottom:1px solid rgba(255,255,255,0.08)">
+    <span style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:14px;background:linear-gradient(135deg,#ffaa40,#f43f5e,#a78bfa);-webkit-background-clip:text;background-clip:text;color:transparent">fizz level studio</span>
+    <span style="font-weight:500;color:#fff">Crater Fields — draft</span>
+    <div style="display:flex;justify-content:flex-end;gap:2px">
+      <button aria-label="Minimise" style="width:36px;height:28px;border:none;border-radius:6px;background:transparent;color:#b4bfce"><svg aria-hidden="true" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 8h10"/></svg></button>
+      <button aria-label="Maximise" style="width:36px;height:28px;border:none;border-radius:6px;background:transparent;color:#b4bfce"><svg aria-hidden="true" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="10" height="10" rx="1.5"/></svg></button>
+      <button aria-label="Close" style="width:36px;height:28px;border:none;border-radius:6px;background:transparent;color:#b4bfce"><svg aria-hidden="true" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 4l8 8M12 4l-8 8"/></svg></button>
+    </div>
+  </div>
+
+  <div style="height:36px;flex:none;display:flex;align-items:center;gap:20px;padding:0 16px;background:#0c0c10;border-bottom:1px solid rgba(255,255,255,0.08);color:#b4bfce">
+    <span>File</span><span>Edit</span><span>Level</span><span>Claude</span><span>View</span><span>Window</span>
+    <span style="flex-grow:1"></span>
+    <span style="font-size:12px;color:#7c8796">Layout</span>
+    <span style="padding:3px 10px;border-radius:999px;background:rgba(255,170,64,0.15);color:#ffaa40;font-size:12px">Design</span>
+    <span style="padding:3px 10px;border-radius:999px;color:#7c8796;font-size:12px">Script</span>
+    <span style="padding:3px 10px;border-radius:999px;color:#7c8796;font-size:12px">Review</span>
+  </div>
+
+  <div style="flex-grow:1;min-height:0;display:flex">
+
+    <!-- tool column -->
+    <div style="width:56px;flex:none;box-sizing:border-box;padding:10px 0;background:#0c0c10;border-right:1px solid rgba(255,255,255,0.08);display:flex;flex-direction:column;align-items:center;gap:6px">
+      <sc-for list="{{tools}}" as="t" hint-placeholder-count="6">
+        <button aria-label="{{t.label}}" title="{{t.label}}" style="width:40px;height:40px;border-radius:8px;border:1px solid {{t.ring}};background:{{t.fill}};color:{{t.ink}};font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:500">{{t.key}}</button>
+      </sc-for>
+    </div>
+
+    <!-- outliner -->
+    <div style="width:236px;flex:none;box-sizing:border-box;padding:12px 8px;background:#0c0c10;border-right:1px solid rgba(255,255,255,0.08);display:flex;flex-direction:column;gap:2px;overflow:hidden">
+      <div style="padding:0 8px 8px;font-size:12px;color:#7c8796">Outliner</div>
+      <sc-for list="{{outline}}" as="o" hint-placeholder-count="10">
+        <div style="padding:6px 8px 6px {{o.pad}}px;border-radius:4px;background:{{o.fill}};color:{{o.ink}};display:flex;justify-content:space-between;font-size:12.5px"><span>{{o.name}}</span><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#7c8796">{{o.meta}}</span></div>
+      </sc-for>
+    </div>
+
+    <!-- viewport + bottom dock -->
+    <div style="flex-grow:1;min-width:0;display:flex;flex-direction:column">
+      <div style="flex-grow:1;min-height:0;position:relative;display:flex;align-items:center;justify-content:center;background-color:#050507;background-image:radial-gradient(rgba(255,255,255,0.07) 1px,transparent 1px);background-size:24px 24px">
+        <div style="display:grid;grid-template-columns:repeat({{cols}},18px);grid-auto-rows:18px;border:1px solid rgba(255,255,255,0.14);border-radius:4px;background:#0f0e1a;box-shadow:0 4px 24px rgba(0,0,0,0.45);overflow:hidden">
+          <sc-for list="{{cells}}" as="c" hint-placeholder-count="20">
+            <div style="width:18px;height:18px;box-sizing:border-box;background:{{c.bg}};outline:{{c.outline}};outline-offset:-1px;opacity:{{c.opacity}};display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:500;line-height:1;color:{{c.ink}}">{{c.glyph}}</div>
+          </sc-for>
+        </div>
+        <div style="position:absolute;left:12px;top:12px;display:flex;gap:6px;font-family:'JetBrains Mono',monospace;font-size:11px;color:#7c8796"><span>x 9, y 11</span><span>·</span><span>zoom 100%</span></div>
+      </div>
+
+      <div style="height:260px;flex:none;display:flex;flex-direction:column;border-top:1px solid rgba(255,255,255,0.14);background:#0c0c10">
+        <div style="height:36px;flex:none;display:flex;align-items:flex-end;gap:2px;padding:0 8px;border-bottom:1px solid rgba(255,255,255,0.08)">
+          <span style="padding:9px 12px;border-bottom:2px solid #ffaa40;color:#fff;font-weight:500;font-size:12px">Script</span>
+          <span style="padding:9px 12px;color:#7c8796;font-size:12px">Playtest</span>
+          <span style="padding:9px 12px;color:#7c8796;font-size:12px">History</span>
+          <span style="flex-grow:1"></span>
+          <button style="margin-bottom:4px;min-height:28px;padding:0 10px;border-radius:6px;border:1px solid rgba(255,255,255,0.14);background:transparent;color:#b4bfce;font-size:12px">Pop out</button>
+          <button style="margin-bottom:4px;min-height:28px;padding:0 10px;border-radius:6px;border:1px solid rgba(255,255,255,0.14);background:transparent;color:#b4bfce;font-size:12px">Move to side</button>
+        </div>
+        <div style="flex-grow:1;min-height:0;padding:8px 0;font-family:'JetBrains Mono',monospace;font-size:12px;line-height:1.65;overflow:hidden;columns:2;column-gap:0">
+          <sc-for list="{{lines}}" as="l" hint-placeholder-count="20">
+            <div style="display:flex;background:{{l.bg}};break-inside:avoid"><span style="width:44px;flex:none;text-align:right;padding-right:12px;color:#7c8796;box-sizing:border-box">{{l.n}}</span><span style="width:14px;flex:none;color:#a78bfa">{{l.mark}}</span><span style="white-space:pre;color:{{l.ink}}">{{l.text}}</span></div>
+          </sc-for>
+        </div>
+      </div>
+    </div>
+
+    <!-- inspector -->
+    <div style="width:300px;flex:none;box-sizing:border-box;padding:16px;background:#0c0c10;border-left:1px solid rgba(255,255,255,0.08);display:flex;flex-direction:column;gap:20px;overflow:hidden">
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <div style="font-size:12px;color:#7c8796">Inspector</div>
+        <div style="display:flex;align-items:center;gap:10px"><span style="width:28px;height:28px;border-radius:4px;background:#3a1620;color:#f43f5e;display:inline-flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-weight:500">g</span><span style="font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:16px;color:#fff">Gloop</span></div>
+        <div style="display:grid;grid-template-columns:auto 1fr;gap:8px 16px;color:#b4bfce"><span style="color:#7c8796">Kind</span><span>Enemy</span><span style="color:#7c8796">Position</span><span style="font-family:'JetBrains Mono',monospace">x 9</span><span style="color:#7c8796">Script</span><span style="font-family:'JetBrains Mono',monospace;color:#ffaa40">line 15</span></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:10px;border:1px solid rgba(167,139,250,0.4);border-radius:12px;background:rgba(167,139,250,0.06);padding:14px">
+        <div style="display:flex;align-items:center;gap:8px"><span style="width:8px;height:8px;border-radius:50%;background:#a78bfa"></span><span style="font-weight:500;color:#fff">Claude</span><span style="flex-grow:1"></span><span style="font-size:12px;color:#7c8796">Propose</span></div>
+        <div style="color:#b4bfce;line-height:1.5">Three stepping stones over the pool are waiting as ghosts.</div>
+        <div style="display:flex;gap:8px"><button style="min-height:44px;padding:0 16px;border-radius:999px;border:none;background:#ffaa40;color:#050507;font-weight:600">Accept</button><button style="min-height:44px;padding:0 16px;border-radius:999px;border:1px solid rgba(255,255,255,0.22);background:transparent;color:#e0e0e0;font-weight:500">Not that</button></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <div style="font-size:12px;color:#7c8796">Checks</div>
+        <sc-for list="{{checks}}" as="k" hint-placeholder-count="3">
+          <div style="display:flex;align-items:center;gap:10px;color:#b4bfce"><span style="width:8px;height:8px;border-radius:50%;background:{{k.dot}}"></span><span style="flex-grow:1">{{k.label}}</span><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:{{k.dot}}">{{k.state}}</span></div>
+        </sc-for>
+      </div>
+    </div>
+  </div>
+
+  <div style="height:28px;flex:none;display:flex;align-items:center;gap:20px;padding:0 16px;background:#0c0c10;border-top:1px solid rgba(255,255,255,0.08);font-size:12px;color:#7c8796">
+    <span>Layout: Design</span><span style="flex-grow:1"></span><span>Any panel can be dragged to another edge, tabbed with another, or popped out</span>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const lv = window.FizzLevel.cells({ ghosts: true });
+    const lines = window.FizzLevel.script().map((r, i) => ({
+      n: i + 1, mark: r[1], text: r[0], bg: r[1] ? 'rgba(167,139,250,0.14)' : 'transparent',
+      ink: (/^[a-z]+$/.test(r[0]) && r[0] !== '') ? '#ffaa40' : (r[1] ? '#fff' : '#e0e0e0')
+    }));
+    const tools = [['Paint', 'B'], ['Erase', 'E'], ['Pick', 'I'], ['Select', 'S'], ['Stamp', 'T'], ['Pan', 'H']].map((t, i) => ({ label: t[0], key: t[1], ring: i === 0 ? '#ffaa40' : 'rgba(255,255,255,0.08)', fill: i === 0 ? 'rgba(255,170,64,0.1)' : 'transparent', ink: i === 0 ? '#ffaa40' : '#b4bfce' }));
+    const o = [['Crater Fields', '', 0], ['Terrain', '3', 14], ['Blocks', '1', 14], ['Treats', '7', 14], ['Enemies', '3', 14], ['Gloop', 'x 9', 30], ['Hopper', 'x 14', 30], ['Bat', 'x 31', 30], ['Markers', '2', 14], ['Edits', '3', 14]];
+    const outline = o.map((r) => ({ name: r[0], meta: r[1], pad: r[2] + 8, fill: r[0] === 'Gloop' ? 'rgba(255,170,64,0.1)' : 'transparent', ink: r[0] === 'Gloop' ? '#ffaa40' : (r[2] === 0 ? '#fff' : '#b4bfce') }));
+    const checks = [['Has a start', 'ok', '#2ec66a'], ['Has an exit', 'ok', '#2ec66a'], ['Playtest bot', 'not run', '#7c8796']].map((c) => ({ label: c[0], state: c[1], dot: c[2] }));
+    return { cols: lv.cols, cells: lv.cells, lines: lines, tools: tools, outline: outline, checks: checks };
+  }
+}
+</script>
+</body>
+</html>

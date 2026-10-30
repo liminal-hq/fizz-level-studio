@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>The builder language</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@500;600;700&display=swap">
+<style>body{margin:0;background:#050507}</style>
+</helmet>
+<div style="width:1120px;height:900px;box-sizing:border-box;padding:48px;background:#050507;color:#e0e0e0;font-family:Inter,system-ui,sans-serif;font-size:14px;line-height:1.5;display:flex;flex-direction:column;gap:28px;overflow:hidden">
+
+  <div style="display:flex;flex-direction:column;gap:8px">
+    <h1 style="margin:0;font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:36px;letter-spacing:-0.02em;color:#fff">A builder language for levels</h1>
+    <p style="margin:0;max-width:780px;color:#b4bfce;font-size:16px">Today a level is a Rust function of <span style="font-family:'JetBrains Mono',monospace;font-size:14px;color:#ffaa40">Builder</span> calls. This keeps that shape, with names instead of constants and ranges instead of paired numbers, so the editor, Claude and a person can all read and write the same text.</p>
+  </div>
+
+  <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr);gap:20px">
+    <div style="border:1px solid rgba(255,255,255,0.1);border-radius:12px;background:#0c0c10;padding:20px;display:flex;flex-direction:column;gap:10px">
+      <div style="font-size:12px;color:#7c8796">crater.fizz — a sketch, not a spec</div>
+      <pre style="margin:0;font-family:'JetBrains Mono',monospace;font-size:12px;line-height:1.65;color:#e0e0e0;white-space:pre">level "Crater Fields" 192x28 ground=4
+theme crater   area crater-fields
+start 3,4
+
+terrain
+  flat 14, up 2, flat 6, down 2, flat 5
+  pool 4, flat 8, up22 2, flat 10, gap 3
+  // ...
+walls
+
+blocks
+  block      x=49..51 y=10
+  red-door   x=171    y=6..7
+  exit       x=186    y=6..7
+
+treats
+  soda       x=36 y=5
+  cookie     x=50 y=11
+
+enemies
+  gloop      x=35, 62, 85
+  drone      x=88.5 y=7.5
+  crystal    x=10, 26, 60, 98
+
+edits   // painted in the studio, by you or Claude
+  paint one-way  x=26,28,30 y=9
+  paint cheezie  x=26,28,30 y=8</pre>
+    </div>
+
+    <div style="border:1px solid rgba(255,255,255,0.1);border-radius:12px;background:rgba(255,255,255,0.02);padding:20px;display:flex;flex-direction:column;gap:14px">
+      <div style="font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:16px;color:#fff">Where each line comes from</div>
+      <div style="display:flex;flex-direction:column;gap:2px">
+        <sc-for list="{{rows}}" as="r" hint-placeholder-count="7">
+          <div style="display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:12px;padding:9px 0;border-top:1px solid rgba(255,255,255,0.08)">
+            <span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#7c8796">{{r.rust}}</span>
+            <span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#ffaa40">{{r.script}}</span>
+          </div>
+        </sc-for>
+      </div>
+      <div style="color:#7c8796;font-size:13px">Left is the Builder call in <span style="font-family:'JetBrains Mono',monospace">levels.rs</span>, right is the script line. <span style="font-family:'JetBrains Mono',monospace">row(...)</span> takes five numbers whose roles still need confirming before it gets a name.</div>
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px">
+    <sc-for list="{{ideas}}" as="i" hint-placeholder-count="3">
+      <div style="border:1px solid rgba(255,255,255,0.1);border-radius:12px;background:rgba(255,255,255,0.02);padding:20px;display:flex;flex-direction:column;gap:8px">
+        <span style="font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:16px;color:#fff">{{i.title}}</span>
+        <span style="color:#b4bfce;font-size:13px">{{i.body}}</span>
+      </div>
+    </sc-for>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1120,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      rows: [
+        { rust: 'Builder::new(192, 28, 4)', script: 'level … 192x28 ground=4' },
+        { rust: 'b.run(&[(Flat, 14), (Up, 2)])', script: 'terrain flat 14, up 2' },
+        { rust: 'b.fill(49, 51, 10, 10, BLOCK)', script: 'block x=49..51 y=10' },
+        { rust: 'b.fill(171, 171, 6, 7, DOOR_R)', script: 'red-door x=171 y=6..7' },
+        { rust: 'b.item(Soda, 36, 5)', script: 'soda x=36 y=5' },
+        { rust: 'b.ent(Kind::Gloop, 35.0)', script: 'gloop x=35' },
+        { rust: 'b.ent_at(Kind::Drone, 88.5, 7.5)', script: 'drone x=88.5 y=7.5' },
+        { rust: 'b.crys(x)', script: 'crystal x=10, 26, 60' },
+        { rust: 'b.out(CRATER, (3.0, 4.0), None)', script: 'start 3,4' }
+      ],
+      ideas: [
+        { title: 'Names, ranges, one line', body: 'Tiles and kinds are words. A run of cells is x=a..b. A line does one thing, so a diff reads like a change.' },
+        { title: 'Edits are lines', body: 'Painting, and every Claude write, appends to an edits block. Hand-written lines are never rewritten, so your terrain stays yours.' },
+        { title: 'Compiles to the Builder', body: 'An exporter writes the Rust calls, so the game and its determinism checks do not change. A loader can come later.' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

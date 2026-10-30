@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Line park icon in use</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap">
+<style>body{margin:0;background:#050507}</style>
+</helmet>
+<div style="width:1440px;height:900px;box-sizing:border-box;padding:48px;background:#050507;color:#e0e0e0;font-family:Inter,system-ui,sans-serif;font-size:14px;line-height:1.5;display:flex;flex-direction:column;gap:24px;overflow:hidden">
+
+  <div style="display:flex;flex-direction:column;gap:6px">
+    <h1 style="margin:0;font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:36px;letter-spacing:-0.02em;color:#fff">The icon in use</h1>
+    <p style="margin:0;color:#b4bfce;font-size:16px;max-width:900px">An app tile, the title bar, a browser tab, a launcher shelf and a splash screen. The splash line is placeholder copy.</p>
+  </div>
+
+  <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-auto-rows:minmax(0,1fr);gap:20px;flex-grow:1;min-height:0">
+
+    <!-- title bar and tab -->
+    <div style="border:1px solid rgba(255,255,255,0.1);border-radius:16px;background:rgba(255,255,255,0.02);padding:20px;display:flex;flex-direction:column;gap:16px">
+      <div style="font-size:12px;color:#b4bfce">Desktop title bar and browser tab</div>
+      <div style="border-radius:12px;overflow:hidden;border:1px solid rgba(255,255,255,0.14);background:#0c0c10">
+        <div style="height:40px;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;padding:0 12px;border-bottom:1px solid rgba(255,255,255,0.08)">
+          <span style="display:flex;align-items:center;gap:8px"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="20" height="20" aria-hidden="true"><defs><linearGradient id="gk" gradientUnits="userSpaceOnUse" x1="14" y1="20" x2="114" y2="120"><stop offset="0" stop-color="#ffaa40"/><stop offset=".55" stop-color="#f43f5e"/><stop offset="1" stop-color="#a78bfa"/></linearGradient></defs><g fill="none" stroke="url(#gk)" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"><circle cx="64" cy="70" r="50"/><path d="M104 38C101 40 92.3 44.7 86 50C79.7 55.3 72.7 64.7 66 70C59.3 75.3 51 75 46 82C41 89 37.7 107 36 112"/><g transform="translate(4 2)"><path d="M30 64V44L37 30L44 44V64Z"/></g><circle cx="92" cy="88" r="10"/></g><g fill="none" stroke="#22d3ee" stroke-width="8" stroke-linejoin="round"><path d="M64 20V4H80V13H64"/></g></svg><span style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:14px;color:#fff">fizz level studio</span></span>
+          <span style="font-weight:500;color:#fff;font-size:13px">Crater Fields — draft</span>
+          <span style="justify-self:end;color:#b4bfce;font-size:12px">Minimise · Maximise · Close</span>
+        </div>
+        <div style="height:96px;background:#050507"></div>
+      </div>
+      <div style="display:flex;align-items:flex-end;gap:2px;background:#16161c;border-radius:12px 12px 0 0;padding:8px 8px 0">
+        <span style="display:flex;align-items:center;gap:8px;height:36px;padding:0 14px;border-radius:8px 8px 0 0;background:#0c0c10;color:#fff;font-size:12.5px"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="16" height="16" aria-hidden="true"><g fill="none" stroke="url(#gk)" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"><circle cx="64" cy="70" r="48"/><path d="M104 38C92 46 72 66 62 74C50 84 42 100 38 112"/></g><g fill="none" stroke="#22d3ee" stroke-width="13" stroke-linejoin="round"><path d="M64 22V6H82"/></g></svg>fizz level studio</span>
+        <span style="display:flex;align-items:center;height:36px;padding:0 14px;color:#b4bfce;font-size:12.5px">New tab</span>
+      </div>
+    </div>
+
+    <!-- launcher shelf -->
+    <div style="border:1px solid rgba(255,255,255,0.1);border-radius:16px;background:rgba(255,255,255,0.02);padding:20px;display:flex;flex-direction:column;gap:16px">
+      <div style="font-size:12px;color:#b4bfce">App tile, launcher shelf and Android round mask</div>
+      <div style="display:flex;align-items:flex-start;gap:28px;padding:24px;border-radius:12px;background:#16161c">
+        <div style="display:flex;flex-direction:column;align-items:center;gap:8px"><div style="width:112px;height:112px;border-radius:26px;background:#0c0c10;border:1px solid rgba(255,255,255,0.14);display:flex;align-items:center;justify-content:center"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="84" height="84" aria-hidden="true"><g fill="none" stroke="url(#gk)" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="64" cy="70" r="50"/><path d="M104 38C101 40 92.3 44.7 86 50C79.7 55.3 72.7 64.7 66 70C59.3 75.3 51 75 46 82C41 89 37.7 107 36 112"/><path d="M116 52C112.7 53.3 102.3 55.3 96 60C89.7 64.7 84 74.7 78 80C72 85.3 64 85.7 60 92C56 98.3 55 113.7 54 118"/><g transform="translate(4 2)"><path d="M30 64V44L37 30L44 44V64Z"/><path d="M37 36V60"/><path d="M22 64V52L26 44L30 52"/><path d="M44 52L48 46L52 52V64H30"/></g><circle cx="92" cy="88" r="10"/><path d="M92 98V110"/></g><g fill="none" stroke="#22d3ee" stroke-width="5" stroke-linejoin="round"><path d="M64 20V4H80V13H64"/></g></svg></div><span style="font-size:12px;color:#b4bfce">Rounded tile</span></div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:8px"><div style="width:112px;height:112px;border-radius:50%;background:#0c0c10;border:1px solid rgba(255,255,255,0.14);display:flex;align-items:center;justify-content:center"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="70" height="70" aria-hidden="true"><g fill="none" stroke="url(#gk)" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="64" cy="70" r="50"/><path d="M104 38C101 40 92.3 44.7 86 50C79.7 55.3 72.7 64.7 66 70C59.3 75.3 51 75 46 82C41 89 37.7 107 36 112"/><g transform="translate(4 2)"><path d="M30 64V44L37 30L44 44V64Z"/></g><circle cx="92" cy="88" r="10"/><path d="M92 98V110"/></g><g fill="none" stroke="#22d3ee" stroke-width="6" stroke-linejoin="round"><path d="M64 20V4H80V13H64"/></g></svg></div><span style="font-size:12px;color:#b4bfce">Android, round mask</span></div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:8px"><div style="width:112px;height:112px;border-radius:26px;background:#fbfaf6;display:flex;align-items:center;justify-content:center"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="84" height="84" aria-hidden="true"><defs><linearGradient id="gl" gradientUnits="userSpaceOnUse" x1="14" y1="20" x2="114" y2="120"><stop offset="0" stop-color="#b45309"/><stop offset=".55" stop-color="#be123c"/><stop offset="1" stop-color="#5e44cc"/></linearGradient></defs><g fill="none" stroke="url(#gl)" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="64" cy="70" r="50"/><path d="M104 38C101 40 92.3 44.7 86 50C79.7 55.3 72.7 64.7 66 70C59.3 75.3 51 75 46 82C41 89 37.7 107 36 112"/><path d="M116 52C112.7 53.3 102.3 55.3 96 60C89.7 64.7 84 74.7 78 80C72 85.3 64 85.7 60 92C56 98.3 55 113.7 54 118"/><g transform="translate(4 2)"><path d="M30 64V44L37 30L44 44V64Z"/><path d="M37 36V60"/><path d="M22 64V52L26 44L30 52"/><path d="M44 52L48 46L52 52V64H30"/></g><circle cx="92" cy="88" r="10"/><path d="M92 98V110"/></g><g fill="none" stroke="#0e7490" stroke-width="5" stroke-linejoin="round"><path d="M64 20V4H80V13H64"/></g></svg></div><span style="font-size:12px;color:#b4bfce">Light launcher</span></div>
+      </div>
+    </div>
+
+    <!-- splash -->
+    <div style="border:1px solid rgba(255,255,255,0.1);border-radius:16px;background:rgba(255,255,255,0.02);padding:20px;display:flex;flex-direction:column;gap:16px">
+      <div style="font-size:12px;color:#b4bfce">Splash screen</div>
+      <div style="flex-grow:1;min-height:0;border-radius:12px;border:1px solid rgba(255,255,255,0.14);background:#050507;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="120" height="120" aria-hidden="true"><g fill="none" stroke="url(#gk)" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="64" cy="70" r="50"/><path d="M104 38C101 40 92.3 44.7 86 50C79.7 55.3 72.7 64.7 66 70C59.3 75.3 51 75 46 82C41 89 37.7 107 36 112"/><path d="M116 52C112.7 53.3 102.3 55.3 96 60C89.7 64.7 84 74.7 78 80C72 85.3 64 85.7 60 92C56 98.3 55 113.7 54 118"/><g transform="translate(4 2)"><path d="M30 64V44L37 30L44 44V64Z"/><path d="M37 36V60"/><path d="M22 64V52L26 44L30 52"/><path d="M44 52L48 46L52 52V64H30"/></g><circle cx="92" cy="88" r="10"/><path d="M92 98V110"/></g><g fill="none" stroke="#22d3ee" stroke-width="4" stroke-linejoin="round"><path d="M64 20V4H80V13H64"/></g></svg>
+        <span style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:28px;letter-spacing:-0.02em;color:#fff">fizz level studio</span>
+        <span style="color:#b4bfce;font-size:14px">Levels, made together.</span>
+      </div>
+    </div>
+
+    <!-- README banner -->
+    <div style="border:1px solid rgba(255,255,255,0.1);border-radius:16px;background:rgba(255,255,255,0.02);padding:20px;display:flex;flex-direction:column;gap:16px">
+      <div style="font-size:12px;color:#b4bfce">Repository banner</div>
+      <div style="flex-grow:1;min-height:0;border-radius:12px;border:1px solid rgba(255,255,255,0.14);background:linear-gradient(160deg,#050507,#15121f);display:flex;align-items:center;gap:28px;padding:0 36px">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="150" height="150" aria-hidden="true"><g fill="none" stroke="url(#gk)" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="64" cy="70" r="50"/><path d="M104 38C101 40 92.3 44.7 86 50C79.7 55.3 72.7 64.7 66 70C59.3 75.3 51 75 46 82C41 89 37.7 107 36 112"/><path d="M116 52C112.7 53.3 102.3 55.3 96 60C89.7 64.7 84 74.7 78 80C72 85.3 64 85.7 60 92C56 98.3 55 113.7 54 118"/><g transform="translate(4 2)"><path d="M30 64V44L37 30L44 44V64Z"/><path d="M37 36V60"/><path d="M22 64V52L26 44L30 52"/><path d="M44 52L48 46L52 52V64H30"/></g><circle cx="92" cy="88" r="10"/><path d="M92 98V110"/></g><g fill="none" stroke="#22d3ee" stroke-width="4" stroke-linejoin="round"><path d="M64 20V4H80V13H64"/></g></svg>
+        <div style="display:flex;flex-direction:column;gap:6px"><span style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:40px;letter-spacing:-0.02em;color:#fff">fizz level studio</span><span style="color:#b4bfce;font-size:15px">A level editor for Lieutenant Fizz, with Claude at the table.</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

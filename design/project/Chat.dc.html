@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Conversation first layout</title>
+<script src="./support.js"></script>
+<script src="./level-data.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@500;600;700&display=swap">
+<style>body{margin:0;background:#050507}button{font-family:inherit;cursor:pointer}button:focus-visible,input:focus-visible{outline:2px solid #ffaa40;outline-offset:1px}</style>
+</helmet>
+<div style="width:1440px;height:900px;box-sizing:border-box;display:flex;flex-direction:column;background:#050507;color:#e0e0e0;font-family:Inter,system-ui,sans-serif;font-size:14px;overflow:hidden">
+
+  <div style="height:40px;flex:none;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;padding:0 12px 0 16px;background:#0c0c10;border-bottom:1px solid rgba(255,255,255,0.08)">
+    <span style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:14px;background:linear-gradient(135deg,#ffaa40,#f43f5e,#a78bfa);-webkit-background-clip:text;background-clip:text;color:transparent">fizz level studio</span>
+    <span style="font-weight:500;color:#fff;font-size:13px">Designing Crater Fields with Claude</span>
+    <div style="display:flex;justify-content:flex-end;gap:2px">
+      <button aria-label="Minimise" style="width:36px;height:28px;border:none;border-radius:6px;background:transparent;color:#b4bfce"><svg aria-hidden="true" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 8h10"/></svg></button>
+      <button aria-label="Maximise" style="width:36px;height:28px;border:none;border-radius:6px;background:transparent;color:#b4bfce"><svg aria-hidden="true" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="10" height="10" rx="1.5"/></svg></button>
+      <button aria-label="Close" style="width:36px;height:28px;border:none;border-radius:6px;background:transparent;color:#b4bfce"><svg aria-hidden="true" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 4l8 8M12 4l-8 8"/></svg></button>
+    </div>
+  </div>
+
+  <div style="flex-grow:1;min-height:0;display:flex">
+
+    <!-- levels rail -->
+    <div style="width:72px;flex:none;box-sizing:border-box;padding:12px 0;background:#0c0c10;border-right:1px solid rgba(255,255,255,0.08);display:flex;flex-direction:column;align-items:center;gap:8px">
+      <sc-for list="{{rail}}" as="r" hint-placeholder-count="6">
+        <button aria-label="{{r.name}}" title="{{r.name}}" style="width:48px;height:48px;border-radius:12px;border:1px solid {{r.ring}};background:{{r.fill}};color:{{r.ink}};font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:15px">{{r.short}}</button>
+      </sc-for>
+    </div>
+
+    <!-- conversation -->
+    <div style="flex-grow:1;min-width:0;display:flex;flex-direction:column;align-items:center">
+      <div style="width:100%;max-width:760px;flex-grow:1;min-height:0;box-sizing:border-box;padding:28px 24px 0;display:flex;flex-direction:column;gap:20px;overflow:hidden">
+
+        <div style="align-self:flex-end;max-width:520px;padding:12px 16px;border-radius:16px 16px 4px 16px;background:rgba(255,170,64,0.12);color:#fff;line-height:1.5">Can you look at the middle of Crater Fields? It feels flat.</div>
+
+        <div style="display:flex;flex-direction:column;gap:12px;max-width:680px">
+          <div style="display:flex;align-items:center;gap:8px"><span style="width:8px;height:8px;border-radius:50%;background:#a78bfa"></span><span style="font-family:'Space Grotesk',sans-serif;font-weight:600;color:#fff">Claude</span></div>
+          <div style="color:#b4bfce;line-height:1.6">The stretch from x 17 to 31 is a three-tile pit, then a five-tile chocolate pool, with nothing to land on in the pool. That is the only real obstacle between the start and the exit. Here is a route over it, with the area I looked at outlined.</div>
+
+          <div style="border:1px solid rgba(167,139,250,0.4);border-radius:12px;background:rgba(167,139,250,0.06);padding:16px;display:flex;flex-direction:column;gap:12px">
+            <div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font-family:'Space Grotesk',sans-serif;font-weight:600;color:#fff">Stepping stones over the pool</span><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#7c8796">x 20..34</span></div>
+            <div style="display:grid;grid-template-columns:repeat({{cols}},20px);grid-auto-rows:20px;border:1px solid rgba(255,255,255,0.14);border-radius:4px;background:#0f0e1a;overflow:hidden;align-self:flex-start">
+              <sc-for list="{{cells}}" as="c" hint-placeholder-count="20">
+                <div style="width:20px;height:20px;box-sizing:border-box;background:{{c.bg}};outline:{{c.outline}};outline-offset:-1px;opacity:{{c.opacity}};display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:500;line-height:1;color:{{c.ink}}">{{c.glyph}}</div>
+              </sc-for>
+            </div>
+            <pre style="margin:0;font-family:'JetBrains Mono',monospace;font-size:12px;line-height:1.6;color:#e0e0e0">+ paint one-way   x=26,28,30 y=9
++ paint cheezie   x=26,28,30 y=8</pre>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <button style="min-height:44px;padding:0 16px;border-radius:999px;border:none;background:#ffaa40;color:#050507;font-weight:600">Accept</button>
+              <button style="min-height:44px;padding:0 16px;border-radius:999px;border:1px solid rgba(255,255,255,0.22);background:transparent;color:#e0e0e0;font-weight:500">Not that</button>
+              <button style="min-height:44px;padding:0 16px;border-radius:999px;border:1px solid rgba(255,255,255,0.22);background:transparent;color:#e0e0e0;font-weight:500">Open in the editor</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style="width:100%;max-width:760px;box-sizing:border-box;padding:16px 24px 24px;display:flex;flex-direction:column;gap:8px">
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <sc-for list="{{chips}}" as="ch" hint-placeholder-count="3">
+            <button style="min-height:36px;padding:0 14px;border-radius:999px;border:1px solid rgba(255,255,255,0.14);background:rgba(255,255,255,0.03);color:#b4bfce;font-size:13px">{{ch}}</button>
+          </sc-for>
+        </div>
+        <label for="msg" style="position:absolute;left:-9999px">Message Claude</label>
+        <input id="msg" type="text" placeholder="Tell Claude what you want from this level" style="min-height:52px;box-sizing:border-box;padding:0 16px;border-radius:16px;border:1px solid rgba(255,255,255,0.14);background:#0c0c10;color:#e0e0e0;font-family:inherit;font-size:14px">
+      </div>
+    </div>
+
+    <!-- drawer -->
+    <div style="width:300px;flex:none;box-sizing:border-box;padding:16px;background:#0c0c10;border-left:1px solid rgba(255,255,255,0.08);display:flex;flex-direction:column;gap:20px">
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <div style="font-size:12px;color:#7c8796">When Claude writes</div>
+        <div style="display:flex;gap:6px">
+          <button style="flex:1;min-height:44px;border-radius:8px;border:1px solid #a78bfa;background:rgba(167,139,250,0.12);color:#fff;font-size:13px;font-weight:500">Propose</button>
+          <button style="flex:1;min-height:44px;border-radius:8px;border:1px solid rgba(255,255,255,0.14);background:transparent;color:#b4bfce;font-size:13px;font-weight:500">Direct</button>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <div style="font-size:12px;color:#7c8796">Level at a glance</div>
+        <div style="display:flex;flex-direction:column;gap:6px;color:#b4bfce">
+          <div style="display:flex;justify-content:space-between"><span>Size</span><span style="font-family:'JetBrains Mono',monospace">40 × 16</span></div>
+          <div style="display:flex;justify-content:space-between"><span>Enemies</span><span style="font-family:'JetBrains Mono',monospace">3</span></div>
+          <div style="display:flex;justify-content:space-between"><span>Treats</span><span style="font-family:'JetBrains Mono',monospace">7</span></div>
+          <div style="display:flex;justify-content:space-between"><span>Playtest bot</span><span style="font-family:'JetBrains Mono',monospace;color:#7c8796">not run</span></div>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <div style="font-size:12px;color:#7c8796">Pinned notes</div>
+        <div style="padding:12px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.03);color:#b4bfce;line-height:1.5">Keep the first screen gentle; Ben meets his first gloop around x 9.</div>
+      </div>
+    </div>
+  </div>
+
+  <div style="height:28px;flex:none;display:flex;align-items:center;gap:20px;padding:0 16px;background:#0c0c10;border-top:1px solid rgba(255,255,255,0.08);font-size:12px;color:#7c8796">
+    <span>Crater Fields · draft</span><span style="flex-grow:1"></span><span>Claude is connected over MCP</span>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const lv = window.FizzLevel.cells({ ghosts: true, x0: 20, x1: 34, y0: 4, y1: 15 });
+    const names = ['Crater Fields', 'Crystal Caves', 'Citadel', 'Meteor Mesa', 'Zarg Lookout', 'Marshmallow Meadows'];
+    const rail = names.map((n, i) => ({
+      name: n, short: n.split(' ').map((w) => w[0]).join('').slice(0, 2),
+      ring: i === 0 ? '#ffaa40' : 'rgba(255,255,255,0.08)',
+      fill: i === 0 ? 'rgba(255,170,64,0.1)' : 'rgba(255,255,255,0.02)',
+      ink: i === 0 ? '#ffaa40' : '#b4bfce'
+    }));
+    return { rail: rail, cols: lv.cols, cells: lv.cells, chips: ['Make the middle harder', 'Add a secret', 'Check it can be finished'] };
+  }
+}
+</script>
+</body>
+</html>
