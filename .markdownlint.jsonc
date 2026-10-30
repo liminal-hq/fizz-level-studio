@@ -1,0 +1,10 @@
+{
+	"default": true,
+	// Long single-line paragraphs are intentional (see AGENTS.md: do not manually hard-wrap markdown
+	// prose), so line-length is disabled outright.
+	"MD013": false,
+	// Prettier indents code blocks with tabs, matching the repository's editorconfig.
+	"MD010": { "code_blocks": false },
+	// The README opens with a centred hero banner and badge row, which need inline HTML.
+	"MD033": { "allowed_elements": ["p", "a", "img"] },
+}

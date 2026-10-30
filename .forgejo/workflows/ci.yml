@@ -1,0 +1,45 @@
+# Runs the language and MCP tests and lints the Markdown on every pull request and push to main.
+#
+# (c) Copyright 2026 Liminal HQ, Scott Morris
+# SPDX-License-Identifier: Apache-2.0 OR MIT
+
+name: CI
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Validate
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.10
+
+      - name: Install MCP server dependencies
+        run: bun install --frozen-lockfile
+        working-directory: packages/mcp
+
+      - name: Lint Markdown
+        run: bun run lint:md
+
+      - name: Run language tests
+        run: bun run test
+
+      - name: Run MCP server tests
+        run: bun run test:mcp

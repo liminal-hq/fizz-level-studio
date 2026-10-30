@@ -12,7 +12,7 @@ Runs the design canvas pages (`*.dc.html`) in a real headless Chromium with the 
 ## Scripts
 
 | Script | What it does |
-|---|---|
+| --- | --- |
 | `load.cjs <page> [png]` | Loads one page, prints the title, console errors and the first text, and takes a screenshot |
 | `all.cjs` | Loads every page in the folder and reports errors and unresolved placeholders (set `H` to the folder) |
 | `e2e.cjs`, `e2e3.cjs` | Interaction tests for the prototype: painting, windows, menus, typed lines, zoom, selecting, stamping, pop-out |

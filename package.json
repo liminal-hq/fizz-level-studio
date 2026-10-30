@@ -6,6 +6,10 @@
     "test": "bun test packages/language",
     "test:mcp": "bun test packages/mcp",
     "prove": "bash scripts/prove-crater.sh",
-    "prove:all": "bash scripts/prove-all.sh"
-  }
+    "prove:all": "bash scripts/prove-all.sh",
+    "lint:md": "bunx markdownlint-cli2 '**/*.md' '#node_modules' '#packages/mcp/node_modules' '#scratch/rust/target'"
+  },
+  "description": "A level and overworld editor for Lieutenant Fizz: a plain-text level language, an MCP server for Claude and proofs against the game",
+  "license": "Apache-2.0 OR MIT",
+  "author": "Liminal HQ, Scott Morris"
 }

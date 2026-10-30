@@ -1,0 +1,10 @@
+node_modules
+dist
+coverage
+bun.lock
+assets
+design
+levels
+overworlds
+scratch
+packages/mcp/bun.lock

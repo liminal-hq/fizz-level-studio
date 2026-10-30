@@ -130,7 +130,7 @@ All of these tables live in `packages/language/src/tables.ts`.
 
 ## The edits block
 
-```
+```text
 edits   // painted in the studio, by you or Claude
   paint one-way x=26,28,30 y=9
   clear         x=12..14 y=8
@@ -196,7 +196,7 @@ Unchanged from the sketch: ranges as `x=a..b`, `block`/`red-door`/`exit` as tile
 
 An overworld is a second kind of script, told apart by its header. A script holds one level or one overworld, so a game with several overworlds has several files.
 
-```
+```text
 overworld "Overworld" 60x44 id=main
 start 9.2,8.2
 area gumdrop-isle x=20..29 y=18..27         // the first area to match a tile decides its area

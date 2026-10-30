@@ -1,6 +1,6 @@
 # Fizz Level Studio — design artefacts
 
-A copy of everything published to the design canvas at https://claude.ai/artifact/E43evy173R6mC7bAeN5FAF, so the work lives beside the code.
+A copy of everything published to the design canvas at <https://claude.ai/artifact/E43evy173R6mC7bAeN5FAF>, so the work lives beside the code.
 
 - `project/` — the canvas: `canvas.json` (boards, pages and notes), one `*.dc.html` page per board, and the data files the pages load. `support.js` is the Design runtime the pages need to run outside the canvas.
 - `assets/` — the screenshots the walkthrough uses, named by the blob id the pages reference (`/_blob/<id>`).
@@ -8,7 +8,7 @@ A copy of everything published to the design canvas at https://claude.ai/artifac
 ## The pages
 
 | Page | What it is |
-|---|---|
+| --- | --- |
 | `Proto.dc.html` | The interactive prototype. It loads `level-data.js` (the sample draft), `levels-data.js` (all 16 levels and the overworld) and `lang-docs.js` (the language docs, for completion) |
 | `Guide.dc.html` | The walkthrough of the editor, twelve steps |
 | `Manual.dc.html` | The language manual, with a live checker for edits lines |

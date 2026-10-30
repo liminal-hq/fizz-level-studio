@@ -1,21 +1,38 @@
 # Fizz Level Studio
 
+<p align="center">
+  <img src="assets/hero.svg" alt="Fizz Level Studio — tiles of a level dropping onto a grid and assembling, a treat falling into place, and a switch toggling a channel that slides a red door open and shut" width="100%">
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/licence-Apache--2.0%20OR%20MIT-3fb950" alt="Licence: Apache-2.0 OR MIT">
+  <img src="https://img.shields.io/badge/runtime-Bun-fbf0df" alt="Runtime: Bun">
+  <img src="https://img.shields.io/badge/language-TypeScript-3178c6" alt="Language: TypeScript">
+  <img src="https://img.shields.io/badge/protocol-MCP-a78bfa" alt="Protocol: MCP">
+</p>
+
+A level and overworld editor for Lieutenant Fizz, built so that a person and Claude can design levels together, with a text language at its heart that anyone can read and write.
+
+## What it is
+
 Fizz Level Studio is the level and overworld editor for Lieutenant Fizz, where a person and Claude (over MCP) design levels together. This folder holds the work so far: the builder language (a text language that compiles to the Rust `Builder` calls in `episodes/episode-1/game/src/levels.rs`), its Rust exporter and the proofs that it rebuilds every Episode 1 level and the overworld exactly, an MCP server for Claude, a copy of the interactive design prototype, and the spec for the real studio. It is a scratch project, not a git repository, and nothing in it touches the game's repository.
 
-## Where to start
+## Getting started
 
-1. [SPEC.md](SPEC.md) — the product spec: goals, non-goals, the product, the language, the architecture, the proofs, the requirements with their status, open questions, risks and milestones.
-2. [docs/GOALS.md](docs/GOALS.md) — the goals, ranked, each with a measure of success.
-3. [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — the packages, the data flow from script to AST to Rust and to the rasteriser, where the game owns the rules, and the WebAssembly plan.
-4. [docs/LANGUAGE.md](docs/LANGUAGE.md) — the language reference: grammar, the `Builder` call behind every statement, the edits block, errors, and overworld scripts.
-5. [docs/EDITOR.md](docs/EDITOR.md) — the editor's behaviour, screen by screen.
-6. [docs/OVERWORLD.md](docs/OVERWORLD.md) — overworlds, unlock rules, the mask limit and the steps to add a level.
-7. [docs/MCP.md](docs/MCP.md) — the MCP server as built and the tools still to add.
-8. [docs/ENGINE-CHANGES.md](docs/ENGINE-CHANGES.md) — what the game itself must change.
-9. [docs/TESTING.md](docs/TESTING.md) — what is tested, what each test proves, and the gaps.
-10. [docs/ROADMAP.md](docs/ROADMAP.md) and [docs/DECISIONS.md](docs/DECISIONS.md) — what comes next, and why things are the way they are.
+You need [Bun](https://bun.sh) and the Node version in `.node-version`. The studio app itself is not built yet; what runs today is the language package, the MCP server and the proofs against the game.
 
-The design artefacts are in [design/](design/README.md): the interactive prototype `design/project/Proto.dc.html`, the walkthrough `Guide.dc.html`, the language manual `Manual.dc.html`, `Level.dc.html`, and the layout and logo explorations. The published canvas is https://claude.ai/artifact/E43evy173R6mC7bAeN5FAF. `tools/design-harness/README.md` explains how to serve the pages and drive them in a headless Chromium with audio muted.
+Install the MCP server's dependencies once with `cd packages/mcp && bun install`. Then:
+
+```bash
+bun test packages/language          # 76 unit tests        (bun run test)
+bun test packages/mcp               # 21 tests, including a real stdio MCP round trip   (bun run test:mcp)
+bash scripts/prove-crater.sh        # crater and kitchen-sink proofs  (bun run prove)
+bash scripts/prove-all.sh           # all 16 levels, the overworld, and both rasterisers against the game's data  (bun run prove:all)
+bun tools/gen-proto-levels.ts > design/project/levels-data.js   # the prototype's 16 levels and overworld
+bun tools/gen-lang-docs.ts > design/project/lang-docs.js        # the prototype's completion data
+```
+
+The proofs need Rust and the crates already in the local Cargo cache (`--offline`); they build only inside `scratch/rust/`, and write generated Rust there and the game's data as JSON into `scratch/truth/`.
 
 ## What is here
 
@@ -28,19 +45,6 @@ The design artefacts are in [design/](design/README.md): the interactive prototy
 - `tools/` — proof generators (`gen-all-proof.ts`, `gen-overworld-proof.ts`), verifiers (`verify-rasteriser.ts`, `verify-overworld.ts`), audits (`audit-levels.ts`, `audit-editor.ts`), `decompile-level.ts`, the prototype's data generators (`gen-proto-levels.ts`, `gen-lang-docs.ts`) and `design-harness/`.
 - `scratch/rust/` — a copy of the game's `crates/sim` and `episodes/episode-1/game`, where the proofs run; `ow_builder.rs` there is the `OverworldBuilder` the overworld exporter writes against. `scratch/kitchen-sink.fizz` uses each v0 statement once.
 - `scripts/prove-crater.sh`, `scripts/prove-all.sh` — export the scripts into the copy and run the Rust comparisons.
-
-## Commands
-
-```bash
-bun test packages/language          # 75 unit tests        (bun run test)
-bun test packages/mcp               # 21 tests, including a real stdio MCP round trip   (bun run test:mcp)
-bash scripts/prove-crater.sh        # crater and kitchen-sink proofs  (bun run prove)
-bash scripts/prove-all.sh           # all 16 levels, the overworld, and both rasterisers against the game's data  (bun run prove:all)
-bun tools/gen-proto-levels.ts > design/project/levels-data.js   # the prototype's 16 levels and overworld
-bun tools/gen-lang-docs.ts > design/project/lang-docs.js        # the prototype's completion data
-```
-
-The proofs need Rust and the crates already in the local Cargo cache (`--offline`); they build only inside `scratch/rust/`, and write generated Rust there and the game's data as JSON into `scratch/truth/`.
 
 ## Using the exporter
 
@@ -92,7 +96,7 @@ This is not done for you; nothing here edits any Claude or user configuration. W
 
 ```bash
 cp levels/crater.fizz levels/crater-play.fizz
-claude mcp add fizz-level-studio -- bun /home/scott/source/experiments/fizz-level-studio/packages/mcp/src/server.ts /home/scott/source/experiments/fizz-level-studio/levels/crater-play.fizz
+claude mcp add fizz-level-studio -- bun /path/to/fizz-level-studio/packages/mcp/src/server.ts /path/to/fizz-level-studio/levels/crater-play.fizz
 ```
 
 Or, as a project `.mcp.json`:
@@ -103,8 +107,8 @@ Or, as a project `.mcp.json`:
     "fizz-level-studio": {
       "command": "bun",
       "args": [
-        "/home/scott/source/experiments/fizz-level-studio/packages/mcp/src/server.ts",
-        "/home/scott/source/experiments/fizz-level-studio/levels/crater-play.fizz"
+        "/path/to/fizz-level-studio/packages/mcp/src/server.ts",
+        "/path/to/fizz-level-studio/levels/crater-play.fizz"
       ]
     }
   }
@@ -185,3 +189,22 @@ On each surface row, a gap is a run of columns with nothing to stand on at that 
 - A level file with parse errors blocks `edit_level` and the picture tools until the person fixes it; the parser's errors are returned.
 - Two processes (the server and the command line) share the sidecar with read-modify-write and no locking; use one at a time.
 - The server has only been exercised by the automated tests, which speak the protocol directly. It has not been run inside a real Claude Code session.
+
+## Documentation
+
+- [SPEC.md](SPEC.md) — the product spec: goals, non-goals, the product, the language, the architecture, the proofs, the requirements with their status, open questions, risks and milestones.
+- [docs/GOALS.md](docs/GOALS.md) — the goals, ranked, each with a measure of success.
+- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — the packages, the data flow from script to AST to Rust and to the rasteriser, where the game owns the rules, and the WebAssembly plan.
+- [docs/LANGUAGE.md](docs/LANGUAGE.md) — the language reference: grammar, the `Builder` call behind every statement, the edits block, errors, and overworld scripts.
+- [docs/EDITOR.md](docs/EDITOR.md) — the editor's behaviour, screen by screen.
+- [docs/OVERWORLD.md](docs/OVERWORLD.md) — overworlds, unlock rules, the mask limit and the steps to add a level.
+- [docs/MCP.md](docs/MCP.md) — the MCP server as built and the tools still to add.
+- [docs/ENGINE-CHANGES.md](docs/ENGINE-CHANGES.md) — what the game itself must change.
+- [docs/TESTING.md](docs/TESTING.md) — what is tested, what each test proves, and the gaps.
+- [docs/ROADMAP.md](docs/ROADMAP.md) and [docs/DECISIONS.md](docs/DECISIONS.md) — what comes next, and why things are the way they are.
+
+The design artefacts are in [design/](design/README.md): the interactive prototype `design/project/Proto.dc.html`, the walkthrough `Guide.dc.html`, the language manual `Manual.dc.html`, `Level.dc.html`, and the layout and logo explorations. The published canvas is <https://claude.ai/artifact/E43evy173R6mC7bAeN5FAF>. `tools/design-harness/README.md` explains how to serve the pages and drive them in a headless Chromium with audio muted.
+
+## Licence
+
+Copyright 2026 Liminal HQ, Scott Morris. Dual-licensed under Apache-2.0 or MIT. See `LICENSE-APACHE` and `LICENSE-MIT`.

@@ -360,7 +360,7 @@ Status values: **Proven** — built in `packages/language` or `packages/mcp` and
 | R-ENG-01 | Widen the requirement mask so a 16th level fits | Not built | ENGINE-CHANGES E4 |
 | R-ENG-02 | A level and overworld registry the exporter can write to | Not built | ENGINE-CHANGES E3, E5 |
 
-### Performance
+### Performance requirements
 
 | Id | Requirement | Status | Evidence |
 | --- | --- | --- | --- |
