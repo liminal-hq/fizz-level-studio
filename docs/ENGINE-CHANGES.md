@@ -13,7 +13,7 @@ Everything the game itself (`liminal-hq/lieutenant-fizz`) must change for the re
 | E7 | Build and enter a level from a script inside the sim | M5 |
 | E8 | Export enemy paths | M5 |
 | E9 | Export the playtest bot | M5 |
-| E10 | Sprite names for level points | M6 |
+| E10 | Sprite names for level points | M9 |
 | E11 | Name tables the studio can check against | M1 onward |
 | E12 | Move the proofs into the game's tests | M1 onward |
 
@@ -91,15 +91,20 @@ Everything the game itself (`liminal-hq/lieutenant-fizz`) must change for the re
 
 ## Fizz 2 (planned)
 
-The list above is about Lieutenant Fizz 1. Lieutenant Fizz 2 is a separate repository whose levels are baked from `.fizz` sources, so its needs are a different list, kept here only so the editor's side is visible. Each is a change in the Fizz 2 repository, owned by it:
+The list above is about Lieutenant Fizz 1. Lieutenant Fizz 2 is a separate repository whose levels are baked from `.fizz` sources, so its needs are a different list, kept here so the editor's side is visible. Each is a change in the Fizz 2 repository, owned and decided by it; the studio only asks. What exists there today is the `LEVL` data model (`fizz-pack`, `fizz-ep2`, and the level pull requests #137, #138 and #140, unmerged); none of the tools below exists yet.
 
-| Change | What the editor needs from it |
-| --- | --- |
-| `fizz-script`, a reusable `std` crate | The parser, lossless AST, printer and validator for the dialect, so the editor and the baker agree on what a script means |
-| `fizz-bake` (`fmt`, `lint`, `bake`, `check`, `dump`, `replay --pack`) | The baker, the lints and the disassembly the editor's dump view shows |
-| `LEVL` v2 | A rule count in the header and 32-byte rule records after the objects (rule table, no VM) |
-| A rules phase in the simulation | Triggers, channel actions and cues run as table rows, after the player, the chickens and the shots |
-| `LIGHT.FAP` and manifests | The world's pack, with digests that include the rule records and the decompiled lines |
-| Wall-kick left out | Fizz 2 has no wall-kick, so a level that only a kick can climb must be refused by the baker or by an editor check; this is open |
+| Id | Change | What the editor needs from it | Needed by |
+| --- | --- | --- | --- |
+| F1 | `fizz-script`, a reusable `std` crate, with the dialect's grammar written down | The parser, lossless AST, printer and validator, so the editor and the baker agree on what a script means; the home of the shared conformance corpus | M7 |
+| F2 | A content export: the `pack_content()` tables (tile ids and properties, the legend letters, object and snack kinds, key colours, effect and caption ids, styles, limits) and the capability states, written as JSON by a test or a `fizz-bake` command | The `ep2` target profile, generated rather than copied, with a check that fails on drift | M7 |
+| F3 | A level and theme format: the theme's back wall, parallax stack, horizon, night ambient, lamps and lanterns, and whether music is per level | Lowering for the reserved `theme`, `light` and `music` words (`docs/OBLIQUE.md` and `docs/LIGHTS.md` both say "a later level and theme format will carry them") | M8 |
+| F4 | `fizz-bake` (`fmt`, `bake`, `check`, `dump`, and a size report) | The baker, the lints, the disassembly for the dump view, and the numbers for the Budget window | M7, M8 |
+| F5 | A WebAssembly draw export in `fizz-present-web`: draw a level from `LEVL` bytes at a camera position with Night, Sky and detail options, into an RGBA buffer | The Game view (oblique ground, parallax, night and lights), drawn by the game's own presenter | M8 |
+| F6 | A WebAssembly world built from `LEVL` bytes (`world_from_view` exists in `fizz-ep2` on #137), stepped by inputs, with the playtest bot | Rule behaviour, enemy paths and finishability for Fizz 2 levels, as E7 to E9 give Fizz 1 | M7 onward |
+| F7 | The `SPRT` layout, and numeric sprite ids if names are replaced | Sprites reaching packs, and the profile's kind-to-sprite map | M9 |
+| F8 | The enemy roster's kinds, object records and sprite states | Objects beyond the chicken | M9 |
+| F9 | A rule for the missing wall-kick: a baker check or the playtest bot | Turning W103 from a design rule into a refusal (`SPEC.md` Q13) | M7 |
 
-The Fizz 1 export check (E120 to E122, W104) is the one place the editor writes back to the Fizz 1 game, and it uses the existing exporter, not a new engine change.
+The rules phase in the simulation (triggers, channel actions and cues run as table rows) and the pack loaders are the Fizz 2 repository's own milestones; the editor waits for them through the capability states (an "accepted" trigger becomes "built" when the game runs it).
+
+The Fizz 1 export check (E120 to E122, W104, W110) is the one place the editor writes back to the Fizz 1 game, and it uses the existing exporter, not a new engine change.

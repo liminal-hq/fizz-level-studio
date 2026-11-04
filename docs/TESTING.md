@@ -105,15 +105,41 @@ H=$PWD/design/project node tools/design-harness/all.cjs               # for all.
 - **No playtest from the studio.** The game's bot (`playtest.rs`) has routes for 15 levels in its own tests; the Citadel has none.
 - **No performance measurements** of the studio. Parse plus rasterise of the slowest real level (Frosting Spire) averages 0.35 ms, and the overworld 0.71 ms, in Bun 1.3.10 on an AMD Ryzen 7 7700X (20 runs after a warm-up).
 
-## 7. Planned: the Fizz 2 dialect
+## 7. Planned: targets, the Fizz 2 dialect and sprites
 
-None of these tests exist. They are what the dialect needs, so the implementer knows what done means.
+None of these tests exist. They are what the work needs, so the implementer knows what done means.
 
-- **Conformance corpus.** A folder of Fizz 2 scripts, each with its expected printed output and its expected error and lint codes with `path:line:col`. The language package runs it with `bun test`; the Fizz 2 repository's `fizz-script` runs the same files, so the two parsers cannot drift.
-- **Round trip.** Every script, valid or not, prints back byte for byte; `x=`/`y=` versus `at=` follows the printer rule.
+### The dialect
+
+- **Conformance corpus.** A folder of Fizz 2 scripts, each with its expected printed output and its expected error and lint codes with `path:line:col`. The language package runs it with `bun test`; the Fizz 2 repository's `fizz-script` runs the same files, so the two parsers cannot drift. The corpus lives in the Fizz 2 repository (it owns the dialect) and the studio pins a copy by commit, refreshed by a script that fails when the copy differs.
+- **Round trip.** Every script, valid or not, prints back byte for byte; `x=`/`y=` versus `at=` follows the printer rule; a map edit rewrites only the rows it touched.
 - **One test per code.** Every E1xx and W1xx code has a script that produces it and a test that says so, and every code in `LANGUAGE.md` has one.
-- **Superset.** Every Fizz 1 script in `levels/` and `overworlds/` parses and prints unchanged under the Fizz 2 parser, and `bun run prove:all` stays green.
-- **Fizz 1 export.** A Fizz 2 level with a `map`, an `at=` off a cell centre, a `chicken`, a non-standard lock, a `when` and a solid `floor` exports with exactly the expected W104, E120, E121 and E122.
-- **Rule limits.** 32 rules pass, 33 is an error; two channel actions on one rule is an error; a `when` that names a missing channel is an error.
-- **Dump parity.** The dump view and `fizz-bake dump` give the same records for a corpus level (needs the baker).
-- **Not covered by tests here:** the rules' behaviour in the simulation, which the Fizz 2 repository's replay golden owns.
+- **Superset in text.** Every Fizz 1 script in `levels/` and `overworlds/` parses and prints unchanged under the Fizz 2 parser, and `bun run prove:all` stays green.
+- **Ids and indices.** Renaming an id rewrites every rule that names it and nothing else; the baked index of every object equals its position after the stable kind sort; a second key of one colour is E107.
+- **Rule limits and shapes.** 32 rules pass and 33 fail (locks counted); two channel actions on one rule fail; a used slot without its cell fails; `time` with `every=3` or with `every=` and no `repeat` fails; a `when` that names a missing object or string fails.
+- **Records.** For each corpus level, the studio's resolved objects, rules and strings equal `fizz-bake dump` field for field (needs the baker). Until then, the records are compared against `LevelSpec` values written by hand from Fizz 2's `crates/fizz-pack` tests.
+
+### Proof against the Fizz 2 game
+
+- **The slice as a script.** A `.fizz` file of the slice level bakes, through `fizz-bake`, to `fizz_ep2::level::digest` of the `const` slice (FNV-1a 64 over the size, tiles, start state, spawn and every object, rules and strings included; `0x44cc_83fb_5218_552f` on #140, which will change as the slice does), and the world it builds has the same `hash()` as `level::world()`. The game's replay golden then proves it plays the same on native, Web and DOS. This is the Fizz 2 equivalent of `prove-all.sh`, and it runs in the Fizz 2 repository.
+- **Not covered here:** the rules' behaviour, the drawing and the sound, which the Fizz 2 repository's replay golden, frame digests and audio tests own.
+
+### Targets and divergence
+
+- **The capability matrix is tested.** Every row in `LANGUAGE.md`'s matrix has a fixture that shows its state in each profile: a built feature lowers, an accepted one lowers with W106 or W109, a reserved one parses and is not lowered, an absent one is E102.
+- **Profiles are data.** A synthetic third profile (a renamed `ep2` with one extra tile, one extra object kind and one feature moved from absent to built) loads, offers the new words in completion and the palette, and changes the checks, with no change to the editor's code (R-TGT-06).
+- **Profiles follow their games.** A test compares the `fizz1` profile with the Fizz 1 game's tables (ENGINE-CHANGES E11) and the `ep2` profile with Fizz 2's content export (F2), and fails on any difference.
+- **Fizz 1 export.** A Fizz 2 level with a `map`, an `at=` off a cell centre, a `chicken`, a standard and a non-standard lock, a door that starts open, a `when`, a `string`, `floor solid` and an exit exports with exactly the expected W104, E120, E121, E122 and W110, and the exported script parses, exports to Rust and compiles in the proof copy.
+- **Convert to Fizz 2.** Crater Fields and Whisper Hollow convert with exactly the expected E102 list, a map equal tile for tile to the rasteriser's output, and, for Whisper Hollow, W103.
+- **Divergence lints.** Fixtures for W102 (an exit over a gap), W103 (a ledgeless shaft) and W105 (a two-high passage over a slope, checked at body heights 1.4 and 2.0).
+
+### Previews and budgets
+
+- **Game view parity.** For the slice, frames drawn through the game's draw export equal the game's pinned frame digests by day and at night. With the export missing, the Game view and `get_preview` report "not available".
+- **Budget meters.** For the slice, the `LEVL` meter equals the baker's decoded length (1,968 bytes on #140); with the baker missing, the meter says "estimate" and equals the published formula; no meter reports a number without its source.
+
+### Sprites
+
+- **Canonical files.** Every file in Fizz 2's `assets/sprites/` opens and saves byte for byte unchanged through the studio's reader and writer, and agrees with `tools/sprites/lib.ts` on a set of edited fixtures.
+- **Editing rules.** The pixel editor refuses a letter outside the 16 EGA letters and `.`, a size outside 1 to 255, a duplicate name and any edit to a generated set.
+- **Drawing by kind.** Every object kind in each profile draws with its mapped sprite, and a kind without one draws the labelled placeholder.
