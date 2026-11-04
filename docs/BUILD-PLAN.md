@@ -41,7 +41,7 @@ S0 ─ S1 ─┬─ S2 ─ S10 ────────────────�
          ├─ D5 ───────────────────────────────────┤
          ├─ D6, D7 ───────────────────────────────┘
          └─ D8 (after D2)
-S11 (CI and packaging) after S2 and S3, blocked on Q40
+S11 (CI and packaging) after S2 and S3 (Forgejo, Q40)
 ```
 
 The critical path is S1, D1, D2, D3, U1, U2, U3, T1, T2: the Fizz 1 port gates the editor, because the session must own a Fizz 1 level in Rust before the canvas can draw it.
@@ -61,7 +61,7 @@ The critical path is S1, D1, D2, D3, U1, U2, U3, T1, T2: the Fizz 1 port gates t
 | S8 | Settings: `crates/fizz-studio-settings` (pure: a typed, versioned document, migrations, the previous generation kept, an unreadable file set aside) and `plugins/fizz-studio-settings` (store, one writer, revision, change events, recent worlds), with `guest-js` | `crates/fizz-studio-settings/**`, `plugins/fizz-studio-settings/**` | Rust tests for migration, the set-aside file, and a monotonic revision; two windows see a theme change and ignore a lower revision; `check:storage` passes | S3 (parallel with S7) |
 | S9 | Appearance and tear-off: `tauri-plugin-system-appearance` and `tauri-plugin-window-manager` from the registry; `window-tearoff` and `window-effects` copied from Waypoint with `PROVENANCE.md` | `plugins/window-tearoff/**`, `plugins/window-effects/**`, `apps/studio/src-tauri/Cargo.toml` | The theme follows the system's light and dark; the Script panel tears off into `panel-script-1` and docks back; each plugin's status command answers | S4, S7, S8 |
 | S10 | Shared types: `crates/fizz-studio-protocol` with `ts-rs`, generated into `packages/protocol` | `crates/fizz-studio-protocol/**`, `packages/protocol/**` | Regeneration gives no diff; a Rust type changed without regenerating fails `check:bindings` | S2 |
-| S11 | CI and packaging: Rust jobs in `tauri-ci-desktop`, Clippy on Windows x64 and arm64, packages for Linux (deb, rpm, AppImage) and Windows (msi, nsis), dependency-update grouping, the Linux running-app job | `.forgejo/workflows/*.yml` or `.github/workflows/*.yml`, `.github/dependabot.yml` or an equivalent | A pull request builds every package and runs `bun run validate` and T1 on Linux | S2, S3; **blocked on Q40** |
+| S11 | CI and packaging: Rust jobs in `tauri-ci-desktop`, Clippy on Windows x64 and arm64, packages for Linux (deb, rpm, AppImage) and Windows (msi, nsis), dependency-update grouping, the Linux running-app job | `.forgejo/workflows/*.yml`, a dependency-update config | A pull request builds every package and runs `bun run validate` and T1 on Linux | S2, S3; Forgejo (Q40) |
 
 ### Domain tasks
 
@@ -99,7 +99,7 @@ The critical path is S1, D1, D2, D3, U1, U2, U3, T1, T2: the Fizz 1 port gates t
 - **After S3:** S5, S6, S7, and S8 in parallel; S9 once S4, S7, and S8 are in.
 - **After D1:** D2 and D3 in parallel; D8 after D2.
 - **The shell (U1 to U5)** waits for the spine and the domain to meet; U4 and U5 run alongside each other after U1.
-- **S11** runs whenever Q40 is answered; until then the existing Forgejo job keeps running the TypeScript checks.
+- **S11** can run once S2 and S3 exist; Q40 is settled as Forgejo, and the existing Forgejo job keeps running the TypeScript checks until then.
 - **S0's spec split** should land before the other branches open, so no later change edits a file that is about to move.
 
 ## 3. The open desktop questions
@@ -115,13 +115,16 @@ The critical path is S1, D1, D2, D3, U1, U2, U3, T1, T2: the Fizz 1 port gates t
 | Q41: two episodes in one build | Deferred to M13: one revision of the Fizz 2 crates for every Fizz 2-family profile until an Episode 3 repository exists | There is nothing to link against yet; a host process per episode stays the fallback in D58. |
 | Q43: the Game view's stream | Indexed 8-bit frames (320 by 200 is 64,000 bytes), the palette sent only when it changes, frames sent only on change, each tagged with the revision it was drawn from, over a `Channel` with raw bytes | It is the smallest honest form of what Fizz 2 draws, and the revision tag keeps stale frames off the canvas. Task D7 measures it with synthetic frames on WebKitGTK and WebView2 before F5 exists; if it cannot hold 60 frames per second, the fallback is dirty rectangles. |
 
-### Needs the owner
+### Settled by the owner on 2026-11-04
 
-| Question | Why it cannot be settled here | What it blocks |
+| Question | Answer | Effect |
 | --- | --- | --- |
-| Q40: GitHub or Forgejo | It is a choice of forge for the repository. The house containers and shared workflows (`liminal-hq/.github`) are GitHub Actions; the Fizz 1 repository is `liminal-hq/lieutenant-fizz` on GitHub, and the Fizz 2 repository's remote is under a personal GitHub account, so CI on either forge needs read access to both for D8's pins. Whether a Forgejo runner can run the house container, and a display for T1, is unverified. | S11 and CI for T1. Local development is not blocked. |
-| Q42: Fizz 1 APIs E6 to E9 | Only the owner can accept changes to `lieutenant-fizz`. `lf-episode-1` is already `cdylib` and `rlib`, so linking it works today; the question is a `studio` feature and the API shapes. | M12 only. Not M1. |
-| Q36, as a veto | The proposed values are settled above, but the identifier is permanent once a package ships. | The first packaged build (S11). |
+| Q40: GitHub or Forgejo | Forgejo | S11 writes the workflows under `.forgejo/workflows/`. CI still needs read access to both game repositories for D8's pins, and whether a Forgejo runner can run the house container and a display for T1 is unverified, so S11 starts by checking it. |
+| Q42: Fizz 1 APIs E6 to E9 | Deferred to M12 | Nothing before M12 depends on it. `lf-episode-1` is already `cdylib` and `rlib`, so linking works today. |
+| Q36, as a veto | The identifier `ca.liminalhq.fizzstudio` stands | It is permanent once a package ships (S11). |
+| The provisional slice fixture | Acceptable for M1's exit criteria | M1 exits with the stub dialect and the hand-written fixture; both are replaced when `fizz-script` lands. |
+
+Nothing in this plan now waits on the owner except the confirmations in section 5, which are also settled.
 
 ## 4. Stubbing the Fizz 2 dependencies
 
@@ -164,6 +167,8 @@ Every stub lives in a file named `stub.rs` whose header names its change request
 - **Must wait:** anything that parses beyond the header and `map` (F1), Build world and the dump view (F4, F15), the records equality test (F10), the generated `ep2` profile (F2), and the Fizz 1 export's lossy check, which needs the real dialect's AST to be worth testing.
 
 ## 5. Which proposed decisions to confirm first
+
+The owner confirmed D55, D56, D58, and D60 on 2026-11-04, so S0 only has to remove **Proposed** from their entries in `DECISIONS.md`. D57 and D59 stay proposed.
 
 | Decision | When | Why |
 | --- | --- | --- |
