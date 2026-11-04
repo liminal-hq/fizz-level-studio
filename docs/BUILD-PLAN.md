@@ -1,0 +1,218 @@
+# Build plan
+
+How the studio gets built, starting with M1 (the desktop walking skeleton): the M1 tasks in order with their acceptance checks, an answer for each open desktop question (Q36 to Q43), how the Fizz 2 dependencies are stubbed so work can start before the Fizz 2 repository delivers them, which proposed decisions (D55 to D60) must be confirmed first, and the critical path to M8. It is a plan, not a record: **nothing in it is built**. The milestones are those of [ROADMAP.md](ROADMAP.md); the standards are those of [DESKTOP.md](DESKTOP.md), taken from `folio/AGENTS.md`.
+
+## 1. Where the documents disagree or are silent
+
+These were found while checking the plan against the documents. Each is resolved here for planning purposes; the owner may resolve them differently.
+
+| Topic | What the documents say | How this plan treats it |
+| --- | --- | --- |
+| Does M1 need Fizz 2? | `ROADMAP.md` lists F23 as an M1 dependency and puts "the game crates linked as pinned git dependencies" in M1. | M1 starts with nothing from Fizz 2. Only task D8 touches Fizz 2 crates, and it is a compile-only link that Cargo already allows for workspace crates in a git repository; F23 makes that link stable, not possible. If the link fails (access, build), D8 links Fizz 1 only and the Fizz 2 half moves to M2. |
+| The Fizz 2 world in M1's exit criteria | M1 must open "a Fizz 2 world (a world project holding the slice level as a script)", but `fizz-script` (F1) does not exist, D55 says the studio parses Fizz 2 only through it, and no slice script exists anywhere (the slice is Rust `const` data in `fizz_ep2::level`). | M1 opens it through a provisional dialect stub (section 4) that reads only the header, the `world` file and the `map` block and keeps every other line as raw text. The slice script is a hand-written fixture in the studio's proposed syntax, marked provisional. |
+| How much of the Fizz 1 port M1 needs | `ROADMAP.md` says the port is "started" in M1, but M1's exit criteria (open `crater.fizz`, paint, undo, save; open every level in under a second; 16 ms paint on Marshmallow Meadows) need a Rust parser, printer, `edits` append and level rasteriser for every statement in `levels/`. | The port's parser, printer, `edits` append, rasteriser and completion data are M1 work and on its critical path. The Rust exporter, the overworld designer's rewrites and the owned-line API (R-LANG-17) follow in M9 and M10. |
+| M2's Fizz 2 dependencies | The `ROADMAP.md` table lists F1, F2, F4, F10, F15; its M2 text adds F23; `ENGINE-CHANGES.md` also marks F5 (flat fallback until then), F7 (`SPRT`) and F9 (the wall-kick parameters) as needed by M2. | M2 is blocked by F1, F2, F4, F10, F15 and F23. F5 is not blocking (the flat fallback is the stated interim). F7 blocks only the "objects drawn with their sprites" part, and F9 only the `ep2` physics parameters for lints; both are noted, not gating. |
+| M6 and F14 | The brief for this plan has M6 waiting on F14; `ROADMAP.md` has M6 depending on M2 and M5, with only tile textures (R-ART-05) waiting on F14. | M6's core (panels and `drawn` sprites) does not wait on F14. Tile textures do. |
+| M7's Fizz 2 dependencies | The `ROADMAP.md` table lists F16, F17, F21, F22; its M7 text lists F8, F16, F17, F21, F22. | M7 waits on F8, F16, F17, F21, and F22 (the union), and on M3 and M5. |
+| The Fizz 1 track's own dependencies | M9 to M12 run alongside the Fizz 2 milestones, but M9 needs E1, E2, and E10, and M12 needs E6 to E9, all in the Fizz 1 repository. | Parallel with Fizz 2, not free: M9 and M12 have their own blockers in `lieutenant-fizz`. M10 needs only M1. |
+| `bun run validate` contents | `folio/AGENTS.md`'s prose omits the plugin-boundary, licence, and bindings checks; `folio/package.json`'s `validate` script runs them. | The studio follows `folio/package.json`, as `DESKTOP.md` section 11 already does. |
+| `E6` | `ENGINE-CHANGES.md` says there is no public API for a level's data. In the local checkout of `lieutenant-fizz`, `lf_episode_1::levels::build_level(id)` is `pub` and `LevelData`'s fields are `pub`. | M1 uses `build_level` for a native rasteriser check (task D8). E6 still matters for a stable, documented shape and for Rust-written levels (M12). The revision checked is the local working copy, not a pinned one. |
+| Editions | `DESKTOP.md` proposes edition 2021; the Fizz 2 workspace is edition 2024 (Fizz 1 is 2021). Both pin Rust 1.98.0. | No conflict: a 2021 crate depends on 2024 crates on the same toolchain. The studio stays on 2021 with Folio. |
+
+## 2. M1: the desktop walking skeleton
+
+### The order and the tracks
+
+M1 is split into four tracks that run in parallel once the workspace exists:
+
+- **S, the spine:** the workspace, the gate, the app shell, windows, settings, chrome, CI. Mostly sequential.
+- **D, the domain:** pure Rust crates with no `tauri` dependency. They start the day the Cargo workspace exists and do not wait for the app.
+- **U, the editor shell:** the React views on top of S and D.
+- **T, the checks:** the running-app checks and the performance measurements that close M1.
+
+Each task is meant to be one small pull request (or a short stack). "After" names what must merge first; tasks with no common "After" can run at the same time.
+
+```text
+S0 ─ S1 ─┬─ S2 ─ S10 ───────────────────────────────┐
+         ├─ S3 ─┬─ S5, S6, S7, S8 ─ S9 ──────────┐   │
+         │      └─ S4 ────────────────────────────┤   │
+         ├─ D1 ─ D2 ─ D3 ─────────────────────────┼─ U1 ─ U2 ─ U3 ─ U4, U5 ─ T1 ─ T2 ─ exit
+         ├─ D4 ───────────────────────────────────┤
+         ├─ D5 ───────────────────────────────────┤
+         ├─ D6, D7 ───────────────────────────────┘
+         └─ D8 (after D2)
+S11 (CI and packaging) after S2 and S3 (Forgejo, Q40)
+```
+
+The critical path is S1, D1, D2, D3, U1, U2, U3, T1, T2: the Fizz 1 port gates the editor, because the session must own a Fizz 1 level in Rust before the canvas can draw it.
+
+### Spine tasks
+
+| Id | Task | Touches | Acceptance | After |
+| --- | --- | --- | --- | --- |
+| S0 | Confirm D55, D56, D58, and D60 (section 5); split `SPEC.md` and `docs/` into `spec/` and `docs/` as a pure move (Q37), with `CLAUDE.md`, `AGENTS.md`, and `README.md` updated in the same change | `docs/DECISIONS.md`, `SPEC.md` → `spec/*.md`, `CLAUDE.md`, `AGENTS.md`, `README.md` | The four entries lose **Proposed**; `bun run lint:md` passes and every relative link resolves; no text changes beyond paths | — |
+| S1 | Workspaces and toolchain: a root Cargo workspace (resolver 2, edition 2021, `license = "Apache-2.0 OR MIT"`, release `strip = true`), `rust-toolchain.toml` at 1.98.0 with `rustfmt` and `clippy`, Bun workspaces listed explicitly (`apps/*`, `plugins/*`, `packages/chrome`, `packages/protocol`) so `packages/mcp` keeps its own lockfile until D57 retires it, `.node-version` at 24.14.0 as Folio | `Cargo.toml`, `rust-toolchain.toml`, `package.json`, `.node-version`, `.gitignore` | `cargo metadata` and a root `bun install --frozen-lockfile` succeed; `bun run test`, `bun run test:mcp`, and `bun run lint:md` still pass unchanged | S0 (or alongside it) |
+| S2 | The gate: copy Folio's `check-headers.sh` (extended to `.rs` and `.tsx`), `check-plugin-boundaries.sh`, `check-case-collisions.sh`, `check-browser-storage.sh`, `check-licences.sh` with `deny.toml`, `check-bindings-drift.sh`, and `generate-protocol-bindings.sh`; compose `bun run validate`, which also runs today's `test`, `test:mcp`, and `lint:md`; add `THIRD_PARTY_NOTICES.md` | `scripts/*.sh`, `deny.toml`, `package.json`, `THIRD_PARTY_NOTICES.md` | `bun run validate` passes; a planted violation of each check (a header missing, a raw `invoke('plugin:…')`, `localStorage`, a case collision) fails it | S1 |
+| S3 | The app shell: `apps/studio` (Vite, React 19, TypeScript strict, CSS Modules, Vitest with Testing Library and happy-dom) and a thin `src-tauri` (`lib.rs`, `main.rs`, `windows.rs`); `tauri.conf.json` with `"windows": []` and identifier `ca.liminalhq.fizzstudio`; `tauri.conf.dev.json` with `withGlobalTauri`; `bun run tauri:dev` | `apps/studio/**` | `bun run tauri:dev` opens one frameless, transparent `main-1` window built in Rust on Linux (Wayland and X11); a `tauri::test::mock_builder` test builds the app; `bun run validate` passes | S1 |
+| S4 | `packages/chrome` copied from Waypoint with `PROVENANCE.md`, tokens renamed to `--fls-*` and `data-fls-theme`, colour literals only in token files | `packages/chrome/**`, `apps/studio/src/theme/tokens.css` | The title bar, window menu, and context menu render in `main-1`; a search finds no `--wp-` token and no colour literal outside token files; the package's Vitest suite passes | S1 (parallel with S3) |
+| S5 | The message catalogue: `apps/studio/src/i18n/messages.ts` with `t('area.thing')`, en-CA, and a pseudo-locale in developer builds (Q38); the chrome's labels come from it | `apps/studio/src/i18n/**`, `scripts/check-jsx-literals.sh` or a lint rule | Under the pseudo-locale every visible string is marked; a planted JSX string literal fails the gate | S3, S4 |
+| S6 | Logging: `tauri-plugin-log` (Trace in debug, Info in release, stdout and a rotating file), `services/logger.ts` with `initLogger(label)`, `capabilities/logging.json` | `apps/studio/src-tauri/src/lib.rs`, `apps/studio/src/services/logger.ts`, `capabilities/logging.json` | A webview `console.warn` appears in the log file with its window label; a Rust test shows a session's `Debug` output carries no script text | S3 |
+| S7 | Windows and capabilities: the window factory for the M1 labels only (`main-{n}`, `panel-{kind}-{n}`, `new-world`, `preferences`, `about`, `tear-ghost`; `pixel-{n}` and `behaviour-{n}` wait for M6 and M7), one capability file per concern with label globs, `dev-automation.json` for debug only, `tauri-plugin-single-instance`, `-prevent-default` in release, `-dialog` | `apps/studio/src-tauri/src/windows.rs`, `apps/studio/src-tauri/capabilities/*.json` | Preferences and About open from the menu; a worlds command invoked from `about` is refused by the ACL; a second launch with a path focuses the running app and opens the path | S3 |
+| S8 | Settings: `crates/fizz-studio-settings` (pure: a typed, versioned document, migrations, the previous generation kept, an unreadable file set aside) and `plugins/fizz-studio-settings` (store, one writer, revision, change events, recent worlds), with `guest-js` | `crates/fizz-studio-settings/**`, `plugins/fizz-studio-settings/**` | Rust tests for migration, the set-aside file, and a monotonic revision; two windows see a theme change and ignore a lower revision; `check:storage` passes | S3 (parallel with S7) |
+| S9 | Appearance and tear-off: `tauri-plugin-system-appearance` and `tauri-plugin-window-manager` from the registry; `window-tearoff` and `window-effects` copied from Waypoint with `PROVENANCE.md` | `plugins/window-tearoff/**`, `plugins/window-effects/**`, `apps/studio/src-tauri/Cargo.toml` | The theme follows the system's light and dark; the Script panel tears off into `panel-script-1` and docks back; each plugin's status command answers | S4, S7, S8 |
+| S10 | Shared types: `crates/fizz-studio-protocol` with `ts-rs`, generated into `packages/protocol` | `crates/fizz-studio-protocol/**`, `packages/protocol/**` | Regeneration gives no diff; a Rust type changed without regenerating fails `check:bindings` | S2 |
+| S11 | CI and packaging: Rust jobs in `tauri-ci-desktop`, Clippy on Windows x64 and arm64, packages for Linux (deb, rpm, AppImage) and Windows (msi, nsis), dependency-update grouping, the Linux running-app job | `.forgejo/workflows/*.yml`, a dependency-update config | A pull request builds every package and runs `bun run validate` and T1 on Linux | S2, S3; Forgejo (Q40) |
+
+### Domain tasks
+
+| Id | Task | Touches | Acceptance | After |
+| --- | --- | --- | --- | --- |
+| D1 | Fizz 1 port, part 1: `crates/fizz-studio-language` with the lossless parser and printer (every node keeps its raw text; errors E001 to E016 with positions; overworld headers recognised), and the conformance corpus written out of today's 76 TypeScript tests as fixtures (input, expected print, expected codes and positions) by a script, run by both the Rust crate and a new TypeScript fixture test | `crates/fizz-studio-language/**`, `fixtures/fizz1/**`, `tools/gen-fizz1-fixtures.ts`, `packages/language/test/fixtures.test.ts` | Every `.fizz` in `levels/`, `overworlds/`, and `scratch/` prints back byte for byte; every fixture gives the same codes and positions in both languages; error messages are catalogue keys with arguments (R-APP-07) | S1 |
+| D2 | Fizz 1 port, part 2: the `edits` append and the level rasteriser (the reference is `packages/mcp/src/world.ts`; the overworld rasteriser follows in M9) | `crates/fizz-studio-language/**`, `fixtures/fizz1/**` | The `edits` fixtures pass; the Rust rasteriser equals the TypeScript one on all 16 levels and `crater.fizz` (tiles, items, spawns, start) | D1 |
+| D3 | Fizz 1 port, part 3: the word docs for completion (`docs.ts`), with its completeness test | `crates/fizz-studio-language/src/docs.rs` | Every tile, item, enemy, terrain word, and statement has an entry, as `docs.test.ts` requires | D1 |
+| D4 | The session: `crates/fizz-studio-session` with intents, patches, a monotonic revision and `saved_revision`, named undo and redo with merge keys, one writer, stale answers refused, Claude's steps marked, after `folio-session`; documents behind a `Document` trait so it can be built before D2 | `crates/fizz-studio-session/**` | Rust tests: a stroke coalesces into one step; undo all gives byte-identical text; a patch computed at an old revision is refused; revisions never decrease | S1 |
+| D5 | Files: `crates/fizz-studio-world` opening a Fizz 1 project folder and a world folder by its `world.fizz`, atomic canonical writes (temporary file in the same folder, then a rename), file watching with a debounce, the Q39 merge, autosave and recovery under `<app data>/recovery/<id>/` | `crates/fizz-studio-world/**` | Rust tests: an interrupted write leaves the old file whole; an outside edit becomes a revision marked "edited outside" within one second; non-overlapping changes merge and overlapping ones ask; a recovery copy restores byte for byte | S1 |
+| D6 | Fizz 2 ports and stubs: `crates/fizz-studio-dialect` (the `Fizz2Syntax` port and its provisional stub), `crates/fizz-studio-profile` (the `ProfileSource` port, the provisional `ep2` and synthetic profiles), and the slice world fixture (section 4) | `crates/fizz-studio-dialect/**`, `crates/fizz-studio-profile/**`, `fixtures/fizz2/**` | The contract suites pass on the stubs; the slice fixture prints back byte for byte; the synthetic profile changes the palette with no code change | S1 |
+| D7 | The game host's shape: `crates/fizz-studio-host` with the `GameHost` trait, the flat-fallback Fizz 2 implementation, and a synthetic frame source for measuring Q43 | `crates/fizz-studio-host/**`, `plugins/fizz-studio-host/**` | The Fizz 2 host reports "not available"; the synthetic source streams 320 by 200 indexed frames over a `Channel` and the measurement is recorded in this document (section 3, Q43) | S1, S3 for the plugin half |
+| D8 | Link the games (D58): `lf-sim` and `lf-episode-1` from `liminal-hq/lieutenant-fizz` and the Fizz 2 crates from the Fizz 2 repository as git dependencies pinned by revision; a native check of the Rust rasteriser against `lf_episode_1::levels::build_level` for all 16 levels | `Cargo.toml`, `crates/fizz-studio-host/Cargo.toml`, `crates/fizz-studio-language/tests/native.rs` | `cargo nextest` passes offline with the pins in `Cargo.lock`; the native check agrees on every tile, item, spawn, and the start; the Fizz 2 crates compile in the workspace (compile only) | D2 |
+
+### Editor shell tasks
+
+| Id | Task | Touches | Acceptance | After |
+| --- | --- | --- | --- | --- |
+| U1 | `plugins/fizz-studio-worlds` (open, save, watch, intents, patches, history, recent worlds) and the canvas: the webview draws the cells the session sends and refuses a patch older than what it shows; objects as a focusable list; arrow-key cell cursor; zoom | `plugins/fizz-studio-worlds/**`, `apps/studio/src/canvas/**`, `apps/studio/src/worlds/**` | `crater.fizz` opens with its 5,376 cells; all 16 levels open in under a second (R-PERF-02); the slice fixture opens in the flat fallback with its banner | S7, S8, S10, D2, D4, D5, D6 |
+| U2 | Tools: Paint, Erase, Pick, Select, and Stamp as intents; History with named steps; undo and redo | `apps/studio/src/tools/**`, `apps/studio/src/history/**` | A paint stroke appends under `edits` and undo restores the file byte for byte; on the slice, a paint rewrites only the touched `map` rows | U1 |
+| U3 | Panels on the Ultimate layout: the Palette (from the level's profile), the Objects window (read-only in M1; rewriting objects is M9 and M10), the Script panel with completion from D3, and the Ghosts lens reading pending proposals from today's `<level>.studio.json` sidecar | `apps/studio/src/panels/**` | Completion offers `paint` for `pa`; the Ghosts lens draws a proposal made with today's MCP server; the layout is saved in the settings document, not browser storage | U2, D3, S9 |
+| U4 | New level and New world in the `new-world` window, fixing the target (R-WLD-02): a Fizz 2 level starts `script fizz2 0` in a world whose `target=` matches; a Fizz 1 level has no `script` line | `apps/studio/src/new-world/**`, `crates/fizz-studio-world/**` | A Rust test shows no intent can change a level's `script` line; both flows write files that open again | U1 |
+| U5 | The start screen: recent worlds, and Restore or Discard for recovery copies | `apps/studio/src/start/**` | After a forced kill with unsaved changes, the next launch offers Restore, which brings back the exact text | U1, D5 |
+
+### Check tasks
+
+| Id | Task | Touches | Acceptance | After |
+| --- | --- | --- | --- | --- |
+| T1 | The running-app checks: `tauri-plugin-mcp-bridge` under `cfg(all(debug_assertions, not(windows)))`, `dev-automation.json`, and a script that drives M1's exit steps through `tauri-mcp-server` by window label with audio muted | `apps/studio/src-tauri/**`, `apps/studio/src-tauri/capabilities/dev-automation.json`, `tools/app-checks/**` | Open `crater.fizz` and the slice world, paint, undo, save, an outside edit seen within a second, a crash, and Restore all pass on Linux; the bridge is absent from a release build | U1 to U5 |
+| T2 | Performance: R-PERF-01 measured from intent to drawn frame | `tools/app-checks/perf.*` | The 95th percentile of a paint stroke on Marshmallow Meadows is at most 16 ms; the figure and the machine are recorded in `docs/TESTING.md` | T1 |
+
+### What can run at once
+
+- **Day one, after S1:** S2, S3, S4, D1, D4, D5, D6, and D7 (its crate half). Eight independent pull requests, five of them pure Rust with no app.
+- **After S3:** S5, S6, S7, and S8 in parallel; S9 once S4, S7, and S8 are in.
+- **After D1:** D2 and D3 in parallel; D8 after D2.
+- **The shell (U1 to U5)** waits for the spine and the domain to meet; U4 and U5 run alongside each other after U1.
+- **S11** can run once S2 and S3 exist; Q40 is settled as Forgejo, and the existing Forgejo job keeps running the TypeScript checks until then.
+- **S0's spec split** should land before the other branches open, so no later change edits a file that is about to move.
+
+## 3. The open desktop questions
+
+### Settled by default
+
+| Question | Answer | Why |
+| --- | --- | --- |
+| Q36: identifier, name, file type | `ca.liminalhq.fizzstudio`; "Fizz Level Studio"; `.fizz` registered as `text/vnd.liminal.fizz`, declared a sub-class of `text/plain`, with an icon, as Folio registers `application/vnd.liminal.folio+zip` | It follows the house pattern, and the sub-class keeps `.fizz` files opening in text editors, since the script is the source. The identifier names the data and log directories, so it should not change after the first packaged build. |
+| Q37: when `spec/` splits out | At the start of M1, as one pure move (task S0) | Every M1 change that follows lands in its final place, and the move is cheapest before any code links to the documents. |
+| Q38: locales | en-CA ships; a pseudo-locale in developer builds from M1; fr-CA when there is a translator | The pseudo-locale finds untranslated strings at no cost; a translation nobody can review would be worse than none. |
+| Q39: a file changes on disk with unsaved changes | With no unsaved changes, reload as a revision marked "edited outside". With unsaved changes, merge when the outside change and the session's changes touch different lines, and ask when they overlap. An owned line changed outside stops being owned | The script is the source, and outside writers (a text editor, `git`, today's MCP server) are normal; asking every time would make Claude's headless edits tiring. The owned-line rule is already in `DESKTOP.md` section 9. |
+| Q41: two episodes in one build | Deferred to M13: one revision of the Fizz 2 crates for every Fizz 2-family profile until an Episode 3 repository exists | There is nothing to link against yet; a host process per episode stays the fallback in D58. |
+| Q43: the Game view's stream | Indexed 8-bit frames (320 by 200 is 64,000 bytes), the palette sent only when it changes, frames sent only on change, each tagged with the revision it was drawn from, over a `Channel` with raw bytes | It is the smallest honest form of what Fizz 2 draws, and the revision tag keeps stale frames off the canvas. Task D7 measures it with synthetic frames on WebKitGTK and WebView2 before F5 exists; if it cannot hold 60 frames per second, the fallback is dirty rectangles. |
+
+### Settled by the owner on 2026-11-04
+
+| Question | Answer | Effect |
+| --- | --- | --- |
+| Q40: GitHub or Forgejo | Forgejo | S11 writes the workflows under `.forgejo/workflows/`. CI still needs read access to both game repositories for D8's pins, and whether a Forgejo runner can run the house container and a display for T1 is unverified, so S11 starts by checking it. |
+| Q42: Fizz 1 APIs E6 to E9 | Deferred to M12 | Nothing before M12 depends on it. `lf-episode-1` is already `cdylib` and `rlib`, so linking works today. |
+| Q36, as a veto | The identifier `ca.liminalhq.fizzstudio` stands | It is permanent once a package ships (S11). |
+| The provisional slice fixture | Acceptable for M1's exit criteria | M1 exits with the stub dialect and the hand-written fixture; both are replaced when `fizz-script` lands. |
+
+Nothing in this plan now waits on the owner except the confirmations in section 5, which are also settled.
+
+### CI access to the game repositories
+
+The runner learns about the game repositories from the studio's own manifests, not from configuration of its own: D8 pins the crates as git dependencies in `Cargo.toml` and `Cargo.lock`, and a pin is bumped in a reviewed change (D58). What CI needs on top is network reach and, for a private repository, a read-only credential stored as a Forgejo secret.
+
+| Repository | Remote | What the studio takes from it | How CI gets it | When |
+| --- | --- | --- | --- | --- |
+| Fizz 1 game | `liminal-hq/lieutenant-fizz` (GitHub) | `lf-sim` and `lf-episode-1`, linked natively (D8, D59) | Pinned git dependency, fetched by cargo | M1 |
+| Fizz 2 game | `ScottMorris/lieutenant-fizz-2` (GitHub) | `fizz-script`, `fizz-bake`, `fizz-pack`, `fizz-ep2`, and the presenter crates (D55, D58) | Pinned git dependency; compile-only in M1 | M1 (compile), M2 onward |
+| Fizz 1 for DOS | `ScottMorris/lieutenant-fizz-dos` (GitHub) | Nothing to link. It carries a patched `no_std` copy of the Fizz 1 simulation and must not change its rules, so the studio's rules come from `liminal-hq/lieutenant-fizz`, never from this copy. It is the reference for the Fizz 1 DOS target: the limits of a level that DOS can run, and how an exported level reaches it. | A pinned checkout (a revision in a small `pins` file, not a cargo dependency), used only by the optional job below | M10 onward |
+
+The DOS repository is not mentioned in the other documents, so these uses are proposed, not agreed:
+
+- **A DOS conformance job, nightly and optional.** It exports a level with the Fizz 1 export (M10) and runs it in the DOS build under DOSBox Staging, headless, as the DOS repository's own checks do. It is not part of the pull request checks: it needs DJGPP, DOSBox Staging, and CWSDPMI fetched with checksums (`tools/fetch-tools.sh` in that repository), and a toolchain that the house container may not carry.
+- **Target limits for the Fizz 1 profile.** Whatever limits DOS puts on a Fizz 1 level are read from the DOS repository's `docs/STATUS.md` by hand into the Fizz 1 profile's fixture, with a `SOURCE.md` naming the revision, as for the Fizz 2 fixtures in section 4. Nothing is read at run time.
+
+Unverified, and checked at the start of S11: whether the three repositories are public (a public one needs no credential), whether the Forgejo runner reaches github.com, and whether cargo's git fetch works in the runner (`net.git-fetch-with-cli = true` with a deploy key if a repository is private). Once fetched, the sources are cached so `cargo nextest` and `bun run prove` run offline.
+
+## 4. Stubbing the Fizz 2 dependencies
+
+M1 and the early part of M2 start before `fizz-script` (F1), the content export (F2), `fizz-bake` (F4), `LEVL` version 2 (F10), world packs (F15), the draw API (F5), and the world-stepping API (F6) exist. The studio builds against **ports**: traits in its pure crates, each with a stub now and the Fizz 2 implementation later, as Folio's `Host` trait is implemented by its plugin. The stubs never invent results the game owns: where a real answer is unknown, the stub says "not run" or "not available", and the capability state shows it.
+
+### The ports
+
+| Port | Crate | Stands in for | The stub | The real implementation | Retired at |
+| --- | --- | --- | --- | --- | --- |
+| `Fizz2Syntax`: parse to a lossless document with diagnostics, print, rewrite `map` rows | `fizz-studio-dialect` | `fizz-script` (F1) | `ProvisionalDialect`: reads the `script fizz2 0` header, the `world` file's lists, and the `map` block with the profile's legend; keeps every other line as raw text with no diagnostic; never lowers | `fizz-script` linked natively (D55) | The start of M2's dialect work |
+| `ProfileSource`: tables, limits, legend, capability states | `fizz-studio-profile` | The content export (F2) | `fixtures/profiles/ep2.provisional.json`, written by hand from `fizz-ep2`'s `tiles.rs` and the slice legend `. w # B = ^ D b E`, every capability "accepted" or "reserved", never "built"; and `synthetic.json`, the third profile `TESTING.md` already requires | Generated from F2's JSON with a drift test | When F2 lands |
+| `Baker`: build, check, dump, size report | `fizz-studio-bake` (new in M2) | `fizz-bake` and world packs (F4, F15) | `NotRunBaker` answers "not run" to everything, as `WORLD.md` section 4 says Build world must until then; `FixtureBaker`, for tests only, replays recorded reports | `fizz-bake`'s library | When F4 and F15 land |
+| `LevelRecords`: states, objects, rules, and strings as `LEVL` lays them out | `fizz-studio-bake` | `LEVL` version 2 (F10) | None that produces bytes. The editor shows records resolved from the source, labelled "from the source, not baked"; nothing is built on `LEVL` version 1, which D43 drops | `fizz-bake dump` of `LEVL` 2 | When F10 lands |
+| `GameHost` (Fizz 2): draw a frame, build and step a world | `fizz-studio-host` | The draw API (F5, F13) and world stepping (F6) | `FlatFallbackHost`: `draw` answers "not available" and the canvas shows the flat fallback with its banner (R-F2-20); `step` answers "not run"; `SyntheticFrames` streams test frames for Q43 only | `fizz-slice-view` and `fizz-ep2` linked natively (D59) | F5 for drawing (M2 or M5), F6 for stepping (M3) |
+
+The Fizz 1 side of `GameHost` needs no stub in M1: `build_level` is already public (section 1).
+
+### Fixtures
+
+- **`fixtures/fizz2/worlds/light/`:** a `world.fizz` and the slice level as a script, written by hand in the studio's proposed syntax (`LANGUAGE.md`) from `fizz_ep2::level` (`SLICE_SOURCE`, `SLICE_OBJECTS`, `SLICE_RULES`). Those constants are on the unmerged Fizz 2 stack (#137 to #140), so the fixture is **provisional twice over**: its syntax waits on Q14 and its data on those pull requests. A `SOURCE.md` beside it names the Fizz 2 commit it was read from.
+- **The conformance corpus**, once F1 publishes one, is copied by commit with a refresh script that fails when the copy differs (`TESTING.md` section 7). Until then there is no Fizz 2 corpus, and none is invented: the studio's own Fizz 2 fixtures test only the stub's contract (round trip, the `map` rewrite) and never claim to be the dialect.
+- **No fake digests.** A stub never returns a digest, a size, or a frame that looks like the game's. Golden numbers (the slice digest, frame digests) enter only from the Fizz 2 repository.
+
+### Contract tests
+
+Each port has one contract suite, written once and generic over the trait (`fn contract<P: Fizz2Syntax>(p: &P)`), in the port's crate under `tests/contract.rs`. It checks what every implementation must do: print back unchanged, report positions as `path:line:col`, rewrite only touched `map` rows, carry the revision, answer "not run" or a result but never panic on a missing capability. The stub runs it now; the real implementation runs it behind a Cargo feature (`fizz2-real`) as soon as its pin builds, and both must pass before the default flips. A second, real-only suite then holds the checks a stub cannot pass (the corpus's codes, `fizz-bake dump` equality, the slice digest).
+
+### Retiring a stub
+
+1. The Fizz 2 change lands at a revision; the pin is bumped in a reviewed change (D58).
+2. The real implementation is added behind `fizz2-real`; the contract suite passes for both.
+3. The default flips to the real implementation, and the real-only suite joins `bun run validate`.
+4. The stub and the fixtures only it used are deleted in the same milestone, and the capability states move from "accepted" to "built" where the game now runs the feature.
+
+Every stub lives in a file named `stub.rs` whose header names its change request (for example "stands in for F4 until `fizz-bake` is linked"). A small check prints the remaining stubs in the gate's output, so a stub that outlives its milestone is visible in every run.
+
+### What M2 can do before its blockers land
+
+- **Can start on stubs:** world folders and `world.fizz` lists (D5); the profile model, the capability card, and the synthetic-profile test (R-TGT-01 to R-TGT-05, on `ProfileSource`); the Objects window's ids and indices as UI over the stub's document; the Budget window's layout with every meter reading "estimate" or "not run"; the read-only MCP tools' shapes in the TypeScript server, if D57 is not yet confirmed.
+- **Must wait:** anything that parses beyond the header and `map` (F1), Build world and the dump view (F4, F15), the records equality test (F10), the generated `ep2` profile (F2), and the Fizz 1 export's lossy check, which needs the real dialect's AST to be worth testing.
+
+## 5. Which proposed decisions to confirm first
+
+The owner confirmed D55, D56, D58, and D60 on 2026-11-04, so S0 only has to remove **Proposed** from their entries in `DECISIONS.md`. D57 and D59 stay proposed.
+
+| Decision | When | Why |
+| --- | --- | --- |
+| D55: Rust owns the domain, one parser for Fizz 2 | **Before M1** | It decides where the session's parser lives, and so the shape of D1, D4, D6, and U1. Without it the session cannot own a level, which R-APP-09 requires. |
+| D56: port the Fizz 1 dialect to Rust | **Before M1** | M1's exit opens, paints, and saves `crater.fizz` through a Rust session; the port (D1 to D3) is on the critical path. The alternative (TypeScript in the webview) breaks "Rust owns state". |
+| D58: pinned git dependencies, profiles compiled in | **Before M1** (before D8 at the latest) | It shapes `Cargo.lock`, the fixtures' `SOURCE.md` pins, and how stubs retire (section 4). It is also the cheapest to reverse if the owner prefers otherwise. |
+| D60: Rust tests and `tauri-mcp-server` instead of Playwright | **Before M1** | M1's exit criteria are written as `tauri-mcp-server` checks (T1); confirming it costs nothing and fixes the test plan. |
+| D59: both games hosted natively | Before M2's game-host work; it can wait for M1 | M1 needs only the `GameHost` trait and a Fizz 1 link that already works. But `ROADMAP.md` already assumes D59 (it removed the WebAssembly bridge milestone), so it should be confirmed before M2 is planned in detail; if it is refused, D8 stays compile-only. |
+| D57: Claude's MCP server as a stdio sidecar | Before M4; it can wait | M1 has only the debug bridge (T1). Today's TypeScript server keeps working beside the app, and its writes reach the session as outside edits through file watching (D5), so there is never a second writer inside the app. |
+
+D37 to D40 are also still marked **Proposed** in `DECISIONS.md`; none of them gates M1, and D37 and D39 should be confirmed with D59 before M2.
+
+## 6. The critical path
+
+| Milestone | Waits on (studio) | Waits on (game repositories) | Can start on stubs |
+| --- | --- | --- | --- |
+| M1 Desktop walking skeleton | — | Nothing from Fizz 2 to start; F23 only for a stable link (section 1) | Yes, entirely |
+| M2 World projects and Fizz 2 levels | M1 | F1, F2, F4, F10, F15, F23; F5, F7, and F9 for parts, not the whole | Partly (section 4) |
+| M3 States and rules | M2 | F6, F11, F18 | The States and Rules windows over the source; previews wait for F6 |
+| M4 Claude in the studio | M2, M3, D57 | — | — |
+| M5 Lights, panels, and the Game view | M2 | F3, F5, F12, F13, F19, F22 | The light tool and meters reading "not run" |
+| M6 Pixel editor | M2, M5 for panels in place | F14 for tile textures only | Yes for `drawn` sprites and panels |
+| M7 Behaviour scripting | M3, M5 | F8, F16, F17, F21, F22 | The editor and the compiler's checks; the debugger waits for F21 |
+| M8 Retro art and Fizz 1 conversion | M2, M6 | F20; E11 in `lieutenant-fizz` | Convert to Fizz 2's report |
+| M9 to M12, the Fizz 1 track | M1 | E1, E2, E10 (M9); E3 to E5 (M11); E6 to E9 (M12) | M10 needs nothing beyond M1 |
+
+- **M1 is free to start now** and is the only milestone that is. Its own critical path is the Fizz 1 port (D1 to D3) into the editor shell.
+- **The Fizz 1 track (M9 to M12) can run alongside** the Fizz 2 milestones from the end of M1, and M10 is the best use of hands while M2 waits: it needs only M1 and exercises the same shell, session, and port.
+- **M2 is the first hard wait** on the Fizz 2 repository. The earliest F-items to ask for are F23 (so D8's link is stable), F1 and F2 (so the stubs in section 4 can retire first), then F4, F10, and F15.
+- **M3 waits on F6, F11, and F18; M5 on F3, F5, F12, F13, F19, and F22; M6 on F14 for tiles only; M7 on F8, F16, F17, and F21 (and F22); M8 on F20.** M5 and M6 can run alongside each other, as `ROADMAP.md` says.
