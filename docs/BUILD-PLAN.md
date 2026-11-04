@@ -95,7 +95,7 @@ The critical path is S1, D1, D2, D3, U1, U2, U3, T1, T2: the Fizz 1 port gates t
 
 ### What can run at once
 
-- **Day one, after S1:** S2, S3, S4, D1, D4, D5, D6, and D7 (its crate half). Seven independent pull requests, five of them pure Rust with no app.
+- **Day one, after S1:** S2, S3, S4, D1, D4, D5, D6, and D7 (its crate half). Eight independent pull requests, five of them pure Rust with no app.
 - **After S3:** S5, S6, S7, and S8 in parallel; S9 once S4, S7, and S8 are in.
 - **After D1:** D2 and D3 in parallel; D8 after D2.
 - **The shell (U1 to U5)** waits for the spine and the domain to meet; U4 and U5 run alongside each other after U1.
