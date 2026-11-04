@@ -1,6 +1,6 @@
 # Overworlds
 
-The overworld model, its script, the exporter and `OverworldBuilder`, unlock rules and the mask limit, several overworlds, level registration, sprites, the steps that make adding a level real, and what carries over to Fizz 2 and later episodes. The overworld designer is the next milestone (`ROADMAP.md` M1). Sections 1 to 9 are about Lieutenant Fizz 1, the only game with an overworld today; section 10 covers Fizz 2 and later episodes.
+The overworld model, its script, the exporter and `OverworldBuilder`, unlock rules and the mask limit, several overworlds, level registration, sprites, the steps that make adding a level real, and what carries over to Fizz 2 and later episodes. The overworld designer is `ROADMAP.md` M9, after the Fizz 2 milestones. Sections 1 to 9 are about Lieutenant Fizz 1, the only game with an overworld today; section 10 covers Fizz 2 and later episodes.
 
 ## 1. The model in the game
 
