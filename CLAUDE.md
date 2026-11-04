@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-Fizz Level Studio is the level and overworld editor for Lieutenant Fizz, where a person and Claude design levels together. See `AGENTS.md` for the authoritative conventions — most importantly: **Canadian English** spelling and Oxford commas; **Conventional Commits** with a detailed body on every commit, ending with the `Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>` trailer, but **never in PR titles** (human-readable, imperative, with labels on every PR); the licence header on every `.ts` and `.sh` file; **no pushes unless explicitly asked**; the repository's home is GitHub (`liminal-hq/fizz-level-studio`, use `gh`), with Forgejo as a mirror; no scanlines in any art. `SPEC.md` describes the design.
+Fizz Level Studio is the level and overworld editor for Lieutenant Fizz, where a person and Claude design levels together. See `AGENTS.md` for the authoritative conventions — most importantly: **Canadian English** spelling and Oxford commas; **Conventional Commits** with a detailed body on every commit, ending with a `Co-Authored-By:` trailer that names the AI model used (for example `Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>`), but **never in PR titles** (human-readable, imperative, with labels on every PR); the licence header on every `.ts` and `.sh` file; **no pushes unless explicitly asked**; the repository's home is GitHub (`liminal-hq/fizz-level-studio`, use `gh`), with Forgejo as a mirror; no scanlines in any art. `SPEC.md` describes the design.
 
 ## Status
 

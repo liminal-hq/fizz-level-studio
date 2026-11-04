@@ -54,7 +54,7 @@ Use a real em dash (`—`) in prose, never `--` (a CLI flag excepted). `bun run 
 
 **Format:** Conventional Commits (`feat:`, `fix:`, `docs:`, `test:`, `build:`, `ci:`, `chore:`), and a body on every commit that explains what and why, with bold labels instead of headings and every code-level reference in backticks. Hard-wrap bodies at roughly 72 to 100 characters. Write the message to a file and commit with `git commit -F`. The history opens with the import of the folder as it stood, which has a plain subject.
 
-End every commit made by Claude with the trailer `Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>`.
+End every commit that an AI model helped write with a `Co-Authored-By:` trailer that names the model that produced the code and carries the address its vendor provides, for example `Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>`. Name the model actually used, not a fixed one, and add one trailer per model when more than one contributed.
 
 ## Pull Request Titles
 
