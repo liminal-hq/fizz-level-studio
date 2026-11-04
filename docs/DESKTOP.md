@@ -169,7 +169,7 @@ As Folio's `release.yml`, from `vX.Y.Z` (and `-beta.N`) tags with synchronised m
 - **One gate:** `bun run validate`, which runs format, headers, plugin boundaries, case collisions, browser storage, licences, the bindings drift check, `tsc`, Vitest, the build, `cargo fmt --check`, `cargo clippy --workspace --all-targets -D warnings` and `cargo nextest run --workspace` (`folio/package.json`, `folio/AGENTS.md`). For the studio it also runs the language conformance corpus and the Episode 1 proofs (section 13).
 - **Containers:** Rust jobs in `ghcr.io/liminal-hq/tauri-ci-desktop:latest`, with Clippy also on `windows-latest` and `windows-11-arm`; local development in `ghcr.io/liminal-hq/tauri-dev-desktop:latest` (`folio/.github/workflows/ci.yml`, `folio/AGENTS.md`).
 - **Dependabot:** weekly, at most five open pull requests, groups for `tauri*`, `@tauri-apps/*` and `tauri-plugin-*`, labelled `build`, with Actions labelled `ci` (`folio/.github/dependabot.yml`).
-- **Forge.** The reference apps use GitHub Actions; this repository's remote is Forgejo with `.forgejo/workflows/ci.yml`. Whether the studio moves to GitHub to share the containers and workflows, or ports them to Forgejo, is open (Q40).
+- **Forge.** The reference apps use GitHub Actions, and so does the studio: its home is `liminal-hq/fizz-level-studio` on GitHub with `.github/workflows/ci.yml`, sharing the containers and workflows, and Forgejo holds a mirror (Q40, settled).
 
 ## 12. Accessibility and keyboard
 

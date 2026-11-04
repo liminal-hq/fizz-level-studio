@@ -1,0 +1,32 @@
+# Dependabot is configured but switched off: every ecosystem allows zero open
+# pull requests. To turn it on, raise each `open-pull-requests-limit` (the
+# Liminal HQ apps use 5) and add a `cargo` entry once the Cargo workspace exists.
+#
+# (c) Copyright 2026 Liminal HQ, Scott Morris
+# SPDX-License-Identifier: Apache-2.0 OR MIT
+
+version: 2
+updates:
+  - package-ecosystem: 'npm'
+    directory: '/'
+    schedule:
+      interval: 'weekly'
+    open-pull-requests-limit: 0
+    labels:
+      - 'build'
+
+  - package-ecosystem: 'npm'
+    directory: '/packages/mcp'
+    schedule:
+      interval: 'weekly'
+    open-pull-requests-limit: 0
+    labels:
+      - 'build'
+
+  - package-ecosystem: 'github-actions'
+    directory: '/'
+    schedule:
+      interval: 'weekly'
+    open-pull-requests-limit: 0
+    labels:
+      - 'ci'

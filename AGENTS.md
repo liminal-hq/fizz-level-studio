@@ -8,6 +8,9 @@
 - [Markdown Formatting](#markdown-formatting)
 - [Authoring Voice](#authoring-voice)
 - [Commit Messages](#commit-messages)
+- [Pull Request Titles](#pull-request-titles)
+- [Pull Request Content](#pull-request-content)
+- [Pull Request Labels](#pull-request-labels)
 - [Git Workflow](#git-workflow)
 - [Local Tooling](#local-tooling)
 - [The Language](#the-language)
@@ -22,10 +25,10 @@
 
 ## Repository Metadata
 
-For the owner to apply on the Forgejo repository; nothing here is read by a tool.
+Applied to the GitHub repository `liminal-hq/fizz-level-studio`; nothing here is read by a tool.
 
 - **Description:** A level and overworld editor for Lieutenant Fizz, with a plain-text level language, an MCP server for Claude and proofs against the game.
-- **Topics:** `level-editor`, `lieutenant-fizz`, `game-tools`, `mcp`, `typescript`, `bun`, `ega`, `liminal-hq`
+- **Topics:** `level-editor`, `lieutenant-fizz`, `game-tools`, `mcp`, `typescript`, `bun`, `tauri`, `tauri-v2`, `rust`, `desktop-app`, `liminal-hq`
 
 ## Project Status
 
@@ -45,17 +48,45 @@ Use a real em dash (`—`) in prose, never `--` (a CLI flag excepted). `bun run 
 
 ## Authoring Voice
 
-**REQUIREMENT:** Write every outward-facing line — code comments, identifiers, docs — as the author of the artefact, for the reader who will meet it later, not as a record of the process that produced it. Don't reference "this change", a reviewer or a commit SHA in code or docs. Commit messages are the place to record why a change happened.
+**REQUIREMENT:** Write every outward-facing line — code comments, identifiers, docs — as the author of the artefact, for the reader who will meet it later, not as a record of the process that produced it. Don't reference "this change", "this PR", a reviewer or a commit SHA in code, docs or PR prose; state the fact or the reasoning directly, as if it had always been true. When a comment has been edited more than once, rewrite it as one clean explanation. Commit messages are the place to record why a change happened.
 
 ## Commit Messages
 
 **Format:** Conventional Commits (`feat:`, `fix:`, `docs:`, `test:`, `build:`, `ci:`, `chore:`), and a body on every commit that explains what and why, with bold labels instead of headings and every code-level reference in backticks. Hard-wrap bodies at roughly 72 to 100 characters. Write the message to a file and commit with `git commit -F`. The history opens with the import of the folder as it stood, which has a plain subject.
 
-End every commit made by Claude with the trailer `Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>`.
+End every commit that an AI model helped write with a `Co-Authored-By:` trailer that names the model that produced the code and carries the address its vendor provides, for example `Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>`. Name the model actually used, not a fixed one, and add one trailer per model when more than one contributed.
+
+## Pull Request Titles
+
+**REQUIREMENT:** A PR title is a human-readable summary of the change, never a Conventional Commit.
+
+- Start with a capital letter, write in the imperative mood, and keep to roughly 70 characters.
+- No `feat:`, `fix:` or `chore:` prefixes.
+- Describe the outcome, not the process.
+- Keep the style consistent across the PRs in a stack; don't rename merged PRs unless asked.
+
+## Pull Request Content
+
+**Requirement:** Use outcome-focused language and leave out internal planning notes and workflow artefacts. Open PRs ready for review unless the user asks for a draft.
+
+- Use `## Summary` with flat bullets that have **bold** lead-ins (and `###` subsections only when they help), then `## Test plan` as a checklist (`- [x]` / `- [ ]`) with the commands that were run.
+- If something could not be verified, say so plainly at the end of the test plan.
+- `.github/pull_request_template.md` has the shape.
+
+## Pull Request Labels
+
+**Requirement:** Add labels to every PR when it is created or updated.
+
+- **Primary category** (at least one): `enhancement`, `bug`, `documentation`, `testing`, `ci`, `build`, or `chore`. Use these, not `feat` or `fix`.
+- **Shared operational labels:** `infrastructure`, `internal`, `release`, `blocked`, `epic`, `skip-changelog`.
+- **Scope labels:** technology (`frontend`, `backend`, `rust`, `plugin`, `data-model`), platform (`linux`, `windows`, `wayland`), cross-cutting (`architecture`, `spike`, `experimental`, `developer-experience`, `performance`, `security`, `accessibility`, `localisation`, `theming`, `design-system`), and the studio's own areas (`language`, `fizz-2`, `mcp`, `overworld`, `canvas`, `scripting`, `proofs`, `desktop`).
+- `skip-changelog` excludes a change from the generated release notes, whose categories are in `.github/release.yml`.
 
 ## Git Workflow
 
-**Requirement:** Never push, tag or dispatch a workflow unless the user explicitly asks. The default branch is `main`; work on topic branches (`feat/<topic>`, `fix/<topic>`, `docs/<topic>`) and merge locally once verified. The remote is Forgejo, so use `tea` for pull requests and labels.
+**Requirement:** Never push, tag or dispatch a workflow unless the user explicitly asks. The default branch is `main`; never commit directly to it. Work on topic branches (`feat/<topic>`, `fix/<topic>`, `docs/<topic>`; for a fix tied to an issue, `fix/issue-<number>-<short-description>`) and merge through a pull request with a merge commit.
+
+The repository's home is GitHub (`liminal-hq/fizz-level-studio`), so use `gh` for pull requests, labels, reviews and Actions. Forgejo holds a mirror; don't open pull requests there.
 
 ## Local Tooling
 
@@ -99,7 +130,7 @@ Planned, not built, and the more important target. Lieutenant Fizz 2 is a separa
 
 ## CI
 
-`.forgejo/workflows/ci.yml` installs the MCP server's dependencies with `--frozen-lockfile`, lints the Markdown and runs the language and MCP tests on the Forgejo runner (`ubuntu-24.04`) for every pull request and push to `main`. The proofs need Rust and the game's crates, so they run locally, not in CI.
+`.github/workflows/ci.yml` installs the MCP server's dependencies with `--frozen-lockfile`, lints the Markdown and runs the language and MCP tests on GitHub Actions (`ubuntu-24.04`) for every pull request and push to `main`. `.github/dependabot.yml` is configured with every limit at zero, so it is off until someone raises them. The proofs need Rust and the game's crates, so they run locally, not in CI.
 
 ## Architecture Rules
 

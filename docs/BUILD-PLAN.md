@@ -41,7 +41,7 @@ S0 ─ S1 ─┬─ S2 ─ S10 ────────────────�
          ├─ D5 ───────────────────────────────────┤
          ├─ D6, D7 ───────────────────────────────┘
          └─ D8 (after D2)
-S11 (CI and packaging) after S2 and S3 (Forgejo, Q40)
+S11 (CI and packaging) after S2 and S3 (GitHub Actions, Q40)
 ```
 
 The critical path is S1, D1, D2, D3, U1, U2, U3, T1, T2: the Fizz 1 port gates the editor, because the session must own a Fizz 1 level in Rust before the canvas can draw it.
@@ -50,7 +50,7 @@ The critical path is S1, D1, D2, D3, U1, U2, U3, T1, T2: the Fizz 1 port gates t
 
 | Id | Task | Touches | Acceptance | After |
 | --- | --- | --- | --- | --- |
-| S0 | Confirm D55, D56, D58, and D60 (section 5); split `SPEC.md` and `docs/` into `spec/` and `docs/` as a pure move (Q37), with `CLAUDE.md`, `AGENTS.md`, and `README.md` updated in the same change | `docs/DECISIONS.md`, `SPEC.md` → `spec/*.md`, `CLAUDE.md`, `AGENTS.md`, `README.md` | The four entries lose **Proposed**; `bun run lint:md` passes and every relative link resolves; no text changes beyond paths | — |
+| S0 | Confirm D55, D56, D58, and D60 (section 5); split `SPEC.md` and `docs/` into `spec/` and `docs/` as a pure move (Q37), with `CLAUDE.md`, `AGENTS.md`, and `README.md` updated in the same change, and `AGENTS.md` gaining Folio's Tauri v2 and frontend code conventions (no barrel files, the message catalogue, no browser storage) | `docs/DECISIONS.md`, `SPEC.md` → `spec/*.md`, `CLAUDE.md`, `AGENTS.md`, `README.md` | The four entries lose **Proposed**; `bun run lint:md` passes and every relative link resolves; no text changes beyond paths | — |
 | S1 | Workspaces and toolchain: a root Cargo workspace (resolver 2, edition 2021, `license = "Apache-2.0 OR MIT"`, release `strip = true`), `rust-toolchain.toml` at 1.98.0 with `rustfmt` and `clippy`, Bun workspaces listed explicitly (`apps/*`, `plugins/*`, `packages/chrome`, `packages/protocol`) so `packages/mcp` keeps its own lockfile until D57 retires it, `.node-version` at 24.14.0 as Folio | `Cargo.toml`, `rust-toolchain.toml`, `package.json`, `.node-version`, `.gitignore` | `cargo metadata` and a root `bun install --frozen-lockfile` succeed; `bun run test`, `bun run test:mcp`, and `bun run lint:md` still pass unchanged | S0 (or alongside it) |
 | S2 | The gate: copy Folio's `check-headers.sh` (extended to `.rs` and `.tsx`), `check-plugin-boundaries.sh`, `check-case-collisions.sh`, `check-browser-storage.sh`, `check-licences.sh` with `deny.toml`, `check-bindings-drift.sh`, and `generate-protocol-bindings.sh`; compose `bun run validate`, which also runs today's `test`, `test:mcp`, and `lint:md`; add `THIRD_PARTY_NOTICES.md` | `scripts/*.sh`, `deny.toml`, `package.json`, `THIRD_PARTY_NOTICES.md` | `bun run validate` passes; a planted violation of each check (a header missing, a raw `invoke('plugin:…')`, `localStorage`, a case collision) fails it | S1 |
 | S3 | The app shell: `apps/studio` (Vite, React 19, TypeScript strict, CSS Modules, Vitest with Testing Library and happy-dom) and a thin `src-tauri` (`lib.rs`, `main.rs`, `windows.rs`); `tauri.conf.json` with `"windows": []` and identifier `ca.liminalhq.fizzstudio`; `tauri.conf.dev.json` with `withGlobalTauri`; `bun run tauri:dev` | `apps/studio/**` | `bun run tauri:dev` opens one frameless, transparent `main-1` window built in Rust on Linux (Wayland and X11); a `tauri::test::mock_builder` test builds the app; `bun run validate` passes | S1 |
@@ -61,7 +61,7 @@ The critical path is S1, D1, D2, D3, U1, U2, U3, T1, T2: the Fizz 1 port gates t
 | S8 | Settings: `crates/fizz-studio-settings` (pure: a typed, versioned document, migrations, the previous generation kept, an unreadable file set aside) and `plugins/fizz-studio-settings` (store, one writer, revision, change events, recent worlds), with `guest-js` | `crates/fizz-studio-settings/**`, `plugins/fizz-studio-settings/**` | Rust tests for migration, the set-aside file, and a monotonic revision; two windows see a theme change and ignore a lower revision; `check:storage` passes | S3 (parallel with S7) |
 | S9 | Appearance and tear-off: `tauri-plugin-system-appearance` and `tauri-plugin-window-manager` from the registry; `window-tearoff` and `window-effects` copied from Waypoint with `PROVENANCE.md` | `plugins/window-tearoff/**`, `plugins/window-effects/**`, `apps/studio/src-tauri/Cargo.toml` | The theme follows the system's light and dark; the Script panel tears off into `panel-script-1` and docks back; each plugin's status command answers | S4, S7, S8 |
 | S10 | Shared types: `crates/fizz-studio-protocol` with `ts-rs`, generated into `packages/protocol` | `crates/fizz-studio-protocol/**`, `packages/protocol/**` | Regeneration gives no diff; a Rust type changed without regenerating fails `check:bindings` | S2 |
-| S11 | CI and packaging: Rust jobs in `tauri-ci-desktop`, Clippy on Windows x64 and arm64, packages for Linux (deb, rpm, AppImage) and Windows (msi, nsis), dependency-update grouping, the Linux running-app job | `.forgejo/workflows/*.yml`, a dependency-update config | A pull request builds every package and runs `bun run validate` and T1 on Linux | S2, S3; Forgejo (Q40) |
+| S11 | CI and packaging: Rust jobs in `tauri-ci-desktop`, Clippy on Windows x64 and arm64, packages for Linux (deb, rpm, AppImage) and Windows (msi, nsis), dependency-update grouping, the Linux running-app job | `.github/workflows/*.yml`, `.github/dependabot.yml` | A pull request builds every package and runs `bun run validate` and T1 on Linux | S2, S3; GitHub Actions (Q40) |
 
 ### Domain tasks
 
@@ -99,7 +99,7 @@ The critical path is S1, D1, D2, D3, U1, U2, U3, T1, T2: the Fizz 1 port gates t
 - **After S3:** S5, S6, S7, and S8 in parallel; S9 once S4, S7, and S8 are in.
 - **After D1:** D2 and D3 in parallel; D8 after D2.
 - **The shell (U1 to U5)** waits for the spine and the domain to meet; U4 and U5 run alongside each other after U1.
-- **S11** can run once S2 and S3 exist; Q40 is settled as Forgejo, and the existing Forgejo job keeps running the TypeScript checks until then.
+- **S11** can run once S2 and S3 exist; Q40 is settled as GitHub Actions, and `.github/workflows/ci.yml` keeps running the TypeScript checks until then.
 - **S0's spec split** should land before the other branches open, so no later change edits a file that is about to move.
 
 ## 3. The open desktop questions
@@ -119,7 +119,7 @@ The critical path is S1, D1, D2, D3, U1, U2, U3, T1, T2: the Fizz 1 port gates t
 
 | Question | Answer | Effect |
 | --- | --- | --- |
-| Q40: GitHub or Forgejo | Forgejo | S11 writes the workflows under `.forgejo/workflows/`. CI still needs read access to both game repositories for D8's pins, and whether a Forgejo runner can run the house container and a display for T1 is unverified, so S11 starts by checking it. |
+| Q40: GitHub or Forgejo | GitHub Actions; Forgejo holds a mirror | S11 writes the workflows under `.github/workflows/` on the Liminal HQ containers and shared workflows. The repository is `liminal-hq/fizz-level-studio`; the Forgejo copy is read-only. |
 | Q42: Fizz 1 APIs E6 to E9 | Deferred to M12 | Nothing before M12 depends on it. `lf-episode-1` is already `cdylib` and `rlib`, so linking works today. |
 | Q36, as a veto | The identifier `ca.liminalhq.fizzstudio` stands | It is permanent once a package ships (S11). |
 | The provisional slice fixture | Acceptable for M1's exit criteria | M1 exits with the stub dialect and the hand-written fixture; both are replaced when `fizz-script` lands. |
@@ -128,7 +128,7 @@ Nothing in this plan now waits on the owner except the confirmations in section 
 
 ### CI access to the game repositories
 
-The runner learns about the game repositories from the studio's own manifests, not from configuration of its own: D8 pins the crates as git dependencies in `Cargo.toml` and `Cargo.lock`, and a pin is bumped in a reviewed change (D58). What CI needs on top is network reach and, for a private repository, a read-only credential stored as a Forgejo secret.
+The runner learns about the game repositories from the studio's own manifests, not from configuration of its own: D8 pins the crates as git dependencies in `Cargo.toml` and `Cargo.lock`, and a pin is bumped in a reviewed change (D58). All three repositories are public, so CI needs no credential.
 
 | Repository | Remote | What the studio takes from it | How CI gets it | When |
 | --- | --- | --- | --- | --- |
@@ -141,7 +141,7 @@ The DOS repository is not mentioned in the other documents, so these uses are pr
 - **A DOS conformance job, nightly and optional.** It exports a level with the Fizz 1 export (M10) and runs it in the DOS build under DOSBox Staging, headless, as the DOS repository's own checks do. It is not part of the pull request checks: it needs DJGPP, DOSBox Staging, and CWSDPMI fetched with checksums (`tools/fetch-tools.sh` in that repository), and a toolchain that the house container may not carry.
 - **Target limits for the Fizz 1 profile.** Whatever limits DOS puts on a Fizz 1 level are read from the DOS repository's `docs/STATUS.md` by hand into the Fizz 1 profile's fixture, with a `SOURCE.md` naming the revision, as for the Fizz 2 fixtures in section 4. Nothing is read at run time.
 
-Unverified, and checked at the start of S11: whether the three repositories are public (a public one needs no credential), whether the Forgejo runner reaches github.com, and whether cargo's git fetch works in the runner (`net.git-fetch-with-cli = true` with a deploy key if a repository is private). Once fetched, the sources are cached so `cargo nextest` and `bun run prove` run offline.
+CI runs on GitHub Actions, so reaching the other repositories needs no setup. Once fetched, the sources are cached so `cargo nextest` and `bun run prove` run offline. Whether the house container carries a display for T1 is unverified and checked at the start of S11.
 
 ## 4. Stubbing the Fizz 2 dependencies
 

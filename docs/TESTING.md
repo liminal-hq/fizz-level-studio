@@ -92,7 +92,7 @@ H=$PWD/design/project node tools/design-harness/all.cjs               # for all.
 
 ## 6. Gaps
 
-- **CI runs only part of it.** `.forgejo/workflows/ci.yml` lints the Markdown and runs the language and MCP tests; the proofs need Rust and the game's crates and run locally.
+- **CI runs only part of it.** `.github/workflows/ci.yml` lints the Markdown and runs the language and MCP tests; the proofs need Rust and the game's crates and run locally.
 - **The proofs run in a copy.** `scratch/rust/` can drift from the game; until the proofs move into the game (ENGINE-CHANGES E12), diff the copy before trusting a run.
 - **Statements without an equality proof.** `ladder`, `stairs-right`, `stairs-left`, `vine-nook`, `mural`, `wall-behind` and `liquid` are covered by the kitchen-sink compile-and-run and by unit tests of the text they export, but no real level script uses them (the `levels/real/` scripts are written as fills).
 - **The rasteriser check is partial.** `verify-rasteriser.ts` compares tiles, items, spawns and the start; platforms, rooms, the arena and switches are compared only by the Rust proof.
