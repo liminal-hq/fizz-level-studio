@@ -17,7 +17,7 @@ How Fizz Level Studio is put together: the packages, how a script flows through 
 | MCP server | `packages/mcp/src` | `server.ts` (stdio server), `tools.ts` (the nine tools), `studio.ts` (file, sidecar, proposals, accept, reject, undo), `world.ts` (level rasteriser, glyph rendering, gap check), `schema.ts` (input checker), `cli.ts` (the person's command line) | Language; `@modelcontextprotocol/sdk` ^1.32.1 |
 | Tools | `tools/` | Proof generators, verifiers, audits, the decompiler, the prototype data generators, the design harness | Language, MCP (`world.ts`) |
 | Proof copy | `scratch/rust/` | A Cargo workspace copied from the game, plus the generated functions and proof tests | The game's crates |
-| Fizz 2 dialect | not built | Planned: the dialect, the Target setting and the Fizz 1 export check, in `packages/language` | Language |
+| Fizz 2 dialect and target profiles | not built | Planned: the dialect, the target profiles and their capability states, the Fizz 1 export check and Convert to Fizz 2, in `packages/language`; the profiles as generated data files | Language |
 | Design prototype | `design/project/` | `Proto.dc.html` and the other canvas pages | `levels-data.js`, `lang-docs.js` (generated) |
 | Studio app | not built | | Language, MCP, the game's WebAssembly |
 
@@ -131,13 +131,13 @@ and, in the game repository, generated level and overworld functions under a chi
 Lieutenant Fizz 2 bakes its levels from `.fizz` sources in its own repository. None of this is built here; it fixes who owns what so the editor does not grow a second copy of the game's rules.
 
 ```text
- level.fizz  (script fizz2 0)
+ level.fizz  (script fizz2 0, checked against a target profile)
       │
       ├── editor (packages/language, TypeScript): lossless parse, print, completion, live checks
       │
       └── fizz-bake (Fizz 2 repository, Rust)
             fizz-script : parse → resolve → validate → lint → lower
-            LEVL v2     : header, name, objects x32, rules x32, tiles
+            LEVL        : header, name, objects, rules (up to 32), strings (up to 32), tiles; section version 1
             LIGHT.FAP   : the world's pack; manifests and digests reviewable as text
             dump        : disassembly of objects and rule records
 ```
@@ -146,4 +146,8 @@ Lieutenant Fizz 2 bakes its levels from `.fizz` sources in its own repository. N
 - **Two parsers is the risk.** The language package is TypeScript and `fizz-script` is Rust. The options (a shared conformance corpus of scripts with expected codes and printed output, or loading `fizz-script` through WebAssembly as the Paths lens will load the sim) are not decided; see the open questions in [DECISIONS.md](DECISIONS.md). Either way, a corpus of golden scripts belongs in both repositories' tests.
 - **Rules are data.** A `when ... then ...` rule becomes a fixed 32-byte record at bake time. There is no VM on DOS and no rule text on the device, so the editor shows rules from the source and, in the dump view, from the records.
 - **Digests and manifests.** The pack's manifest and digest include the rule records and the decompiled lines, so a change to a rule shows in review as text. The editor does not compute them; it can show them.
-- **Target.** The editor keeps one script and a Target setting (Fizz 1 or Fizz 2). The Fizz 1 export is a lowering plus a check inside the language package.
+- **What exists in the Fizz 2 repository.** The `LEVL` data model is built and tested (`crates/fizz-pack`, `crates/fizz-ep2`; rules, strings and locks on the unmerged #137, #138 and #140). `fizz-script`, `fizz-bake`, the dialect's grammar and the packs are plans. So the record layout is a fact the editor can rely on, and the syntax is a proposal (`LANGUAGE.md`).
+- **The compatibility number.** A world pack carries a number derived from the schema and the game's content tables (tile properties, ids, snack kinds, key colours, cue ids, styles, the rules' semantics). A change to any of them makes old packs refuse to load, which is why the editor reads those tables from the target profile and never assumes them.
+- **Target profiles.** The editor keeps one script and a Target that names a profile (`fizz1`, `ep2`, later `ep3`): the dialect versions it accepts, its content tables, limits, budgets, the lints' physics parameters and a capability state per feature. Profiles are data generated from each game's own tables (ENGINE-CHANGES E11 and F2). The Fizz 1 export is a lowering plus a check inside the language package; Convert to Fizz 2 goes the other way.
+- **The game's look.** The oblique ground, parallax, the sky and night lights are drawn by Fizz 2's presenter crates; the editor shows them through a WebAssembly draw export (F5) in a worker, beside the Paths lens and the playtest bot, and never redraws them in TypeScript.
+- **Sprites.** Fizz 2's sprites are JSON grids in its `assets/sprites/`; the editor reads them for drawing and edits only `drawn` sets, writing canonically. Sprites reach packs through `fizz-bake`, not through the editor.
