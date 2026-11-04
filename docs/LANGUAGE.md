@@ -232,7 +232,7 @@ Lieutenant Fizz 2 bakes its levels from `.fizz` sources, so the language gains a
 This section keeps three things apart:
 
 - **What exists in Fizz 2 today,** cited. Where it comes from an unmerged pull request it is marked **provisional**.
-- **The owner's design,** decided on 2026-11-04 (`DECISIONS.md` D42 to D53): states with rules, `LEVL` version 2, placed lights, the wall-kick, levels whose target is fixed, world projects, behaviour scripting, raised events and bitmap parallax panels. Each part that needs Fizz 2 work names its change request (F1 to F22 in [ENGINE-CHANGES.md](ENGINE-CHANGES.md#fizz-2-planned)).
+- **The owner's design,** decided on 2026-11-04 (`DECISIONS.md` D42 to D53): states with rules, `LEVL` version 2, placed lights, the wall-kick, levels whose target is fixed, world projects, behaviour scripting, raised events and bitmap parallax panels. Each part that needs Fizz 2 work names its change request (F1 to F23 in [ENGINE-CHANGES.md](ENGINE-CHANGES.md#fizz-2-planned)).
 - **The syntax,** which is this studio's proposal for the grammar the Fizz 2 repository has not written. When `fizz-script` and `fizz-bake` exist they are the authority: where this section and they disagree, they win, and this page is corrected in the same change.
 
 A level belongs to a **world project** ([WORLD.md](WORLD.md)), which holds the shared definitions, sprites, panels, sounds and strings; custom enemies and items and their behaviour scripts are in [SCRIPTING.md](SCRIPTING.md). The editor's side is [EDITOR.md section 13](EDITOR.md#13-the-fizz-2-target-planned).

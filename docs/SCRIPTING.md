@@ -4,7 +4,7 @@ Custom enemies and items for Fizz 2 worlds, with **full behaviour scripting**: t
 
 ## 1. Principles
 
-- **The game runs the behaviour.** The bytecode runs in the game's simulation, and every preview, trace and debug session in the studio runs that same interpreter in the game's WebAssembly. The studio never interprets a behaviour in TypeScript.
+- **The game runs the behaviour.** The bytecode runs in the game's simulation, and every preview, trace and debug session in the studio runs that same interpreter, linked natively in the studio's game host (`DESKTOP.md`, D59). The studio never interprets a behaviour in TypeScript.
 - **Deterministic on every platform.** The same world gives the same state hash on native, Web and DOS. The language uses only what Fizz 2's numeric model allows (`docs/PLATFORM.md` and `docs/ARCHITECTURE.md` in that repository): `f64` with basic IEEE operations (`+`, `-`, `*`, `/`, `sqrt`, comparisons, `abs`, `min`, `max`, `floor`), no `exp` family, no platform maths library, and random numbers only from a seeded per-entity stream built on `fizz_phys::rng::hashf`, as the chicken's cluck stream is. Angles and waves come from tables the game owns.
 - **Bounded by construction.** There are no loops and no recursion in a handler: repetition happens across ticks. Every handler is therefore a finite tree of instructions whose worst-case length the compiler computes, so the step budget is checked when the world is baked, not discovered on a 486.
 - **The game's physics, not a copy.** Movement goes through the game's own body and collision code (`fizz-phys`): a script asks to walk, jump or fly, and the game moves the body. A script cannot set a position through a wall.
@@ -105,12 +105,12 @@ Rules and objects **raise events**; they do not draw or play anything themselves
 
 - A **Definitions** window lists the world's enemies and items with their sprites, and opens one in the behaviour editor.
 - The **behaviour editor** has the text of the definition (with completion for sensors, actions, registers, modes, sprites, states, strings and cues from the profile and the world), and beside it a **mode graph**: each mode a box, each `goto` an arrow, the events that leave a mode labelled, unreachable modes flagged (W201).
-- Each handler shows its **worst-case instruction count** against the budget as it is typed, from the compiler (the studio's language package compiles to the same bytecode as the baker, checked by the conformance corpus, or loads the baker's compiler as WebAssembly; `SPEC.md` Q10).
+- Each handler shows its **worst-case instruction count** against the budget as it is typed, from the compiler (the studio's language package compiles to the same bytecode as the baker: the desktop app links the baker's compiler natively, D55).
 - The fields (sprite per state, hitbox, stats, default reactions) are a form above the text, and the form and the text are one source.
 
 ### 6.2 Preview and debugger
 
-All of it runs **the game's own interpreter in WebAssembly** (F6, F21), in a Web Worker.
+All of it runs **the game's own interpreter**, linked natively in the game host on a worker thread (F6, F21), with traces streamed to the window over a `Channel`.
 
 - **Preview** places the definition in a small test room (or in the open level) and runs it, drawn by the game's presenter: walk, charge, stomp it, shoot it, take it.
 - **Debugger:** pause, step one tick, run to an event; the current mode, every register, the sensors' values and the instructions used this tick, per entity; a breakpoint on a handler or on a mode change; the hitbox drawn over the sprite.
@@ -139,7 +139,7 @@ These are the studio's proposed numbers, offered to the Fizz 2 compiler as the d
 
 ### 6.4 MCP
 
-Claude reads and proposes definitions like any other lines (`MCP.md` section 2): `list_defs`, `get_def` (the text, fields, mode graph and worst-case counts), `add_def` and `set_def` as proposals, `check_def` (the compiler's verdict without storing), and `run_behaviour` (a preview run in the game's WebAssembly for a number of ticks with given inputs, returning the trace of modes, positions and events, or "not available" when the module is not loaded).
+Claude reads and proposes definitions like any other lines (`MCP.md` section 2): `list_defs`, `get_def` (the text, fields, mode graph and worst-case counts), `add_def` and `set_def` as proposals, `check_def` (the compiler's verdict without storing), and `run_behaviour` (a preview run in the game host for a number of ticks with given inputs, returning the trace of modes, positions and events, or "not available" when the module is not loaded).
 
 ## 7. Fizz 1
 
@@ -162,6 +162,6 @@ Fizz 1 levels use **the Fizz 1 roster only**. A Fizz 1 level cannot use a custom
 | Cost on a 486 | Levels that stutter on the DOS floor | Static worst-case counts, per-entity and per-level budgets from the profile, a runtime counter, and the Budget window's DOS cost estimate from the game's bench |
 | Sandbox escape or a crash from bad bytecode | A pack that hangs or corrupts the game | A load-time verifier, no addresses, no backward jumps, bounds on every operand |
 | Bytecode versions drift | An old pack runs with new meanings | The bytecode version in the compatibility number; opcodes never change meaning within a version |
-| Two compilers drift (the studio and the baker) | The editor's counts or errors differ from the game's | A shared conformance corpus, or the baker's compiler loaded as WebAssembly |
+| Two compilers drift (the studio and the baker) | The editor's counts or errors differ from the game's | One compiler, the baker's, linked natively (D55), and a shared conformance corpus |
 | Scripts become a second physics | Enemies that tunnel or behave unlike Fizz's world | Movement only through the game's body code; no direct position writes |
 | Scope | Scripting grows into a general language | No loops, no calls, eight registers, a fixed action list; additions are new bytecode versions |

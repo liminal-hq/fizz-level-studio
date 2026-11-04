@@ -26,9 +26,9 @@ Window behaviour:
 - The chevron collapses a window to its 46 px header. Window, Collapse all windows and Expand all windows do it for every window.
 - Grabbing a window brings it to the front.
 - Window, Reset window layout (Ctrl+Shift+0) restores the starting arrangement. Save layout for this session and Restore saved layout keep one arrangement in memory; nothing is written to disk.
-- The script's pop-out button moves the script into its own window labelled **Display 2**. It drags and resizes, still follows the selection, and Dock back (or its close button) returns it; while it is out, the script tab offers Dock back.
+- The script's pop-out button moves the script into its own window labelled **Display 2**. It drags and resizes, still follows the selection, and Dock back (or its close button) returns it; while it is out, the script tab offers Dock back. In the desktop app every pop-out is a real window through tear-off (`DESKTOP.md` section 6).
 
-**Real studio:** saved layouts persist per person (browser storage is enough: it is a per-viewer convenience). The title-bar window buttons, Pan and the Grid are built.
+**Real studio:** saved layouts persist per person in the settings document owned by Rust, never in browser storage (`DESKTOP.md` section 7). The title-bar window buttons, Pan and the Grid are built.
 
 ## 2. Menus
 
@@ -146,7 +146,7 @@ On an overworld: **Links** (cyan lines from each required level to the point it 
 
 The same toggles are in the View menu and the app menu's Lenses submenu. The playtest button in the lens bar is a stand-in in the prototype: it says so and shows no results.
 
-**Real studio:** the Paths lens draws positions from the game's WebAssembly (`ARCHITECTURE.md` §5); the prototype's JavaScript (`walkExtent`) is a reference and is approximate on slopes. The Gaps lens keeps its label as a design rule until it is checked against the jump physics.
+**Real studio:** the Paths lens draws positions from the game host, the game's own code linked natively (`ARCHITECTURE.md` §5); the prototype's JavaScript (`walkExtent`) is a reference and is approximate on slopes. The Gaps lens keeps its label as a design rule until it is checked against the jump physics.
 
 ## 7. Script panel and completion
 
@@ -235,7 +235,7 @@ Nothing in this section is built. It says what the editor needs so that one edit
 
 - A Fizz 2 level runs the Fizz 2 checks live: required and unique `id=`, references, kind order, bounds, keys, states, bindings and rules (E110 to E126), the time-rule ranges, conflicts (E119), the W1xx lints, the behaviour scripts' checks (E2xx) and the budgets.
 - A Fizz 1 level runs the Fizz 1 checks (E001 to E016) and W103: a level made for Fizz 1 in the studio must not need a wall-kick (D47).
-- Lints that stand in for physics (W103, W105) are labelled as design rules, as the Gaps lens is, and take their numbers from the profile; whether a level can really be finished is the playtest bot's answer, run in the game's WebAssembly.
+- Lints that stand in for physics (W103, W105) are labelled as design rules, as the Gaps lens is, and take their numbers from the profile; whether a level can really be finished is the playtest bot's answer, run by the game host.
 
 ### Windows and tools for a Fizz 2 level
 
@@ -256,7 +256,7 @@ Nothing in this section is built. It says what the editor needs so that one edit
 
 - **A Fizz 2 level's canvas is the Game view**: the level drawn as the game draws it, with the oblique ground, the parallax panels, and Night and Sky toggles, so the person edits what the player will see (D45). Grid lines, selection, handles, lenses and ghosts are drawn over it.
 - **The flat grid stays as an editing aid** for a Fizz 2 level (a toggle in the View menu), for work that needs every cell square and unobscured, such as long map edits. A Fizz 1 level uses only the flat view.
-- **The editor never reimplements the game's drawing.** Every Game view frame is drawn by the game's own presenter code (`fizz-slice-view` and `fizz-present-web`) in the game's WebAssembly, in a Web Worker (F5). Until the game exports a "draw this level" entry point, the canvas falls back to the flat grid with a banner saying the Game view is not available; it never shows a TypeScript imitation. A Game view frame can be checked against the game's frame digests.
+- **The editor never reimplements the game's drawing.** Every Game view frame is drawn by the game's own presenter code (`fizz-slice-view` and the crates beside it), linked natively in the game host and streamed to the webview over a `Channel` (F5, D59). Until the game has a public "draw this level" call, the canvas falls back to the flat grid with a banner saying the Game view is not available; it never shows a TypeScript imitation. A Game view frame can be checked against the game's frame digests.
 - **Night preview.** With Night on, the Game view shows the palette banks and the lights (placed and derived), with the frame's light count and the game's own frame cost when it reports one.
 
 ### Budgets
@@ -284,7 +284,7 @@ A read-only view of what the baker would produce for the level: the sorted objec
 
 ### What the editor does not do
 
-- It does not run rules or behaviours. They belong to the Fizz 2 simulation, reached through the game's WebAssembly (the playtest bot, the behaviour preview and debugger).
+- It does not run rules or behaviours. They belong to the Fizz 2 simulation, reached through the game host (the playtest bot, the behaviour preview and debugger).
 - It does not draw the game's look. The Game view is the game's presenter.
 - It does not bake. Build world runs `fizz-bake`; the baker writes the packs, manifests and digests.
 - It does not define formats the Fizz 2 repository has not defined; it proposes them as change requests and follows the game when it decides.

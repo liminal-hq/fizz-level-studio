@@ -1,13 +1,14 @@
 # Fizz Level Studio — product specification
 
-Fizz Level Studio is the level and overworld editor for Lieutenant Fizz (`liminal-hq/lieutenant-fizz`). A person and Claude (over MCP) design levels together in it. Every level and every overworld is a short text script in the Fizz builder language; the studio paints on that script, Claude proposes changes to it, and an exporter turns it into the Rust `Builder` calls the game compiles.
+Fizz Level Studio is the level and overworld editor for Lieutenant Fizz (`liminal-hq/lieutenant-fizz`) and Lieutenant Fizz 2. A person and Claude (over MCP) design levels together in it. Its end goal is a **desktop app built with Tauri v2 to the Liminal HQ Tauri standards**, like Folio, Waypoint, Jar and Cadence: Linux first, Windows 11 a real target, no mobile and no browser build ([docs/DESKTOP.md](docs/DESKTOP.md)). Every level and every overworld is a short text script in the Fizz builder language; the studio paints on that script, Claude proposes changes to it, and an exporter turns it into the Rust `Builder` calls the game compiles.
 
 This document is the main spec. The companion documents go deeper:
 
 | Document | What it covers |
 | --- | --- |
 | [docs/GOALS.md](docs/GOALS.md) | The goals, ranked, each with a measure of success |
-| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Packages, data flow, what the game owns, the WebAssembly plan, the file layout |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Packages, data flow, what the game owns, the game host, the file layout |
+| [docs/DESKTOP.md](docs/DESKTOP.md) | The Tauri v2 desktop app to the Liminal HQ standards: platforms, stack, layout, crates and plugins, state, windows, settings, files, packaging, CI |
 | [docs/EDITOR.md](docs/EDITOR.md) | The editor's behaviour, screen by screen |
 | [docs/MCP.md](docs/MCP.md) | The MCP server as built, and the tools still to add |
 | [docs/OVERWORLD.md](docs/OVERWORLD.md) | The overworld model, its script, its exporter and the steps to add a level |
@@ -27,9 +28,9 @@ The studio has four parts, three of which exist today in this folder:
 1. **The builder language** (`packages/language`) — a parser, printer, edits helper, Rust exporter, overworld module and language docs. Built and tested: 76 `bun test` cases, and a Rust proof that the scripts for all 16 Episode 1 levels and the overworld rebuild the game's data exactly.
 2. **The MCP server** (`packages/mcp`) — nine tools that let Claude read a level, render it as text, check it and write `paint`, `clear` and `place` lines to it, in a propose mode (the default) or a direct mode that only the person can turn on. Built and tested: 21 `bun test` cases including a real stdio round trip.
 3. **The design prototype** (`design/project/Proto.dc.html`) — an interactive design of the editor: the Ultimate layout, tools, objects, the overworld designer, lenses, the script panel with completion, and the starter levels. It is a design, not the product: Claude's ideas are canned, nothing is saved and the playtest bot is a stand-in.
-4. **The studio application** — not built. This spec describes it.
+4. **The studio application** — not built. It is planned as a Tauri v2 desktop app whose domain logic is Rust and which links both games' crates natively; this spec describes it.
 
-A fifth part is planned, and it is the more important target: **Lieutenant Fizz 2**. A Fizz 2 level belongs to a **world project** (its levels, overworld, shared definitions, sprites, parallax panels, sounds and strings, built into one world pack) and is written in a dialect of the Fizz 1 script (`script fizz2 0`): a map grid, exact positions, objects with ids, **named states that doors, lights and panels bind to and rules change** (with `lock` as sugar for a key and a door), placed lights, raised floating words and sounds, and custom enemies and items with **behaviour scripts** compiled to bytecode. It lowers to `LEVL` version 2. A level's target is **fixed when it is created**; a Fizz 1 level can be converted up to Fizz 2, and a Fizz 2 level exported down with a lossy check. Fizz 2 levels are drawn in the game's oblique look, Fizz 1's art can be used as a retro set, and the studio has a pixel editor for panels and sprites. The design is the owner's (2026-11-04), and much of it needs Fizz 2 work, recorded as change requests F1 to F22. None of it is built; see §6.1, `docs/LANGUAGE.md`, `docs/WORLD.md`, `docs/SCRIPTING.md`, `docs/EDITOR.md` sections 13 to 15 and `docs/FIZZ2-COVERAGE.md`.
+A fifth part is planned, and it is the more important target: **Lieutenant Fizz 2**. A Fizz 2 level belongs to a **world project** (its levels, overworld, shared definitions, sprites, parallax panels, sounds and strings, built into one world pack) and is written in a dialect of the Fizz 1 script (`script fizz2 0`): a map grid, exact positions, objects with ids, **named states that doors, lights and panels bind to and rules change** (with `lock` as sugar for a key and a door), placed lights, raised floating words and sounds, and custom enemies and items with **behaviour scripts** compiled to bytecode. It lowers to `LEVL` version 2. A level's target is **fixed when it is created**; a Fizz 1 level can be converted up to Fizz 2, and a Fizz 2 level exported down with a lossy check. Fizz 2 levels are drawn in the game's oblique look, Fizz 1's art can be used as a retro set, and the studio has a pixel editor for panels and sprites. The design is the owner's (2026-11-04), and much of it needs Fizz 2 work, recorded as change requests F1 to F23. None of it is built; see §6.1, `docs/LANGUAGE.md`, `docs/WORLD.md`, `docs/SCRIPTING.md`, `docs/EDITOR.md` sections 13 to 15 and `docs/FIZZ2-COVERAGE.md`.
 
 What has been proven, exactly:
 
@@ -47,7 +48,7 @@ Gaps found by auditing the game:
 Not done or not verified:
 
 - The prototype has canned Claude ideas, saves nothing and has no real playtest bot.
-- The prototype's Paths lens is computed in JavaScript and is approximate on slopes; the real one must come from the game's WebAssembly.
+- The prototype's Paths lens is computed in JavaScript and is approximate on slopes; the real one must come from the game's own code, linked natively in the studio's game host.
 - Enemy kinds `beetle`, `bat`, `pod`, `phantom`, `roller`, `sentry`, `boss` and `cage` have only one-line summaries in `docs.ts`.
 - The prototype draws one character per cell, so an item that shares a block with an enemy or another item is hidden: 16 items across 7 levels (the starter-levels card shows each level's count).
 - Lifts, rooms and the arena cannot yet be dragged by every corner: a lift drags by its two ends, a room by its body, the arena not at all.
@@ -81,7 +82,7 @@ Each goal is specific and testable. [docs/GOALS.md](docs/GOALS.md) ranks them an
 ### Fidelity to the game
 
 - **G-GAME-1** The studio's picture of a level agrees with the game on every tile, item, enemy and start, checked against data the game itself produces.
-- **G-GAME-2** Anything that depends on simulation rules (enemy paths, reachability, playtests) comes from the game's WebAssembly, never from rules re-derived in TypeScript.
+- **G-GAME-2** Anything that depends on simulation rules (enemy paths, reachability, playtests) comes from the game's own code (linked natively, D59), never from rules re-derived in TypeScript.
 - **G-GAME-3** Every name the language uses (tiles, items, kinds, level ids, themes, areas, scatter rates, sprite names) is checked against the game's own tables by a test.
 
 ### Openness to Rust-written content
@@ -161,7 +162,7 @@ The next big feature. An overworld is a script (`overworld "Name" WxH id=...`), 
 
 ### 5.5 Lenses
 
-Lenses draw over the level without changing it. Level: Gaps, Ghosts, Reach, Hazards, Paths (Alt+1 to Alt+5). Overworld: Links, Areas, Ghosts. Ctrl+Shift+L hides them all. The Gaps rule: up to 3 wide "a jump clears it", exactly 4 "tight: a tenth of a second", 5 or more "needs a ledge". The Paths lens shows where walking enemies go; the real one asks the game's WebAssembly (see [ARCHITECTURE §5](docs/ARCHITECTURE.md#5-the-webassembly-boundary)).
+Lenses draw over the level without changing it. Level: Gaps, Ghosts, Reach, Hazards, Paths (Alt+1 to Alt+5). Overworld: Links, Areas, Ghosts. Ctrl+Shift+L hides them all. The Gaps rule: up to 3 wide "a jump clears it", exactly 4 "tight: a tenth of a second", 5 or more "needs a ledge". The Paths lens shows where walking enemies go; the real one asks the game host (see [ARCHITECTURE §5](docs/ARCHITECTURE.md#5-the-game-host)).
 
 ### 5.6 Script panel and completion
 
@@ -236,10 +237,11 @@ Note: the "What v0 does not cover" list at the end of `docs/LANGUAGE.md` predate
 | Language package (`packages/language`) | Text ↔ AST, the edits rule, Rust export, the overworld model and rasteriser, the language docs | Built |
 | Level rasteriser (`packages/mcp/src/world.ts`) | A picture of a level script, for drawing and structural checks | Built; agrees with the game on all 16 levels |
 | MCP server (`packages/mcp`) | Claude's tools, proposals, modes, history, notes | Built for one level file |
-| Studio app | The workspace, tools, objects, lenses, history, the script panel | Prototype only |
-| WebAssembly bridge | Enemy paths, playtests, level data for Rust-written levels, a level built from a script | Not built |
+| Studio app (`apps/studio`, Tauri v2) | The windows, the canvas and panels, the chrome; it renders and sends intents | Prototype only; planned in `docs/DESKTOP.md` |
+| Studio crates (`crates/fizz-studio-*`) | The session (state, revisions, history), the Fizz 1 dialect port, the Fizz 2 dialect on `fizz-script`, profiles, states, art, budgets, export, the baker adapter, the MCP server | Not built |
+| Game host (`fizz-studio-host`) | Both games linked natively: level data, building from a script, the Game view's frames, rule previews, the behaviour debugger, enemy paths, the playtest bot, streamed over Channels | Not built |
 
-The boundary rule: **the Rust crate owns the simulation; TypeScript owns presentation.** The rasteriser mirrors level construction (the `Builder`), which is proven equal to the game on every level; anything that needs simulation rules (how an enemy walks, whether a jump lands, whether a level can be finished) is asked of the game's WebAssembly through the raw C-ABI exports, never re-derived.
+The boundary rule: **the games' Rust owns the simulation, the studio's Rust owns the domain, and the webview only renders.** The rasteriser mirrors level construction (the `Builder`), which is proven equal to the game on every level; anything that needs simulation rules (how an enemy walks, whether a jump lands, whether a level can be finished) is asked of the game's own code in the game host, never re-derived. Today's TypeScript packages are the reference for the Rust port (D56).
 
 Data flow: script text → `parse` → AST (one node per line, with its raw text) → `toRust` → Rust `fn name() -> LevelData` (into the game) and → `rasterise` → `World` (into the canvas, `get_region` and `run_checks`). Overworld scripts go through `parseOverworld` → `overworldToRust` and `rasteriseOverworld`.
 
@@ -325,7 +327,7 @@ Status values: **Proven** — built in `packages/language` or `packages/mcp` and
 | Id | Requirement | Status | Evidence |
 | --- | --- | --- | --- |
 | R-ED-01 | Ultimate layout: level as canvas, floating windows that snap within 8 px, resize to a minimum, collapse, come to front | Prototype | `e2e.cjs`, `guide-e2e.cjs` |
-| R-ED-02 | Reset layout (Ctrl+Shift+0); save and restore a layout | Prototype | Session only; nothing written |
+| R-ED-02 | Reset layout (Ctrl+Shift+0); save and restore a layout | Prototype | Session only; nothing written; the app keeps layouts in its settings document (R-APP-06) |
 | R-ED-03 | Pop the script out to its own window and dock it back | Prototype | `e2e.cjs` |
 | R-ED-04 | Menu bar, app menu, right-click menu, shortcuts card (`?`) | Prototype | `e2e.cjs`, `e2e3.cjs` |
 | R-ED-05 | Zoom 16, 24, 32, 48 px with `-` and `=` | Prototype | `e2e.cjs` |
@@ -341,7 +343,7 @@ Status values: **Proven** — built in `packages/language` or `packages/mcp` and
 | R-HIST-01 | Named undo and redo for every change; History shows pending ideas after Now | Prototype | `e2e.cjs` |
 | R-LENS-01 | Gaps lens and the 3/4/5 rule | Prototype | Also `run_checks` in the MCP server (Package) |
 | R-LENS-02 | Ghosts, Hazards, Reach lenses | Prototype | |
-| R-LENS-03 | Paths lens from the game's WebAssembly | Not built | The prototype's JavaScript is a reference, approximate on slopes |
+| R-LENS-03 | Paths lens from the game host | Not built | The prototype's JavaScript is a reference, approximate on slopes |
 | R-SCR-01 | Script panel in sync, Claude's lines marked, click a line to select, following selection | Prototype | `e2e3.cjs`, `guide-e2e.cjs` |
 | R-SCR-02 | Typed line applies as one undo step; a bad line gets an explanation and a fix | Prototype | Uses the prototype's own JavaScript checker, not the language parser |
 | R-SCR-03 | Completion from `docs.ts` | Prototype | `compl-e2e.cjs` |
@@ -366,16 +368,16 @@ Status values: **Proven** — built in `packages/language` or `packages/mcp` and
 | R-AI-11 | Claude's ideas in the studio come from Claude, not a canned list | Not built | The prototype has three canned ideas per level |
 | R-AI-12 | Exercised inside a real Claude Code session | Not built | Only the protocol tests have driven it |
 
-### Game, WebAssembly and Rust content
+### Game host and Rust content
 
 | Id | Requirement | Status | Evidence |
 | --- | --- | --- | --- |
 | R-RUST-01 | Open a hand-written Rust level by reading its data | Package | Offline only: `dump_all_truth` then `tools/decompile-level.ts` |
-| R-RUST-02 | Read level data from WebAssembly at run time | Not built | ENGINE-CHANGES E6 |
+| R-RUST-02 | Read level data from the game at run time, natively | Not built | ENGINE-CHANGES E6 |
 | R-RUST-03 | Edits to a Rust-written level are kept and exported | Not built | Open question Q2 |
-| R-WASM-01 | Build and enter a level from a script inside the sim, without recompiling | Not built | ENGINE-CHANGES E7 |
-| R-WASM-02 | Enemy paths from the sim | Not built | ENGINE-CHANGES E8 |
-| R-WASM-03 | Playtest bot from the studio and over MCP | Not built | The bot exists as `#[cfg(test)]` Rust (`playtest.rs`) |
+| R-WASM-01 | Build and enter a level from a script inside the sim, without recompiling | Not built | ENGINE-CHANGES E7; native in the game host (D59), the id is historical |
+| R-WASM-02 | Enemy paths from the sim | Not built | ENGINE-CHANGES E8; native (D59) |
+| R-WASM-03 | Playtest bot from the studio and over MCP | Not built | The bot exists as `#[cfg(test)]` Rust (`playtest.rs`); native (D59, E9) |
 | R-ENG-01 | Widen the requirement mask so a 16th level fits | Not built | ENGINE-CHANGES E4 |
 | R-ENG-02 | A level and overworld registry the exporter can write to | Not built | ENGINE-CHANGES E3, E5 |
 
@@ -402,7 +404,7 @@ Status values: **Proven** — built in `packages/language` or `packages/mcp` and
 | R-F2-17 | Convert to Fizz 2 writes a new level into a world from a Fizz 1 level through the proven rasteriser, with a conversion report | Not built | `docs/LANGUAGE.md` "Converting a Fizz 1 level to Fizz 2"; D46 |
 | R-F2-18 | Map painting rewrites map rows in place; the Objects window with ids and indices | Not built | `docs/EDITOR.md` section 13 |
 | R-F2-19 | States, Exit and Head room lenses | Not built | `docs/EDITOR.md` section 13 |
-| R-F2-20 | The canvas of a Fizz 2 level is the Game view drawn by the game's presenter in WebAssembly (oblique ground, panels, Sky, Night, lights), with the flat grid as an aid and as the fallback until the game exports it | Not built | `docs/EDITOR.md` "Views"; Fizz 2 #142 to #146; D45; F5, F13 |
+| R-F2-20 | The canvas of a Fizz 2 level is the Game view drawn natively by the game's presenter in the game host (oblique ground, panels, Sky, Night, lights), with the flat grid as an aid and as the fallback until the game exports it | Not built | `docs/EDITOR.md` "Views"; Fizz 2 #142 to #146; D45; F5, F13 |
 | R-F2-21 | A Budget window whose meters name their source and say "estimate" or "not run" when the baker is not available | Not built | `docs/EDITOR.md` "Budgets" |
 | R-F2-22 | The slice level written as a script bakes, through `fizz-bake`, to the digest of the `const` slice (`fizz_ep2::level::digest`) | Not built | `docs/TESTING.md` section 7; Fizz 2 `docs/FAP.md` "Proof" |
 | R-F2-23 | MCP tools for targets, worlds, objects with ids, states, rules, strings, sounds, lights, definitions, budgets, sprites and the Game view | Not built | `docs/MCP.md` section 2 |
@@ -429,7 +431,7 @@ Status values: **Proven** — built in `packages/language` or `packages/mcp` and
 | R-ST-04 | `lock` expands exactly; the dump view shows the expansion | Not built | As above |
 | R-ST-05 | Raised events: `word` and `cue` from rules and objects, checked against the strings, captions and the world's sound library | Not built | `docs/LANGUAGE.md`; D50; F18 |
 | R-ST-06 | The States window, the Rules window with Words and Sounds tabs, the States lens | Not built | `docs/EDITOR.md` section 13 |
-| R-ST-07 | Rule previews run in the game's WebAssembly | Not built | F6 |
+| R-ST-07 | Rule previews run in the game host | Not built | F6 |
 | R-ST-08 | The studio's state, binding and rule records equal `fizz-bake dump` for the corpus | Not built | `docs/TESTING.md` section 7 |
 
 ### Behaviour scripting (planned)
@@ -439,7 +441,7 @@ Status values: **Proven** — built in `packages/language` or `packages/mcp` and
 | R-BHV-01 | The definition language for enemies and items: sprites per state, hitbox, stats, registers, modes, handlers, reactions, item effects | Not built | `docs/SCRIPTING.md` section 2; D51 |
 | R-BHV-02 | Compilation to bytecode with a static worst-case count per handler; E201 to E208, W201 to W205 | Not built | `docs/SCRIPTING.md` sections 3 and 6.3; F17 |
 | R-BHV-03 | The Definitions window and behaviour editor with the mode graph and live counts | Not built | `docs/SCRIPTING.md` section 6.1 |
-| R-BHV-04 | Preview, debugger and replay in the game's WebAssembly | Not built | `docs/SCRIPTING.md` section 6.2; F6, F21 |
+| R-BHV-04 | Preview, debugger and replay in the game host | Not built | `docs/SCRIPTING.md` section 6.2; F6, F21 |
 | R-BHV-05 | Behaviour cost meters: worst-case instructions against the budgets, section sizes, an estimated DOS cost | Not built | `docs/SCRIPTING.md` section 4; F22 |
 | R-BHV-06 | A compiler conformance corpus and determinism fixtures equal on native, Web and DOS | Not built | `docs/SCRIPTING.md` section 8 |
 | R-BHV-07 | A Fizz 1 level refuses custom definitions (E208); exporting one is E123 | Not built | `docs/SCRIPTING.md` section 7 |
@@ -477,6 +479,27 @@ Status values: **Proven** — built in `packages/language` or `packages/mcp` and
 | R-SPR-05 | Sprite editing for `drawn` sets only, through the pixel editor | Not built | `docs/EDITOR.md` sections 14 and 15 |
 | R-SPR-06 | A sprite preview at the night ambient through the game's palette banks | Not built | Fizz 2 #146 |
 
+### Desktop app (planned)
+
+| Id | Requirement | Status | Evidence |
+| --- | --- | --- | --- |
+| R-APP-01 | A Tauri v2 desktop app in the Liminal HQ layout: `apps/studio` with a thin `src-tauri`, pure `crates/*` with no `tauri` dependency, `plugins/*` with `guest-js`, Bun and Cargo workspaces, a pinned toolchain | Not built | `docs/DESKTOP.md` sections 2 to 4; `folio/AGENTS.md` |
+| R-APP-02 | `packages/chrome` from Waypoint with the studio's own tokens, `packages/protocol` generated with `ts-rs` and a drift check | Not built | `docs/DESKTOP.md` section 3 |
+| R-APP-03 | `bun run validate` as the single gate, CI in the Liminal HQ containers, Dependabot grouping | Not built | `docs/DESKTOP.md` section 11 |
+| R-APP-04 | Licence headers on every source file and `THIRD_PARTY_NOTICES.md` with licences checked by `cargo deny` | Not built | `docs/DESKTOP.md` section 8 |
+| R-APP-05 | Windows created in Rust with the proposed labels and capabilities per concern; pop-outs through tear-off | Not built | `docs/DESKTOP.md` section 6 |
+| R-APP-06 | Settings, layouts and recent worlds in a Rust-owned settings document; no browser storage, checked by the gate | Not built | `docs/DESKTOP.md` section 7 |
+| R-APP-07 | Every user-visible string from the message catalogue; error and lint messages as catalogue keys | Not built | `docs/DESKTOP.md` section 8 |
+| R-APP-08 | Logging through `tauri-plugin-log`, never logging script text or Claude's messages | Not built | `docs/DESKTOP.md` section 8 |
+| R-APP-09 | Rust owns each world: intents in, patches out, one writer, a monotonic revision, named undo and redo in Rust, stale answers refused | Not built | `docs/DESKTOP.md` section 5; D55 |
+| R-APP-10 | Native files: atomic canonical writes, file watching for hand and Claude edits, autosave and crash recovery, single instance | Not built | `docs/DESKTOP.md` section 9 |
+| R-APP-11 | The game host links both games natively and streams frames and traces over `Channel`s | Not built | `docs/DESKTOP.md` section 4; D59 |
+| R-APP-12 | Claude's MCP server as a stdio sidecar with live and headless modes, propose by default, accept and reject in the app | Not built | `docs/MCP.md`; D57 |
+| R-APP-13 | Packages for Linux (deb, rpm, AppImage) and Windows 11 (msi, nsis), x64 and arm64, with opt-in signed updates | Not built | `docs/DESKTOP.md` section 10 |
+| R-APP-14 | Keyboard-operable throughout, with the canvas's objects as a focusable list | Not built | `docs/DESKTOP.md` section 12 |
+| R-APP-15 | The running app tested through `tauri-mcp-server` and the debug-only MCP bridge | Not built | `docs/DESKTOP.md` section 13; D60 |
+| R-APP-16 | The Fizz 1 dialect ported to Rust, matching every TypeScript fixture and every Episode 1 proof | Not built | D56 |
+
 ### Performance requirements
 
 | Id | Requirement | Status | Evidence |
@@ -498,7 +521,7 @@ Status values: **Proven** — built in `packages/language` or `packages/mcp` and
 | Q7 | How is the playtest route given for a new level? | The bot needs waypoints (`Waypoint::stand`, `Waypoint::gate`); the Rust tests write them by hand per level. |
 | Q8 | Is the level table's `icon` (sprite) set by the script, the overworld point, or the registry? | See ENGINE-CHANGES E10. |
 | Q9 | How do two processes share the sidecar safely? | Today the server and the CLI read-modify-write it with no lock. |
-| Q10 | Does the editor keep a TypeScript parser for the Fizz 2 dialect or load `fizz-script` as WebAssembly? | Not decided; a shared conformance corpus is needed either way (`docs/ARCHITECTURE.md` section 7). |
+| Q10 | Does the editor keep a TypeScript parser for the Fizz 2 dialect or load `fizz-script` as WebAssembly? | Proposed answer: neither; the desktop app links `fizz-script` natively (D55). Before that: not decided; a shared conformance corpus is needed either way (`docs/ARCHITECTURE.md` section 7). |
 | Q11 | Which legend letter means which tile? | The slice fixes `. w # B = ^ D b E` (Fizz 2 `level.rs`); `CHOC` and the six slopes have ids but no letter or drawing (hills are specified in `docs/OBLIQUE.md`, #142, not built). The studio proposes `~ / \ r R l L`; the Fizz 2 repository decides. |
 | Q12 | The Fizz 2 planner's twelve open questions | Five are now answered by the Fizz 2 repository (the death reset, the limits, captions and strings, `LEVL` amended in place, the lock semantics); the rest are open. `docs/DECISIONS.md`, the 2026-11-04 entry. |
 | Q13 | How is a shaft that only a wall-kick could climb refused? | Resolved for Fizz 2: the wall-kick is core there (D47). For Fizz 1 levels see Q26. |
@@ -523,6 +546,14 @@ Status values: **Proven** — built in `packages/language` or `packages/mcp` and
 | Q33 | May a behaviour spawn entities (shots, children)? | Not in the first version; options are a fixed pool per definition or none. |
 | Q34 | Will tile textures become data a world can supply, so the pixel editor can paint them? | F14; today they are generated code tables (#143). |
 | Q35 | Which quantiser and dither does PNG import use, and does Fizz 2 want the result stored as a grid or as the source image plus settings? | Proposed: both, the grid baked and the source kept for re-import. |
+| Q36 | The app's identifier, product name and file type: `ca.liminalhq.fizzstudio` and "Fizz Level Studio" are proposed; does `.fizz` get a registered MIME type? | `docs/DESKTOP.md` sections 1 and 9 |
+| Q37 | When are `SPEC.md` and `docs/` split into the standard's `spec/` and `docs/`? | Proposed: in M1 |
+| Q38 | Which locales ship first? | Proposed: en-CA, with fr-CA and pseudo-locales as Waypoint has (`waypoint/SPEC.md` §9) |
+| Q39 | What happens when a file changes on disk while the session has unsaved changes to it? | Options: merge when the changed lines do not overlap and ask otherwise (proposed), or always ask |
+| Q40 | Does the studio move to GitHub to use the Liminal HQ CI containers and shared workflows, or port them to Forgejo? | `docs/DESKTOP.md` section 11 |
+| Q41 | Can two episodes' crates link into one app (Episode 2 and Episode 3 depending on different revisions of `fizz-sim`)? | Cargo refuses two copies of one package from the same source at the same version; options are one revision for all episodes, a host process per episode, or renamed packages per episode (D58) |
+| Q42 | Which Fizz 1 APIs (E6 to E9) can the Fizz 1 repository accept behind a feature, and does `lf-episode-1` stay one crate for its web build and for linking? | `lf-episode-1` is a `cdylib` and `rlib` with raw C-ABI exports today |
+| Q43 | What frame format, rate and size does the Game view stream, and is it fast enough on Linux and Windows webviews? | Proposed: indexed frames with a palette on change; measured in M1 |
 | Q22 | Will Fizz 2 or Episode 3 have an overworld, and with what points and unlocks? | Fizz 2 has none; the Fizz 1 overworld model is not assumed to carry over. |
 
 ## 12. Risks
@@ -536,7 +567,11 @@ Status values: **Proven** — built in `packages/language` or `packages/mcp` and
 | Object identity across hand edits | The studio rewrites the wrong line | Match by line and original text; refuse otherwise (Q4) |
 | The `edits` log grows without bound | Scripts become hard to read | A person-run tidy command; fold edits into sections on request |
 | Claude proposals go stale | Accepting writes something that no longer fits | `accept` revalidates against the current file (built); show the conflict in the studio |
-| The playtest bot is slow in a browser | The studio stalls | Run it in a worker with a tick budget per step (E9) |
+| The playtest bot is slow | The studio stalls | Run it natively on a worker thread with a tick budget per step and progress over a `Channel` (E9) |
+| Cross-repository crate coupling | A change in a game crate breaks the studio, or two episodes' crates cannot link together | Pinned git revisions bumped in reviewed changes (D58); a host process per episode if they cannot share a build (Q41); F23 marks the APIs the studio calls |
+| A large TypeScript-to-Rust port | The port stalls, or drifts from the proven TypeScript | The TypeScript package stays the reference until every fixture and proof matches (D56); the port is bounded (about 1,845 lines) and has its corpus from day one |
+| The Liminal HQ standards' plugins are copies | The studio's copies of tear-off and window effects drift from Waypoint's | `PROVENANCE.md` per copy, and a move to the published plugins when they are published |
+| Streaming frames over IPC is too slow for a smooth Game view | A laggy canvas | Indexed frames with a palette (a 320 by 200 frame is 64,000 bytes), sent only on change; measured in M1 (Q43) |
 | The design prototype is mistaken for the product | Canned behaviour is relied on | The prototype labels canned parts; this spec marks every requirement's status |
 | Two parsers drift (TypeScript here, Rust in `fizz-script`) | The editor accepts a script the baker rejects, or the reverse | A shared conformance corpus in both repositories' tests (G-F2-1) |
 | The studio's dialect proposal is written before the Fizz 2 grammar | The editor is built against syntax `fizz-script` does not adopt | Build M2 and M3 behind the corpus, start the corpus in the Fizz 2 repository, and treat every syntax line in `LANGUAGE.md` as provisional until `fizz-script` exists (D40) |
@@ -556,7 +591,7 @@ Status values: **Proven** — built in `packages/language` or `packages/mcp` and
 | Milestone | Delivers |
 | --- | --- |
 | M0 Spec | This document and `docs/` |
-| M1 Editor shell | The canvas, windows, tools, history, script panel, completion and saving every target shares, and the New level and New world dialogs that fix a level's target |
+| M1 Desktop walking skeleton | The Tauri v2 app to the Liminal HQ standards (layout, gate, CI, chrome, windows, settings, i18n, the Rust session, native files), the editor shell, the game crates linked, opening a Fizz 1 level and a Fizz 2 world |
 | M2 World projects and Fizz 2 levels | World projects and Build world, target profiles, the Fizz 2 dialect without states, map painting, objects, the Sprites window, the Fizz 1 export check, the dump view and the first MCP tools |
 | M3 States and rules | States, bindings, rules, `lock` sugar, raised words and sounds, the States and Rules windows and the States lens |
 | M4 Claude in the studio | The MCP server attached to the live studio, Fizz 2 first: selection, ghosts, accept and reject buttons, object, state and rule tools |
@@ -567,6 +602,5 @@ Status values: **Proven** — built in `packages/language` or `packages/mcp` and
 | M9 Fizz 1 overworld designer | Points, unlock rules, teleporters, the Links and Areas lenses, level sprites, `OverworldBuilder` in the game |
 | M10 Fizz 1 level editing | The Fizz 1 level tools, objects and lenses on the shell |
 | M11 Fizz 1 registry and progress | A level and overworld registry, the wider mask, export that registers a level |
-| M12 Fizz 1 WebAssembly bridge | Level data from the game, a level built from a script inside the sim, enemy paths, the playtest bot |
-| M13 Fizz 1 Rust levels | Editing on top of Rust-written levels and the full enemy docs |
-| M14 Episode 3 profile | A third profile on the Fizz 2 dialect family, from Episode 3's own tables, with no change to the editor's code |
+| M12 Fizz 1 native host and Rust levels | Level data from the game, a level built from a script inside the sim, enemy paths and the playtest bot, all linked natively; editing on top of Rust-written levels |
+| M13 Episode 3 profile | A third profile on the Fizz 2 dialect family, from Episode 3's own tables, with no change to the editor's code |

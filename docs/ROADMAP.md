@@ -2,12 +2,12 @@
 
 The milestones in order, each with what it delivers, its exit criteria and what it depends on. Requirement ids refer to `SPEC.md` §10; engine change ids (E for Fizz 1, F for the Fizz 2 change requests) to `ENGINE-CHANGES.md`.
 
-**Order.** Fizz 2 is the more important target (D32), so its milestones come first, and making Fizz 1 levels stays a goal (M9 to M13). The milestones were renumbered on 2026-11-04; the old numbers are in the table.
+**Order.** Fizz 2 is the more important target (D32), so its milestones come first, and making Fizz 1 levels stays a goal (M9 to M12). The milestones were renumbered on 2026-11-04; the old numbers are in the table. The studio is a Tauri v2 desktop app to the Liminal HQ standards ([DESKTOP.md](DESKTOP.md), D54), so there is no WebAssembly bridge milestone: the games are linked natively (D59).
 
 | Milestone | Depends on | Formerly |
 | --- | --- | --- |
 | M0 Spec | — | M0 |
-| M1 Editor shell | M0 | Part of M1 and M2 |
+| M1 Desktop walking skeleton | M0; F23 | Part of M1 and M2 |
 | M2 World projects and Fizz 2 levels | M1; F1, F2, F4, F10, F15 | Part of M7 and M9 |
 | M3 States and rules | M2; F6, F11, F18 | New |
 | M4 Claude in the studio | M2, M3 | M4 |
@@ -18,9 +18,8 @@ The milestones in order, each with what it delivers, its exit criteria and what 
 | M9 Fizz 1 overworld designer | M1; E1, E2, E10 | M1 |
 | M10 Fizz 1 level editing | M1 | M2 |
 | M11 Fizz 1 registry and progress | M9 (alongside M10) | M3 |
-| M12 Fizz 1 WebAssembly bridge | M10, M11 | M5 |
-| M13 Fizz 1 Rust levels | M11, M12 | M6 |
-| M14 Episode 3 profile | M2 (and an Episode 3 repository) | M10 |
+| M12 Fizz 1 native host and Rust levels | M10, M11; E6 to E9 | M5 and M6 (merged: the WebAssembly bridge became native host work) |
+| M13 Episode 3 profile | M2 (and an Episode 3 repository) | M10 |
 
 M5 and M6 can run alongside each other, and M9 to M13 can run alongside the Fizz 2 milestones when there are hands for both.
 
@@ -32,19 +31,28 @@ M5 and M6 can run alongside each other, and M9 to M13 can run alongside the Fizz
 
 **Depends on:** nothing.
 
-## M1 — Editor shell
+## M1 — Desktop walking skeleton
 
-The part of the studio every target shares, built once.
+The studio as a Liminal HQ Tauri v2 desktop app, meeting the standards from the first commit, and the editor shell every target shares.
 
-**Delivers:** the canvas, the Ultimate window system, the tool rail with Paint, Erase, Pick, Select and Stamp, the Palette, the Objects window, History with named undo and redo, the Script panel with the typed-line box and completion, the Ghosts lens, saving to the `.fizz` file, the New level and New world dialogs that fix a level's target (R-WLD-02), and in `packages/language` the API that rewrites one owned line in place (R-LANG-17).
+**Delivers:**
+
+- The standard layout and tooling ([DESKTOP.md](DESKTOP.md) sections 2 to 4 and 11): `apps/studio` with a thin `src-tauri`, the Cargo and Bun workspaces, the pinned toolchain, `packages/chrome` copied from Waypoint with the studio's tokens, `packages/protocol` with `ts-rs` and the drift check, `bun run validate`, the CI container jobs, Dependabot, licence headers and third-party notices (R-APP-01 to R-APP-04).
+- Windows created in Rust with the labels and per-concern capabilities of `DESKTOP.md` section 6, tear-off copied from Waypoint, system appearance, the settings plugin and recent worlds with no browser storage, the i18n catalogue, logging, single instance (R-APP-05 to R-APP-08).
+- The session in Rust: intents, patches, revisions, named undo and redo; native files with atomic canonical writes, file watching, autosave and recovery (R-APP-09, R-APP-10).
+- The editor shell on it: the canvas, the Ultimate panels, Paint, Erase, Pick, Select and Stamp, the Palette, the Objects window, History, the Script panel with completion, the Ghosts lens, and New level and New world fixing a level's target (R-WLD-02).
+- The game crates linked as pinned git dependencies (F23, D58) and the Fizz 1 dialect's Rust port started against its corpus (D56).
+- The debug-only MCP bridge and the first `tauri-mcp-server` checks (D60).
 
 **Exit criteria:**
 
-- A Fizz 1 level and the overworld open in the shell, and a typed line, a paint stroke and an undo each round-trip the script byte for byte outside the lines they own.
+- The app builds and packages on Linux (deb, rpm, AppImage) and Windows 11 (msi, nsis) from CI, and `bun run validate` passes.
+- It opens a Fizz 1 level (`levels/crater.fizz`) and a Fizz 2 world (a world project holding the slice level as a script), shows each on the canvas, takes a paint stroke and an undo, and saves files that differ from the originals only in the lines the studio owns.
+- An edit made to an open file in a text editor appears in the studio within a second, and a crash leaves a recovery copy that Restore brings back.
 - A paint stroke updates the canvas and the script within 16 ms at the 95th percentile on Marshmallow Meadows (R-PERF-01); every level opens in under a second (R-PERF-02).
-- The Playwright suites are ported to the studio, run without machine-specific paths, mute audio, and pass.
+- `tauri-mcp-server` drives the running debug build through those steps in CI on Linux.
 
-**Depends on:** M0.
+**Depends on:** M0, and F23 from the Fizz 2 repository (its crates usable from outside it).
 
 ## M2 — World projects and Fizz 2 levels
 
@@ -54,8 +62,8 @@ Nothing here is started, and much of it waits on the Fizz 2 repository: its gram
 
 - **World projects** ([WORLD.md](WORLD.md)): `world.fizz`, the folder, shared definitions by name, Build world and Check world through `fizz-bake`, and the Budget window's size meters (R-WLD-01, R-WLD-03, R-WLD-04).
 - **Target profiles** as data, generated from each game's tables, with capability states and the Capabilities card (R-TGT-01 to R-TGT-05).
-- **In `packages/language`:** the `script fizz2 0` header, `start`, `floor`, the `map` block with the profile's legend, `at=` and the printer rule, the `objects` section with ids resolved to indices, `string`, the reserved words, and the dialect's errors and lints (R-F2-01, R-F2-02, R-F2-04, R-F2-09, R-F2-10, R-F2-15).
-- **In the editor:** map painting, the Objects window with ids and indices, snap to floor, the Exit and Head room lenses, the dump view, the Sprites window and objects drawn with their sprites (R-F2-06, R-F2-07, R-F2-14, R-F2-18, R-SPR-01 to R-SPR-04), and the Game view as the canvas once F5 exists, with the flat fallback until then (R-F2-20).
+- **In the Fizz 2 dialect crate, on `fizz-script`:** the `script fizz2 0` header, `start`, `floor`, the `map` block with the profile's legend, `at=` and the printer rule, the `objects` section with ids resolved to indices, `string`, the reserved words, and the dialect's errors and lints (R-F2-01, R-F2-02, R-F2-04, R-F2-09, R-F2-10, R-F2-15).
+- **In the editor:** map painting, the Objects window with ids and indices, snap to floor, the Exit and Head room lenses, the dump view, the Sprites window and objects drawn with their sprites (R-F2-06, R-F2-07, R-F2-14, R-F2-18, R-SPR-01 to R-SPR-04), and the Game view as the canvas once F5 exists, drawn natively by the game host and streamed over a `Channel`, with the flat fallback until then (R-F2-20).
 - **The Fizz 1 export** with its lossy check (R-F2-05, R-F2-16).
 - **MCP:** `get_target`, the Fizz 2 object tools, `check_export`, `get_budget`, `get_dump`, the read-only sprite tools (R-F2-23).
 
@@ -66,16 +74,16 @@ Nothing here is started, and much of it waits on the Fizz 2 repository: its gram
 - A Fizz 2 level exports to Fizz 1 with exactly the expected errors and warnings, and a level without Fizz 2-only content exports with only W104 and W110.
 - Every capability in the matrix has a test that shows its state in each profile, and a synthetic profile changes the editor's behaviour with no code change.
 
-**Depends on:** M1, and F1, F2, F4, F10 and F15 from the Fizz 2 repository.
+**Depends on:** M1, and F1, F2, F4, F10, F15 and F23 from the Fizz 2 repository. Because the studio links `fizz-script` natively (D55), the corpus checks the studio's owned-line rewrites and completion, not a second parser.
 
 ## M3 — States and rules
 
-**Delivers:** `state`, bindings (`door`, and `state=` on lights and panels), `when` rules with every input, condition and action, `lock` as sugar with its exact expansion, raised events (`word`, `cue`) with the world's sound library and the string checks, the States and Rules windows with their Words and Sounds tabs, the States lens, rule previews run in the game's WebAssembly (F6), the Fizz 1 export of states, and the MCP tools for states, rules and strings (R-ST-01 to R-ST-08, R-F2-03, R-F2-11 to R-F2-13, R-F2-19).
+**Delivers:** `state`, bindings (`door`, and `state=` on lights and panels), `when` rules with every input, condition and action, `lock` as sugar with its exact expansion, raised events (`word`, `cue`) with the world's sound library and the string checks, the States and Rules windows with their Words and Sounds tabs, the States lens, rule previews run in the game host (F6), the Fizz 1 export of states, and the MCP tools for states, rules and strings (R-ST-01 to R-ST-08, R-F2-03, R-F2-11 to R-F2-13, R-F2-19).
 
 **Exit criteria:**
 
 - For every corpus level, the studio's states, bindings and rule records equal `fizz-bake dump` field for field, and every `lock` expands exactly as `LANGUAGE.md` says.
-- A rule fixture for each input runs in the game's WebAssembly and changes its state on the expected tick; a death resets every state.
+- A rule fixture for each input runs in the game host and changes its state on the expected tick; a death resets every state.
 - A level whose states the Fizz 1 export cannot say reports E120 or E121 for each, and a standard-lock level exports exactly.
 
 **Depends on:** M2, and F6, F11 and F18 from the Fizz 2 repository. Until F11 is built, the inputs and actions beyond today's locks are "accepted" (W106).
@@ -118,7 +126,7 @@ Nothing here is started, and much of it waits on the Fizz 2 repository: its gram
 
 ## M7 — Behaviour scripting
 
-**Delivers:** custom enemies and items ([SCRIPTING.md](SCRIPTING.md)): the definition language, the compiler's checks and worst-case counts, the Definitions window and behaviour editor with its mode graph, the preview and debugger in the game's WebAssembly, the behaviour budget meters, the built-in roster beside custom kinds (F8), and the MCP tools (R-BHV-01 to R-BHV-08).
+**Delivers:** custom enemies and items ([SCRIPTING.md](SCRIPTING.md)): the definition language, the compiler's checks and worst-case counts, the Definitions window and behaviour editor with its mode graph, the preview and debugger in the game host, the behaviour budget meters, the built-in roster beside custom kinds (F8), and the MCP tools (R-BHV-01 to R-BHV-08).
 
 **Exit criteria:**
 
@@ -169,7 +177,7 @@ The Fizz 1 overworld, on the shell of M1. Its model is already proven (2,640 til
 
 - All 16 Episode 1 levels open from their scripts and every proof in `scripts/prove-all.sh` still passes after a round of open, edit, undo all, save.
 - A paint stroke on Marshmallow Meadows (220 × 32) updates the canvas and the script within 16 ms at the 95th percentile (R-PERF-01); every level opens in under a second (R-PERF-02).
-- The Playwright suites are ported to the studio, run without machine-specific paths, mute audio, and pass.
+- `tauri-mcp-server` checks cover the Fizz 1 tools, objects and lenses in the running app, with audio muted; the prototype's Playwright suites stay design checks only.
 
 **Depends on:** M1 (the shell, the object-line API).
 
@@ -184,29 +192,22 @@ The Fizz 1 overworld, on the shell of M1. Its model is already proven (2,640 til
 
 **Depends on:** M9 (the overworld designer places the new point). Can run alongside M10.
 
-## M12 — Fizz 1 WebAssembly bridge
+## M12 — Fizz 1 native host and Rust levels
 
-**Delivers:** level data from the game (E6), a level built from a script inside the sim (E7), enemy paths (E8) behind the Paths lens and `get_enemy_paths`, and the playtest bot (E9) behind Run playtest bot, the Checks window and `run_playtest`, all in a Web Worker.
+The Fizz 1 game linked natively in the game host, which replaces the planned WebAssembly bridge, and editing on top of Rust-written levels.
+
+**Delivers:** a level's data from the game (E6), a level built from a script inside the sim (E7), enemy paths (E8) behind the Paths lens and `get_enemy_paths`, and the playtest bot (E9) behind Run playtest bot, the Checks window and `run_playtest`, all as public Rust APIs called on worker threads with progress over `Channel`s; opening hand-written procedural Rust levels from their data (R-RUST-02), with edits kept and exported on top of them (R-RUST-03, `SPEC.md` Q2); the full enemy docs (R-LANG-16).
 
 **Exit criteria:**
 
 - For all 16 levels, the op stream run in the sim gives the compiled level's fingerprint.
 - The Paths lens draws the sim's trace; a Rust test confirms the traces for Crater Fields.
-- The playtest routes from `playtest.rs` give the same outcomes through the exports; `run_checks` reports a real playtest result instead of "not run".
-
-**Depends on:** M10, M11 (a scripted level not yet compiled into the game must still be loadable).
-
-## M13 — Fizz 1 Rust levels
-
-**Delivers:** opening hand-written procedural Rust levels from `level_dump` at run time (R-RUST-02), with edits kept and exported on top of them (R-RUST-03, `SPEC.md` Q2); the full enemy docs (R-LANG-16). The sprite picker and level sprites on points are in M9.
-
-**Exit criteria:**
-
+- The playtest routes from `playtest.rs` give the same outcomes through the API; `run_checks` reports a real playtest result instead of "not run".
 - A Rust-written level opens, takes a painted edit, exports, and the game shows the edit while the Rust function is unchanged.
 
-**Depends on:** M12 (level data from WebAssembly), M11 (registry).
+**Depends on:** M10, M11, and E6 to E9 in the Fizz 1 repository.
 
-## M14 — Episode 3 profile
+## M13 — Episode 3 profile
 
 **Delivers:** an `ep3` profile on the `fizz2` dialect family, generated from Episode 3's own tables, its world projects, and any dialect version it needs.
 

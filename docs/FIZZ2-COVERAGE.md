@@ -61,7 +61,7 @@ Not found anywhere in that repository: a `fizz-script` crate, a `fizz-bake` tool
 
 | Feature | Source in Fizz 2 | Studio doc and section | Status | Action taken |
 | --- | --- | --- | --- | --- |
-| Oblique ground (global projection, faces from neighbours) | `docs/OBLIQUE.md` (#142, #143) | `EDITOR.md` "Previews" | Missing | Game view drawn by the game's presenter in WebAssembly; never reimplemented |
+| Oblique ground (global projection, faces from neighbours) | `docs/OBLIQUE.md` (#142, #143) | `EDITOR.md` "Previews" | Missing | Game view drawn by the game's presenter, linked natively in the game host; never reimplemented |
 | Theme chooses back wall and parallax stack | `docs/OBLIQUE.md` "Backgrounds and parallax" (#144) | `LANGUAGE.md` "Theme, look and lights" | Missing | The theme is the world's with a level override; `theme` reserved until F3 |
 | Parallax layers and factors; Sky setting Full, Light, Auto | `crates/fizz-view/src/parallax.rs`; `FIZZ2.CFG` (#144) | `EDITOR.md` "Previews" | Missing | Bitmap panels imported or painted, packed in `BDRP` (D52, F19); Sky stays a player setting |
 | Night mode, palette banks, dynamic lights | `docs/LIGHTS.md`; `light.rs` (#146) | `EDITOR.md` "Previews"; `LANGUAGE.md` | Missing | Night stays a player setting; lights are placed objects (D44, F12) with the light meters |
@@ -99,7 +99,7 @@ Not found anywhere in that repository: a `fizz-script` crate, a `fizz-bake` tool
 | Target as a two-way switch | Studio D30 | `LANGUAGE.md` "Targets and capabilities"; `EDITOR.md` 13 | Partial | Target profiles with capability states (D34), bound to the level at creation (D46) |
 | Fizz 1 export losses | — | `LANGUAGE.md` "Lowering to Fizz 1" | Partial: no door-channel rule, no exit or look | Full mapping table; E120 for a door that starts open; W110 |
 | Fizz 1 to Fizz 2 conversion | — | `LANGUAGE.md` "Converting a Fizz 1 level to Fizz 2" | Missing | Convert to Fizz 2 with a conversion report, into a world (D46) |
-| Episode 3 on Fizz 2's simulation | Fizz 2 `CLAUDE.md`, `README.md` | `LANGUAGE.md` "Later episodes"; `ROADMAP.md` M14 | Missing | Dialect versions, profiles and content tables (D35) |
+| Episode 3 on Fizz 2's simulation | Fizz 2 `CLAUDE.md`, `README.md` | `LANGUAGE.md` "Later episodes"; `ROADMAP.md` M13 | Missing | Dialect versions, profiles and content tables (D35) |
 | Overworld in Fizz 2 | None | `OVERWORLD.md` section 10 | Missing | Recorded as absent; the overworld designer is profile-driven |
 
 ## Added by the owner's decisions
@@ -120,6 +120,19 @@ These are the owner's design (2026-11-04), not features of Fizz 2 today. **Statu
 | Custom enemies and items with behaviour scripts, bytecode, a step budget | One built-in enemy | `SCRIPTING.md` | Missing | D51; F16, F17, F21, F22; Q32, Q33 |
 | Bitmap parallax panels, PNG import, the pixel editor | Procedural layers (#144) | `EDITOR.md` 15 | Missing | D52; F19, F14; Q34, Q35 |
 | Cost meters for lights, panels and behaviours | `/BENCH` whole-frame figures | `EDITOR.md` 13 "Budgets" | Missing | F22 |
+
+## The desktop app
+
+The owner set the studio's end goal as a Tauri v2 desktop app to the Liminal HQ standards (D54). The studio's documents had assumed a browser app; these rows say what that changes for the Fizz 2 work.
+
+| Feature | Source | Studio doc and section | Status | Action taken |
+| --- | --- | --- | --- | --- |
+| The Liminal HQ Tauri standards (layout, crates and plugins, Rust-owned state, windows in Rust, settings, catalogue, gate, CI) | `folio/AGENTS.md`; `waypoint/AGENTS.md` | `DESKTOP.md` | Missing | New document; R-APP-01 to R-APP-16 |
+| One parser for Fizz 2 | Fizz 2 plans `fizz-script` | `ARCHITECTURE.md` 7; D55 | Partial: a second parser or WebAssembly was open (Q10) | The studio links `fizz-script` natively (proposed) |
+| The Game view, rule previews and behaviour debugger | F5, F6, F21 | `ARCHITECTURE.md` 5; `EDITOR.md` 13; `SCRIPTING.md` 6.2 | Partial: planned through WebAssembly in a Web Worker | Native in the game host, streamed over `Channel`s (D59); F5, F6, F21 recast as native APIs |
+| The Fizz 2 crates used from the studio | Workspace crates in the Fizz 2 repository | `ENGINE-CHANGES.md` F23; D58 | Missing | Pinned git dependencies; F23 |
+| Claude's MCP server | `folio/spec/13-agents.md` | `MCP.md` 5; D57 | Partial: a file-based TypeScript server | A stdio sidecar with live and headless modes, propose kept |
+| Testing the app | `folio/AGENTS.md`; Folio's D-14 | `TESTING.md` 8; D60 | Partial: Playwright on the prototype | `tauri-mcp-server` and Rust tests; Playwright for the design only |
 
 ## What remains open
 

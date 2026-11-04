@@ -118,7 +118,7 @@ None of these tests exist. They are what the work needs, so the implementer know
 - **Ids and indices.** Renaming an id rewrites every rule that names it and nothing else; the baked index of every object equals its position after the stable kind sort; a second key of one colour is E107.
 - **States and rules.** 32 states pass and 33 fail; a state with 9 values fails; a start value outside the set fails; `toggle` on a three-valued state is E124; 32 rules pass and 33 fail (each `lock` counted after expansion); a third condition or action fails; an action without its cell fails; `time` with `every=3` or with `every=` and no `repeat` fails; a rule that names a missing object, group, string or cue fails; W113 fires for a rule that can never fire.
 - **`lock` is sugar.** For each corpus `lock`, the expansion written out by hand gives byte-identical records, and the printer keeps the `lock` line as written.
-- **A death resets states.** A fixture, run in the game's WebAssembly, changes three states, dies, and finds every state at its start value (with the Fizz 2 repository's state table, F11).
+- **A death resets states.** A fixture, run in the game host, changes three states, dies, and finds every state at its start value (with the Fizz 2 repository's state table, F11).
 - **Records.** For each corpus level, the studio's resolved objects, states, bindings, rules and strings equal `fizz-bake dump` of `LEVL` version 2 field for field (needs the baker and F10). There is no version 1 path to test: version 1 is dropped.
 
 ### Proof against the Fizz 2 game
@@ -160,3 +160,14 @@ None of these tests exist. They are what the work needs, so the implementer know
 - **PNG import.** The same image and settings give the same grid every time; every pixel of the result is one of the 16 colours or transparent; the source image and settings are saved beside it.
 - **Panels.** A panel's scroll factors, repeat, vertical position and open-air rule round-trip through its file, and the Game view draws it where the game says.
 - **Drawing by kind.** Every object kind in each profile draws with its mapped sprite, and a kind without one draws the labelled placeholder.
+
+## 8. Planned: the desktop app
+
+None of this exists. The studio becomes a Tauri v2 desktop app ([DESKTOP.md](DESKTOP.md)), and its tests follow the Liminal HQ standard (proposed, `DECISIONS.md` D60):
+
+- **Rust tests** with `cargo nextest` for every crate: the session (one writer, revisions, undo and redo, stale answers refused), files (atomic canonical writes, watching, recovery), profiles, states, art, budgets, export and the MCP server, with golden files.
+- **The Fizz 1 port's corpus.** Today's 76 language tests become fixtures (input, expected print, errors, exported Rust) run by the Rust crate, and the 16-level and overworld proofs become Rust tests that link the Fizz 1 crates at a pinned revision, so `scratch/rust/` and its drift go away. The TypeScript package keeps passing the same fixtures until it is retired (D56).
+- **Frontend tests** with Vitest, Testing Library and happy-dom, and `tauri::test::mock_builder` for the app crate (`folio/spec/02-architecture.md` "Testing").
+- **The running app** is driven by `tauri-mcp-server` through the debug-only `tauri-plugin-mcp-bridge`, by window label, with audio muted: the M1 walking-skeleton checks (open a Fizz 1 level and a Fizz 2 world, paint, undo, save, an outside edit, recovery), then each milestone's exit criteria. The bridge is not built for Windows in Folio because of a `webview2-com` clash, so these checks run on Linux.
+- **The gate.** `bun run validate` runs all of it except the running-app checks, which CI runs in its Linux job.
+- **The design harness stays.** The Playwright suites in `tools/design-harness/` keep checking the design prototype in `design/`; they are not ported to the app.
