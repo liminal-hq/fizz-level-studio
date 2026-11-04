@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Parallax panels and the pixel editor</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@500;600;700&display=swap">
+<style>body{margin:0;background:#050507}button{font-family:inherit;cursor:pointer}button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid #ffaa40;outline-offset:1px}input[type=range]{accent-color:#ffaa40}</style>
+</helmet>
+<div style="width:1440px;height:900px;box-sizing:border-box;position:relative;display:flex;flex-direction:column;background:#050507;color:#e0e0e0;font-family:Inter,system-ui,sans-serif;font-size:13px;overflow:hidden;border:1px solid rgba(255,255,255,0.12);border-radius:12px">
+
+  <div style="height:40px;flex:none;box-sizing:border-box;display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;column-gap:8px;padding:0 8px;background:#0c0c10;border-bottom:1px solid rgba(255,255,255,0.12)">
+    <div style="display:flex;align-items:center;gap:4px"><button aria-haspopup="menu" aria-label="Fizz Level Studio menu" style="display:inline-flex;align-items:center;gap:8px;height:28px;padding:0 8px;border:none;border-radius:6px;background:transparent;color:#e0e0e0;font-weight:600;font-size:13px"><span aria-hidden="true" style="width:16px;height:16px;border-radius:4px;background:linear-gradient(135deg,#ffaa40,#f43f5e,#a78bfa)"></span><span>Fizz Level Studio</span></button></div>
+    <div style="white-space:nowrap">Lighthouse Point — panels</div>
+    <div role="group" aria-label="Window controls" style="display:flex;justify-content:flex-end;gap:2px">
+      <sc-for list="{{ctl}}" as="c" hint-placeholder-count="3"><button aria-label="{{c.label}}" title="{{c.label}}" style="position:relative;width:28px;height:28px;padding:0;border:none;background:transparent;color:#e0e0e0;display:inline-flex;align-items:center;justify-content:center"><span aria-hidden="true" style="position:absolute;inset:2px;border-radius:50%;background:rgba(255,255,255,0.06)"></span><svg aria-hidden="true" style="position:relative" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><path d="{{c.d}}"></path></svg></button></sc-for>
+    </div>
+  </div>
+  <div role="menubar" aria-label="Menu bar" style="height:34px;flex:none;box-sizing:border-box;display:flex;align-items:center;gap:2px;padding:3px 8px;background:#0c0c10;border-bottom:1px solid rgba(255,255,255,0.08)">
+    <sc-for list="{{menus}}" as="m" hint-placeholder-count="8"><button role="menuitem" aria-haspopup="menu" style="height:28px;padding:0 10px;border:none;border-radius:6px;background:transparent;color:#e0e0e0;font-size:13px">{{m}}</button></sc-for>
+  </div>
+
+  <div style="position:relative;flex-grow:1;min-height:0;overflow:hidden;background:#04040a">
+
+    <!-- Panels window -->
+    <div style="position:absolute;left:8px;top:8px;width:340px;height:810px;border-radius:12px;border:1px solid rgba(255,255,255,0.12);background:rgba(20,20,25,0.94);display:flex;flex-direction:column;overflow:hidden">
+      <div style="height:44px;flex:none;display:flex;align-items:center;gap:8px;padding:0 4px 0 12px;border-bottom:1px solid rgba(255,255,255,0.08)"><span style="font-weight:500;color:#fff">Panels</span><span style="font-size:12px;color:#b4bfce">back to front</span><span style="flex-grow:1"></span><button style="min-height:30px;padding:0 10px;margin-right:6px;border-radius:999px;border:1px solid rgba(255,170,64,0.6);background:transparent;color:#ffaa40;font-size:12px">Import PNG…</button></div>
+      <div role="listbox" aria-label="Panel stack" style="padding:8px;display:flex;flex-direction:column;gap:4px">
+        <sc-for list="{{panels}}" as="p" hint-placeholder-count="3"><button role="option" aria-selected="{{p.on}}" style="display:flex;align-items:center;gap:10px;min-height:52px;padding:6px 8px;border-radius:8px;text-align:left;{{p.s}}"><span style="width:64px;height:32px;flex:none;border-radius:4px;{{p.thumb}}"></span><span style="display:flex;flex-direction:column;gap:2px"><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#fff">{{p.n}}</span><span style="font-size:11px;color:#b4bfce">{{p.d}}</span></span></button></sc-for>
+      </div>
+      <div style="padding:4px 12px 12px;display:flex;flex-direction:column;gap:10px;border-top:1px solid rgba(255,255,255,0.08)">
+        <span style="font-size:12px;font-weight:600;color:#ffaa40;padding-top:8px">cliffs-mid</span>
+        <div style="display:flex;align-items:center;gap:10px"><label for="pn-sx" style="width:96px;flex:none;font-size:12px;color:#b4bfce">Scroll across</label><input id="pn-sx" type="range" min="0" max="256" value="96" style="flex:1;margin:0"><span style="width:64px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:12px">96/256</span></div>
+        <div style="display:flex;align-items:center;gap:10px"><label for="pn-sy" style="width:96px;flex:none;font-size:12px;color:#b4bfce">Scroll down</label><input id="pn-sy" type="range" min="0" max="256" value="32" style="flex:1;margin:0"><span style="width:64px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:12px">32/256</span></div>
+        <sc-for list="{{segs}}" as="g" hint-placeholder-count="3"><div style="display:flex;flex-direction:column;gap:4px"><span style="font-size:12px;color:#b4bfce">{{g.k}}</span><div role="radiogroup" aria-label="{{g.k}}" style="display:flex;padding:2px;border-radius:999px;border:1px solid rgba(255,255,255,0.14)"><sc-for list="{{g.v}}" as="v" hint-placeholder-count="3"><button role="radio" aria-checked="{{v.on}}" style="flex:1;height:30px;border:none;border-radius:999px;font-size:12px;{{v.s}}">{{v.n}}</button></sc-for></div></div></sc-for>
+        <div style="display:flex;flex-direction:column;gap:3px"><label for="pn-st" style="font-size:12px;color:#b4bfce">Shown by state (optional)</label><select id="pn-st" style="height:32px;padding:0 6px;border-radius:6px;border:1px solid rgba(255,255,255,0.14);background:#0c0c10;color:#e0e0e0;font-size:12px"><option>always shown</option><option>alarm, on=on</option></select></div>
+        <div style="border-radius:8px;background:#050507;padding:6px 8px;font-family:'JetBrains Mono',monospace;font-size:10.5px;line-height:1.5;color:#b4bfce;white-space:pre-wrap">panels/cliffs-mid.json · 48 × 24 · source cliffs.png kept beside it</div>
+        <div style="font-size:11.5px;color:#b4bfce;line-height:1.45">Packed in the world's BDRP section (F19) and judged in place in the Game view at both Sky details. Today's layers are procedural (#144).</div>
+      </div>
+    </div>
+
+    <!-- the pixel editor, its own native window -->
+    <div role="dialog" aria-label="Pixel editor" style="position:absolute;left:364px;top:20px;width:700px;height:780px;box-sizing:border-box;border-radius:12px;border:1px solid rgba(255,255,255,0.14);background:#111116;box-shadow:0 16px 48px rgba(0,0,0,0.45);display:flex;flex-direction:column;overflow:hidden">
+      <div style="height:40px;flex:none;box-sizing:border-box;display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;column-gap:8px;padding:0 8px;background:#0c0c10;border-bottom:1px solid rgba(255,255,255,0.12)">
+        <span style="font-size:12px;color:#b4bfce;padding-left:4px">Fizz Level Studio</span>
+        <span style="white-space:nowrap">Pixel editor — cliffs-mid</span>
+        <div role="group" aria-label="Window controls" style="display:flex;justify-content:flex-end;gap:2px"><sc-for list="{{ctl}}" as="c" hint-placeholder-count="3"><button aria-label="{{c.label}}" title="{{c.label}}" style="position:relative;width:28px;height:28px;padding:0;border:none;background:transparent;color:#e0e0e0;display:inline-flex;align-items:center;justify-content:center"><span aria-hidden="true" style="position:absolute;inset:2px;border-radius:50%;background:rgba(255,255,255,0.06)"></span><svg aria-hidden="true" style="position:relative" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><path d="{{c.d}}"></path></svg></button></sc-for></div>
+      </div>
+      <div role="toolbar" aria-label="Drawing tools" style="height:52px;flex:none;display:flex;align-items:center;gap:4px;padding:0 10px;border-bottom:1px solid rgba(255,255,255,0.08)">
+        <sc-for list="{{ptools}}" as="t" hint-placeholder-count="9"><button aria-label="{{t.n}}" title="{{t.n}}" aria-pressed="{{t.on}}" style="width:40px;height:40px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;{{t.s}}"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="{{t.d}}"></path></svg></button></sc-for>
+        <span style="flex-grow:1"></span>
+        <span style="font-size:12px;color:#b4bfce">Zoom</span><span style="font-family:'JetBrains Mono',monospace;font-size:12px">12x</span>
+        <button aria-pressed="true" style="height:32px;padding:0 10px;border-radius:999px;border:1px solid rgba(255,255,255,0.22);background:rgba(255,255,255,0.06);color:#e0e0e0;font-size:12px">Pixel grid</button>
+        <button aria-pressed="false" style="height:32px;padding:0 10px;border-radius:999px;border:1px solid rgba(255,255,255,0.14);background:transparent;color:#b4bfce;font-size:12px">Night ambient</button>
+      </div>
+      <div style="flex-grow:1;min-height:0;display:flex;gap:12px;padding:12px">
+        <div style="flex:none;display:flex;flex-direction:column;gap:8px">
+          <div style="width:576px;height:288px;display:grid;grid-template-columns:repeat(48,12px);grid-auto-rows:12px;background:#000;outline:1px solid rgba(255,255,255,0.2)">
+            <sc-for list="{{px}}" as="p" hint-placeholder-count="48"><div style="box-sizing:border-box;border-right:1px solid rgba(255,255,255,0.06);border-bottom:1px solid rgba(255,255,255,0.06);background:{{p}}"></div></sc-for>
+          </div>
+          <div style="display:flex;gap:12px;align-items:flex-start">
+            <div style="display:flex;flex-direction:column;gap:4px"><span style="font-size:11px;color:#b4bfce">At 1x</span><div style="width:48px;height:24px;display:grid;grid-template-columns:repeat(48,1px);grid-auto-rows:1px;outline:1px solid rgba(255,255,255,0.2)"><sc-for list="{{px}}" as="p" hint-placeholder-count="48"><div style="background:{{p}}"></div></sc-for></div></div>
+            <div style="display:flex;flex-direction:column;gap:4px"><span style="font-size:11px;color:#b4bfce">At 4x, repeated across</span><div style="display:flex"><div style="width:192px;height:96px;display:grid;grid-template-columns:repeat(48,4px);grid-auto-rows:4px"><sc-for list="{{px}}" as="p" hint-placeholder-count="48"><div style="background:{{p}}"></div></sc-for></div><div style="width:192px;height:96px;display:grid;grid-template-columns:repeat(48,4px);grid-auto-rows:4px;opacity:0.85"><sc-for list="{{px}}" as="p" hint-placeholder-count="48"><div style="background:{{p}}"></div></sc-for></div></div></div>
+          </div>
+          <div style="font-size:11.5px;color:#b4bfce;line-height:1.45;width:576px">16 EGA colours and no others. The night banks dim a colour and cannot tint it, so the night ambient preview shows whether the art still reads. Dark colours build the world; bright ones mark what Ben can touch (a lint on panels).</div>
+        </div>
+        <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:8px">
+          <span style="font-size:12px;color:#b4bfce">Palette</span>
+          <div role="radiogroup" aria-label="EGA palette" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px">
+            <sc-for list="{{ega}}" as="e" hint-placeholder-count="16"><button role="radio" aria-checked="{{e.on}}" style="display:flex;align-items:center;gap:6px;height:30px;padding:0 6px;border-radius:6px;{{e.s}}"><span style="width:18px;height:18px;flex:none;border-radius:3px;border:1px solid rgba(255,255,255,0.2);background:{{e.c}}"></span><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#fff">{{e.l}}</span><span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#7c8796">{{e.i}}</span></button></sc-for>
+          </div>
+          <span style="font-size:11px;color:#7c8796;line-height:1.4">Letters are the sprite format's: k B G C R M N L D b g c r m y W, with . for transparent.</span>
+        </div>
+      </div>
+      <div style="flex:none;display:flex;align-items:center;gap:8px;padding:10px 12px;border-top:1px solid rgba(255,255,255,0.08)">
+        <span style="font-size:12px;color:#b4bfce;flex-grow:1">Saved canonically: opening and saving without a change leaves the bytes unchanged.</span>
+        <button style="min-height:34px;padding:0 14px;border-radius:999px;border:1px solid rgba(255,255,255,0.22);background:transparent;color:#e0e0e0">Revert</button>
+        <button style="min-height:34px;padding:0 14px;border-radius:999px;border:none;background:#ffaa40;color:#050507;font-weight:600">Save panel</button>
+      </div>
+    </div>
+
+    <!-- PNG import -->
+    <div role="dialog" aria-label="Import a PNG" style="position:absolute;left:1076px;top:20px;width:356px;height:620px;box-sizing:border-box;border-radius:12px;border:1px solid rgba(255,170,64,0.4);background:#16161c;box-shadow:0 16px 48px rgba(0,0,0,0.45);display:flex;flex-direction:column;overflow:hidden">
+      <div style="height:52px;flex:none;display:flex;align-items:center;gap:8px;padding:0 16px;border-bottom:1px solid rgba(255,255,255,0.08)"><span style="font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:16px;color:#fff">Import a PNG</span><span style="font-family:'JetBrains Mono',monospace;font-size:11.5px;color:#b4bfce">cliffs.png</span></div>
+      <div style="padding:12px 16px;display:flex;flex-direction:column;gap:10px">
+        <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px">
+          <div style="display:flex;flex-direction:column;gap:4px"><span style="font-size:11px;color:#b4bfce">Source</span><div role="img" aria-label="Placeholder for the source image" style="height:80px;border-radius:4px;background:linear-gradient(170deg,#1a2a6a,#4a5aa0 45%,#2a2a3a 46%,#3a3640 70%,#1a1820);display:flex;align-items:flex-end;padding:4px;box-sizing:border-box;font-size:10px;color:#e0e0e0">[source image]</div></div>
+          <div style="display:flex;flex-direction:column;gap:4px"><span style="font-size:11px;color:#b4bfce">16 EGA colours</span><div style="height:80px;display:grid;grid-template-columns:repeat(48,minmax(0,1fr));grid-auto-rows:minmax(0,1fr);border-radius:4px;overflow:hidden"><sc-for list="{{px}}" as="p" hint-placeholder-count="48"><div style="background:{{p}}"></div></sc-for></div></div>
+        </div>
+        <sc-for list="{{imp}}" as="g" hint-placeholder-count="2"><div style="display:flex;flex-direction:column;gap:4px"><span style="font-size:12px;color:#b4bfce">{{g.k}}</span><div role="radiogroup" aria-label="{{g.k}}" style="display:flex;padding:2px;border-radius:999px;border:1px solid rgba(255,255,255,0.14)"><sc-for list="{{g.v}}" as="v" hint-placeholder-count="2"><button role="radio" aria-checked="{{v.on}}" style="flex:1;height:30px;border:none;border-radius:999px;font-size:12px;{{v.s}}">{{v.n}}</button></sc-for></div></div></sc-for>
+        <div style="display:flex;align-items:center;gap:10px"><label for="im-th" style="width:80px;flex:none;font-size:12px;color:#b4bfce">Threshold</label><input id="im-th" type="range" min="0" max="255" value="128" style="flex:1;margin:0"><span style="font-family:'JetBrains Mono',monospace;font-size:12px">128</span></div>
+        <div style="display:flex;flex-direction:column;gap:3px"><label for="im-sz" style="font-size:12px;color:#b4bfce">Panel size</label><input id="im-sz" type="text" value="48 × 24 (scaled from the source)" style="height:32px;box-sizing:border-box;padding:0 8px;border-radius:6px;border:1px solid rgba(255,255,255,0.14);background:rgba(0,0,0,0.22);color:#e0e0e0;font-size:12px"></div>
+        <div style="font-size:11.5px;color:#b4bfce;line-height:1.45">The quantiser is the studio's art tool, not a game rule. The source is kept beside the panel so a re-import is repeatable. The panel limits are F19's, not yet set.</div>
+      </div>
+      <div style="margin-top:auto;display:flex;justify-content:flex-end;gap:8px;padding:12px 16px;border-top:1px solid rgba(255,255,255,0.08)"><button style="min-height:34px;padding:0 14px;border-radius:999px;border:1px solid rgba(255,255,255,0.22);background:transparent;color:#e0e0e0">Cancel</button><button style="min-height:34px;padding:0 14px;border-radius:999px;border:none;background:#ffaa40;color:#050507;font-weight:600">Import as panel</button></div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const C = { k: '#000000', B: '#0000AA', G: '#00AA00', C: '#00AAAA', R: '#AA0000', M: '#AA00AA', N: '#AA5500', L: '#AAAAAA', D: '#555555', b: '#5555FF', g: '#55FF55', c: '#55FFFF', r: '#FF5555', m: '#FF55FF', y: '#FFFF55', W: '#FFFFFF' };
+    const W = 48, H = 24, px = [];
+    const ridge = (x) => 11 + Math.round(3 * Math.abs(((x * 7) % 13) - 6) / 6) + (x > 30 ? -3 : 0);
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+      let ch = y < 6 ? 'k' : (y < 11 ? 'B' : 'B');
+      if (y < 9 && (x * 31 + y * 17) % 37 === 0) ch = 'L';
+      if (y >= ridge(x)) ch = y >= ridge(x) + 4 ? 'k' : 'D';
+      if (x >= 36 && x <= 38 && y >= 3 && y < ridge(37)) ch = (y % 4 < 2) ? 'W' : 'R';
+      if (x >= 36 && x <= 38 && y === 2) ch = 'y';
+      if (x === 37 && y === 1) ch = 'L';
+      px.push(C[ch]);
+    }
+    const ega = 'k B G C R M N L D b g c r m y W'.split(' ').map((l, i) => ({ l: l, i: String(i), c: C[l], on: l === 'D' ? 'true' : 'false', s: l === 'D' ? 'border:1px solid #ffaa40;background:rgba(255,170,64,0.12)' : 'border:1px solid transparent;background:rgba(255,255,255,0.03)' }));
+    const panels = [['stars-far', 'scroll 16/256 · repeat both · pinned to the horizon', 'background:#000 radial-gradient(#AAAAAA 1px,transparent 1.5px) 0 0/8px 8px'], ['cliffs-mid', 'scroll 96/256 · repeat across · base row 10', 'background:linear-gradient(#0000AA 55%,#555555 55%)', 1], ['lamp-glow', 'scroll 160/256 · none · shown while alarm is on', 'background:radial-gradient(#FFFF55 0,#AA5500 30%,#000 60%)']].map((p) => ({ n: p[0], d: p[1], thumb: p[2], on: p[3] ? 'true' : 'false', s: p[3] ? 'border:1px solid #ffaa40;background:rgba(255,170,64,0.08)' : 'border:1px solid rgba(255,255,255,0.08);background:transparent' }));
+    const seg = (k, list, on) => ({ k: k, v: list.map((n) => ({ n: n, on: n === on ? 'true' : 'false', s: n === on ? 'background:rgba(255,170,64,0.18);color:#fff' : 'background:transparent;color:#b4bfce' })) });
+    const segs = [seg('Repeat', ['across', 'down', 'both', 'none'], 'across'), seg('Vertical position', ['base row 10', 'horizon'], 'base row 10'), seg('Open air', ['behind . only', 'also behind w'], 'behind . only')];
+    const imp = [seg('Colours', ['nearest', 'ordered 2 × 2 dither'], 'nearest'), seg('Transparency', ['colour key', 'alpha, thresholded'], 'alpha, thresholded')];
+    const ptools = [['Pencil', 'M3 13l1-4 7-7 3 3-7 7z', 1], ['Line', 'M3 13L13 3'], ['Rectangle', 'M3 4h10v8H3z'], ['Fill', 'M3 9l5-5 5 5-5 5z M13 11v3'], ['Pick a colour', 'M10 2l4 4-7 7H3v-4z'], ['Mirror', 'M8 2v12 M6 4L2 8l4 4 M10 4l4 4-4 4'], ['Shift', 'M2 8h12 M11 5l3 3-3 3'], ['Rotate a quarter turn', 'M13 8a5 5 0 1 1-2-4 M13 2v3h-3'], ['Onion skin', 'M5 8a4 4 0 1 0 8 0 4 4 0 1 0-8 0 M3 8a4 4 0 0 1 4-4']].map((t) => ({ n: t[0], d: t[1], on: t[2] ? 'true' : 'false', s: t[2] ? 'border:1px solid #ffaa40;background:rgba(255,170,64,0.1);color:#ffaa40' : 'border:1px solid rgba(255,255,255,0.08);background:transparent;color:#b4bfce' }));
+    const menus = ['File', 'Edit', 'View', 'Level', 'World', 'Claude', 'Window', 'Help'];
+    const ctl = [['Minimise', 'M3.5 8.5h9'], ['Maximise', 'M3.5 3.5h9v9h-9z'], ['Close', 'M4 4l8 8M12 4l-8 8']].map((c) => ({ label: c[0], d: c[1] }));
+    return { px: px, ega: ega, panels: panels, segs: segs, imp: imp, ptools: ptools, menus: menus, ctl: ctl };
+  }
+}
+</script>
+</body>
+</html>

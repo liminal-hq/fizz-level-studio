@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Definitions and the behaviour editor</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@500;600;700&display=swap">
+<style>body{margin:0;background:#050507}button{font-family:inherit;cursor:pointer}button:focus-visible,input:focus-visible{outline:2px solid #ffaa40;outline-offset:1px}</style>
+</helmet>
+<div style="width:1440px;height:900px;box-sizing:border-box;position:relative;display:flex;flex-direction:column;background:#050507;color:#e0e0e0;font-family:Inter,system-ui,sans-serif;font-size:13px;overflow:hidden;border:1px solid rgba(255,255,255,0.12);border-radius:12px">
+
+  <div style="height:40px;flex:none;box-sizing:border-box;display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;column-gap:8px;padding:0 8px;background:#0c0c10;border-bottom:1px solid rgba(255,255,255,0.12)">
+    <div style="display:flex;align-items:center;gap:4px"><button aria-haspopup="menu" aria-label="Fizz Level Studio menu" style="display:inline-flex;align-items:center;gap:8px;height:28px;padding:0 8px;border:none;border-radius:6px;background:transparent;color:#e0e0e0;font-weight:600;font-size:13px"><span aria-hidden="true" style="width:16px;height:16px;border-radius:4px;background:linear-gradient(135deg,#ffaa40,#f43f5e,#a78bfa)"></span><span>Fizz Level Studio</span></button></div>
+    <div style="white-space:nowrap">defs/enemies.fizz — beetle-bot</div>
+    <div role="group" aria-label="Window controls" style="display:flex;justify-content:flex-end;gap:2px">
+      <sc-for list="{{ctl}}" as="c" hint-placeholder-count="3"><button aria-label="{{c.label}}" title="{{c.label}}" style="position:relative;width:28px;height:28px;padding:0;border:none;background:transparent;color:#e0e0e0;display:inline-flex;align-items:center;justify-content:center"><span aria-hidden="true" style="position:absolute;inset:2px;border-radius:50%;background:rgba(255,255,255,0.06)"></span><svg aria-hidden="true" style="position:relative" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><path d="{{c.d}}"></path></svg></button></sc-for>
+    </div>
+  </div>
+  <div role="menubar" aria-label="Menu bar" style="height:34px;flex:none;box-sizing:border-box;display:flex;align-items:center;gap:2px;padding:3px 8px;background:#0c0c10;border-bottom:1px solid rgba(255,255,255,0.08)">
+    <sc-for list="{{menus}}" as="m" hint-placeholder-count="8"><button role="menuitem" aria-haspopup="menu" style="height:28px;padding:0 10px;border:none;border-radius:6px;background:transparent;color:#e0e0e0;font-size:13px">{{m}}</button></sc-for>
+    <span style="flex-grow:1"></span><span style="font-size:12px;color:#b4bfce">Game module not loaded: preview, debugger and counts wait for it</span>
+  </div>
+
+  <div style="position:relative;flex-grow:1;min-height:0;overflow:hidden;background:#04040a">
+    <!-- Definitions -->
+    <div style="position:absolute;left:8px;top:8px;width:260px;height:810px;border-radius:12px;border:1px solid rgba(255,255,255,0.12);background:rgba(20,20,25,0.94);display:flex;flex-direction:column;overflow:hidden">
+      <div style="height:44px;flex:none;display:flex;align-items:center;gap:8px;padding:0 4px 0 12px;border-bottom:1px solid rgba(255,255,255,0.08)"><span style="font-weight:500;color:#fff">Definitions</span><span style="flex-grow:1"></span><button style="min-height:30px;padding:0 10px;margin-right:6px;border-radius:999px;border:1px solid rgba(255,170,64,0.6);background:transparent;color:#ffaa40;font-size:12px">New…</button></div>
+      <div role="listbox" aria-label="World definitions" style="padding:8px;display:flex;flex-direction:column;gap:4px">
+        <sc-for list="{{defs}}" as="d" hint-placeholder-count="4">
+          <sc-if value="{{d.head}}" hint-placeholder-val="{{false}}"><span style="font-size:11px;color:#7c8796;padding:6px 4px 2px">{{d.n}}</span></sc-if>
+          <sc-if value="{{d.item}}" hint-placeholder-val="{{true}}"><button role="option" aria-selected="{{d.on}}" style="display:flex;align-items:center;gap:10px;min-height:48px;padding:4px 8px;border-radius:8px;text-align:left;{{d.s}}"><span style="width:28px;height:28px;flex:none;border-radius:6px;display:inline-flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:12px;{{d.chip}}">{{d.g}}</span><span style="display:flex;flex-direction:column;gap:1px"><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#fff">{{d.n}}</span><span style="font-size:11px;color:#b4bfce">{{d.m}}</span></span></button></sc-if>
+        </sc-for>
+      </div>
+      <div style="margin-top:auto;padding:10px 12px;font-size:11.5px;color:#b4bfce;line-height:1.45;border-top:1px solid rgba(255,255,255,0.08)">A level places these by name (beetle-bot id=bot-1 at=26,2). Removing one a level uses is refused, with the lines listed. Fizz 1 levels cannot use them (E208).</div>
+    </div>
+
+    <!-- behaviour editor -->
+    <div style="position:absolute;left:276px;top:8px;width:640px;height:810px;border-radius:12px;border:1px solid rgba(255,170,64,0.35);background:rgba(16,16,21,0.96);display:flex;flex-direction:column;overflow:hidden">
+      <div style="height:44px;flex:none;display:flex;align-items:center;gap:8px;padding:0 12px;border-bottom:1px solid rgba(255,255,255,0.08)"><span style="font-weight:500;color:#fff">Behaviour editor</span><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#ffaa40">enemy beetle-bot</span><span style="flex-grow:1"></span><span style="font-size:11px;padding:1px 7px;border-radius:999px;border:1px solid rgba(251,191,36,0.6);color:#fcd34d">W106 · F16, F17</span></div>
+      <div style="padding:10px 12px;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;border-bottom:1px solid rgba(255,255,255,0.08)">
+        <sc-for list="{{form}}" as="f" hint-placeholder-count="8"><div style="display:flex;flex-direction:column;gap:3px"><label for="{{f.id}}" style="font-size:11px;color:#b4bfce">{{f.k}}</label><input id="{{f.id}}" type="text" value="{{f.v}}" style="height:30px;box-sizing:border-box;padding:0 8px;border-radius:6px;border:1px solid rgba(255,255,255,0.14);background:#050507;color:#e0e0e0;font-family:'JetBrains Mono',monospace;font-size:11.5px"></div></sc-for>
+      </div>
+      <div style="padding:2px 12px;font-size:11px;color:#7c8796;display:flex;gap:8px;align-items:center;height:28px"><span>The form and the text are one source.</span><span style="flex-grow:1"></span><span>worst case per handler</span><span style="font-family:'JetBrains Mono',monospace">budget [profile, Q32]</span></div>
+      <div style="flex-grow:1;min-height:0;padding:4px 0;font-family:'JetBrains Mono',monospace;font-size:11.5px;line-height:1.6;overflow:hidden">
+        <sc-for list="{{code}}" as="l" hint-placeholder-count="22"><div style="display:flex;{{l.bg}}"><span style="width:36px;flex:none;text-align:right;padding-right:10px;color:#7c8796;box-sizing:border-box">{{l.n}}</span><span style="flex:1;white-space:pre;{{l.ink}}">{{l.t}}</span><span style="width:96px;flex:none;text-align:right;padding-right:12px;color:#7c8796;font-size:10.5px">{{l.cost}}</span></div></sc-for>
+      </div>
+      <div style="flex:none;padding:8px 12px;border-top:1px solid rgba(255,255,255,0.08);display:flex;flex-direction:column;gap:4px;font-size:11.5px">
+        <span style="color:#b4bfce">Completion offers sensors, actions, registers, modes, sprites, states, strings and cues from the profile and the world.</span>
+        <span style="color:#b4bfce">Checks E201 to E208 and W201 to W205 come from the compiler: <span style="color:#e0e0e0">not run</span>.</span>
+      </div>
+    </div>
+
+    <!-- mode graph -->
+    <div style="position:absolute;left:924px;top:8px;width:508px;height:260px;border-radius:12px;border:1px solid rgba(255,255,255,0.12);background:rgba(20,20,25,0.94);overflow:hidden">
+      <div style="height:44px;display:flex;align-items:center;gap:8px;padding:0 12px;border-bottom:1px solid rgba(255,255,255,0.08)"><span style="font-weight:500;color:#fff">Mode graph</span><span style="font-size:12px;color:#b4bfce">2 modes · no unreachable mode</span></div>
+      <div style="position:relative;height:216px">
+        <div style="position:absolute;left:40px;top:70px;width:140px;height:72px;box-sizing:border-box;border-radius:10px;border:2px solid #ffaa40;background:rgba(255,170,64,0.08);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px"><span style="font-family:'JetBrains Mono',monospace;color:#fff">walk</span><span style="font-size:10.5px;color:#b4bfce">start · 3 handlers</span></div>
+        <div style="position:absolute;left:320px;top:70px;width:140px;height:72px;box-sizing:border-box;border-radius:10px;border:1px solid rgba(255,255,255,0.3);background:rgba(255,255,255,0.03);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px"><span style="font-family:'JetBrains Mono',monospace;color:#fff">charge</span><span style="font-size:10.5px;color:#b4bfce">3 handlers</span></div>
+        <div style="position:absolute;left:184px;top:86px;width:130px;height:0;border-top:2px solid #b4bfce"></div>
+        <div style="position:absolute;left:306px;top:81px;width:0;height:0;border-left:10px solid #b4bfce;border-top:6px solid transparent;border-bottom:6px solid transparent"></div>
+        <div style="position:absolute;left:186px;top:58px;width:130px;font-size:10.5px;color:#e0e0e0;text-align:center">ben-ahead 6, cooldown ≤ 0</div>
+        <div style="position:absolute;left:194px;top:126px;width:126px;height:0;border-top:2px dashed #b4bfce"></div>
+        <div style="position:absolute;left:184px;top:121px;width:0;height:0;border-right:10px solid #b4bfce;border-top:6px solid transparent;border-bottom:6px solid transparent"></div>
+        <div style="position:absolute;left:186px;top:134px;width:130px;font-size:10.5px;color:#e0e0e0;text-align:center">wall-ahead</div>
+        <div style="position:absolute;left:12px;bottom:10px;right:12px;font-size:11px;color:#b4bfce">Each mode is a box, each goto an arrow, labelled by what leaves the mode. W201 flags a mode no goto reaches.</div>
+      </div>
+    </div>
+
+    <!-- preview and debugger -->
+    <div style="position:absolute;left:924px;top:276px;width:508px;height:330px;border-radius:12px;border:1px solid rgba(255,255,255,0.12);background:rgba(20,20,25,0.94);display:flex;flex-direction:column;overflow:hidden">
+      <div style="height:44px;flex:none;display:flex;align-items:center;gap:4px;padding:0 8px 0 12px;border-bottom:1px solid rgba(255,255,255,0.08)"><span style="font-weight:500;color:#fff">Preview and debugger</span><span style="flex-grow:1"></span>
+        <sc-for list="{{dbg}}" as="b" hint-placeholder-count="5"><button aria-label="{{b.n}}" title="{{b.n}} (needs the game's WebAssembly)" aria-disabled="true" style="width:36px;height:36px;border-radius:8px;border:1px solid rgba(255,255,255,0.1);background:transparent;color:#7c8796;display:inline-flex;align-items:center;justify-content:center;cursor:not-allowed"><svg aria-hidden="true" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="{{b.d}}"></path></svg></button></sc-for>
+      </div>
+      <div style="display:flex;gap:10px;padding:10px 12px">
+        <div role="img" aria-label="Test room placeholder" style="width:220px;height:150px;flex:none;border-radius:6px;background:repeating-linear-gradient(45deg,#14141c 0 10px,#101016 10px 20px);border:1px dashed rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;text-align:center;font-size:11.5px;color:#b4bfce;padding:10px;box-sizing:border-box">Test room, drawn by the game's presenter when the module loads (F6, F21)</div>
+        <div style="flex:1;display:flex;flex-direction:column;gap:4px;font-size:11.5px">
+          <sc-for list="{{watch}}" as="w" hint-placeholder-count="7"><div style="display:flex;gap:8px;height:20px;align-items:center"><span style="width:96px;color:#b4bfce;font-family:'JetBrains Mono',monospace">{{w}}</span><span style="color:#7c8796">not run</span></div></sc-for>
+        </div>
+      </div>
+      <div style="padding:0 12px 10px;font-size:11.5px;color:#b4bfce;line-height:1.45">Pause, step a tick, run to an event, break on a handler or a mode change. A preview records its inputs, so it replays exactly and can step backwards. The studio never interprets a behaviour itself.</div>
+    </div>
+
+    <!-- meters -->
+    <div style="position:absolute;left:924px;top:614px;width:508px;height:204px;border-radius:12px;border:1px solid rgba(255,255,255,0.12);background:rgba(20,20,25,0.94);display:flex;flex-direction:column;overflow:hidden">
+      <div style="height:44px;flex:none;display:flex;align-items:center;padding:0 12px;border-bottom:1px solid rgba(255,255,255,0.08);font-weight:500;color:#fff">Budget · behaviour cost</div>
+      <div style="padding:8px 12px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 16px">
+        <sc-for list="{{meters}}" as="m" hint-placeholder-count="4"><div style="display:flex;flex-direction:column;gap:4px"><div style="display:flex;gap:6px;align-items:baseline"><span style="font-size:12px;color:#fff">{{m.n}}</span><span style="flex-grow:1"></span><span style="font-family:'JetBrains Mono',monospace;font-size:11.5px;color:#b4bfce">not run</span></div><div style="height:6px;border-radius:3px;background:repeating-linear-gradient(90deg,rgba(255,255,255,0.08) 0 6px,transparent 6px 12px)"></div><span style="font-size:10.5px;color:#7c8796">{{m.s}}</span></div></sc-for>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const D = (n, m, g, chip, on) => ({ item: true, head: false, n: n, m: m, g: g, chip: chip, on: on ? 'true' : 'false', s: on ? 'border:1px solid #ffaa40;background:rgba(255,170,64,0.08)' : 'border:1px solid transparent;background:rgba(255,255,255,0.02)' });
+    const H = (n) => ({ head: true, item: false, n: n });
+    const defs = [H('Enemies'), D('beetle-bot', 'hp 2 · 2 modes · bot-1 in light-1', 'b', 'background:#00AA00;color:#000', 1), H('Items'), D('cookie-jar', 'on take: score 5, ammo 2', 'j', 'background:#AA00AA;color:#fff'), D('gate-key', 'on take: key gate', 'k', 'background:#00AA00;color:#fff')];
+    const form = [['sprite idle', 'beetle_idle'], ['sprite walk', 'beetle_walk1,2'], ['hitbox', '0.8x0.7'], ['hp', '2'], ['speed', '2.5'], ['stomp=', 'stun'], ['shot=', 'damage'], ['contact=', 'hurt']].map((f, i) => ({ k: f[0], v: f[1], id: 'bf-' + i }));
+    const src = [
+      ['enemy beetle-bot', 'k'], ['  sprite   idle=beetle_idle walk=beetle_walk1,beetle_walk2 alert=beetle_alert', ''], ['  hitbox   0.8x0.7', ''], ['  stats    hp=2 speed=2.5 gravity=yes stomp=stun shot=damage contact=hurt', ''], ['  registers patrol-left patrol-right cooldown', ''], ['  behaviour', 'k'],
+      ['    mode walk', 'm'], ['      on enter      set cooldown 0; anim walk', 'h'], ['      on tick       walk facing speed; if wall-ahead or ledge-ahead then turn', 'h', 1], ['      on tick       if ben-ahead 6 and cooldown <= 0 then goto charge', 'h'],
+      ['    mode charge', 'm'], ['      on enter      anim alert; set cooldown 120', 'h'], ['      on tick       walk facing speed * 2; if wall-ahead then goto walk', 'h'], ['      on tick       set cooldown cooldown - 1', 'h'],
+      ['  on stomp        stun 180; raise word bonk; cue bonk', 'h'], ['  on shot         damage 1; if hp <= 0 then defeat', 'h'], ['  on defeat       raise word "zapped!" style=yellow; cue win; set state alarm off; score 10', 'h'], ['end', 'k']
+    ];
+    const code = src.map((r, i) => ({ n: i + 1, t: r[0], cost: r[1] === 'h' ? '— steps' : '', bg: r[2] ? 'background:rgba(255,170,64,0.12)' : '', ink: r[1] === 'k' ? 'color:#ffaa40' : (r[1] === 'm' ? 'color:#55FFFF' : 'color:#e0e0e0') }));
+    const dbg = [['Run', 'M4 2.5l9 5.5-9 5.5z'], ['Pause', 'M5 3v10 M11 3v10'], ['Step one tick', 'M4 3l6 5-6 5z M12 3v10'], ['Step back', 'M12 3L6 8l6 5z M4 3v10'], ['Run to an event', 'M3 8h8 M8 5l3 3-3 3 M13 3v10']].map((b) => ({ n: b[0], d: b[1] }));
+    const watch = ['mode', 'patrol-left', 'patrol-right', 'cooldown', 'hp', 'ben-ahead 6', 'steps this tick'];
+    const meters = [['Worst case per entity per tick', 'The compiler, against the profile\'s budget (E205)'], ['Worst case per level per tick', 'All entities together (W203)'], ['Bytecode size, beetle-bot', 'The compiler (F17)'], ['BHVR and DEFS in the world pack', 'fizz-bake\'s build report (F16, F17)']].map((m) => ({ n: m[0], s: m[1] }));
+    const menus = ['File', 'Edit', 'View', 'Level', 'World', 'Claude', 'Window', 'Help'];
+    const ctl = [['Minimise', 'M3.5 8.5h9'], ['Maximise', 'M3.5 3.5h9v9h-9z'], ['Close', 'M4 4l8 8M12 4l-8 8']].map((c) => ({ label: c[0], d: c[1] }));
+    return { defs: defs, form: form, code: code, dbg: dbg, watch: watch, meters: meters, menus: menus, ctl: ctl };
+  }
+}
+</script>
+</body>
+</html>

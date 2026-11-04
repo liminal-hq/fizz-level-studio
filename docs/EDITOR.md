@@ -1,6 +1,6 @@
 # The editor
 
-How Fizz Level Studio behaves, screen by screen. The source is the design prototype (`design/project/Proto.dc.html`) and its walkthrough (`design/project/Guide.dc.html`, twelve steps). Where the real studio must differ from the prototype, this document says so under **Real studio**. Each behaviour's build status is in `SPEC.md` §10.
+How Fizz Level Studio behaves, screen by screen, for Fizz 1 and, in sections 13 to 15, for Fizz 2, the sprites and the pixel editor. The source is the design prototype (`design/project/Proto.dc.html`) and its walkthrough (`design/project/Guide.dc.html`, twelve steps). Where the real studio must differ from the prototype, this document says so under **Real studio**. Each behaviour's build status is in `SPEC.md` §10.
 
 ## 1. The workspace
 
@@ -26,9 +26,9 @@ Window behaviour:
 - The chevron collapses a window to its 46 px header. Window, Collapse all windows and Expand all windows do it for every window.
 - Grabbing a window brings it to the front.
 - Window, Reset window layout (Ctrl+Shift+0) restores the starting arrangement. Save layout for this session and Restore saved layout keep one arrangement in memory; nothing is written to disk.
-- The script's pop-out button moves the script into its own window labelled **Display 2**. It drags and resizes, still follows the selection, and Dock back (or its close button) returns it; while it is out, the script tab offers Dock back.
+- The script's pop-out button moves the script into its own window labelled **Display 2**. It drags and resizes, still follows the selection, and Dock back (or its close button) returns it; while it is out, the script tab offers Dock back. In the desktop app every pop-out is a real window through tear-off (`DESKTOP.md` section 6).
 
-**Real studio:** saved layouts persist per person (browser storage is enough: it is a per-viewer convenience). The title-bar window buttons, Pan and the Grid are built.
+**Real studio:** saved layouts persist per person in the settings document owned by Rust, never in browser storage (`DESKTOP.md` section 7). The title-bar window buttons, Pan and the Grid are built.
 
 ## 2. Menus
 
@@ -146,7 +146,7 @@ On an overworld: **Links** (cyan lines from each required level to the point it 
 
 The same toggles are in the View menu and the app menu's Lenses submenu. The playtest button in the lens bar is a stand-in in the prototype: it says so and shows no results.
 
-**Real studio:** the Paths lens draws positions from the game's WebAssembly (`ARCHITECTURE.md` §5); the prototype's JavaScript (`walkExtent`) is a reference and is approximate on slopes. The Gaps lens keeps its label as a design rule until it is checked against the jump physics.
+**Real studio:** the Paths lens draws positions from the game host, the game's own code linked natively (`ARCHITECTURE.md` §5); the prototype's JavaScript (`walkExtent`) is a reference and is approximate on slopes. The Gaps lens keeps its label as a design rule until it is checked against the jump physics.
 
 ## 7. Script panel and completion
 
@@ -221,25 +221,133 @@ The Guide's "Not built" list also says the editor does not show enemy walking pa
 
 ## 13. The Fizz 2 target (planned)
 
-Nothing in this section is built. It says what the editor needs so that a future implementer builds one editor for both games; the dialect itself is in [LANGUAGE.md](LANGUAGE.md#the-fizz-2-dialect-planned).
+Nothing in this section is built. It says what the editor needs so that one editor builds levels for Fizz 2, for Fizz 1 and for the episodes after them. Fizz 2 is the more important target; making Fizz 1 levels stays a goal. The dialect and the capability matrix are in [LANGUAGE.md](LANGUAGE.md#the-fizz-2-dialect-planned), world projects in [WORLD.md](WORLD.md), behaviour scripting in [SCRIPTING.md](SCRIPTING.md), and [FIZZ2-COVERAGE.md](FIZZ2-COVERAGE.md) maps every Fizz 2 feature to the place it is handled.
 
-### The Target setting
+### A level's target is fixed
 
-- A **Target** setting, **Fizz 1** or **Fizz 2**, belongs to the project and shows in the title bar. A file that starts `script fizz2 0` opens with Target Fizz 2; any other opens with Fizz 1. Changing it never rewrites the script by itself.
-- With Target Fizz 1, everything Fizz 1 lacks is **greyed out** with a reason on hover: the map grid's slope and reserved letters that have no Fizz 1 tile, `chicken`, `floor`, `at=` placement, locks, channels as rule state, and the rule tools.
-- With Target Fizz 1, the editor also runs the **Fizz 1 export check** live and shows its findings inline and in the Checks window: E120 (a lock Fizz 1 cannot say), E121 (any `when` rule), E122 (a solid `floor`) and W104 (an `at=` position that will snap to a cell centre, shown on the canvas as an arrow from the exact position to the cell it would take). Exporting is refused while an E12x error stands; warnings do not block it.
-- With Target Fizz 2, the Fizz 2 checks run instead: required `id=`, bounds, channels, limits (32 rules), conflicts (E119) and the W1xx lints.
+- **New level** asks which target the level is for (Fizz 2, or Fizz 1; later Episode 3) and, for Fizz 2, which world project it belongs to. The answer is written into the file (`script fizz2 0`, or no `script` line for Fizz 1) and **never changes**. The title bar shows the target, the world and the profile's dialect version.
+- **The target selects what the level gets.** The tools, the palette and its legend, the object kinds, the sprites, the states and rules, the views, the checks and the exporter all come from the level's target profile. Nothing from the other target is offered, greyed or otherwise; a Fizz 2 level has no Lift tool and a Fizz 1 level has no Rules window.
+- **Capability states still show.** Within the target, a **built** capability is offered normally; an **accepted** one (a rule input the current Fizz 2 build refuses at load, a placed light the game does not read yet) is offered with a small "not yet in the game" badge and its W106 or W109; a **reserved** one is shown with a reason on hover. The Capabilities card (Help menu) lists every row of the matrix for the level's profile with its source (a file, a pull request or a change request).
+- **Convert up.** Level, Convert to Fizz 2 (on a Fizz 1 level) writes a new Fizz 2 level into a chosen world and opens it beside a **conversion report** window with four lists (carried over, approximated, dropped, to check), each item a link to its place on the canvas ([LANGUAGE.md](LANGUAGE.md#converting-a-fizz-1-level-to-fizz-2)). The Fizz 1 level is not changed.
+- **Export down.** File, Export to Fizz 1 (on a Fizz 2 level) runs the lossy check first and shows every loss (E120 to E123, W103, W104, W110) in the Checks window; it writes the Fizz 1 script only when no error stands. It never converts: the Fizz 2 level stays the source.
 
-### Editor features this implies
+### Checks
 
-- **Snap items to the floor.** A command (and a modifier while dragging) that drops the selected items to the surface below them and writes the position as `at=`, not `x=`/`y=`. The printer rule applies: a position that lands on an exact cell centre is written as `x=`/`y=`.
-- **Close all doors.** One command that sets every door channel's start state to closed, so a level that was tested open can be put back in one undo step. It writes the explicit `channel` start line and removes the need for `allow W101` where the doors now start closed.
-- **Rule authoring UI.** A Rules window lists `when ... then ...` lines as sentences with a trigger, a guard, up to two actions and a repeat flag, and a trigger rectangle you drag on the canvas (for `enter x= y=`). Locks are set on the door itself in the Object window. Rule and lock lines are studio-owned lines in the sense of section 4: the studio rewrites them in place and never touches a hand-written line beside them.
-- **Rule lints inline.** W101, E119 and the limits appear as squiggles in the script panel and badges on the door, with Use this fix where there is one (for example adding `allow W101` with a comment, or flipping the channel).
-- **Dump view.** A read-only view of what the baker would produce for the level: the sorted object list with indices, the rule table as records, and the bake's own disassembly (`fizz-bake dump`), so what the person sees is what the game runs. It is a view, not an editor, and says so.
-- **A Channels lens.** Draws each channel's switches, doors and rule triggers with one colour per channel, in the style of the existing Links lens.
+- A Fizz 2 level runs the Fizz 2 checks live: required and unique `id=`, references, kind order, bounds, keys, states, bindings and rules (E110 to E126), the time-rule ranges, conflicts (E119), the W1xx lints, the behaviour scripts' checks (E2xx) and the budgets.
+- A Fizz 1 level runs the Fizz 1 checks (E001 to E016) and W103: a level made for Fizz 1 in the studio must not need a wall-kick (D47).
+- Lints that stand in for physics (W103, W105) are labelled as design rules, as the Gaps lens is, and take their numbers from the profile; whether a level can really be finished is the playtest bot's answer, run by the game host.
+
+### Windows and tools for a Fizz 2 level
+
+- **Map painting.** The Paint tool writes the `map` block: a stroke rewrites the touched rows in place as one undo step. The map is studio-owned text in the sense of section 4, and the palette shows each tile's legend letter.
+- **Objects window.** Keys, snacks, cans, chickens, switches, lights and the world's custom enemies and items, each with its `id=`, kind, position (`at=` or `x=`/`y=`, by the printer rule), kind fields and group, and its baked index, because rules point at indices. Adding an object proposes an id (`cheezie-3`); renaming one rewrites everything that names it in the same undo step; a drag that would reorder kinds is refused.
+- **Snap to floor.** A command (and a modifier while dragging) that drops the selected objects to the surface below and writes the position as `at=`. For a snack or key, "on the floor" puts its centre half its sprite above the surface, as the game draws it.
+- **States window.** Lists the level's states (and the world's shared ones it uses), each with its value set, start value, everything bound to it and every rule that tests or changes it. A state is added, renamed (rewriting every use) and given values here; Close all doors sets every door's state to its closed value in one undo step and removes an `allow W101` that no longer applies.
+- **Bindings on the canvas.** Selecting a door run shows its state and open value in the Inspector; selecting a light or panel shows its `state=` and `on=`. A **Lock** shortcut on a door writes the `lock` sugar line (none, red key, blue key, or any key the profile has).
+- **Rules window.** Lists the `when` and `lock` lines as sentences ("When Ben touches the door at 15,21 holding the red key, if red-door is closed, set red-door to open and spend the red key"), each with its input, conditions, delay, actions, repeat flag, baked record index, capability state and lints. An input's rectangle (`enter`) is dragged on the canvas; a cell is picked on the canvas; `take`, `touch`, `hit`, `stomp`, `stun` and `defeat` pick their object from a list of ids of the right kind, or a kind, a group or "any". A `lock` line shows its expansion beside it. A counter shows rules used out of 32.
+- **Words and sounds.** The Rules window's Words tab lists the level's strings and the world's, with their style and byte count (out of 30), and previews each in the game's caption font and style colour at the DOS frame width (W107). The Sounds tab lists the world's sound library and plays any entry through the game's Web sound when the game module is loaded; the editor never synthesises a sound. Every `word` and `cue` id is checked (E116). An in-editor sound designer is not in scope (`SCRIPTING.md` section 5).
+- **Rule lints inline.** W101, W106, W113, E111, E119 and the rest appear as squiggles in the script panel and badges on the door, light or rule, with Use this fix where there is one.
+- **States lens.** Draws each state's bindings (doors, lights, panels), the switches and rule cells and rectangles that change it, and the rules that test it, in one colour per state, with the start value as a label; selecting a state in the States window isolates it. It replaces the Channels lens of the earlier design.
+- **Exit and Head room lenses.** The Exit lens marks where Ben can stand in front of each exit cell to press Up (W102). The Head room lens shades passages and jump spaces by the clearance the profile's body leaves, and can compare two body sizes (today's 1.4 tiles and the trial's 2.0) so a level can be checked before a new Ben ships (W105).
+- **Lights.** The Light tool (G) places a light; the Inspector sets its radius (drawn as a circle on the canvas), colour or palette bank, falloff, flicker, state and attachment; an attached light is drawn as a dashed line to what it follows. A light-count readout shows how many lights can be in view at once from any camera position (W111).
+- **Definitions window and behaviour editor.** For the world's custom enemies and items ([SCRIPTING.md](SCRIPTING.md#6-the-editor)).
+
+### Views: the oblique look by default
+
+- **A Fizz 2 level's canvas is the Game view**: the level drawn as the game draws it, with the oblique ground, the parallax panels, and Night and Sky toggles, so the person edits what the player will see (D45). Grid lines, selection, handles, lenses and ghosts are drawn over it.
+- **The flat grid stays as an editing aid** for a Fizz 2 level (a toggle in the View menu), for work that needs every cell square and unobscured, such as long map edits. A Fizz 1 level uses only the flat view.
+- **The editor never reimplements the game's drawing.** Every Game view frame is drawn by the game's own presenter code (`fizz-slice-view` and the crates beside it), linked natively in the game host and streamed to the webview over a `Channel` (F5, D59). Until the game has a public "draw this level" call, the canvas falls back to the flat grid with a banner saying the Game view is not available; it never shows a TypeScript imitation. A Game view frame can be checked against the game's frame digests.
+- **Night preview.** With Night on, the Game view shows the palette banks and the lights (placed and derived), with the frame's light count and the game's own frame cost when it reports one.
+
+### Budgets
+
+A **Budget window** shows meters for what a level and its world cost, each saying where its number came from:
+
+| Meter | Limit | Source |
+| --- | --- | --- |
+| Rules, states, strings | 32 each per level (states of up to 8 values) | The profile (F10, F11) |
+| Objects | `u16`; the practical limit is the state hash and the drawing | `LEVL` header |
+| `LEVL` section size | Decoded and stored bytes | `fizz-bake`; otherwise an estimate, labelled "estimate" |
+| World pack | Its levels, definitions, bytecode, sprites (with the retro set), panels and sounds | `fizz-bake`'s world build report ([WORLD.md](WORLD.md#4-building-the-world-pack)) |
+| Floppy | `BUDGET 1100000` bytes for `FIZZ2.EXE` and the packs together (provisional), with the 8 KB and 64 KB reserves of the two images | Fizz 2's `docs/PLATFORM.md` and `docs/FAP.md`; `FIZZ2.EXE` is 374,272 bytes on #146 |
+| Section limit | 96 KB decoded per section by default | `SECTION_LIMIT` in `fizz-pack` |
+| Lights | 16 active (15 in view kept as a margin), a pool of 32; DOS frame cost | #146; frame cost from the game's bench (F22) |
+| Behaviour cost | Worst-case instructions per entity and per level per tick against the profile's step budgets; `BHVR` and `DEFS` sizes; an estimated DOS cost per tick | The compiler; the game's bench (F22) |
+| Panels | Panel bytes and the DOS cost of drawing them at Full and Light Sky detail | `fizz-bake`; the game's bench (F22) |
+
+- A meter never claims a number it did not get: an estimate says so, and a meter whose source is not available reads "not run" (G-TRUST-4).
+- The DOS floor (a 486DX with 4 MB, #143) and the 60 Hz frame are the reference for the cost meters; today Full night averages 17.1 ms on the 486DX2-66 model against the 16.7 ms step (#146), which is the kind of figure the lights and panels meters show.
+
+### Dump view
+
+A read-only view of what the baker would produce for the level: the sorted object list with indices, the state table, the bindings, the rule table as records with every `lock` expanded, the string table, and the bake's own disassembly (`fizz-bake dump`, planned). It is a view, not an editor, and says so; until the baker exists it reads "not run".
 
 ### What the editor does not do
 
-- It does not run the rules. Rule behaviour belongs to the Fizz 2 simulation (the game owns the rules), reached through the same WebAssembly bridge as the Paths lens and the playtest bot.
-- It does not bake. The baker writes the packs, manifests and digests; the editor only shows its output.
+- It does not run rules or behaviours. They belong to the Fizz 2 simulation, reached through the game host (the playtest bot, the behaviour preview and debugger).
+- It does not draw the game's look. The Game view is the game's presenter.
+- It does not bake. Build world runs `fizz-bake`; the baker writes the packs, manifests and digests.
+- It does not define formats the Fizz 2 repository has not defined; it proposes them as change requests and follows the game when it decides.
+
+## 14. Sprites (planned)
+
+Nothing in this section is built. Fizz 2's sprite rules are in its `docs/SPRITES.md`; where this section and that file disagree, that file wins. Drawing and touching up sprites is the pixel editor's job (section 15).
+
+### What a sprite is in each game
+
+- **Fizz 2.** Sprites are committed text grids: one JSON file per set under `assets/sprites/<set>.json` (and, for a world, the world's `sprites/`), canonical (fixed key order, one row per line, final newline), each sprite with a `name` unique across all files, `w` and `h` (1 to 255), an `anchor` (default the feet and centre, `[w / 2, h]`), a `source` and `rows` of palette letters, `.` for transparent. The palette is the 16 EGA colours, letters `k B G C R M N L D b g c r m y W` for indices 0 to 15. Until the `SPRT` pack section is specified (F7), the grids are lowered to `const` data in `fizz-view`.
+- **Fizz 1.** Sprites are generated by its TypeScript sprite code and named in `SPRITE_NAMES`; a Fizz 1 level only names them. The Fizz 2 repository's exporter (`tools/sprites/export-fizz1.ts`) already turns them into grids, which is how the retro art set reaches a Fizz 2 world ([WORLD.md](WORLD.md#5-the-retro-art-set)).
+- **Sources decide what can be edited.** `generated:fizz1` and `generated:ep2-canvas` sets are read-only (change the generator and re-export), as is an imported retro set; `drawn` sets are editable.
+
+### How a level uses sprites
+
+A level names **kinds**, not sprites (D39). The game picks each frame from an object's kind and state: a chicken draws `cluckzarg_idle`, `walk`, `walk2` or `alert` with the `cluckzarg_beak` overlay when it clucks; a snack draws `cheezie`, `choc`, `cookie` or `soda`; keys draw `keyRed` and `keyBlue`, doors `doorRed` and `doorBlue`; Ben's pose comes from the presenter's rule. A custom enemy or item names its sprite per state in its definition ([SCRIPTING.md](SCRIPTING.md#21-definitions)), which is where sprite choice lives for new content.
+
+- The canvas draws each object with its kind's idle frame from the world's sprite sets (the retro set on a retro level), placed by its anchor and flipped by its facing. The profile and the world's definitions map kinds to sprite names; nothing is hard-coded.
+- The Inspector shows the object's sprite and its states. **Animation preview** steps through a kind's frames; the cadence of the real game is a presenter rule, so the preview either asks the game for its frame sequence or labels its own fixed cadence "preview cadence, not the game's".
+
+### The Sprites window
+
+- A browser of every sprite set the world has, grouped by set and by the kind or state it serves, with each sprite's name, size, anchor (drawn as a cross), source and whether it is provisional (`note`), at 1x to 8x on the level's background and at the night ambient.
+- **Ben's poses.** The pose workshop's frames (`ep2-ben-lab`, trial branch `trial/lab-ben-sprites`, `7b948ae`: standing at 14 by 33, look and bend at 19 by 31, six-frame runs and fire at 25 by 33) beside Fizz 1's 16 by 24 Ben and the provisional `benA_*` frames. The profile records which set ships (Fizz 1's today) and the body size that goes with it, which drives the Head room lens and W105.
+- **Enemies and pickups:** the built-in roster with its states, the world's custom definitions, the pickups and the HUD keys. A kind with no sprite for a state is drawn as a labelled placeholder box, never as another kind's art (W205).
+- **Retro art.** The imported Fizz 1 set, with a note on each sprite whose box differs from the Fizz 2 body it is drawn over.
+- **Overworld level sprites.** For a target with an overworld (Fizz 1 today), the picker filtered to landmark sprites (`OwLm*`, `OwCastle`, `Saucer`) sets a level point's sprite ([OVERWORLD.md](OVERWORLD.md#8-sprites)).
+
+### How sprites reach a pack
+
+The studio never writes a pack. Sprites flow from the world's sprite files through `fizz-bake` into the `SPRT` section of the world pack (and Ben and the HUD into `SHARED.FAP`), once `SPRT` is specified (F7: bits per pixel, a mask or a colour key, runs, the index and the Web form are all open). Level files name kinds, so a level does not change when its art does.
+
+### What is not known
+
+- The `SPRT` layout and whether sprites get numeric ids in place of names.
+- Which Ben ships, and with it Ben's body size (the trial's 0.8 by 2.0 moves the state hash and the golden replay).
+- The built-in roster's kinds, their sprite sets and state names.
+- Whether a level can choose a sprite variant per object beyond what a custom definition gives.
+- Whether the Web form of a sprite may be richer than the DOS form.
+
+## 15. Art: the pixel editor (planned)
+
+Nothing in this section is built. The pixel editor is the studio's one tool for painting 16-colour art (D52). It is its own milestone in [ROADMAP.md](ROADMAP.md).
+
+### What it paints
+
+| Art | Reach | Why |
+| --- | --- | --- |
+| Parallax panels | Full: import, paint, touch up, set panel properties | Panels are world art in the world's `panels/`, packed in `BDRP` (F19) |
+| Sprites in `drawn` sets | Full: paint frames, set anchors, add and order frames, preview animation | Fizz 2's `docs/SPRITES.md` says `drawn` sprites are editable in an editor, written back canonically |
+| Sprites in generated sets and the retro set | View and copy only: a copy can become a new `drawn` sprite | Generated sets change only through their generator |
+| Tile textures | Not at first. Fizz 2's tile looks are generated code tables (`oblique_data.rs` from `tools/tiles/emit-oblique.ts`, #143), chosen by tile class, not data | Reaches tiles only if the Fizz 2 repository moves tile textures to data (F14, Q34) |
+| HUD, fonts, title art | Out of scope | They belong to the game, not to a world |
+
+### Parallax panels
+
+- **Import a PNG**, quantised to the 16-colour EGA palette with a side-by-side preview of the source and the result, a choice of nearest colour or an ordered dither (the 2 by 2 pattern Fizz 2 uses for its lights, #146), and a transparency choice (a colour key or the image's alpha, thresholded). The quantiser is the studio's art tool, not a game rule; the result is saved as a palette grid, and the source image is kept beside it so a re-import is repeatable.
+- **Per panel:** horizontal and vertical scroll factors (out of 256, as `fizz_view::parallax` takes them, #144), repeat (across, down, both or none), vertical position (a base row, or pinned to the horizon), and the open-air rule (drawn only behind `.` cells, as today's layers are, or also behind `w` cells), plus an optional `state=` to show or hide it. The order of panels in the stack is the drawing order, back to front.
+- **The Game view shows them** through the game's presenter, so a panel is judged in place at both Sky details.
+
+### The tool
+
+- Pencil, line, rectangle, fill, colour pick and a 16-colour palette with the EGA letters; mirror, shift and rotate by quarter turns; onion skin across frames; zoom from 1x to 16x with a pixel grid; a second window at 1x.
+- **The EGA constraints are enforced:** 16 colours and no others, 255 never a colour, sizes within the format's limits (1 to 255 for a sprite; the panel limits are F19's), names unique across the world's sets. The night palette banks dim a colour and cannot tint it (#146), so a preview at the night ambient shows whether the art still reads. The colour roles of `docs/OBLIQUE.md` (dark colours build the world, bright colours mark what Ben can touch) are a lint on pickups, hazards and panels.
+- **Canonical files.** A sprite is written with the canonical rules (`tools/sprites/lib.ts` is the reference), and opening and saving without a change leaves the bytes unchanged. After saving sprites in the game's own `assets/sprites/`, the studio reminds the person that `bun tools/sprites/emit-rust.ts` must run there; in a world project, `fizz-bake` reads the files directly.

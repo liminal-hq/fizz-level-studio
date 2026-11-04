@@ -403,6 +403,168 @@
     </div>
   </div>
 
+  <!-- a Fizz 2 level (canned): covers the Fizz 1 workspace while one is open; the Fizz 1 editor underneath is untouched -->
+  <sc-if value="{{f2.on}}" hint-placeholder-val="{{false}}">
+    <div style="position:absolute;left:0;top:74px;width:1440px;height:826px;z-index:46;background:#04040a;overflow:hidden">
+      <div role="toolbar" aria-label="Fizz 2 tools" aria-orientation="vertical" style="position:absolute;left:8px;top:8px;width:60px;box-sizing:border-box;padding:8px;border-radius:12px;border:1px solid rgba(255,255,255,0.1);background:rgba(20,20,25,0.72);display:flex;flex-direction:column;align-items:center;gap:4px">
+        <sc-for list="{{f2.tools}}" as="t" hint-placeholder-count="4"><button aria-label="{{t.label}}" title="{{t.label}}" aria-pressed="{{t.on}}" onClick="{{t.pick}}" style="width:44px;height:44px;flex:none;border-radius:8px;font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:500;{{t.s}}">{{t.k}}</button></sc-for>
+      </div>
+
+      <div role="toolbar" aria-label="View" style="position:absolute;left:76px;top:8px;width:1040px;height:52px;box-sizing:border-box;padding:4px 12px;border-radius:999px;border:1px solid rgba(255,255,255,0.1);background:rgba(20,20,25,0.8);display:flex;align-items:center;gap:6px">
+        <sc-for list="{{f2.views}}" as="z" hint-placeholder-count="5"><button aria-pressed="{{z.on}}" onClick="{{z.pick}}" style="height:40px;padding:0 12px;border-radius:999px;font-size:12.5px;white-space:nowrap;{{z.s}}">{{z.n}}</button></sc-for>
+        <span style="flex-grow:1"></span>
+        <span style="font-size:12px;color:#b4bfce;white-space:nowrap">{{f2.toolNote}}</span>
+        <span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#fff;white-space:nowrap">{{f2.inView}}</span>
+      </div>
+
+      <div style="position:absolute;left:76px;top:68px;width:1040px;height:364px;overflow:hidden;outline:1px solid rgba(255,255,255,0.14);{{f2.skyStyle}}">
+        <sc-if value="{{f2.starsOn}}" hint-placeholder-val="{{true}}"><div style="position:absolute;inset:0;background-image:radial-gradient(#AAAAAA 1px,transparent 1.5px);background-size:47px 31px;opacity:0.6;height:190px"></div></sc-if>
+        <div style="position:absolute;inset:0;display:grid;grid-template-columns:repeat(40,26px);grid-auto-rows:26px">
+          <sc-for list="{{f2.cells}}" as="c" hint-placeholder-count="40"><div onMouseDown="{{c.down}}" style="box-sizing:border-box;display:flex;align-items:center;justify-content:center;cursor:crosshair;{{c.s}}">{{c.g}}</div></sc-for>
+        </div>
+        <sc-for list="{{f2.objs}}" as="o" hint-placeholder-count="6"><div title="{{o.id}}" style="position:absolute;display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:500;pointer-events:none;{{o.s}}">{{o.g}}</div></sc-for>
+        <sc-if value="{{f2.nightOn}}" hint-placeholder-val="{{false}}"><div style="position:absolute;inset:0;background:rgba(0,0,24,0.58);pointer-events:none"></div></sc-if>
+        <sc-for list="{{f2.glows}}" as="g" hint-placeholder-count="3"><div style="position:absolute;border-radius:50%;mix-blend-mode:screen;pointer-events:none;{{g.s}}"></div></sc-for>
+        <sc-for list="{{f2.lens}}" as="z" hint-placeholder-count="2"><div style="position:absolute;box-sizing:border-box;pointer-events:none;{{z.s}}"></div><div style="position:absolute;height:20px;display:flex;align-items:center;padding:0 8px;border-radius:999px;background:rgba(12,12,16,0.92);font-size:11px;color:#e0e0e0;white-space:nowrap;pointer-events:none;{{z.ts}}">{{z.t}}</div></sc-for>
+        <sc-for list="{{f2.marks}}" as="m" hint-placeholder-count="2"><div style="position:absolute;box-sizing:border-box;pointer-events:none;{{m.s}}"></div><button aria-label="Select {{m.t}}" onClick="{{m.pick}}" style="position:absolute;box-sizing:border-box;padding:0;{{m.dot}}"></button><div style="position:absolute;height:20px;display:flex;align-items:center;padding:0 7px;border-radius:999px;background:rgba(12,12,16,0.92);font-size:10.5px;color:#e0e0e0;white-space:nowrap;pointer-events:none;{{m.tag}}">{{m.t}}</div></sc-for>
+        <sc-for list="{{f2.words}}" as="w" hint-placeholder-count="1"><div style="position:absolute;width:80px;text-align:center;font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:600;letter-spacing:0.04em;text-shadow:0 1px 0 #000,0 0 6px #000;pointer-events:none;{{w.s}}">{{w.t}}</div></sc-for>
+        <div style="position:absolute;left:8px;bottom:8px;height:24px;display:flex;align-items:center;padding:0 10px;border-radius:999px;background:rgba(12,12,16,0.88);border:1px solid rgba(255,255,255,0.14);font-size:11.5px;color:#e0e0e0;pointer-events:none">{{f2.banner}} · {{f2.nightNote}}</div>
+      </div>
+
+      <!-- inspector -->
+      <div style="position:absolute;left:1124px;top:8px;width:308px;height:424px;border-radius:12px;border:1px solid rgba(255,255,85,0.35);background:rgba(20,20,25,0.94);display:flex;flex-direction:column;overflow:hidden">
+        <div style="height:44px;flex:none;display:flex;align-items:center;gap:8px;padding:0 12px;border-bottom:1px solid rgba(255,255,255,0.08)"><span style="font-weight:500;color:#fff">Inspector</span></div>
+        <sc-if value="{{f2.insp.has}}" hint-placeholder-val="{{false}}">
+          <div style="padding:10px 12px;display:flex;flex-direction:column;gap:8px;overflow:hidden">
+            <div style="display:flex;align-items:center;gap:8px"><span style="font-family:'JetBrains Mono',monospace;color:#FFFF55">{{f2.insp.id}}</span><span style="font-size:11.5px;color:#b4bfce">light · {{f2.insp.lit}}</span></div>
+            <div style="display:flex;align-items:center;gap:8px"><span style="width:56px;font-size:12px;color:#b4bfce">Radius</span><button aria-label="Smaller radius" onClick="{{f2.insp.less}}" style="width:32px;height:32px;border-radius:8px;border:1px solid rgba(255,255,255,0.14);background:transparent;color:#e0e0e0">−</button><span style="width:64px;text-align:center;font-family:'JetBrains Mono',monospace;font-size:12px">{{f2.insp.r}}</span><button aria-label="Larger radius" onClick="{{f2.insp.more}}" style="width:32px;height:32px;border-radius:8px;border:1px solid rgba(255,255,255,0.14);background:transparent;color:#e0e0e0">+</button></div>
+            <div role="radiogroup" aria-label="Light colour" style="display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:3px"><sc-for list="{{f2.insp.cols}}" as="e" hint-placeholder-count="16"><button role="radio" aria-checked="{{e.on}}" aria-label="{{e.n}}" title="{{e.n}}" onClick="{{e.pick}}" style="height:22px;border-radius:4px;padding:0;background:{{e.c}};{{e.s}}"></button></sc-for></div>
+            <div style="display:flex;align-items:center;gap:6px"><span style="width:56px;flex:none;font-size:12px;color:#b4bfce">Falloff</span><div role="radiogroup" aria-label="Falloff" style="flex:1;display:flex;padding:2px;border-radius:999px;border:1px solid rgba(255,255,255,0.14)"><sc-for list="{{f2.insp.fall}}" as="v" hint-placeholder-count="2"><button role="radio" aria-checked="{{v.on}}" onClick="{{v.pick}}" style="flex:1;height:26px;border:none;border-radius:999px;font-size:11.5px;{{v.s}}">{{v.n}}</button></sc-for></div></div>
+            <div style="display:flex;align-items:center;gap:6px"><span style="width:56px;flex:none;font-size:12px;color:#b4bfce">Flicker</span><div role="radiogroup" aria-label="Flicker" style="flex:1;display:flex;padding:2px;border-radius:999px;border:1px solid rgba(255,255,255,0.14)"><sc-for list="{{f2.insp.flick}}" as="v" hint-placeholder-count="3"><button role="radio" aria-checked="{{v.on}}" onClick="{{v.pick}}" style="flex:1;height:26px;border:none;border-radius:999px;font-size:11.5px;{{v.s}}">{{v.n}}</button></sc-for></div></div>
+            <div style="display:flex;align-items:center;gap:6px"><span style="width:56px;flex:none;font-size:12px;color:#b4bfce">Switched</span><div role="radiogroup" aria-label="Switched by a state" style="flex:1;display:flex;padding:2px;border-radius:999px;border:1px solid rgba(255,255,255,0.14)"><sc-for list="{{f2.insp.st}}" as="v" hint-placeholder-count="3"><button role="radio" aria-checked="{{v.on}}" onClick="{{v.pick}}" style="flex:1;height:26px;border:none;border-radius:999px;font-size:11px;{{v.s}}">{{v.n}}</button></sc-for></div></div>
+            <div style="display:flex;align-items:center;gap:6px"><span style="width:56px;flex:none;font-size:12px;color:#b4bfce">Attach</span><div role="radiogroup" aria-label="Attach to" style="flex:1;display:flex;padding:2px;border-radius:999px;border:1px solid rgba(255,255,255,0.14)"><sc-for list="{{f2.insp.att}}" as="v" hint-placeholder-count="4"><button role="radio" aria-checked="{{v.on}}" onClick="{{v.pick}}" style="flex:1;height:26px;border:none;border-radius:999px;font-size:11px;{{v.s}}">{{v.n}}</button></sc-for></div></div>
+            <div style="border-radius:8px;background:#050507;padding:6px 8px;font-family:'JetBrains Mono',monospace;font-size:10.5px;line-height:1.5;color:#e0e0e0;white-space:pre-wrap">{{f2.insp.line}}</div>
+            <div style="display:flex;gap:6px;align-items:center"><span style="font-size:10.5px;padding:1px 7px;border-radius:999px;border:1px solid rgba(251,191,36,0.6);color:#fcd34d">W106 · F12</span><span style="flex-grow:1"></span><button onClick="{{f2.insp.remove}}" style="min-height:30px;padding:0 12px;border-radius:999px;border:1px solid rgba(244,63,94,0.5);background:transparent;color:#fb7185;font-size:12px">Remove</button></div>
+          </div>
+        </sc-if>
+        <sc-if value="{{f2.insp.paint}}" hint-placeholder-val="{{false}}">
+          <div style="padding:10px 12px;display:flex;flex-direction:column;gap:6px">
+            <span style="font-size:12px;color:#b4bfce">The map's legend (from the ep2 profile). A stroke rewrites the touched rows of the map block.</span>
+            <sc-for list="{{f2.legend}}" as="q" hint-placeholder-count="6"><button aria-pressed="{{q.on}}" onClick="{{q.pick}}" style="display:flex;align-items:center;gap:10px;min-height:34px;padding:0 8px;border-radius:8px;text-align:left;color:#e0e0e0;{{q.s}}"><span style="width:18px;height:18px;border-radius:3px;border:1px solid rgba(255,255,255,0.2);background:{{q.c}}"></span><span style="font-family:'JetBrains Mono',monospace;width:16px">{{q.k}}</span><span style="font-size:12.5px">{{q.n}}</span></button></sc-for>
+          </div>
+        </sc-if>
+        <sc-if value="{{f2.insp.none}}" hint-placeholder-val="{{true}}">
+          <div style="padding:12px;display:flex;flex-direction:column;gap:10px;font-size:12.5px;color:#b4bfce;line-height:1.5">
+            <span>Nothing selected. Press G for the Light tool and click the Game view to place a light, then turn Night on. Click a light's dot to select it.</span>
+            <span>States and Rules below previews the rules: take the key, touch the door, hit the lever.</span>
+            <div><button onClick="{{f2.lightTool}}" style="min-height:36px;padding:0 14px;border-radius:999px;border:1px solid #FFFF55;background:rgba(255,255,85,0.08);color:#fff">Light tool (G)</button></div>
+          </div>
+        </sc-if>
+      </div>
+
+      <!-- the tabbed Fizz 2 window -->
+      <div style="position:absolute;left:76px;top:440px;width:1040px;height:378px;border-radius:12px;border:1px solid rgba(255,255,255,0.14);background:rgba(16,16,21,0.96);display:flex;flex-direction:column;overflow:hidden">
+        <div role="tablist" aria-label="Fizz 2 windows" style="height:44px;flex:none;display:flex;align-items:stretch;padding-left:6px;border-bottom:1px solid rgba(255,255,255,0.08)">
+          <sc-for list="{{f2.tabs}}" as="t" hint-placeholder-count="9"><button role="tab" aria-selected="{{t.on}}" onClick="{{t.pick}}" style="height:44px;padding:0 10px;border:none;background:transparent;font-size:12.5px;white-space:nowrap;{{t.s}}">{{t.n}}</button></sc-for>
+        </div>
+        <div style="flex-grow:1;min-height:0;overflow:auto;padding:10px 12px">
+          <sc-if value="{{f2.isStates}}" hint-placeholder-val="{{true}}">
+            <div style="display:grid;grid-template-columns:300px minmax(0,1fr) 250px;gap:12px;height:100%">
+              <div style="display:flex;flex-direction:column;gap:8px">
+                <span style="font-size:12px;font-weight:600;color:#ffaa40">States · 2 of 32</span>
+                <sc-for list="{{f2.states}}" as="st" hint-placeholder-count="2"><div style="display:flex;flex-direction:column;gap:5px;padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.1)"><span style="font-family:'JetBrains Mono',monospace;color:#fff">{{st.n}}</span><div style="display:flex;gap:4px"><sc-for list="{{st.vals}}" as="v" hint-placeholder-count="2"><span style="height:24px;display:inline-flex;align-items:center;padding:0 10px;border-radius:999px;font-family:'JetBrains Mono',monospace;font-size:11.5px;{{v.s}}">{{v.n}}</span></sc-for></div><span style="font-size:11px;color:#b4bfce">{{st.binds}}</span></div></sc-for>
+                <span style="font-size:12px;color:#e0e0e0">{{f2.holding}}</span>
+                <div style="display:flex;flex-wrap:wrap;gap:6px"><sc-for list="{{f2.triggers}}" as="t" hint-placeholder-count="4"><button onClick="{{t.pick}}" style="min-height:32px;padding:0 10px;border-radius:999px;border:1px solid rgba(255,170,64,0.5);background:transparent;color:#e0e0e0;font-size:12px">{{t.n}}</button></sc-for></div>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:5px;min-width:0">
+                <span style="font-size:12px;font-weight:600;color:#ffaa40">Rules · 5 of 32</span>
+                <sc-for list="{{f2.rules}}" as="r" hint-placeholder-count="5"><div style="display:flex;flex-direction:column;gap:2px;padding:5px 8px;border-radius:8px;{{r.box}}"><div style="display:flex;gap:8px;align-items:center"><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#7c8796">#{{r.i}}</span><span style="flex:1;font-size:12px;color:#fff;line-height:1.35">{{r.say}}</span><span style="font-size:10px;padding:0 6px;border-radius:999px;white-space:nowrap;{{r.capS}}">{{r.cap}}</span></div><span style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#b4bfce;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{r.code}}</span></div></sc-for>
+              </div>
+              <div role="log" aria-label="Rule preview" style="display:flex;flex-direction:column;gap:5px;min-width:0">
+                <span style="font-size:12px;font-weight:600;color:#ffaa40">Preview (canned)</span>
+                <sc-for list="{{f2.log}}" as="l" hint-placeholder-count="2"><span style="font-size:11.5px;color:#e0e0e0;line-height:1.4">{{l.t}}</span></sc-for>
+              </div>
+            </div>
+          </sc-if>
+          <sc-if value="{{f2.isWords}}" hint-placeholder-val="{{false}}">
+            <div style="display:flex;flex-direction:column;gap:6px;max-width:640px">
+              <sc-for list="{{f2.wordRows}}" as="w" hint-placeholder-count="5"><div style="display:grid;grid-template-columns:minmax(0,1fr) 70px 64px;gap:8px;align-items:center;min-height:40px;padding:0 8px;border-radius:6px;background:rgba(255,255,255,0.03)"><span style="display:flex;flex-direction:column"><span style="font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:600;{{w.ink}}">{{w.t}}</span><span style="font-size:10.5px;color:#7c8796">{{w.from}}</span></span><span style="font-size:11.5px;color:#b4bfce">{{w.st}}</span><span style="font-family:'JetBrains Mono',monospace;font-size:11.5px;color:#b4bfce;text-align:right">{{w.bytes}}</span></div></sc-for>
+              <span style="font-size:11.5px;color:#b4bfce">Previewed in the caption style colours; the real preview uses the game's caption font at the DOS frame width (W107).</span>
+            </div>
+          </sc-if>
+          <sc-if value="{{f2.isSounds}}" hint-placeholder-val="{{false}}">
+            <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px">
+              <sc-for list="{{f2.cues}}" as="c" hint-placeholder-count="8"><div style="display:flex;align-items:center;gap:6px;min-height:36px;padding:0 4px 0 10px;border-radius:6px;background:rgba(255,255,255,0.03)"><span style="font-family:'JetBrains Mono',monospace;font-size:12px;flex:1">{{c.n}}</span><span style="font-size:10.5px;color:#b4bfce">{{c.used}}</span><button aria-label="{{c.label}}" title="{{c.label}}" aria-disabled="true" style="width:32px;height:32px;border:none;border-radius:999px;background:transparent;color:#7c8796;display:inline-flex;align-items:center;justify-content:center;cursor:not-allowed"><svg aria-hidden="true" width="12" height="12" viewBox="0 0 16 16" fill="currentColor"><path d="M4 2.5l9 5.5-9 5.5z"></path></svg></button></div></sc-for>
+            </div>
+            <div style="padding-top:8px;font-size:11.5px;color:#b4bfce">The world's sound library. Play waits for the game's Web sound; this prototype has no game module and never synthesises a sound.</div>
+          </sc-if>
+          <sc-if value="{{f2.isLights}}" hint-placeholder-val="{{false}}">
+            <div style="display:flex;flex-direction:column;gap:4px;max-width:760px">
+              <span style="font-size:12px;color:#b4bfce">{{f2.lightCount}} · the game lights 16 at once, nearest first, from a pool of 32</span>
+              <sc-for list="{{f2.lightRows}}" as="l" hint-placeholder-count="2"><button onClick="{{l.pick}}" style="display:flex;align-items:center;gap:10px;min-height:36px;padding:0 8px;border-radius:6px;text-align:left;color:#e0e0e0;{{l.s}}"><span style="width:12px;height:12px;border-radius:50%;{{l.dot}}"></span><span style="font-family:'JetBrains Mono',monospace;font-size:12px;width:90px">{{l.id}}</span><span style="font-size:12px;color:#b4bfce">{{l.d}}</span></button></sc-for>
+            </div>
+          </sc-if>
+          <sc-if value="{{f2.isBudget}}" hint-placeholder-val="{{false}}">
+            <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 24px">
+              <sc-for list="{{f2.meters}}" as="m" hint-placeholder-count="8"><div style="display:flex;flex-direction:column;gap:3px"><div style="display:flex;gap:8px"><span style="font-size:12.5px;color:#fff">{{m.n}}</span><span style="flex-grow:1"></span><span style="font-family:'JetBrains Mono',monospace;font-size:11.5px;color:#e0e0e0">{{m.v}}</span></div><div style="height:6px;border-radius:3px;background:rgba(255,255,255,0.08);overflow:hidden"><div style="height:100%;{{m.bar}}"></div></div><span style="font-size:10.5px;color:#7c8796">{{m.src}}</span></div></sc-for>
+            </div>
+          </sc-if>
+          <sc-if value="{{f2.isDefs}}" hint-placeholder-val="{{false}}">
+            <div style="display:grid;grid-template-columns:200px minmax(0,1fr) 220px;gap:12px">
+              <div style="display:flex;flex-direction:column;gap:4px"><sc-for list="{{f2.defList}}" as="d" hint-placeholder-count="3"><button onClick="{{d.pick}}" style="display:flex;flex-direction:column;gap:1px;padding:6px 8px;border-radius:8px;text-align:left;{{d.s}}"><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#fff">{{d.n}}</span><span style="font-size:11px;color:#b4bfce">{{d.m}}</span></button></sc-for></div>
+              <div style="font-family:'JetBrains Mono',monospace;font-size:11px;line-height:1.55;overflow:hidden"><sc-for list="{{f2.code}}" as="l" hint-placeholder-count="10"><div style="display:flex"><span style="width:26px;flex:none;color:#7c8796">{{l.n}}</span><span style="white-space:pre;{{l.ink}}">{{l.t}}</span></div></sc-for></div>
+              <div style="display:flex;flex-direction:column;gap:8px;font-size:11.5px;color:#b4bfce;line-height:1.45">
+                <div style="display:flex;align-items:center;gap:8px"><span style="padding:6px 10px;border-radius:8px;border:2px solid #ffaa40;font-family:'JetBrains Mono',monospace;color:#fff">walk</span><span aria-hidden="true">⇄</span><span style="padding:6px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.3);font-family:'JetBrains Mono',monospace;color:#fff">charge</span></div>
+                <span>Worst-case steps per handler, bytecode size and the preview and debugger come from the game's compiler and interpreter: not run here.</span>
+                <button aria-disabled="true" style="min-height:32px;border-radius:999px;border:1px solid rgba(255,255,255,0.14);background:transparent;color:#7c8796;cursor:not-allowed">Preview (needs the game module)</button>
+              </div>
+            </div>
+          </sc-if>
+          <sc-if value="{{f2.isPanels}}" hint-placeholder-val="{{false}}">
+            <div style="display:grid;grid-template-columns:240px auto minmax(0,1fr);gap:16px">
+              <div style="display:flex;flex-direction:column;gap:4px">
+                <sc-for list="{{f2.panels}}" as="p" hint-placeholder-count="3"><button onClick="{{p.pick}}" style="display:flex;flex-direction:column;gap:1px;padding:6px 8px;border-radius:8px;text-align:left;{{p.s}}"><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#fff">{{p.n}}</span><span style="font-size:11px;color:#b4bfce">{{p.d}}</span></button></sc-for>
+                <span style="font-size:12px;color:#b4bfce;padding-top:6px">Repeat</span>
+                <div role="radiogroup" aria-label="Repeat" style="display:flex;padding:2px;border-radius:999px;border:1px solid rgba(255,255,255,0.14)"><sc-for list="{{f2.rep}}" as="v" hint-placeholder-count="4"><button role="radio" aria-checked="{{v.on}}" onClick="{{v.pick}}" style="flex:1;height:26px;border:none;border-radius:999px;font-size:11.5px;{{v.s}}">{{v.n}}</button></sc-for></div>
+                <button aria-disabled="true" title="PNG import is not in this prototype" style="min-height:32px;margin-top:6px;border-radius:999px;border:1px solid rgba(255,255,255,0.14);background:transparent;color:#7c8796;cursor:not-allowed">Import PNG… (not here)</button>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:6px">
+                <span style="font-size:12px;color:#b4bfce">Pixel editor · 16 × 10 · click to paint</span>
+                <div style="display:grid;grid-template-columns:repeat(16,18px);grid-auto-rows:18px;outline:1px solid rgba(255,255,255,0.2)"><sc-for list="{{f2.pix}}" as="p" hint-placeholder-count="16"><button aria-label="{{p.label}}" onClick="{{p.pick}}" style="padding:0;border:none;border-right:1px solid rgba(255,255,255,0.06);border-bottom:1px solid rgba(255,255,255,0.06);{{p.s}}"></button></sc-for></div>
+                <span style="font-size:11px;color:#b4bfce">At 1x and 3x</span>
+                <div style="display:flex;gap:10px;align-items:flex-start"><div style="display:grid;grid-template-columns:repeat(16,1px);grid-auto-rows:1px"><sc-for list="{{f2.pix}}" as="p" hint-placeholder-count="16"><div style="{{p.s}}"></div></sc-for></div><div style="display:grid;grid-template-columns:repeat(16,3px);grid-auto-rows:3px"><sc-for list="{{f2.pix}}" as="p" hint-placeholder-count="16"><div style="{{p.s}}"></div></sc-for></div></div>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:6px">
+                <span style="font-size:12px;color:#b4bfce">The 16 EGA colours, and no others</span>
+                <div role="radiogroup" aria-label="EGA palette" style="display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:4px;max-width:360px"><sc-for list="{{f2.pal}}" as="e" hint-placeholder-count="16"><button role="radio" aria-checked="{{e.on}}" aria-label="{{e.n}} ({{e.l}})" title="{{e.n}} ({{e.l}})" onClick="{{e.pick}}" style="height:30px;border-radius:4px;padding:0;background:{{e.c}};{{e.s}}"></button></sc-for></div>
+                <span style="font-size:11.5px;color:#b4bfce;line-height:1.45">Panels are world art in panels/, packed in BDRP (F19). Scroll factors are out of 256; the open-air rule draws a panel behind open cells only.</span>
+              </div>
+            </div>
+          </sc-if>
+          <sc-if value="{{f2.isScript}}" hint-placeholder-val="{{false}}">
+            <div style="font-family:'JetBrains Mono',monospace;font-size:11px;line-height:1.5;columns:2;column-gap:16px;height:100%;overflow:hidden"><sc-for list="{{f2.lines}}" as="l" hint-placeholder-count="20"><div style="display:flex;break-inside:avoid"><span style="width:28px;flex:none;color:#7c8796">{{l.n}}</span><span style="white-space:pre;overflow:hidden;text-overflow:ellipsis;{{l.ink}}">{{l.t}}</span></div></sc-for></div>
+          </sc-if>
+          <sc-if value="{{f2.isExport}}" hint-placeholder-val="{{false}}">
+            <div style="display:flex;flex-direction:column;gap:2px">
+              <span style="font-size:12px;color:#fca5a5;padding-bottom:4px">{{f2.errText}}</span>
+              <div style="columns:2;column-gap:16px"><sc-for list="{{f2.exp}}" as="e" hint-placeholder-count="10"><div style="display:grid;grid-template-columns:44px minmax(0,1fr);gap:8px;padding:3px 0;break-inside:avoid"><span style="font-family:'JetBrains Mono',monospace;font-size:11.5px;{{e.ink}}">{{e.c}}</span><span style="display:flex;flex-direction:column"><span style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#e0e0e0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{e.line}}</span><span style="font-size:11px;color:#b4bfce">{{e.why}}</span></span></div></sc-for></div>
+            </div>
+          </sc-if>
+        </div>
+      </div>
+
+      <!-- world tree -->
+      <div style="position:absolute;left:1124px;top:440px;width:308px;height:378px;border-radius:12px;border:1px solid rgba(255,255,255,0.1);background:rgba(20,20,25,0.94);display:flex;flex-direction:column;overflow:hidden">
+        <div style="height:44px;flex:none;display:flex;align-items:center;gap:8px;padding:0 12px;border-bottom:1px solid rgba(255,255,255,0.08)"><span style="font-weight:500;color:#fff">World</span><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#b4bfce">light · LIGHT.FAP</span></div>
+        <div style="flex:1;min-height:0;overflow:auto;padding:6px 8px;display:flex;flex-direction:column;gap:1px"><sc-for list="{{f2.tree}}" as="n" hint-placeholder-count="9"><span style="min-height:24px;display:flex;align-items:center;padding:0 6px;border-radius:4px;font-family:'JetBrains Mono',monospace;font-size:11.5px;{{n.s}}">{{n.t}}</span></sc-for></div>
+        <div style="margin-top:auto;padding:10px 12px;border-top:1px solid rgba(255,255,255,0.08);display:flex;flex-direction:column;gap:8px;font-size:11.5px;color:#b4bfce;line-height:1.45">
+          <span>Canned: this world, its level and its numbers are sample data. The target is fixed; a Fizz 1 level is another file.</span>
+          <div><button onClick="{{f2.openStarter}}" style="min-height:34px;padding:0 14px;border-radius:999px;border:1px solid rgba(255,255,255,0.22);background:transparent;color:#e0e0e0">Open a Fizz 1 level…</button></div>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
   <!-- app menu, open from the hamburger -->
   <sc-if value="{{appOpen}}" hint-placeholder-val="{{false}}">
     <div role="menu" aria-label="Application menu" style="position:absolute;left:8px;top:40px;z-index:61;box-sizing:border-box;width:330px;padding:4px;color:#e0e0e0;background:#16161c;border:1px solid rgba(255,255,255,0.14);border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,0.45);font-size:13px">
@@ -531,6 +693,44 @@
         </sc-for>
       </div>
       <div style="flex:none;padding:8px 16px 12px;font-size:12px;color:#b4bfce;border-top:1px solid rgba(255,255,255,0.08);line-height:1.5">Opening a level replaces the one on screen, and nothing is saved in this prototype. Where an item shares a block with an enemy or another item, the grid shows one of them; the script still lists both.</div>
+    </div>
+  </sc-if>
+
+  <!-- New level: the target is chosen here and fixed for the level's life -->
+  <sc-if value="{{newCard.show}}" hint-placeholder-val="{{false}}">
+    <div style="position:absolute;inset:0;z-index:71;background:rgba(0,0,0,0.5)"></div>
+    <div role="dialog" aria-label="New level" style="position:absolute;left:440px;top:110px;z-index:72;width:560px;box-sizing:border-box;border-radius:12px;border:1px solid rgba(255,170,64,0.4);background:#16161c;box-shadow:0 16px 48px rgba(0,0,0,0.45);display:flex;flex-direction:column">
+      <div style="height:52px;flex:none;display:flex;align-items:center;gap:10px;padding:0 4px 0 16px;border-bottom:1px solid rgba(255,255,255,0.08)">
+        <span style="font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:16px;color:#fff">New level</span><span style="font-size:12px;color:#b4bfce">Which game is it for?</span><span style="flex-grow:1"></span>
+        <button aria-label="Close New level" onClick="{{newCard.close}}" style="width:44px;height:44px;border:none;border-radius:999px;background:transparent;color:#b4bfce;display:inline-flex;align-items:center;justify-content:center"><svg aria-hidden="true" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M4 4l8 8M12 4l-8 8"></path></svg></button>
+      </div>
+      <div style="padding:14px 16px;display:flex;flex-direction:column;gap:12px">
+        <div role="radiogroup" aria-label="Level target" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px">
+          <button role="radio" aria-checked="{{newCard.f2On}}" onClick="{{newCard.pickF2}}" style="padding:12px;border-radius:10px;text-align:left;display:flex;flex-direction:column;gap:6px;{{newCard.f2Style}}"><span style="display:flex;align-items:center;gap:8px"><span aria-hidden="true" style="width:14px;height:14px;border-radius:50%;box-sizing:border-box;{{newCard.f2Dot}}"></span><span style="font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:15px">Fizz 2</span><span style="font-size:11px;color:#050507;background:#ffaa40;border-radius:999px;padding:1px 8px;font-weight:600">Primary</span></span><span style="font-size:12px;color:#b4bfce;line-height:1.45">In the world Lighthouse Point (canned). Oblique Game view, states and rules, lights.</span></button>
+          <button role="radio" aria-checked="{{newCard.f1On}}" onClick="{{newCard.pickF1}}" style="padding:12px;border-radius:10px;text-align:left;display:flex;flex-direction:column;gap:6px;{{newCard.f1Style}}"><span style="display:flex;align-items:center;gap:8px"><span aria-hidden="true" style="width:14px;height:14px;border-radius:50%;box-sizing:border-box;{{newCard.f1Dot}}"></span><span style="font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:15px">Fizz 1</span></span><span style="font-size:12px;color:#b4bfce;line-height:1.45">A Fizz 1 script: the flat editor exactly as before. Made without the wall-kick.</span></button>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:6px;padding:10px 12px;border-radius:10px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08)">
+          <sc-for list="{{newCard.gets}}" as="g" hint-placeholder-count="5"><div style="display:flex;gap:10px;font-size:12px"><span style="width:64px;flex:none;color:#b4bfce">{{g.k}}</span><span style="color:#e0e0e0">{{g.v}}</span></div></sc-for>
+          <span style="font-size:11.5px;color:#b4bfce">Nothing from the other game is offered, greyed or otherwise.</span>
+        </div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:11.5px;color:#ffaa40;background:#050507;border-radius:8px;padding:8px 10px">{{newCard.line}}</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;padding:12px 16px;border-top:1px solid rgba(255,255,255,0.08)">
+        <span style="flex-grow:1;font-size:11.5px;color:#7c8796">The target is written into the file and never changes. Proposed syntax.</span>
+        <button onClick="{{newCard.close}}" style="min-height:36px;padding:0 16px;border-radius:999px;border:1px solid rgba(255,255,255,0.22);background:transparent;color:#e0e0e0;font-weight:500">Cancel</button>
+        <button onClick="{{newCard.create}}" style="min-height:36px;padding:0 16px;border-radius:999px;border:none;background:#ffaa40;color:#050507;font-weight:600">{{newCard.createLabel}}</button>
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- Capabilities: the ep2 profile's rows -->
+  <sc-if value="{{capsCard.show}}" hint-placeholder-val="{{false}}">
+    <div role="dialog" aria-label="Capabilities" style="position:absolute;left:420px;top:96px;z-index:72;width:600px;box-sizing:border-box;border-radius:12px;border:1px solid rgba(255,255,255,0.14);background:#16161c;box-shadow:0 16px 48px rgba(0,0,0,0.45);display:flex;flex-direction:column">
+      <div style="height:52px;flex:none;display:flex;align-items:center;gap:8px;padding:0 4px 0 16px;border-bottom:1px solid rgba(255,255,255,0.08)"><span style="font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:16px;color:#fff">Capabilities</span><span style="font-family:'JetBrains Mono',monospace;font-size:11.5px;color:#ffaa40">ep2</span><span style="flex-grow:1"></span><button aria-label="Close Capabilities" onClick="{{capsCard.close}}" style="width:44px;height:44px;border:none;border-radius:999px;background:transparent;color:#b4bfce;display:inline-flex;align-items:center;justify-content:center"><svg aria-hidden="true" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M4 4l8 8M12 4l-8 8"></path></svg></button></div>
+      <div style="padding:4px 0">
+        <sc-for list="{{capsCard.rows}}" as="c" hint-placeholder-count="10"><div style="display:grid;grid-template-columns:minmax(0,1fr) 150px 80px;gap:8px;align-items:center;padding:5px 16px;border-bottom:1px solid rgba(255,255,255,0.05)"><span style="font-size:12.5px;color:#e0e0e0">{{c.f}}</span><span style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#7c8796">{{c.src}}</span><span style="justify-self:end;height:20px;display:inline-flex;align-items:center;padding:0 8px;border-radius:999px;font-size:11px;{{c.style}}">{{c.st}}</span></div></sc-for>
+      </div>
+      <div style="padding:8px 16px 12px;font-size:11.5px;color:#b4bfce;line-height:1.45">Built: lowers and runs. Accepted: lowers, the current game refuses it (W106, W109). Reserved: shown, not lowered. Absent: E102. Provisional until the profile is generated from the game's tables (F2).</div>
     </div>
   </sc-if>
 
@@ -1002,7 +1202,9 @@ class Component extends DCLogic {
       facing: {}, patrol: {}, follow: true, flash: false, scriptTop: null, popTop: null,
       pan: this.panFor('crater'), toast: null,
       zoom: 32, area: null, anchor: null, selecting: false, clip: null, hover: null,
-      keysCard: false, levelsCard: false, keysOn: false, line: '', lineErr: null, savedLayout: null
+      keysCard: false, levelsCard: false, keysOn: false, line: '', lineErr: null, savedLayout: null,
+      // Fizz 2 (canned): the New level card, the Capabilities card and the open Fizz 2 level, if any. Fizz 1 starts as before.
+      newCard: false, newPick: 'fizz2', capsCard: false, f2: null
     };
   }
   cur() { return Object.assign({}, this.initial(), this.state || {}); }
@@ -1500,11 +1702,12 @@ class Component extends DCLogic {
   // Open a starter level, or the small sample draft; the history starts again, as for a freshly opened file.
   openLevel(id) {
     const s = this.cur();
-    if (s.level === id) { this.setState({ menu: null, sub: null, ctx: null, levelsCard: false, toast: { text: this.levelName(id) + ' is already open.', undo: false } }); return; }
+    if (s.level === id && !s.f2) { this.setState({ menu: null, sub: null, ctx: null, levelsCard: false, toast: { text: this.levelName(id) + ' is already open.', undo: false } }); return; }
     const d = this.dim(id);
     this._pal = null;
     this.setState({
       level: id, grid: this.levelGrid(id), own: {}, past: [], future: [], objs: this.objsFor(id), selObj: null, objDrag: null, draft: null, sel: this.startSel(id), area: null, anchor: null, clip: null, hover: null,
+      f2: null, newCard: false, capsCard: false,
       ring: false, ctx: null, menu: null, sub: null, levelsCard: false, line: '', lineErr: null, idea: 0, prop: this.proposal(0, id), applied: null, scriptTop: null, popTop: null,
       pan: this.panFor(id), follow: true, flash: false,
       toast: { text: 'Opened ' + this.levelName(id) + ', ' + d.C + ' × ' + d.R + ' blocks. Nothing from the last level carries over.', undo: false }
@@ -1854,6 +2057,7 @@ class Component extends DCLogic {
     const tag = e.target && e.target.tagName ? String(e.target.tagName).toUpperCase() : '';
     if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
     const s = this.cur();
+    if (s.newCard || s.capsCard || s.f2) { const r = this.f2Key(e, s); if (r !== null) return r; }
     const key = String(e.key || '');
     const low = key.toLowerCase();
     const code = String(e.code || '');
@@ -1920,6 +2124,300 @@ class Component extends DCLogic {
     if (this.cur().keysOn !== on) this.setState({ keysOn: on });
   }
   focusOut() { if (this.cur().keysOn) this.setState({ keysOn: false }); }
+
+  // ---------- Fizz 2 (canned) ----------
+  // A Fizz 2 level here is canned sample data: light-1 in a world called Lighthouse Point. The Game view, the night preview and
+  // the rule preview are stand-ins drawn and run by this page; the real studio draws them with the game's presenter and runs
+  // rules in the game's WebAssembly. Every Fizz 2 line is the studio's proposed syntax until fizz-script and fizz-bake exist.
+  f2Map() {
+    return ['#......................................#', '#......................................#', '#......................................#', '#......................................#', '#...............====...................#', '#......................................#', '#......................................#', '#.............................BBBBBBBBB#', '#....====...............====..Bwwwwwwww#', '#.............................Dwwwwwwww#', '#.............................Dwwwwwwww#', '#.............................DwwwwwEww#', '###########...##########################', '###########^^^##########################'];
+  }
+  f2Ega() {
+    return [['k', 'black', '#000000'], ['B', 'blue', '#0000AA'], ['G', 'green', '#00AA00'], ['C', 'cyan', '#00AAAA'], ['R', 'red', '#AA0000'], ['M', 'magenta', '#AA00AA'], ['N', 'brown', '#AA5500'], ['L', 'light-grey', '#AAAAAA'],
+      ['D', 'dark-grey', '#555555'], ['b', 'light-blue', '#5555FF'], ['g', 'light-green', '#55FF55'], ['c', 'light-cyan', '#55FFFF'], ['r', 'light-red', '#FF5555'], ['m', 'light-magenta', '#FF55FF'], ['y', 'yellow', '#FFFF55'], ['W', 'white', '#FFFFFF']];
+  }
+  f2Hex(name) { const e = this.f2Ega().filter((q) => q[1] === name || q[0] === name)[0]; return e ? e[2] : '#FFFF55'; }
+  f2Pix() {
+    const out = [];
+    for (let y = 0; y < 10; y++) {
+      let row = '';
+      for (let x = 0; x < 16; x++) {
+        let ch = y < 3 ? 'k' : 'B';
+        const ridge = 6 + (x % 5 === 0 ? -1 : 0) + (x > 10 ? -1 : 0);
+        if (y >= ridge) ch = 'D';
+        if (x === 12 && y >= 2 && y < ridge) ch = y % 2 ? 'R' : 'W';
+        if (x === 12 && y === 1) ch = 'y';
+        if (y === 1 && x === 3) ch = 'L';
+        row += ch;
+      }
+      out.push(row);
+    }
+    return out;
+  }
+  f2New() {
+    return {
+      tab: 'states', tool: 'select', ink: '#', night: false, sky: true, flat: false, lens: true, rep: 'across',
+      map: this.f2Map(), start: { 'red-door': 'closed', alarm: 'off' }, cur: { 'red-door': 'closed', alarm: 'off' },
+      holding: false, keyTaken: false, fired: {}, words: [], log: ['Canned preview: the real studio runs these rules in the game\'s WebAssembly.'],
+      lights: [{ id: 'lamp-1', x: 34, y: 5, r: 5, col: 'yellow', fall: 'soft', flick: 'none', st: 'alarm', att: '', cell: false }, { id: 'hen-glow', x: 8, y: 2.6, r: 2, col: 'light-green', fall: 'soft', flick: 'none', st: '', att: 'hen', cell: false }],
+      sel: null, n: 1, pix: this.f2Pix(), pink: 'D', panel: 'cliffs-mid', def: 'beetle-bot'
+    };
+  }
+  f2Set(p, toast) {
+    const f = this.cur().f2;
+    if (!f) return;
+    const o = { f2: Object.assign({}, f, p), menu: null, sub: null, ctx: null };
+    if (toast) o.toast = { text: toast, undo: false };
+    this.setState(o);
+  }
+  f2OnVal(st) { return st === 'red-door' ? 'open' : 'on'; }
+  f2Lit(f, L) { return !L.st || f.cur[L.st] === this.f2OnVal(L.st); }
+  f2Line(L) {
+    const pos = L.att ? '' : (L.cell ? ' x=' + Math.floor(L.x) + ' y=' + Math.floor(L.y) : ' at=' + L.x + ',' + L.y);
+    return 'light id=' + L.id + pos + ' radius=' + L.r + ' colour=' + L.col + ' falloff=' + L.fall + (L.flick !== 'none' ? ' flicker=' + L.flick : '') + (L.st ? ' state=' + L.st + ' on=' + this.f2OnVal(L.st) : '') + (L.att ? ' attach=' + L.att : '');
+  }
+  f2Light(id, p) {
+    const f = this.cur().f2;
+    this.f2Set({ lights: f.lights.map((L) => (L.id === id ? Object.assign({}, L, p) : L)) });
+  }
+  f2Remove(id) {
+    const f = this.cur().f2;
+    this.f2Set({ lights: f.lights.filter((L) => L.id !== id), sel: null }, 'Removed ' + id + '. Its line leaves the objects section.');
+  }
+  // The canned rule preview: what the game would do for each input, by the five rules of the sample level.
+  f2Fire(what) {
+    const f = this.cur().f2;
+    const cur = Object.assign({}, f.cur), log = f.log.slice(), words = f.words.slice(), fired = Object.assign({}, f.fired);
+    let holding = f.holding, keyTaken = f.keyTaken;
+    const word = (t, col, x, y) => words.push({ t: t, col: col, x: x, y: y });
+    if (what === 'take') {
+      if (keyTaken) log.push('Rule 2 did not fire: red-key is already taken, and it fires once per life.');
+      else { keyTaken = true; holding = true; fired[2] = true; word('red key', '#FF5555', 17.5, 11.4); log.push('Rule 2: take id=red-key → word "red key", cue key. Ben holds key-red.'); }
+    } else if (what === 'touch') {
+      if (cur['red-door'] === 'open') log.push('Rule 1 did not fire: red-door is already open.');
+      else if (!holding) log.push('Rule 1 did not fire: Ben is not holding key-red.');
+      else { cur['red-door'] = 'open'; holding = false; fired[1] = true; log.push('Rule 1 (lock): red-door closed → open, key-red spent. The door tiles at x 30 are passable.'); }
+    } else if (what === 'hit') {
+      cur.alarm = cur.alarm === 'on' ? 'off' : 'on'; fired[3] = true;
+      log.push('Rule 3: hit id=lever-1 → toggle alarm, now ' + cur.alarm + '; cue clunk.');
+      if (cur.alarm === 'on') { fired[4] = true; word('lights!', '#FFFF55', 34, 6.4); log.push('Rule 4: state alarm becomes on → word "lights!", cue door. lamp-1 is bound to it.'); }
+    } else if (what === 'reset') {
+      Object.keys(f.start).forEach((k) => { cur[k] = f.start[k]; });
+      holding = false; keyTaken = false; words.length = 0;
+      Object.keys(fired).forEach((k) => { delete fired[k]; });
+      log.push('A death: every state back to its start value, the key back in place, rules re-armed.');
+    }
+    this.f2Set({ cur: cur, log: log.slice(-6), words: words.slice(-3), fired: fired, holding: holding, keyTaken: keyTaken });
+  }
+  f2Cell(c, r) {
+    const f = this.cur().f2;
+    if (!f) return;
+    const H = 14, x = c, y = H - 1 - r;
+    if (f.tool === 'light') {
+      const id = 'lamp-' + (f.n + 1);
+      const L = { id: id, x: x + 0.5, y: y + 0.5, r: 4, col: 'yellow', fall: 'soft', flick: 'none', st: '', att: '', cell: true };
+      this.f2Set({ lights: f.lights.concat([L]), sel: id, n: f.n + 1 }, 'Placed ' + id + ' at ' + x + ',' + y + '. Turn Night on to see it lit.');
+      return;
+    }
+    if (f.tool === 'paint' || f.tool === 'erase') {
+      const ch = f.tool === 'erase' ? '.' : f.ink;
+      if (f.map[r][c] === ch) return;
+      const map = f.map.slice();
+      map[r] = map[r].slice(0, c) + ch + map[r].slice(c + 1);
+      this.f2Set({ map: map });
+      return;
+    }
+    const hit = f.lights.filter((L) => !L.att && Math.floor(L.x) === x && Math.floor(L.y) === y)[0];
+    this.f2Set({ sel: hit ? hit.id : null });
+  }
+  f2Tabs() { return [['states', 'States and Rules'], ['words', 'Words'], ['sounds', 'Sounds'], ['lights', 'Lights'], ['budget', 'Budget'], ['defs', 'Definitions'], ['panels', 'Panels'], ['script', 'Script'], ['export', 'Export check']]; }
+  f2Menus(item, close, openKeys) {
+    const f = this.cur().f2;
+    const tab = (t) => () => this.f2Set({ tab: t });
+    const tog = (k) => () => { const g = this.cur().f2; const p = {}; p[k] = !g[k]; this.f2Set(p); };
+    const say = (t) => () => this.setState(Object.assign({ toast: { text: t, undo: false } }, close));
+    return {
+      File: [[item('New level…', '', 'newf', () => this.setState({ newCard: true, menu: null, sub: null, ctx: null })), item('Open starter level… (Fizz 1)', '', 'open', () => this.setState({ levelsCard: true, menu: null, sub: null, ctx: null }))],
+        [item('Save', 'Ctrl+S', 'save', say('Saved light-1.fizz (prototype: nothing is written)')), item('Export to Fizz 1…', '', 'exportf', tab('export'))],
+        [item('Quit', '', 'power')]],
+      Edit: [[item('Undo', 'Ctrl+Z', 'undo'), item('Redo', 'Ctrl+Shift+Z', 'redo')]],
+      View: [[item('Game view', '', f.flat ? 'none' : 'check', () => this.f2Set({ flat: false })), item('Flat grid', '', f.flat ? 'check' : 'none', () => this.f2Set({ flat: true }))],
+        [item('Night', 'N', f.night ? 'check' : 'none', tog('night')), item('Sky', '', f.sky ? 'check' : 'none', tog('sky')), item('States lens', 'Alt+1', f.lens ? 'check' : 'none', tog('lens'))]],
+      Level: [[item('States and Rules', '', 'none', tab('states')), item('Lights', '', 'none', tab('lights')), item('Budget', '', 'none', tab('budget'))], [item('Export check (Fizz 1)', '', 'none', tab('export'))]],
+      World: [[item('Definitions', '', 'none', tab('defs')), item('Panels and pixel editor', '', 'none', tab('panels'))], [item('Build world', '', 'play', say('Build world: not run. fizz-bake does not build world packs yet (F4, F15).'))]],
+      Claude: [[item('Ask Claude for an idea', 'Ctrl+K', 'spark')]],
+      Window: [this.f2Tabs().map((t) => item(t[1], '', f.tab === t[0] ? 'check' : 'none', tab(t[0])))],
+      Help: [[item('Capabilities…', '', 'info', () => this.setState(Object.assign({ capsCard: true }, close))), item('Keyboard shortcuts', '?', 'keys', openKeys), item('About the Fizz 2 screens', '', 'info', say('Fizz 2 screens: canned data. States, rules, lights, the map and the pixel grid respond; the Game view, rule preview, counts and costs stand in for the game\'s own code, and nothing is saved.'))]]
+    };
+  }
+  f2Key(e, s) {
+    const key = String(e.key || ''), low = key.toLowerCase(), code = String(e.code || '');
+    const done = () => { if (e.preventDefault) e.preventDefault(); return true; };
+    if (key === 'Escape') {
+      if (s.menu || s.sub || s.ctx) this.setState({ menu: null, sub: null, ctx: null });
+      else if (s.newCard || s.capsCard || s.keysCard || s.levelsCard) this.setState({ newCard: false, capsCard: false, keysCard: false, levelsCard: false });
+      else if (s.f2 && s.f2.sel) this.f2Set({ sel: null });
+      return done();
+    }
+    if (!s.f2) return false;
+    const ctrl = !!(e.ctrlKey || e.metaKey);
+    if (ctrl && low === 's') { this.setState({ toast: { text: 'Saved light-1.fizz (prototype: nothing is written)', undo: false } }); return done(); }
+    if (e.altKey && (code === 'Digit1' || key === '1')) { this.f2Set({ lens: !s.f2.lens }); return done(); }
+    if (ctrl || e.altKey) return false;
+    if (key === '?' || (e.shiftKey && code === 'Slash')) { this.setState({ keysCard: !s.keysCard }); return done(); }
+    const tools = { s: 'select', b: 'paint', e: 'erase', g: 'light' };
+    if (tools[low]) { this.f2Set({ tool: tools[low] }); return done(); }
+    if (low === 'n') { this.f2Set({ night: !s.f2.night }); return done(); }
+    if ((key === 'Delete' || key === 'Backspace') && s.f2.sel) { this.f2Remove(s.f2.sel); return done(); }
+    return false;
+  }
+  newCardVals(s) {
+    const pick = s.newPick === 'fizz1' ? 'fizz1' : 'fizz2';
+    const card = (on) => on ? 'border:1px solid #ffaa40;background:rgba(255,170,64,0.08);color:#fff' : 'border:1px solid rgba(255,255,255,0.14);background:transparent;color:#e0e0e0';
+    const dot = (on) => on ? 'border:4px solid #ffaa40' : 'border:1.5px solid #b4bfce';
+    const gets = pick === 'fizz2'
+      ? [['Tools', 'Select, Paint the map, Erase, Light'], ['Windows', 'States and Rules, Words, Sounds, Lights, Budget, Definitions, Panels, Script, Export check'], ['Views', 'Game view (oblique), Night, Sky, flat grid aid'], ['Checks', 'E101 to E130, W101 to W113, E2xx'], ['Export', 'Fizz 1, with the lossy check']]
+      : [['Tools', 'Paint, Erase, Pick, Select, Stamp, Lift, Room, Arena'], ['Windows', 'Palette, Objects, History, Checks, Inspector, Review changes, Script, Navigator'], ['Views', 'The flat grid and its lenses'], ['Checks', 'E001 to E016, W103 (no wall-kick)'], ['Export', 'Rust Builder calls']];
+    return {
+      show: !!s.newCard, isF2: pick === 'fizz2', isF1: pick === 'fizz1',
+      f2Style: card(pick === 'fizz2'), f1Style: card(pick === 'fizz1'), f2Dot: dot(pick === 'fizz2'), f1Dot: dot(pick === 'fizz1'),
+      f2On: pick === 'fizz2' ? 'true' : 'false', f1On: pick === 'fizz1' ? 'true' : 'false',
+      gets: gets.map((g) => ({ k: g[0], v: g[1] })),
+      line: pick === 'fizz2' ? 'script fizz2 0  ·  level "Lighthouse Point" 40x14 id=light-1' : 'no script line  ·  level "Sample draft" 40x16',
+      createLabel: pick === 'fizz2' ? 'Create Fizz 2 level' : 'Create Fizz 1 level',
+      pickF2: () => this.setState({ newPick: 'fizz2' }), pickF1: () => this.setState({ newPick: 'fizz1' }),
+      close: () => this.setState({ newCard: false }),
+      create: () => {
+        const c = this.cur();
+        if (pick === 'fizz2') { this.setState({ newCard: false, f2: this.f2New(), ring: false, menu: null, toast: { text: 'Created light-1 in Lighthouse Point: a canned Fizz 2 level. Its target is fixed; try States and Rules, the Light tool (G) and Night.', undo: false } }); return; }
+        this.setState({ newCard: false });
+        if (c.level !== 'sample' || c.f2) this.openLevel('sample');
+        else this.setState({ f2: null, toast: { text: 'New Fizz 1 level: the prototype uses the Sample draft as the blank, and it is open.', undo: false } });
+      }
+    };
+  }
+  capsVals(s) {
+    const ST = { built: 'border:1px solid rgba(46,198,106,0.6);color:#6ee7a0', accepted: 'border:1px solid rgba(251,191,36,0.6);color:#fcd34d', reserved: 'border:1px dashed rgba(180,191,206,0.6);color:#b4bfce', absent: 'border:1px solid rgba(124,135,150,0.5);color:#b4bfce' };
+    const rows = [['map grid, at= positions, floor solid', 'built', 'LEVL v1 today · F10'], ['Tiles: fill, block, one-way, spike, doors, exit, back wall', 'built', 'tiles.rs'], ['Choc and the six slopes', 'reserved', 'no letter yet · Q11'], ['Snacks, soda, red and blue keys, chicken', 'built', '#137'], ['lock (key and door)', 'built', '#140, provisional'], ['States, bindings, other rule inputs', 'accepted', 'W106 · F11'], ['Switches', 'accepted', 'W106 · F11'], ['Strings, floating words, cues', 'accepted', 'W106 · F11, F18'], ['Placed lights', 'accepted', 'W106 · F12'], ['Custom enemies and items', 'accepted', 'W106 · F16, F17'], ['Theme', 'accepted', 'W109 · F3'], ['Bitmap parallax panels', 'accepted', 'F19'], ['Wall-kick, always on', 'accepted', 'F9'], ['Lifts, rooms, arena, ladders, overworld', 'absent', 'E102']];
+    return { show: !!s.capsCard, rows: rows.map((r) => ({ f: r[0], st: r[1], src: r[2], style: ST[r[1]] })), close: () => this.setState({ capsCard: false }) };
+  }
+  f2Vals(s) {
+    const f = s.f2;
+    if (!f) return { on: false };
+    const T = 26, H = 14;
+    const px = (x) => x * T, py = (y) => (H - y) * T;
+    const open = f.cur['red-door'] === 'open';
+    const solid = (r, c) => r >= 0 && r < H && '#B'.indexOf(f.map[r][c]) >= 0;
+    const flatLook = { '#': 'background:#2b2540', B: 'background:#6a58a8', '=': 'background:linear-gradient(#ffaa40 0 30%,transparent 30%)', D: 'background:#a63a2e', w: 'background:#1c1c3a', E: 'background:rgba(46,198,106,0.4)', '^': 'background:#3a1620', '.': 'background:transparent' };
+    const cells = [];
+    f.map.forEach((row, r) => row.split('').forEach((ch, c) => {
+      let st = 'background:transparent', g = '';
+      if (f.flat) { st = (flatLook[ch] || '') + ';outline:1px solid rgba(255,255,255,0.05)'; if (ch === 'D' && open) st = 'background:transparent;outline:1px dashed #FF5555'; }
+      else {
+        const top = !solid(r - 1, c);
+        if (ch === '#') st = 'background:' + (top ? 'linear-gradient(#AAAAAA 0 5px,#555555 5px 8px,#3a3a44 8px)' : '#3a3a44');
+        if (ch === 'B') st = 'background:repeating-linear-gradient(#AA5500 0 8px,#552a00 8px 9px)';
+        if (ch === '=') st = 'background:linear-gradient(#FFFF55 0 3px,#AA5500 3px 10px,transparent 10px)';
+        if (ch === '^') { g = '▲'; st = 'color:#AAAAAA;font-size:10px'; }
+        if (ch === 'D') st = open ? 'background:#1c1c3a;outline:1px dashed #FF5555;outline-offset:-2px' : 'background:#AA0000;box-shadow:inset 0 0 0 2px #FF5555';
+        if (ch === 'w') st = 'background:#1c1c3a';
+        if (ch === 'E') { st = 'background:#00AAAA'; g = '▲'; }
+      }
+      cells.push({ s: st, g: g, down: () => this.f2Cell(c, r) });
+    }));
+    const box = (x, y, w, h) => 'left:' + Math.round(x * T - w / 2) + 'px;top:' + Math.round(py(y) - h / 2) + 'px;width:' + w + 'px;height:' + h + 'px';
+    const feet = (x, y, w, h) => 'left:' + Math.round(x * T - w / 2) + 'px;top:' + Math.round(py(y) - h) + 'px;width:' + w + 'px;height:' + h + 'px';
+    const objs = [
+      ['red-key', 'K', box(17.5, 10.7, 16, 16) + ';background:#AA0000;color:#fff;border-radius:3px', !f.keyTaken],
+      ['hang-1', '', box(6.5, 6.2, 11, 11) + ';background:#FFFF55;border-radius:50%', true],
+      ['floor-can', '', box(25.5, 6.5, 9, 14) + ';background:#55FFFF;border-radius:2px', true],
+      ['hen', 'h', feet(8, 2, 22, 24) + ';background:#FFFF55;color:#552a00;border-radius:9px 9px 3px 3px', true],
+      ['lever-1', f.cur.alarm === 'on' ? '\\' : '/', feet(22, 2, 16, 22) + ';color:#AAAAAA;font-size:18px', true],
+      ['bot-1', 'b', feet(26, 2, 22, 18) + ';background:#00AA00;color:#000;border-radius:7px', true],
+      ['jar-1', 'j', box(34.5, 2.5, 16, 18) + ';background:#AA00AA;color:#fff;border-radius:4px', true],
+      ['ben', '@', feet(2.35, 2, 18, 36) + ';border:1px dashed #fff;color:#fff;border-radius:4px' + (f.holding ? ';box-shadow:0 0 0 2px #FF5555' : ''), true]
+    ].filter((o) => o[3]).map((o) => ({ id: o[0], g: o[1], s: o[2] }));
+    const at = (L) => (L.att === 'hen' ? { x: 8, y: 2.6 } : (L.att === 'bot-1' ? { x: 26, y: 2.5 } : (L.att === 'ben' ? { x: 2.35, y: 2.8 } : { x: L.x, y: L.y })));
+    const glows = [], marks = [];
+    f.lights.forEach((L) => {
+      const p = at(L), lit = this.f2Lit(f, L), col = this.f2Hex(L.col), sel = f.sel === L.id, R = L.r * T;
+      if (f.night && lit) glows.push({ s: 'left:' + (px(p.x) - R) + 'px;top:' + (py(p.y) - R) + 'px;width:' + 2 * R + 'px;height:' + 2 * R + 'px;background:radial-gradient(circle,' + col + (L.fall === 'hard' ? ' 0 55%,transparent 58%)' : ' 0,transparent 70%)') + ';opacity:' + (L.flick === 'none' ? 0.55 : 0.42) });
+      marks.push({ s: 'left:' + (px(p.x) - R) + 'px;top:' + (py(p.y) - R) + 'px;width:' + 2 * R + 'px;height:' + 2 * R + 'px;border-radius:50%;border:' + (sel ? '2px solid ' + col : '1px dashed ' + col) + ';opacity:' + (sel || !f.night ? 0.9 : 0.5), dot: 'left:' + (px(p.x) - 6) + 'px;top:' + (py(p.y) - 6) + 'px;width:12px;height:12px;border-radius:50%;background:' + (lit ? col : 'transparent') + ';border:2px solid ' + col, tag: 'left:' + (px(p.x) + 8) + 'px;top:' + (py(p.y) - 24) + 'px;border:1px solid ' + col, t: L.id + (L.att ? ' · on ' + L.att : '') + (lit ? '' : ' · off'), pick: () => this.f2Set({ sel: L.id, tab: 'lights' }) });
+    });
+    if (f.night) [[36.5, 2.5, 2, '#55FFFF'], [2.35, 2.8, 2.5, '#FFAA55']].concat(open ? [] : [[30.5, 3, 1.5, '#FF5555']]).forEach((d) => glows.push({ s: 'left:' + (px(d[0]) - d[2] * T) + 'px;top:' + (py(d[1]) - d[2] * T) + 'px;width:' + 2 * d[2] * T + 'px;height:' + 2 * d[2] * T + 'px;background:radial-gradient(circle,' + d[3] + ' 0,transparent 70%);opacity:0.4' }));
+    const lens = !f.lens ? [] : [
+      { s: 'left:' + px(30) + 'px;top:' + py(5) + 'px;width:' + T + 'px;height:' + 3 * T + 'px;border:2px solid #22d3ee', ts: 'left:' + (px(30) - 70) + 'px;top:' + (py(5) - 24) + 'px;border:1px solid #22d3ee', t: 'red-door: ' + f.cur['red-door'] + ' (starts ' + f.start['red-door'] + ')' },
+      { s: 'left:' + (px(22) - 12) + 'px;top:' + (py(2) - 26) + 'px;width:24px;height:28px;border:2px dashed #fb923c', ts: 'left:' + (px(22) - 40) + 'px;top:' + (py(2) - 52) + 'px;border:1px dashed #fb923c', t: 'alarm: ' + f.cur.alarm + ' (starts ' + f.start.alarm + ')' }
+    ];
+    const words = f.words.map((w, i) => ({ t: w.t, s: 'left:' + (px(w.x) - 40) + 'px;top:' + (py(w.y) - 12 - i * 4) + 'px;color:' + w.col }));
+    const toolDefs = [['select', 'S', 'Select'], ['paint', 'B', 'Paint the map'], ['erase', 'E', 'Erase'], ['light', 'G', 'Light']];
+    const tools = toolDefs.map((t) => ({ k: t[1], label: t[2] + ' (' + t[1] + ')', on: f.tool === t[0] ? 'true' : 'false', s: f.tool === t[0] ? 'border:1px solid ' + (t[0] === 'light' ? '#FFFF55' : '#ffaa40') + ';background:rgba(255,170,64,0.1);color:' + (t[0] === 'light' ? '#FFFF55' : '#ffaa40') : 'border:1px solid rgba(255,255,255,0.08);background:transparent;color:#b4bfce', pick: () => this.f2Set({ tool: t[0] }) }));
+    const vb = (n, on, act) => ({ n: n, on: on ? 'true' : 'false', s: on ? 'border:1px solid #ffaa40;background:rgba(255,170,64,0.12);color:#fff' : 'border:1px solid rgba(255,255,255,0.14);background:transparent;color:#b4bfce', pick: act });
+    const views = [vb('Game view', !f.flat, () => this.f2Set({ flat: false })), vb('Flat grid', f.flat, () => this.f2Set({ flat: true })), vb('Night', f.night, () => this.f2Set({ night: !this.cur().f2.night })), vb('Sky', f.sky, () => this.f2Set({ sky: !this.cur().f2.sky })), vb('States lens', f.lens, () => this.f2Set({ lens: !this.cur().f2.lens }))];
+    const inView = f.lights.length + 3;
+    // inspector
+    const L = f.lights.filter((q) => q.id === f.sel)[0];
+    const seg = (list, cur, set) => list.map((v) => ({ n: v[1], on: v[0] === cur ? 'true' : 'false', s: v[0] === cur ? 'background:rgba(255,170,64,0.18);color:#fff' : 'background:transparent;color:#b4bfce', pick: () => set(v[0]) }));
+    const insp = L ? {
+      has: true, none: false, paint: false, id: L.id, line: this.f2Line(L), r: L.r + (L.r === 1 ? ' tile' : ' tiles'),
+      less: () => this.f2Light(L.id, { r: Math.max(1, L.r - 1) }), more: () => this.f2Light(L.id, { r: Math.min(12, L.r + 1) }),
+      cols: this.f2Ega().map((e) => ({ n: e[1], c: e[2], on: e[1] === L.col ? 'true' : 'false', s: e[1] === L.col ? 'border:2px solid #fff' : 'border:1px solid rgba(255,255,255,0.14)', pick: () => this.f2Light(L.id, { col: e[1] }) })),
+      fall: seg([['soft', 'soft'], ['hard', 'hard']], L.fall, (v) => this.f2Light(L.id, { fall: v })),
+      flick: seg([['none', 'none'], ['candle', 'candle'], ['pulse', 'pulse']], L.flick, (v) => this.f2Light(L.id, { flick: v })),
+      st: seg([['', 'always'], ['alarm', 'alarm on'], ['red-door', 'door open']], L.st, (v) => this.f2Light(L.id, { st: v })),
+      att: seg([['', 'nothing'], ['hen', 'hen'], ['bot-1', 'bot-1'], ['ben', 'ben']], L.att, (v) => this.f2Light(L.id, { att: v })),
+      remove: () => this.f2Remove(L.id), lit: this.f2Lit(f, L) ? 'lit now' : 'off now (its state)'
+    } : { has: false, paint: f.tool === 'paint', none: f.tool !== 'paint' };
+    const legend = [['.', 'open air', 'transparent'], ['#', 'fill', '#555555'], ['B', 'block', '#AA5500'], ['=', 'one-way', '#FFFF55'], ['^', 'spike', '#AAAAAA'], ['w', 'back wall', '#1c1c3a']].map((q) => ({ k: q[0], n: q[1], c: q[2], on: f.ink === q[0] ? 'true' : 'false', s: f.ink === q[0] ? 'border:1px solid #ffaa40;background:rgba(255,170,64,0.1)' : 'border:1px solid rgba(255,255,255,0.1);background:transparent', pick: () => this.f2Set({ ink: q[0], tool: 'paint' }) }));
+    const tabs = this.f2Tabs().map((t) => ({ n: t[1], on: f.tab === t[0] ? 'true' : 'false', s: f.tab === t[0] ? 'border-bottom:2px solid #ffaa40;color:#fff' : 'border-bottom:2px solid transparent;color:#b4bfce', pick: () => this.f2Set({ tab: t[0] }) }));
+    // states and rules
+    const vals = { 'red-door': ['closed', 'open'], alarm: ['off', 'on'] };
+    const states = Object.keys(vals).map((k) => ({ n: k, vals: vals[k].map((v) => ({ n: v + (f.start[k] === v ? ' (start)' : ''), s: f.cur[k] === v ? 'border:1px solid ' + (k === 'alarm' ? '#fb923c' : '#22d3ee') + ';background:rgba(255,255,255,0.08);color:#fff' : 'border:1px solid rgba(255,255,255,0.14);color:#b4bfce' })), binds: k === 'alarm' ? 'lamp-1 is on while alarm is on' + (f.lights.some((q) => q.st === 'alarm' && q.id !== 'lamp-1') ? ', with your lights' : '') : 'door x=30 y=2..4 open=open' }));
+    const rules = [[1, 'lock red-door key=red at=30,3', 'When Ben touches the door at 30,3 holding the red key, if red-door is closed: set it open, spend the key.', 'built'], [2, 'when take id=red-key then word "red key" style=red, cue key', 'When Ben takes red-key: raise "red key", play key.', 'W106'], [3, 'when hit id=lever-1 then toggle alarm, cue clunk repeat', 'When lever-1 is hit: toggle alarm, play clunk. Repeats.', 'W106'], [4, 'when state alarm becomes on then word "lights!" style=yellow, cue door', 'When alarm becomes on: raise "lights!", play door.', 'W106'], [5, 'when cleared group=guards then score 10, word "all clear" style=green', 'When group guards is cleared: score 10, raise "all clear".', 'W106']].map((r) => ({ i: r[0], code: r[1], say: r[2], cap: r[3], capS: r[3] === 'built' ? 'border:1px solid rgba(46,198,106,0.6);color:#6ee7a0' : 'border:1px solid rgba(251,191,36,0.6);color:#fcd34d', box: f.fired[r[0]] ? 'border:1px solid #ffaa40;background:rgba(255,170,64,0.08)' : 'border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.02)' }));
+    const triggers = [['Ben takes red-key', 'take'], ['Ben touches the door at 30,3', 'touch'], ['Hit lever-1', 'hit'], ['Reset, as a death does', 'reset']].map((t) => ({ n: t[0], pick: () => this.f2Fire(t[1]) }));
+    const log = f.log.slice().reverse().map((t) => ({ t: t }));
+    const EG = { red: '#FF5555', yellow: '#FFFF55', green: '#55FF55', white: '#FFFFFF' };
+    const wordRows = [['red key', 'red', 'rule 2 · level string'], ['lights!', 'yellow', 'rule 4 · level string'], ['all clear', 'green', 'rule 5 · level string'], ['bonk', 'white', 'shared caption · beetle-bot'], ['zapped!', 'yellow', 'world string · beetle-bot']].map((w) => ({ t: w[0], st: w[1], from: w[2], bytes: w[0].length + ' / 30', ink: 'color:' + EG[w[1]] }));
+    const used = { key: 'rule 2', clunk: 'rule 3', door: 'rule 4', bonk: 'beetle-bot', win: 'beetle-bot', crunch: 'cookie-jar' };
+    const cues = ['fzzt', 'stun', 'bonk', 'hurt', 'win', 'key', 'clunk', 'plink', 'boing', 'jump', 'crunch', 'soda', 'door', 'cluck0'].map((n) => ({ n: n, used: used[n] || '', label: 'Play ' + n + ' (needs the game module)' }));
+    const lightRows = f.lights.map((q) => ({ id: q.id, d: (q.att ? 'follows ' + q.att : (q.cell ? Math.floor(q.x) + ',' + Math.floor(q.y) : q.x + ',' + q.y)) + ' · radius ' + q.r + ' · ' + q.col + (q.st ? ' · ' + q.st : ''), dot: 'background:' + this.f2Hex(q.col), s: f.sel === q.id ? 'border:1px solid #FFFF55;background:rgba(255,255,85,0.08)' : 'border:1px solid transparent;background:rgba(255,255,255,0.02)', pick: () => this.f2Set({ sel: q.id }) }));
+    // budget
+    const nObj = 7 + f.lights.length, nm = 'Lighthouse Point';
+    const levl = 32 + Math.ceil(nm.length / 8) * 8 + 32 * (nObj + 5 + 3) + 40 * 14;
+    const M = (n, v, pct, src) => ({ n: n, v: v, src: src, bar: pct === null ? 'width:100%;background:repeating-linear-gradient(90deg,rgba(255,255,255,0.08) 0 6px,transparent 6px 12px)' : 'width:' + Math.max(2, Math.min(100, pct)) + '%;background:' + (pct > 100 ? '#f43f5e' : (pct > 90 ? '#fb923c' : '#2ec66a')) });
+    const meters = [M('Rules', '5 of 32', 5 / 32 * 100, 'The ep2 profile; the lock counts once expanded'), M('States', '2 of 32', 2 / 32 * 100, 'The ep2 profile'), M('Strings', '3 of 32', 3 / 32 * 100, 'The ep2 profile'), M('Lights in view', inView + ' of 16', inView / 16 * 100, 'Placed plus derived; W111 above 16 (#146)'), M('LEVL section', levl.toLocaleString('en-CA') + ' bytes, estimate', levl / 98304 * 100, 'Version 1 length formula, ' + nObj + ' objects; fizz-bake gives the real size'), M('World pack and floppy', 'not run', null, 'fizz-bake\'s build report (F4, F15)'), M('Light and panel frame cost', 'not run', null, 'The game\'s bench (F22)'), M('Behaviour cost', 'not run', null, 'The compiler (F17)')];
+    // definitions
+    const code = ['enemy beetle-bot', '  sprite   idle=beetle_idle walk=beetle_walk1,beetle_walk2 alert=beetle_alert', '  hitbox   0.8x0.7', '  stats    hp=2 speed=2.5 gravity=yes stomp=stun shot=damage contact=hurt', '  behaviour', '    mode walk', '      on tick  walk facing speed; if wall-ahead or ledge-ahead then turn', '      on tick  if ben-ahead 6 and cooldown <= 0 then goto charge', '    mode charge', '      on enter anim alert; set cooldown 120', '      on tick  walk facing speed * 2; if wall-ahead then goto walk', '  on stomp   stun 180; raise word bonk; cue bonk', 'end'].map((t, i) => ({ n: i + 1, t: t, ink: /^(enemy|end|  behaviour)/.test(t) ? 'color:#ffaa40' : (/mode /.test(t) ? 'color:#55FFFF' : 'color:#e0e0e0') }));
+    const defList = [['beetle-bot', 'enemy · 2 modes'], ['cookie-jar', 'item · score 5, ammo 2'], ['gate-key', 'item · key gate']].map((d) => ({ n: d[0], m: d[1], s: f.def === d[0] ? 'border:1px solid #ffaa40;background:rgba(255,170,64,0.08)' : 'border:1px solid transparent;background:rgba(255,255,255,0.02)', pick: () => this.f2Set({ def: d[0] }) }));
+    // panels and the pixel grid
+    const pix = [];
+    f.pix.forEach((row, y) => row.split('').forEach((ch, x) => pix.push({ s: 'background:' + this.f2Hex(ch), label: 'Pixel ' + x + ',' + y, pick: () => { const g = this.cur().f2; const p = g.pix.slice(); p[y] = p[y].slice(0, x) + g.pink + p[y].slice(x + 1); this.f2Set({ pix: p }); } })));
+    const pal = this.f2Ega().map((e) => ({ l: e[0], n: e[1], c: e[2], on: f.pink === e[0] ? 'true' : 'false', s: f.pink === e[0] ? 'border:2px solid #fff' : 'border:1px solid rgba(255,255,255,0.18)', pick: () => this.f2Set({ pink: e[0] }) }));
+    const panels = [['stars-far', 'scroll 16/256 · repeat both · horizon'], ['cliffs-mid', 'scroll 96/256 · base row 10'], ['lamp-glow', 'scroll 160/256 · shown while alarm is on']].map((p) => ({ n: p[0], d: p[1], s: f.panel === p[0] ? 'border:1px solid #ffaa40;background:rgba(255,170,64,0.08)' : 'border:1px solid transparent;background:rgba(255,255,255,0.02)', pick: () => this.f2Set({ panel: p[0] }) }));
+    const rep = seg([['across', 'across'], ['down', 'down'], ['both', 'both'], ['none', 'none']], f.rep, (v) => this.f2Set({ rep: v }));
+    // script
+    const src = ['script fizz2 0', 'level "Lighthouse Point" 40x14 id=light-1', 'start 2,2', 'floor solid', 'theme lighthouse            // W109: shown, not baked', '', 'objects', '  key-red     id=red-key    at=17.5,10.7', '  cheezie     id=hang-1     at=6.5,6.2', '  soda        id=floor-can  at=25.5,6.5', '  chicken     id=hen        at=8,2 dir=-1', '  switch      id=lever-1    at=22,2 style=lever'].concat(f.lights.map((q) => '  ' + this.f2Line(q)), ['  beetle-bot  id=bot-1      at=26,2 dir=1 group=guards', '  cookie-jar  id=jar-1      x=34 y=2', '', 'state alarm off'], rules.map((r) => r.code));
+    const lines = src.map((t, i) => ({ n: i + 1, t: t, ink: /^(script|objects|state|lock|when)/.test(t) ? 'color:#ffaa40' : (/^  light /.test(t) ? 'color:#FFFF55' : 'color:#e0e0e0') }));
+    // export check
+    const E = (c, line, why) => ({ c: c, line: line, why: why, ink: c[0] === 'E' ? 'color:#fca5a5' : 'color:#fcd34d' });
+    const exp = [E('E120', 'state alarm off', 'A state that rules change: Fizz 1 has on/off channels and keys')].concat(rules.slice(1).map((r) => E('E121', r.code, 'A rule that is not a standard lock')), [E('E121', 'strings: red key, lights!, all clear', 'Fizz 1 has no level strings'), E('E122', 'floor solid', 'The Fizz 1 script cannot set floor_solid')], f.lights.map((q) => E('E123', 'light ' + q.id, 'Placed lights are Fizz 2 only')), [E('E123', 'switch lever-1', 'A Fizz 2 switch'), E('E123', 'beetle-bot bot-1, cookie-jar jar-1', 'Custom definitions'), E('W104', 'red-key, hang-1, floor-can', 'at= snapped to a cell centre'), E('W110', 'the exit; the look', 'Fizz 1 enters the exit on touch; the oblique look, panels and night are dropped')]);
+    const errs = exp.filter((e) => e.c[0] === 'E').length;
+    const tree = ['world.fizz', 'levels/light-1.fizz  (open)', 'levels/light-2.fizz', 'defs/enemies.fizz', 'defs/items.fizz', 'defs/sounds.fizz', 'sprites/', 'art/retro-fizz1/  (read-only)', 'panels/'].map((t, i) => ({ t: t, s: i === 1 ? 'color:#fff;background:rgba(255,170,64,0.12)' : 'color:#b4bfce;background:transparent' }));
+    const is = (t) => f.tab === t;
+    return {
+      on: true, cells: cells, objs: objs, glows: glows, marks: marks, lens: lens, words: words, tools: tools, views: views, insp: insp, legend: legend, tabs: tabs,
+      skyStyle: f.sky ? (f.night ? 'background:linear-gradient(#000022,#0b1030 70%,#161a40)' : 'background:linear-gradient(#0b1a4a,#1d2f6e 60%,#3a3f7a)') : 'background:#0f0e1a',
+      starsOn: f.sky && !f.flat, nightOn: f.night && !f.flat, nightNote: f.night ? 'Night: palette banks and lights' : 'Day',
+      banner: f.flat ? 'Flat grid: an editing aid' : 'Game view stand-in: the real studio shows the game\'s own presenter (F5)',
+      inView: inView + ' of 16 lights in view', toolNote: f.tool === 'light' ? 'Light tool: click the Game view to place a light' : (f.tool === 'paint' ? 'Paint: ' + f.ink + ' · click cells' : (f.tool === 'erase' ? 'Erase: click cells' : 'Select: click a light')),
+      isStates: is('states'), isWords: is('words'), isSounds: is('sounds'), isLights: is('lights'), isBudget: is('budget'), isDefs: is('defs'), isPanels: is('panels'), isScript: is('script'), isExport: is('export'),
+      states: states, rules: rules, triggers: triggers, log: log, holding: f.holding ? 'Ben holds key-red' : 'Ben holds no key',
+      wordRows: wordRows, cues: cues, lightRows: lightRows, lightCount: f.lights.length + ' placed · 3 derived by the game', meters: meters,
+      code: code, defList: defList, pix: pix, pal: pal, panels: panels, rep: rep, lines: lines, exp: exp, errText: errs + ' errors stand · the Fizz 1 script is not written', tree: tree,
+      openStarter: () => this.setState({ levelsCard: true, menu: null, sub: null, ctx: null }),
+      lightTool: () => this.f2Set({ tool: 'light' })
+    };
+  }
 
   // ---------- render values ----------
   renderVals() {
@@ -2532,7 +3030,7 @@ class Component extends DCLogic {
     const ctxAt = s.ctx ? s.grid[s.ctx.y][s.ctx.x] : '.';
     const ctxD = defs[ctxAt];
     const app = {
-      g1: [item('New level…', '', 'newf'), item('Open starter level…', '', 'open', () => this.setState({ levelsCard: true, menu: null, sub: null, ctx: null }))],
+      g1: [item('New level…', '', 'newf', () => this.setState({ newCard: true, menu: null, sub: null, ctx: null })), item('Open starter level…', '', 'open', () => this.setState({ levelsCard: true, menu: null, sub: null, ctx: null }))],
       g2: [item('Save', 'Ctrl+S', 'save', () => this.save()), item('Save as…', '', 'saveas'), item('Export', '', 'exportf', null, { sub: true })],
       g3: [item('Lenses', '', 'eye', () => this.setState({ sub: 'lenses' }), { sub: true, open: s.sub === 'lenses', subId: 'lenses' }), item('Reset window layout', 'Ctrl+Shift+0', 'layout', () => this.resetLayout())],
       g4: [item('Preferences…', '', 'gear'), item('Keyboard shortcuts', '?', 'keys', openKeys), item('About Fizz Level Studio', '', 'info', () => this.setState(Object.assign({ toast: { text: 'Fizz Level Studio, a working prototype. Painting, script, lenses and windows are live; Claude\'s ideas are canned and nothing is saved.', undo: false } }, close)))],
@@ -2550,8 +3048,8 @@ class Component extends DCLogic {
     if (selArea) for (let y = selArea.y0; y <= selArea.y1; y++) for (let x = selArea.x0; x <= selArea.x1; x++) if (s.grid[y][x] !== '.') areaFilled++;
     const canCopy = areaFilled > 0;
     const canDel = areaMulti ? areaFilled > 0 : hasSel;
-    const menuDefs = {
-      File: [[item('New level…', '', 'newf'), item('Open starter level…', '', 'open', () => this.setState({ levelsCard: true, menu: null, sub: null, ctx: null }))],
+    const menuDefs = s.f2 ? this.f2Menus(item, close, openKeys) : {
+      File: [[item('New level…', '', 'newf', () => this.setState({ newCard: true, menu: null, sub: null, ctx: null })), item('Open starter level…', '', 'open', () => this.setState({ levelsCard: true, menu: null, sub: null, ctx: null }))],
         [item('Save', 'Ctrl+S', 'save', () => this.save()), item('Save as…', '', 'saveas'), item('Export', '', 'exportf', null, { sub: true })],
         [item('Quit', '', 'power')]],
       Edit: [[item('Undo' + (s.past.length ? ': ' + s.past[s.past.length - 1].what : ''), 'Ctrl+Z', 'undo', s.past.length ? () => this.undo() : null), item('Redo' + (s.future.length ? ': ' + s.future[s.future.length - 1].what : ''), 'Ctrl+Shift+Z', 'redo', s.future.length ? () => this.redo() : null)],
@@ -2642,7 +3140,7 @@ class Component extends DCLogic {
     const levelsCard = {
       show: !!s.levelsCard,
       items: this.fl().order.concat(this.fl().overworlds || [], ['sample']).map((id) => {
-        const d = this.lvData(id), cur = s.level === id;
+        const d = this.lvData(id), cur = s.level === id && !s.f2;
         const bits = d && d.kind === 'overworld' ? ['map', d.counts.points + ' points: levels, teleporters, signs and the saucer'] : d ? [d.counts.items + ' treats', d.counts.spawns + ' enemies and objects'].concat(d.counts.lifts ? [d.counts.lifts + (d.counts.lifts === 1 ? ' lift' : ' lifts')] : [], d.counts.rooms ? [d.counts.rooms + ' rooms'] : [], d.arena ? ['boss arena'] : [], d.hidden ? [d.hidden + ' hidden by overlap'] : []) : ['the original 40 × 16 draft'];
         return {
           name: this.levelName(id), size: d ? d.w + ' × ' + d.h : '40 × 16',
@@ -2685,11 +3183,12 @@ class Component extends DCLogic {
     const wsStyle = 'background-position:' + O.x + 'px ' + O.y + 'px;background-size:' + T + 'px ' + T + 'px';
     const tb = s.toast;
     return {
-      lvl: { name: this.levelName(), file: this.fileName(), title: this.levelName() + ' — Episode 1 · draft', popTitle: this.fileName() + ' — ' + this.levelName() },
+      f2: this.f2Vals(s), newCard: this.newCardVals(s), capsCard: this.capsVals(s),
+      lvl: { name: this.levelName(), file: this.fileName(), title: s.f2 ? 'light-1.fizz — Lighthouse Point · Fizz 2 (ep2, fizz2 0) · canned sample' : this.levelName() + ' — Episode 1 · draft', popTitle: this.fileName() + ' — ' + this.levelName() },
       objShapes: objShapes, pathShapes: pathShapes, objs: objsVal,
       cells: cells, mini: mini, lvStyle: lvStyle, wsStyle: wsStyle,
       down: () => this.wsDown(), move: (e) => this.rootMove(e), up: () => this.rootUp(),
-      status: 'Paint and script stay in sync · ' + (pendingCount ? pendingCount + (pendingCount === 1 ? ' line' : ' lines') + ' from Claude await review' : 'nothing from Claude awaits review'),
+      status: s.f2 ? 'Fizz 2 level · canned data · the Game view and rule preview stand in for the game\'s own code' : 'Paint and script stay in sync · ' + (pendingCount ? pendingCount + (pendingCount === 1 ? ' line' : ' lines') + ' from Claude await review' : 'nothing from Claude awaits review'),
       menus: menus, appOpen: appOpen, appExpanded: appOpen ? 'true' : 'false', appStyle: 'background:' + (appOpen ? 'rgba(255,255,255,0.14)' : 'transparent'),
       appToggle: () => this.setState({ menu: appOpen ? null : 'app', sub: null, ctx: null }),
       app: app, sub: sub, subOpen: appOpen && s.sub === 'lenses',

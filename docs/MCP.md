@@ -129,25 +129,46 @@ Rewriting a line is a new kind of history entry: it records the line number, the
 
 | Tool | Input | Returns |
 | --- | --- | --- |
-| `get_enemy_paths` | `region?` | For each walking enemy, the cells it covers and where it turns, from the game's WebAssembly (`ARCHITECTURE.md` §5); refused with "not available" until that export exists |
+| `get_enemy_paths` | `region?` | For each walking enemy, the cells it covers and where it turns, from the game host (`ARCHITECTURE.md` §5); refused with "not available" until the host can trace |
 | `run_playtest` | `route?` (waypoints), `options?` (`climb`, `fire`, `pogo`, `keep_enemies`) | Finished or not, ticks, the furthest waypoint, the best position, keys held; through the game's `playtest::solve`. `run_checks` reports its result instead of "not run". |
 | `describe_word` | `word`, `scope?` (`level`, `overworld`) | The `docs.ts` entry: kind, section, syntax, example, note, fields, field notes |
 | `check_lines` | `lines`, `file?` | The parser's verdict on lines without storing anything, for drafting |
 
-### Fizz 2 (planned)
+### Targets, worlds and Fizz 2 (planned)
 
-Not built, and not before the dialect exists in the language package (`ROADMAP.md`, M7). The same rules apply: validated by the language package, mode-obeying, and rule and lock lines are studio-owned lines.
+Not built, and not before the dialect exists in the language package (`ROADMAP.md`, M2 onward). The same rules apply: validated by the language package against the file's target profile, mode-obeying, and object, rule, lock and string lines are studio-owned lines rewritten in place with an `expect` of their current text.
 
-| Tool | Input | Effect |
+| Tool | Input | Effect or returns |
 | --- | --- | --- |
-| `get_level` (extended) | none | Also returns the Target (`fizz1` or `fizz2`), the channels with their start states, the locks and the rules as sentences |
-| `list_rules` | `file?` | Every `when ... then ...` rule with its line, trigger, guard, actions and flags, and the lint codes that apply to it |
-| `add_rule`, `set_rule` | the rule's fields | Writes one rule line as a proposal; refused on any error, including the 32-rule limit |
-| `set_channel` | `channel`, `state` | Writes the explicit start state; proposes `allow W101` only when the person asks |
-| `run_checks` (extended) | `target?` | Adds the Fizz 2 checks (ids, bounds, channels, limits, conflicts, W1xx lints) or, for Fizz 1, the export check (E120 to E122, W104) |
-| `get_dump` | `file?` | Read only: the baker's disassembly of the level (objects and rule records), when the baker is available; otherwise a message that it was not run |
+| `get_target` | `file?` | The file's target profile (`fizz1`, `ep2`), fixed when the level was created (no tool changes it), its world, the dialect version, the profile's source (the game's tables and their commit), the limits, the physics parameters the lints use, and every capability with its state (built, accepted, reserved, absent) and source |
+| `get_world` | none | The world project: its header, levels, shared definitions, sprite sets (with a retro set), panels, sound library, strings and theme |
+| `build_world` | `platform` (`web` or `dos`) | Runs `fizz-bake` over the world and returns its report (sections, sizes, manifest, errors), or "not run" when the baker is not available; writes only the pack the baker writes, never the sources |
+| `get_level` (extended) | none | Also returns the target, the states with their values and start values, the bindings, the objects with ids and baked indices, the rules as sentences with every `lock` expanded, the strings, and the counts against the limits |
+| `list_objects` (extended) | `file?` | For Fizz 2, every object with its `id`, kind, `sub`, position (`at=` or `x=`/`y=`), kind fields, baked index, and the rules that name it |
+| `add_object`, `set_object`, `remove_object` (extended) | As in "Objects" above, with `id` | A Fizz 2 object; `set_object` with a new `id` also rewrites every rule that names it, in one proposal; removing an object a rule names is refused with the rule's line |
+| `list_states` | `file?` | Every state with its values, start value, bindings, and the rules that test or change it |
+| `add_state`, `set_state`, `remove_state` | `name`, `values`, `start`, or `name` and `expect` | One `state` line as a proposal; a rename rewrites every use in the same proposal; removing a state in use is refused with its uses |
+| `bind` | the door rectangle, light or panel, `state`, `value` | Writes or rewrites the binding line or field |
+| `set_lock` | the door cell, `key` (`red`, `blue`, or any key the profile has, or none) | Writes, rewrites or removes that door's one `lock` line (the sugar) |
+| `list_rules` | `file?` | Every `lock` and `when` line with its line number, input, conditions, delay, actions with their cells, repeat, baked record index, the expansion of a `lock`, capability state (a rule the game cannot run yet is marked) and the lint codes on it |
+| `add_rule`, `set_rule`, `remove_rule` | the rule's fields, or `id` (a rule's line) and `expect` | One rule line as a proposal; refused on any error, including the 32-rule limit, a third condition or action, a missing cell or an unknown word or cue |
+| `list_strings`, `set_string` | `name`, `text`, `style` | The level's strings with byte counts; refused past 32 strings, 30 bytes or a character the game cannot draw |
+| `list_cues` | none | The world's sound library, the shared captions, the level's and world's strings and the styles, by name and id |
+| `play_cue` | `name` | Plays the cue through the game's Web sound for the person, when the game module is loaded; returns "not available" otherwise |
+| `run_checks` (extended) | `target?` | The target's checks: for Fizz 2 the ids, references, kinds, bounds, states, bindings, rules, limits, conflicts and W1xx lints; for a Fizz 1 level W103, and before an export to Fizz 1 the lossy check (E120 to E123, W103, W104, W110). Lints that stand for physics (W103, W105) say they are design rules |
+| `check_export` | none | For a Fizz 2 level, what exporting to Fizz 1 would lose or change (the only export between targets): the full list of errors and warnings, and the lowered text, without writing anything |
+| `convert_level` | `from` (a Fizz 1 file), `to` (a new file name) | Proposes a new Fizz 2 file written by Convert to Fizz 2, with its E102 list; never changes the Fizz 1 file |
+| `get_budget` | `file?` | Every meter in the Budget window with its value, limit and source; a value that is an estimate or was not available says so |
+| `get_dump` | `file?` | Read only: the baker's disassembly of the level (objects with indices, rule and string records), when the baker is available; otherwise "not run" |
+| `list_defs`, `get_def` | `kind?`; `name` | The world's custom enemies and items: text, fields, the mode graph and the worst-case step counts ([SCRIPTING.md](SCRIPTING.md#64-mcp)) |
+| `add_def`, `set_def`, `check_def` | the definition's text, or `name` and `expect` | A definition as a proposal, or the compiler's verdict without storing |
+| `run_behaviour` | `name` or an object `id`, `ticks`, `inputs?` | A run in the game host: the trace of modes, positions, registers and events per tick, or "not available" |
+| `list_sprites`, `get_sprite` | `set?`, `kind?`; `name` | Read only: the target's sprite sets, which kind and state each sprite serves, and one sprite as its text grid of palette letters with its size, anchor, source and provisional note, so Claude can read the art |
+| `get_preview` | `x0, y0, x1, y1`, `night?`, `sky?` | An image of the region drawn by the game's presenter (the Game view), when the game's draw export is loaded; otherwise "not available", never a stand-in |
 
-`run_checks` keeps the rule that it says which checks ran and which did not (G-TRUST-4): a dump or a bake that was not available is reported as "not run", never as passed.
+Lights, switches and custom enemies and items are objects, so `add_object` and `set_object` cover them (radius, colour, state and attachment for a light). Claude does not get a tool to edit sprite or panel pixels at first: art is the person's, made in the pixel editor (`EDITOR.md` section 15). No tool changes a level's target.
+
+`run_checks`, `get_budget`, `get_dump` and `get_preview` keep the rule that a result says which checks ran and which did not (G-TRUST-4): a dump, a bake or a preview that was not available is reported as "not run", never as passed.
 
 ## 3. Propose and direct in the studio
 
@@ -169,6 +190,17 @@ Claude and the person edit **the same `.fizz` file**. There is no second copy to
 
 Open: two processes writing the sidecar need a lock or a single writer (the studio), with the CLI retired once the studio's buttons exist.
 
-## 5. Adding it to Claude Code
+## 5. In the desktop app (planned)
+
+The studio's end goal is a Tauri desktop app ([DESKTOP.md](DESKTOP.md)), so the server moves to Rust and to the shape Folio uses for its agent server (`folio/spec/13-agents.md`, Folio's D-45), with this studio's propose rules kept (proposed, `DECISIONS.md` D57):
+
+- **One binary, two modes.** `fizz-studio-mcp` (`rmcp` over stdio) is what Claude Code launches. In **live** mode it relays to the running app over a user-only local socket (Unix mode 0600, or a named pipe on Windows), so Claude reads and proposes against the person's open sessions, revisions and history, and sees the selection. In **headless** mode, when the app is not running, it hosts its own session on the files, holding a lock file so the app and the server never both write one world. A flag chooses `live`, `headless` or `auto`, and the person can close the socket in Preferences.
+- **Propose stays the default.** Folio's agent edits directly with undo as the safety net; the studio keeps D8 and D9: a proposal is pending until the person accepts it in the app, the mode is the person's, and no tool accepts, rejects or changes the mode. In headless mode the proposals wait in the sidecar until the person opens the world.
+- **One writer.** Every write, the person's or Claude's, goes through the session's writer; a proposal accepted in the app is checked against the current revision.
+- **Packaging.** The binary ships as a Tauri sidecar, with an installer command and a Help, Connect an agent item, as Folio does.
+- **Today's server** (`packages/mcp`) is the reference for the tools and the propose rules until the Rust server matches it; its file-based behaviour is what headless mode keeps for scripts and CI.
+- **Not the MCP bridge.** `tauri-plugin-mcp-bridge`, used with `tauri-mcp-server` to drive the running app in tests, is a separate, debug-only plugin (Folio's D-14). It is never in a release build and has nothing to do with Claude designing levels.
+
+## 6. Adding it to Claude Code
 
 The README shows `claude mcp add` and a project `.mcp.json` for the current server. Work on a copy of a level (`cp levels/crater.fizz levels/crater-play.fizz`), because accepted and direct edits change the file.
