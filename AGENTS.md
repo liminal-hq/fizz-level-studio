@@ -29,7 +29,7 @@ For the owner to apply on the Forgejo repository; nothing here is read by a tool
 
 ## Project Status
 
-Fizz Level Studio is the level and overworld editor for Lieutenant Fizz, where a person and Claude design levels together. The studio app itself is not built yet. What exists is the design (`SPEC.md`, `docs/`, the prototype in `design/`), the language package (`packages/language`: parser, printer, edits, Rust exporter, overworld scripts and rasteriser, completion data), an MCP server that lets Claude read and propose edits to one level file (`packages/mcp`), and proofs that all 16 Episode 1 levels and the overworld, written as scripts, rebuild the game's own data exactly (`scripts/prove-all.sh`, `scratch/rust/`). The next work is the Fizz 2 dialect and its editor support (see [The Fizz 2 Dialect](#the-fizz-2-dialect)); none of it is built in this repository yet. Update this section as each part lands.
+Fizz Level Studio is the level and overworld editor for Lieutenant Fizz, where a person and Claude design levels together. The studio app itself is not built yet. What exists is the design (`SPEC.md`, `docs/`, the prototype in `design/`), the language package (`packages/language`: parser, printer, edits, Rust exporter, overworld scripts and rasteriser, completion data), an MCP server that lets Claude read and propose edits to one level file (`packages/mcp`), and proofs that all 16 Episode 1 levels and the overworld, written as scripts, rebuild the game's own data exactly (`scripts/prove-all.sh`, `scratch/rust/`). The next work is the Fizz 2 dialect, the target profiles and their editor support (see [The Fizz 2 Dialect](#the-fizz-2-dialect)); none of it is built in this repository yet. Update this section as each part lands.
 
 ## Localization and Spelling
 
@@ -74,16 +74,17 @@ A `.fizz` file is one level or one overworld as plain text, read and written by 
 
 ## The Fizz 2 Dialect
 
-Planned, not built. Lieutenant Fizz 2 is a separate game that bakes its levels from `.fizz` sources, and its dialect is a **superset** of the Fizz 1 script:
+Planned, not built, and the more important target. Lieutenant Fizz 2 is a separate game that will bake its levels from `.fizz` sources. Its dialect is a **superset of the Fizz 1 script in text, not in meaning**: the two games are diverging.
 
-- The first line is `script fizz2 0`. Everything in the Fizz 1 script still parses and prints; only the Fizz 2 subset lowers to a level.
-- A level can use a `map` block (a grid of letters with a legend, including slope letters and reserved letters for Fizz 1 tiles that have no Fizz 2 id), `at=X,Y` for exact positions beside `x=`/`y=` for cell centres, a `chicken` object kind, `soda`, `floor`, a required `id=` on every object, and objects stably sorted by kind. The printer writes `x=`/`y=` only for exact cell centres.
-- Doors are a rule model: channels hold state, switched tiles read a channel, keys and items are facts, `lock` puts a key on a door, and `when <trigger> [if channel N on|off] then <actions>` rules are compiled at bake time into fixed 32-byte records. There is no VM and no rule text on the DOS target. `channel 1,2 on` sets the start state, and lint W101 fires when a door channel starts off unless the level says `allow W101`.
-- The error codes E001 to E016 are reused and new ones start at E101 (`path:line:col`); lints are W1xx.
-- The editor has a **Target** setting, Fizz 1 or Fizz 2, which greys out what Fizz 1 lacks and runs the Fizz 1 export check (E12x errors, W104 for `at=` snapping).
-- The baker, the parser crate (`fizz-script`), `LIGHT.FAP`, manifests and digests live in the Fizz 2 repository. This repository owns the language reference and the editor; it must not copy the baker's rules.
+- The first line is `script fizz2 0` (dialect and version). Everything in the Fizz 1 script still parses and prints; only what the target can build lowers to a level.
+- What a level holds is fixed by the Fizz 2 repository's `LEVL` section (`fizz-pack`, `fizz-ep2`): size, name, start, `floor_solid`, the channels' start state, a tile map, object records (red and blue keys, snacks and soda cans, chickens), up to 32 rule records and up to 32 strings. Where the studio's plan and that data model differ, the data model wins.
+- The syntax is the studio's proposal, because the Fizz 2 repository has not written its grammar: a `map` block with the profile's legend, `at=X,Y` beside `x=`/`y=` (the printer writes `x=`/`y=` only for exact cell centres), an `objects` section with a required `id=` (a source name resolved to an index), `lock red-door key=red at=X,Y`, `when <trigger> [if channel N on|off] then <actions>` rules compiled at bake time into fixed 32-byte records, `string` lines, and the reserved `theme`, `light` and `music`. There is no VM and no rule text on the DOS target. W101 fires when a door channel starts off unless the level says `allow W101`.
+- The error codes E001 to E016 are reused and the dialect's are E101 to E123 (`path:line:col`); lints are W101 to W112. The numbering is a proposal that `fizz-script` overrides.
+- The editor's **Target** names a **target profile** (`fizz1`, `ep2`, later `ep3`) with content tables, limits, budgets, physics parameters and a capability state per feature; it runs the Fizz 1 export check (E120 to E122, W104, W110) for `fizz1` and offers Convert to Fizz 2.
+- The game's look (oblique ground, parallax, night, lights) is previewed only through the game's own presenter in WebAssembly. Levels name kinds, not sprites; the studio edits only `drawn` sprite sets.
+- The baker (`fizz-bake`), the parser crate (`fizz-script`), the packs (`LIGHT.FAP`), manifests and digests live in the Fizz 2 repository, and are plans there today. This repository owns the language reference and the editor; it must not copy the baker's rules.
 
-`docs/LANGUAGE.md`, `docs/EDITOR.md` and `docs/DECISIONS.md` carry the detail and the open questions.
+`docs/LANGUAGE.md`, `docs/EDITOR.md` (sections 13 and 14), `docs/FIZZ2-COVERAGE.md` and `docs/DECISIONS.md` carry the detail and the open questions.
 
 ## Testing
 
@@ -131,7 +132,7 @@ Planned, not built. Lieutenant Fizz 2 is a separate game that bakes its levels f
 - `levels/`, `overworlds/` — the proven Episode 1 scripts.
 - `scratch/` — the kitchen-sink script and the Rust proof workspace.
 - `design/` — the design canvas copy and prototype.
-- `docs/` — goals, architecture, language, editor, overworld, MCP, engine changes, testing, roadmap and decisions.
+- `docs/` — goals, architecture, language, editor, overworld, MCP, engine changes, testing, roadmap, decisions and the Fizz 2 coverage table.
 - `assets/` — `hero.svg` (the animated README banner) and `icon/` (the logo set and avatars).
 
 ## Licence and Copyright

@@ -8,7 +8,7 @@ Fizz Level Studio is the level and overworld editor for Lieutenant Fizz, where a
 
 ## Status
 
-The studio app is not built. What exists: the language package (`packages/language`), the MCP server for one level file (`packages/mcp`), the proofs that all 16 Episode 1 levels and the overworld rebuild the game's data exactly (`scripts/prove-all.sh`), and the design prototype (`design/`). The Fizz 2 dialect, the rule layer and the editor's Target setting are planned and documented (`docs/LANGUAGE.md`, `docs/EDITOR.md`, `docs/DECISIONS.md`) but not built.
+The studio app is not built. What exists: the language package (`packages/language`), the MCP server for one level file (`packages/mcp`), the proofs that all 16 Episode 1 levels and the overworld rebuild the game's data exactly (`scripts/prove-all.sh`), and the design prototype (`design/`). The Fizz 2 dialect, the rule layer, the target profiles and the sprite tools are planned and documented (`docs/LANGUAGE.md`, `docs/EDITOR.md` sections 13 and 14, `docs/FIZZ2-COVERAGE.md`, `docs/DECISIONS.md`) but not built.
 
 ## Commands
 
@@ -29,7 +29,7 @@ Run `bun run test`, `bun run test:mcp` and `bun run lint:md` before every commit
 - **The `Builder` is the semantics** of the Fizz 1 language. Prove changes with `scripts/prove-all.sh`.
 - **Hand-written lines are never rewritten**; the studio rewrites only the object lines it owns.
 - **Claude proposes by default**; accept, reject and mode are the person's, not MCP tools.
-- **Fizz 2 is a superset dialect** (`script fizz2 0`): `map` grids, `at=` and `x=`/`y=`, `chicken`, required `id=`, channels, locks and `when ... then ...` rules compiled at bake time into 32-byte records, error codes E001 to E016 plus E1xx, lints W1xx. The editor will have a Target setting (Fizz 1 or Fizz 2). The baker lives in the Fizz 2 repository, not here.
+- **Fizz 2 is the more important target, and a superset dialect in text only** (`script fizz2 0`): the games diverge in meaning. What a level holds is the Fizz 2 repository's `LEVL` data (its data model wins); the syntax (`map`, `at=`, `objects` with `id=`, `lock ... at=`, `when ... then ...`, `string`, reserved `theme`/`light`/`music`) is the studio's proposal, overridden by `fizz-script` when it exists. Codes E001 to E016 plus E101 to E123, lints W101 to W112. The Target names a target profile (`fizz1`, `ep2`, later `ep3`) with a capability state per feature. The game's look is previewed only through the game's presenter; levels name kinds, not sprites. The baker lives in the Fizz 2 repository, not here.
 
 ## Do not touch
 
