@@ -15,7 +15,8 @@ This document is the main spec. The companion documents go deeper:
 | [docs/TESTING.md](docs/TESTING.md) | What is tested today, what each test proves, and the gaps |
 | [docs/ROADMAP.md](docs/ROADMAP.md) | Milestones, exit criteria and dependencies |
 | [docs/DECISIONS.md](docs/DECISIONS.md) | The decisions taken, with reasons and the alternatives set aside |
-| [docs/LANGUAGE.md](docs/LANGUAGE.md) | The language reference: grammar, Builder equivalents, errors |
+| [docs/LANGUAGE.md](docs/LANGUAGE.md) | The language reference: grammar, Builder equivalents, errors, the Fizz 2 dialect and the target profiles |
+| [docs/FIZZ2-COVERAGE.md](docs/FIZZ2-COVERAGE.md) | Every Fizz 2 feature an author controls, against the document that handles it |
 
 ## 1. Summary
 
@@ -26,7 +27,7 @@ The studio has four parts, three of which exist today in this folder:
 3. **The design prototype** (`design/project/Proto.dc.html`) — an interactive design of the editor: the Ultimate layout, tools, objects, the overworld designer, lenses, the script panel with completion, and the starter levels. It is a design, not the product: Claude's ideas are canned, nothing is saved and the playtest bot is a stand-in.
 4. **The studio application** — not built. This spec describes it.
 
-A fifth part is planned: **the Fizz 2 target**. Lieutenant Fizz 2 bakes its levels from `.fizz` sources written in a dialect that is a superset of the Fizz 1 script (`script fizz2 0`), with a map grid, exact positions, channels, locks and a `when ... then ...` rule layer, and the editor gains a Target setting (Fizz 1 or Fizz 2) with a Fizz 1 export check. None of it is built; see §6.1, `docs/LANGUAGE.md` and `docs/EDITOR.md` section 13.
+A fifth part is planned, and it is the more important target: **Lieutenant Fizz 2**. Fizz 2 will bake its levels from `.fizz` sources written in a dialect of the Fizz 1 script (`script fizz2 0`) with a map grid, exact positions, objects with ids, channels, locks, a `when ... then ...` rule layer and level strings, all lowered to its `LEVL` section. The two games are diverging (the exit, the doors, the wall-kick, Ben's body, the look), so the editor's Target names a **target profile** with a state for every feature, and the same model carries Episode 3 and later. Sprites are coming soon in Fizz 2 and the editor shows and, for hand-drawn sets, edits them. None of it is built, and the Fizz 2 repository has not built its parser or baker yet either; see §6.1, `docs/LANGUAGE.md`, `docs/EDITOR.md` sections 13 and 14, and `docs/FIZZ2-COVERAGE.md`.
 
 What has been proven, exactly:
 
@@ -49,6 +50,7 @@ Not done or not verified:
 - The prototype draws one character per cell, so an item that shares a block with an enemy or another item is hidden: 16 items across 7 levels (the starter-levels card shows each level's count).
 - Lifts, rooms and the arena cannot yet be dragged by every corner: a lift drags by its two ends, a room by its body, the arena not at all.
 - The MCP server has no tools for objects or the overworld; there is no sprite picker.
+- Nothing for Fizz 2 is built: the dialect, the target profiles, the Fizz 1 export check, the Game view and the sprite tools are designs in these documents.
 
 ## 2. Goals
 
@@ -209,14 +211,16 @@ An overworld script has `overworld`, `start`, `area` lines, a `blocks` section (
 
 Note: the "What v0 does not cover" list at the end of `docs/LANGUAGE.md` predates the overworld module and the 16-level proof; its "Overworld maps" and "Proof coverage" items are superseded by the overworld section above it and by `scripts/prove-all.sh`.
 
-### 6.1 The Fizz 2 dialect (planned)
+### 6.1 The Fizz 2 dialect and target profiles (planned)
 
-- **A superset.** First line `script fizz2 0`. Every Fizz 1 script still parses and prints; only the Fizz 2 subset lowers to a level.
-- **Syntax.** A `map` block with a legend (slope letters and letters reserved for Fizz 1 tiles without a Fizz 2 id), `at=` for exact positions beside `x=`/`y=` for cell centres (the printer writes `x=`/`y=` only for exact cell centres), `chicken`, `soda`, `floor`, a required `id=` on every object, and objects stably sorted by kind. Errors reuse E001 to E016 and add E1xx; lints are W1xx.
-- **Doors and rules.** Channels are state, switched tiles read a channel, keys and items are facts, locks sit on the door, and `when <trigger> [if channel N on|off] then <actions>` rules are compiled at bake time into fixed 32-byte records, with no VM and no rule text on DOS. `channel 1,2 on` sets the start state, and W101 warns when a door channel starts off unless the level says `allow W101`.
-- **The baker.** `fizz-script` (the parser crate) and `fizz-bake` in the Fizz 2 repository decide what a script bakes to (`LEVL` v2, `LIGHT.FAP`, manifests, digests). The editor must agree with them.
-- **Fizz 1 export.** A lowering plus a check: `map` to blocks, `at=` snapped with W104, `chicken` to `gloop`, E120 for a non-standard lock, E121 for any `when`, E122 for a solid `floor`.
-- **What is not decided** is listed in [docs/DECISIONS.md](docs/DECISIONS.md) (the 2026-10-30 log entry) and in §11 below.
+- **A superset in text, not in meaning.** First line `script fizz2 0`. Every Fizz 1 script still parses and prints; only what the target can build lowers. The games behave differently in places (the exit needs Up in Fizz 2, a door is a channel, there is no wall-kick), and each difference is a row in the capability matrix with its own check.
+- **What a Fizz 2 level holds** is fixed by the Fizz 2 repository's `LEVL` section: size, name, start, `floor_solid`, the channels' start state, a tile map, 32-byte object records (red and blue keys, snacks and soda cans, chickens), up to 32 rule records and up to 32 strings. The theme, the oblique look, parallax, night and lights are not level data yet, so their words are reserved.
+- **Syntax.** A `map` block whose legend comes from the target profile, `at=` for exact positions beside `x=`/`y=` for cell centres, an `objects` section with a required `id=` (a source name resolved to an index), `lock red-door key=red at=X,Y`, `when <trigger> [if channel N on|off] [after=T] then <channel action>, <cue> [repeat]` and `string NAME "text" style=S`. The Fizz 2 repository has not written the grammar; this is the studio's proposal, and `fizz-script` wins where it differs. Errors reuse E001 to E016 and add E101 to E123; lints are W101 to W112.
+- **Target profiles.** The Target names a profile (`fizz1`, `ep2`, later `ep3`) that holds the dialect versions it accepts, the content tables, the limits, the budgets, the lints' physics parameters and a capability state per feature: built, accepted (the game takes it but cannot run it yet), reserved, or absent. Later episodes are new profiles on a versioned dialect.
+- **The baker.** `fizz-script` (the parser crate) and `fizz-bake` in the Fizz 2 repository, both planned, decide what a script bakes to. The editor must agree with them through a shared conformance corpus.
+- **Fizz 1 export.** A lowering plus a check: `map` to fills, `at=` snapped with W104, `chicken` to `gloop`, standard locks dropped (Fizz 1's doors open with their keys), E120 for any other lock or a door that starts open, E121 for any `when` or `string`, E122 for `floor solid`, W110 for behaviour that changes. **Convert to Fizz 2** goes the other way as a reviewable new file.
+- **Sprites.** Levels name kinds; the game picks frames by kind and state. The editor draws objects with the target's sprites, browses sprite sets with Ben's new poses, and edits only hand-drawn sets.
+- **What is not decided** is listed in [docs/DECISIONS.md](docs/DECISIONS.md) (the 2026-10-30 and 2026-11-04 log entries) and in §11 below.
 
 ## 7. Architecture
 
@@ -309,7 +313,7 @@ Status values: **Proven** — built in `packages/language` or `packages/mcp` and
 | R-OW-09 | Open, paint, add, move and remove points; Unlocks chips; teleporter pairing; Big and Hidden | Prototype | `obj-e2e.cjs` |
 | R-OW-10 | Links and Areas lenses | Prototype | `Proto.dc.html` |
 | R-OW-11 | Overworld checks: each level once, pairs both ways, unlock cycles, reachability | Not built | The parser checks only that a `with=` partner exists |
-| R-OW-12 | Level sprites on points, with a sprite picker | Not built | ENGINE-CHANGES E10 |
+| R-OW-12 | Level sprites on points, with a sprite picker | Not built | ENGINE-CHANGES E10; `ROADMAP.md` M9 |
 | R-OW-13 | Canonical printing of overworld nodes built in memory | Not built | `printOverworld` prints raw lines only |
 
 ### Editor
@@ -375,14 +379,51 @@ Status values: **Proven** — built in `packages/language` or `packages/mcp` and
 
 | Id | Requirement | Status | Evidence |
 | --- | --- | --- | --- |
-| R-F2-01 | `script fizz2 0` is a superset of the Fizz 1 script: every Fizz 1 script parses and prints unchanged | Not built | `docs/LANGUAGE.md` |
-| R-F2-02 | `map` grid with the full legend, `at=` versus `x=`/`y=` with the printer rule, `chicken`, `soda`, `floor`, required `id=`, objects sorted by kind | Not built | `docs/LANGUAGE.md` |
-| R-F2-03 | `channel`, `lock`, `when ... then ...` and `allow`, with the 32-rule limit | Not built | `docs/LANGUAGE.md` |
+| R-F2-01 | `script fizz2 0` is a superset of the Fizz 1 script in text: every Fizz 1 script parses and prints unchanged | Not built | `docs/LANGUAGE.md` |
+| R-F2-02 | `map` grid with the profile's legend, `at=` versus `x=`/`y=` with the printer rule, the `objects` section (`key-red`, `key-blue`, `cheezie`, `choc`, `cookie`, `soda`, `chicken`), required `id=`, objects stably sorted by kind | Not built | `docs/LANGUAGE.md`; Fizz 2 #137 |
+| R-F2-03 | `channel`, `lock`, `when ... then ...` and `allow`, with the 32-rule limit counting locks | Not built | `docs/LANGUAGE.md`; Fizz 2 #138, #140 |
 | R-F2-04 | Errors E1xx and lints W1xx, with W101 | Not built | `docs/LANGUAGE.md` |
-| R-F2-05 | A Target setting that greys out what Fizz 1 lacks and runs the Fizz 1 export check (E120 to E122, W104) | Not built | `docs/EDITOR.md` section 13 |
+| R-F2-05 | A Target setting that names a target profile and runs the Fizz 1 export check (E120 to E122, W104, W110) when the profile is `fizz1` | Not built | `docs/EDITOR.md` section 13 |
 | R-F2-06 | Snap to floor writing `at=`, close all doors, a Rules window, rule lints inline | Not built | `docs/EDITOR.md` section 13 |
 | R-F2-07 | A dump view equal to the baker's disassembly | Not built | `docs/EDITOR.md` section 13 |
 | R-F2-08 | The editor and `fizz-script` agree through a shared conformance corpus | Not built | `docs/TESTING.md` section 7 |
+| R-F2-09 | Header words: `start`, `floor solid\|open`, the `channel` start state; `ground=` ignored with W112 | Not built | `docs/LANGUAGE.md` "The header"; Fizz 2 `docs/FAP.md` |
+| R-F2-10 | Ids resolve to object indices; renaming an id rewrites every rule that names it; one key per colour (E107); objects cannot be reordered by hand | Not built | `docs/LANGUAGE.md` "Objects"; Fizz 2 #137, #138 |
+| R-F2-11 | `lock DOOR key=COLOUR at=X,Y` lowers to a lock record with the door tile's channel; E110 for a bad cell; green key absent | Not built | `docs/LANGUAGE.md` "Locks"; Fizz 2 #140 |
+| R-F2-12 | Every rule record field has a source form: triggers `start`, `enter`, `take`, `shoot`, `stomp`, `stun`, `time`; guard; `after=`; one channel action and one cue, each with its cell; `repeat`; E114 to E118 | Not built | `docs/LANGUAGE.md` "Rules"; Fizz 2 #138 |
+| R-F2-13 | Effects and shared captions by name from the profile; `string` lines (32, 1 to 30 bytes, seven styles); E112, E116, W107 | Not built | `docs/LANGUAGE.md` "Rules"; Fizz 2 `cues.rs` on #140 |
+| R-F2-14 | Divergence lints from the profile's physics parameters: W102 (exit needs a place to stand and press Up), W103 (wall-kick climb), W105 (head room for a body size) | Not built | `docs/LANGUAGE.md`; Fizz 2 #145, `docs/FIZZ1-DIFFERENCES.md`, `7b948ae` |
+| R-F2-15 | Capability states: W106 for a rule the game cannot run yet, W109 for the reserved `theme`, `light` and `music` | Not built | `docs/LANGUAGE.md` "Targets and capabilities"; Fizz 2 #140, #144, #146 |
+| R-F2-16 | The Fizz 1 export follows the mapping table, including dropping standard locks, E120 for a door that starts open, and W110 | Not built | `docs/LANGUAGE.md` "Lowering to Fizz 1" |
+| R-F2-17 | Convert to Fizz 2 writes a new file from a Fizz 1 level through the proven rasteriser, with every E102 listed | Not built | `docs/LANGUAGE.md` "Converting a Fizz 1 level to Fizz 2" |
+| R-F2-18 | Map painting rewrites map rows in place; the Objects window with ids and indices; the Lock field on a door; the Rules window with its Strings tab and cue pickers | Not built | `docs/EDITOR.md` section 13 |
+| R-F2-19 | Channels, Exit and Head room lenses | Not built | `docs/EDITOR.md` section 13 |
+| R-F2-20 | A Game view drawn by the game's presenter in WebAssembly (oblique ground, parallax, Sky, Night, lights), and "not available" until the game exports it | Not built | `docs/EDITOR.md` "Previews"; Fizz 2 #142 to #146; ENGINE-CHANGES F5 |
+| R-F2-21 | A Budget window whose meters name their source and say "estimate" or "not run" when the baker is not available | Not built | `docs/EDITOR.md` "Budgets" |
+| R-F2-22 | The slice level written as a script bakes, through `fizz-bake`, to the digest of the `const` slice (`fizz_ep2::level::digest`) | Not built | `docs/TESTING.md` section 7; Fizz 2 `docs/FAP.md` "Proof" |
+| R-F2-23 | MCP tools for targets, objects with ids, locks, rules, strings, budgets, sprites and the Game view | Not built | `docs/MCP.md` section 2 |
+
+### Target profiles (planned)
+
+| Id | Requirement | Status | Evidence |
+| --- | --- | --- | --- |
+| R-TGT-01 | A target profile is data: dialect versions, content tables, limits, budgets, physics parameters and a capability state per feature | Not built | `docs/LANGUAGE.md` "Targets and capabilities" |
+| R-TGT-02 | Profiles are generated from the game's published tables, and a test fails when a profile drifts from its game | Not built | ENGINE-CHANGES E11 (Fizz 1), F2 (Fizz 2) |
+| R-TGT-03 | Every word, field and list the editor offers comes from the profile | Not built | `docs/EDITOR.md` section 13 |
+| R-TGT-04 | Each capability state shows in the UI, with a Capabilities card that cites each row's source | Not built | `docs/EDITOR.md` section 13 |
+| R-TGT-05 | The project chooses the profile (`studio.json`); a file may override it with a `target` line; an unknown dialect version is E101 | Not built | `docs/LANGUAGE.md` "Later episodes" |
+| R-TGT-06 | A new profile (Episode 3) is added as data with no change to the editor's code | Not built | `docs/TESTING.md` section 7 (a synthetic profile) |
+
+### Sprites (planned)
+
+| Id | Requirement | Status | Evidence |
+| --- | --- | --- | --- |
+| R-SPR-01 | The canvas draws each object with its kind's sprite from the target's sets, by anchor and facing, and a labelled placeholder when a target has none | Not built | `docs/EDITOR.md` section 14 |
+| R-SPR-02 | A Sprites window: every set and frame with size, anchor, source and provisional note; Ben's pose sets; availability per target | Not built | `docs/EDITOR.md` section 14; Fizz 2 `docs/SPRITES.md`, `7b948ae` |
+| R-SPR-03 | Animation preview from the game's frame sequence, or a fixed cadence labelled as the preview's own | Not built | `docs/EDITOR.md` section 14 |
+| R-SPR-04 | Fizz 2 sprite files read and written canonically: opening and saving without a change leaves the bytes unchanged | Not built | Fizz 2 `docs/SPRITES.md`, `tools/sprites/lib.ts` |
+| R-SPR-05 | A pixel editor for `drawn` sets only, with the 16 EGA letters, unique names and the canonical writer | Not built | `docs/EDITOR.md` section 14 |
+| R-SPR-06 | A sprite preview at the night ambient through the game's palette banks | Not built | Fizz 2 #146 |
 
 ### Performance requirements
 
@@ -406,9 +447,18 @@ Status values: **Proven** — built in `packages/language` or `packages/mcp` and
 | Q8 | Is the level table's `icon` (sprite) set by the script, the overworld point, or the registry? | See ENGINE-CHANGES E10. |
 | Q9 | How do two processes share the sidecar safely? | Today the server and the CLI read-modify-write it with no lock. |
 | Q10 | Does the editor keep a TypeScript parser for the Fizz 2 dialect or load `fizz-script` as WebAssembly? | Not decided; a shared conformance corpus is needed either way (`docs/ARCHITECTURE.md` section 7). |
-| Q11 | Which legend letter means which tile, and how are the E1xx and W1xx codes beyond those named assigned? | Fixed by the Fizz 2 repository's tile table and validator; this spec follows it. |
-| Q12 | The Fizz 2 planner's twelve open questions (a conditional hash step, channels persisting over a death, captions, limits, lock semantics and more) | Listed in `docs/DECISIONS.md`, awaiting the owner. |
-| Q13 | How is a shaft that only a wall-kick could climb refused, given Fizz 2 has no wall-kick? | Open; the baker or an editor check. |
+| Q11 | Which legend letter means which tile? | The slice fixes `. w # B = ^ D b E` (Fizz 2 `level.rs`); `CHOC` and the six slopes have ids but no letter or drawing (hills are specified in `docs/OBLIQUE.md`, #142, not built). The studio proposes `~ / \ r R l L`; the Fizz 2 repository decides. |
+| Q12 | The Fizz 2 planner's twelve open questions | Five are now answered by the Fizz 2 repository (the death reset, the limits, captions and strings, `LEVL` amended in place, the lock semantics); the rest are open. `docs/DECISIONS.md`, the 2026-11-04 entry. |
+| Q13 | How is a shaft that only a wall-kick could climb refused, given Fizz 2 has no wall-kick? | The editor flags it as a design rule (W103); a refusal needs the playtest bot or a baker check. Open whether the baker refuses it. |
+| Q14 | Does `fizz-script` adopt the studio's proposed syntax (`objects`, `lock ... at=`, `after=`, `string`, `cue`) and its E101 to E123 and W102 to W112 numbering? | Proposed in D40; the Fizz 2 repository has written no grammar or codes. |
+| Q15 | How does a target profile reach the studio: generated from a content export in the game (the `pack_content()` tables as JSON) or copied by hand? | A generated export is recommended (ENGINE-CHANGES F2); hand copies drift, as `tables.ts` shows. |
+| Q16 | Is the wall-kick out of Fizz 2, or first in the mechanics roster? | Fizz 2's `docs/FIZZ1-DIFFERENCES.md` says left out (owner, 2026-10-30); its `roadmap.json` item `wallkick` still says "wall-kick comes first". The owner should correct one. |
+| Q17 | What is the Fizz 2 level and theme format: is the theme (back wall, parallax stack, horizon, night ambient, lamps and lanterns) theme data a level names, or level data? Is music per level? | `docs/OBLIQUE.md` and `docs/LIGHTS.md` (#144, #146): "a later level and theme format will carry them". The studio reserves `theme`, `light` and `music` (D38). |
+| Q18 | Which rules run first, and in what order are rules, locks and the hash step evaluated? | Only locks run (#140); the planner's order (after the player, chickens and shots) is not built. |
+| Q19 | Which Ben ships, and at what body size? | The pose workshop trial is 0.8 by 2.0 tiles (`7b948ae`, not for merge), which moves the hash and changes head room; Fizz 2's `docs/ARCHITECTURE.md` lists it as open. |
+| Q20 | Can a level choose a sprite variant per object, and how is the enemy roster's set of states named? | Not designed in Fizz 2; the roster is planned with idle, walk, alert, stunned and dead. |
+| Q21 | Should a Fizz 1 export ever lower a rule (for example an `enter` rule to a Fizz 1 switch)? | Recommended no: E121 for every rule keeps the export honest. |
+| Q22 | Will Fizz 2 or Episode 3 have an overworld, and with what points and unlocks? | Fizz 2 has none; the Fizz 1 overworld model is not assumed to carry over. |
 
 ## 12. Risks
 
@@ -424,6 +474,11 @@ Status values: **Proven** — built in `packages/language` or `packages/mcp` and
 | The playtest bot is slow in a browser | The studio stalls | Run it in a worker with a tick budget per step (E9) |
 | The design prototype is mistaken for the product | Canned behaviour is relied on | The prototype labels canned parts; this spec marks every requirement's status |
 | Two parsers drift (TypeScript here, Rust in `fizz-script`) | The editor accepts a script the baker rejects, or the reverse | A shared conformance corpus in both repositories' tests (G-F2-1) |
+| The studio's dialect proposal is written before the Fizz 2 grammar | The editor is built against syntax `fizz-script` does not adopt | Build M7 behind the corpus, start the corpus in the Fizz 2 repository, and treat every syntax line in `LANGUAGE.md` as provisional until `fizz-script` exists (D40) |
+| Fizz 2 changes fast and its level pull requests are unmerged | The documents describe records or rules that change before merging | Each fact names its pull request and is marked provisional; recheck `docs/FIZZ2-COVERAGE.md` before starting M7 |
+| The games keep diverging | A Fizz 1 export silently plays differently | Every divergence is a capability-matrix row with a check (W110 and the rest); a divergence found without a row is a bug in the profile |
+| Ben's body size changes | Levels tuned for one body block the other | The body is a profile parameter and the Head room lens compares two sizes (W105) |
+| A preview imitates the game's look | The person trusts a picture the game does not draw | The Game view is the game's presenter or nothing (D37) |
 
 ## 13. Milestones
 
@@ -437,5 +492,8 @@ Status values: **Proven** — built in `packages/language` or `packages/mcp` and
 | M3 Registry and progress | A level and overworld registry, the wider mask, export that registers a level |
 | M4 Claude in the studio | The MCP server attached to the live studio: selection, ghosts, accept and reject buttons, object tools |
 | M5 WebAssembly bridge | Level data from the game, a level built from a script inside the sim, enemy paths, the playtest bot |
-| M6 Sprites and Rust levels | The sprite picker and level sprites, editing on top of Rust-written levels |
-| M7 Fizz 2 target (planned) | The Fizz 2 dialect, the Target setting, the Fizz 1 export check, rule authoring and the dump view |
+| M6 Rust levels | Editing on top of Rust-written levels and the full enemy docs; the sprite picker and level sprites moved to M9 |
+| M7 Target profiles and the Fizz 2 dialect (planned) | Target profiles and capability states, the Fizz 2 dialect, the Fizz 1 export check and Convert to Fizz 2, the Objects and Rules windows, the divergence lints, the dump view, and the MCP tools for them; the first milestone after M2 because Fizz 2 is the more important target |
+| M8 Fizz 2 look and budgets (planned) | The Game view through the game's presenter (oblique ground, parallax, Sky, Night, lights), the Budget window, the reserved look words lowered once Fizz 2 defines its theme format |
+| M9 Sprites (planned) | The target's sprites on the canvas, the Sprites window with Ben's poses and the enemy roster, animation preview, editing of drawn sets, level sprites on overworld points for both targets |
+| M10 Episode 3 profile (planned) | A third profile on the Fizz 2 dialect family, from Episode 3's own tables, with no change to the editor's code |

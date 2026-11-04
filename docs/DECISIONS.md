@@ -1,6 +1,6 @@
 # Decisions
 
-The decisions taken for Fizz Level Studio by its owner, Scott Morris, each with the reason and the alternative set aside. Where the reason was not recorded beyond the choice itself, the entry says so.
+The decisions taken for Fizz Level Studio by its owner, Scott Morris, each with the reason and the alternative set aside. Where the reason was not recorded beyond the choice itself, the entry says so. An entry that begins **Proposed** is a recommendation awaiting the owner, recorded here so the documents that depend on it can point at one place; it becomes a decision when the owner accepts it, and the word is removed.
 
 | # | Decision | Reason | Set aside |
 | --- | --- | --- | --- |
@@ -33,8 +33,18 @@ The decisions taken for Fizz Level Studio by its owner, Scott Morris, each with 
 | D27 | Error codes **E001 to E016 are reused** and new ones are **E1xx**, all reported as `path:line:col`; lints are W1xx | Existing messages, tests and habits carry over | Renumbering |
 | D28 | **Channels are state; switched tiles read a channel; keys and items are facts; locks sit on the door; a `when ... then ...` rule layer connects them**, compiled at bake time into fixed rule records with **no VM and no rule text on DOS** | The DOS build stays small and deterministic, and a door is described by what it reads | Hard-wired red and blue doors; a scripting VM |
 | D29 | The start state is **explicit** (`channel 1,2 on`), and **W101** warns when a door channel starts off, silenced by `allow W101` | A door that starts open is usually a mistake, and sometimes a puzzle | Defaulting silently |
-| D30 | The editor has a **Target** setting (Fizz 1 or Fizz 2) that greys out what Fizz 1 lacks and runs the **Fizz 1 export check** (E120 to E122, W104) | One editor for both games, with no silent loss on export | Two editors; exporting without a check |
+| D30 | The editor has a **Target** setting (Fizz 1 or Fizz 2; amended by D34, proposed) that greys out what Fizz 1 lacks and runs the **Fizz 1 export check** (E120 to E122, W104) | One editor for both games, with no silent loss on export | Two editors; exporting without a check |
 | D31 | The rule layer is built in the Fizz 2 work's second milestone, not deferred | The slice's door puzzle needs it | Deferring rules |
+| D32 | **Fizz 2 is the more important target**; making Fizz 1 levels stays a goal | Owner's priority, 2026-11-04: Fizz 2 is the game in development and Episode 3 builds on it | Fizz 1 first, as the earlier milestones assumed; dropping Fizz 1 |
+| D33 | **A death resets the level** in Fizz 2: channels return to their start state, keys come back and leave Ben's hands, snacks, cans, ammo and chickens start over; start and time rules re-arm. The editor therefore has no "persists over a death" setting | Fizz 2 owner decision, 2026-10-30, so a puzzle that closes a door behind the player cannot be left unwinnable by dying (built in Fizz 2 #140, `fa1872c`, unmerged; recorded in its `docs/FIZZ1-DIFFERENCES.md`) | Channels and fired rules persisting over a death, as the planner recommended |
+| D34 | **Proposed:** the Target names a **target profile** (`fizz1`, `ep2`, later `ep3`) holding the dialect versions it accepts, its content tables, limits, budgets, physics parameters for lints and a **capability state** per feature (built, accepted, reserved, absent). It amends D30 | Fizz 1 and Fizz 2 are diverging in meaning, not only in vocabulary (the exit, the doors, the wall-kick, the body), so a two-way switch that greys out "what Fizz 1 lacks" cannot say what Fizz 2 lacks, what each does differently, or what the game accepts but cannot run yet | A Fizz 1 or Fizz 2 switch with the differences written into the editor's code; one profile per game with no per-feature states |
+| D35 | **Proposed:** later episodes are **new profiles on a versioned dialect**: the `script` line names the dialect and its version, a new version only adds words, content (tiles, enemies, cues, themes, sprites) is profile data and never grammar, and the project chooses the profile (`studio.json`) with an optional `target` line per file | Episode 3 reuses Fizz 2's simulation, so its levels are Fizz 2-shaped with new content; keeping content out of the grammar means a new enemy is a table row in the game, not a parser change in the studio | A new dialect per episode (`script fizz3 0`); the episode written in every file's header |
+| D36 | **Proposed:** where the Fizz 2 repository's data model differs from the studio's earlier plan, **the data model wins**: `LEVL` is section version 1 amended in place (not v2), objects have no stored id so `id=` is a source name resolved to an index, and a lock names a key, a door cell and (through the tile) a channel. It amends D25 and D28 | The Fizz 2 repository is the authority for what its levels mean (D23), and its records are built and tested (#137, #138, #140) | Keeping the earlier plan's v2 and id model and asking the game to change |
+| D37 | **Proposed:** the game's look (the oblique ground, parallax, the sky, night, lights) is previewed only through **the game's own presenter in WebAssembly**; the editing canvas stays the flat grid | The look is Fizz 2's drawing code with pinned frame digests; an imitation in TypeScript would drift and be trusted wrongly, as D16 says of enemy paths | Reimplementing the face rules and the light pass in TypeScript; no preview |
+| D38 | **Proposed:** words for what Fizz 2 has not made level data yet (`theme`, `light`, `music`) are **reserved**: they parse, print and preview, and are not lowered (W109) until the Fizz 2 repository defines its level and theme format | Authors can sketch a level's look now without the studio inventing a format the game may not adopt | Inventing a theme format in the studio; refusing the words |
+| D39 | **Proposed:** levels name **kinds, not sprites**; the game chooses each frame by kind and state. The studio shows sprites from the target's sets, edits only `drawn` sprite sets with the canonical writer, and never writes a pack | That is how Fizz 2 draws today (`fizz-slice-view`), and generated sets are read-only by Fizz 2's own rule (`docs/SPRITES.md`); packs are the baker's | A sprite field on every object; editing generated sets; the studio baking `SPRT` |
+| D40 | **Proposed:** the studio's numbering for the dialect's checks (E101 to E123, W102 to W112, in `LANGUAGE.md`) is offered to `fizz-script`; **if `fizz-script` numbers them differently, its numbers are used** | One code per problem in both tools, and the editor can be specified now | Waiting for the validator before writing the editor's checks; two numberings |
+| D41 | **Fizz 2 has no wall-kick**; the editor flags a climb only a kick could make (W103) and Convert to Fizz 2 checks for it | Fizz 2 owner decision, 2026-10-30 (`docs/FIZZ1-DIFFERENCES.md`); Fizz 1 levels such as Whisper Hollow rely on one | Ignoring it until the playtest bot exists |
 
 ## Decisions log
 
@@ -62,3 +72,24 @@ The owner approved the Fizz 2 plan for level source, the rule layer and the bake
 12. No delayed actions or repeating timers at first.
 
 The editor's own open questions follow from these: whether it keeps a TypeScript parser or loads `fizz-script` as WebAssembly (and the conformance corpus either way), which letters mean which tiles in the legend, how the editor should refuse a shaft that only a wall-kick could climb, and where the E1xx and W1xx codes beyond those named are assigned.
+
+### 2026-11-04 — The Fizz 2 repository as it stands, and the target model
+
+The studio's documents were checked against the Fizz 2 repository (`main` at `ba1ec8e` and the open pull requests #137, #138, #140 and #142 to #146, and the trial branch `trial/lab-ben-sprites`); [FIZZ2-COVERAGE.md](FIZZ2-COVERAGE.md) has the full comparison. D32 to D41 come from it. The owner also set the direction: Fizz 2 first, Fizz 1 still supported, the two games diverging, Episode 3 built on Fizz 2, and sprites coming soon.
+
+What the Fizz 2 repository now answers of the planner's twelve questions above (provisional where it is an unmerged pull request):
+
+1. A conditional hash step for trigger rules: not answered; nothing but locks runs yet.
+2. Channels and fired rules persisting over a death: **answered no**. A death resets the level (owner, 2026-10-30; #140). See D33.
+3. W101 with `allow`: not answered; Fizz 2 has no lints yet.
+4. The slice's door puzzle: the slice has its two locks as rule records (#140); the start-open-then-close puzzle is not built.
+5. The limits: **confirmed** as data: 32 rules and 32 strings of 32 bytes each, one channel action and one cue (an effect and a caption) per rule (#138).
+6. Captions: shared captions by id **and** up to 32 level strings (#138).
+7. One directory per world: open; `docs/FAP.md` plans `assets/levels/*.fizz`.
+8. `LEVL` v2: **not taken**; section version 1 was amended in place because no pack has shipped (#138). See D36.
+9. All of the Fizz 1 language parses, only the Fizz 2 subset lowers: unchanged, and refined by D34.
+10. The W1xx family and `bake check`: not answered; the baker is planned.
+11. A lock opens by turning its channel off and fires only while closed: **confirmed** (#140).
+12. No delayed actions or repeating timers at first: the records **have room for both** (`delay`, `time` with `every`, #138); the game refuses every trigger but the lock today. Which are allowed first is the game's choice.
+
+New questions are Q14 to Q22 in `SPEC.md` §11.

@@ -4,6 +4,8 @@ The goals of Fizz Level Studio, ranked by what matters most when two of them pul
 
 When two goals conflict, the higher one wins. Trust comes before speed of editing: a studio that is fast but sometimes writes the wrong Rust is worse than none.
 
+The ranks order goals, not targets. Of the two games, Fizz 2 is the more important target (`DECISIONS.md` D32), so the Fizz 2 goals below are the next to be worked on once the shared editor exists; within them, trust still comes first.
+
 | Rank | Id | Goal | Measure of success |
 | --- | --- | --- | --- |
 | 1 | G-TRUST-1 | An exported script builds exactly the level the studio shows | For every level script in the repository, the exported function's `LevelData` equals the game's field by field and its `fingerprint()` matches. Today: 16 of 16 in `scripts/prove-all.sh`. Any new statement adds a proof case before it ships. |
@@ -28,3 +30,8 @@ When two goals conflict, the higher one wins. Trust comes before speed of editin
 | 20 | G-F2-1 | The editor and the baker agree | A conformance corpus of Fizz 2 scripts with expected error codes, positions and printed output passes in the language package and in `fizz-script`; a script the editor accepts for Fizz 2 passes `fizz-bake check`. Today: not built. |
 | 21 | G-F2-2 | A Fizz 1 export is never silent | Exporting a Fizz 2 level to Fizz 1 reports every E120, E121 and E122 error and every W104 snap, and the exported script has none of them. Today: not built. |
 | 22 | G-F2-3 | Rules show as the game runs them | The dump view equals `fizz-bake dump` for the same script, record for record. Today: not built. |
+| 23 | G-F2-4 | The target model holds as the games diverge | Every row of the capability matrix in `LANGUAGE.md` has a test in each profile, and a synthetic third profile loads with no editor code change. Today: not built. |
+| 24 | G-F2-5 | Every Fizz 2 field a level holds can be authored | Each field of the `LEVL` header, object, rule and string records has a source form, a test that lowers it and an editor control. Today: designed in `LANGUAGE.md` and `EDITOR.md` section 13; not built. |
+| 25 | G-F2-6 | The game's look is the game's | The Game view's frames equal the game's frame digests, and no Fizz 2 drawing rule is implemented in TypeScript. Today: not built. |
+| 26 | G-SPR-1 | Sprites are shown truly and edited safely | Every object draws with its target's sprite; every sprite file round-trips byte for byte; generated sets cannot be edited. Today: not built. |
+| 27 | G-EP3-1 | Later episodes need data, not code | An Episode 3 profile is added as data and passes the same corpus and matrix tests. Today: not built. |

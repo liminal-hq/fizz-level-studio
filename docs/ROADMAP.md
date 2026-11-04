@@ -10,8 +10,13 @@ The milestones in order, each with what it delivers, its exit criteria and what 
 | M3 Registry and progress | M1 (can run alongside M2) |
 | M4 Claude in the studio | M1, M2 |
 | M5 WebAssembly bridge | M2, M3 |
-| M6 Sprites and Rust levels | M3, M5 |
-| M7 Fizz 2 target (planned) | M2 (and the Fizz 2 repository's `fizz-script` and `fizz-bake`) |
+| M6 Rust levels | M3, M5 |
+| M7 Target profiles and the Fizz 2 dialect (planned) | M2 (and the Fizz 2 repository's level source, grammar and baker) |
+| M8 Fizz 2 look and budgets (planned) | M7, M5's bridge pattern (and a draw export and theme format from the Fizz 2 repository) |
+| M9 Sprites (planned) | M7 (and Fizz 2's sprite decisions); M1 for overworld point sprites |
+| M10 Episode 3 profile (planned) | M7 (and an Episode 3 repository with its own tables) |
+
+**Order.** Fizz 2 is the more important target (D32), so once M2's editor exists, M7 comes next and may run ahead of M3 to M6, which are Fizz 1 engine work. M1 and M2 build the shell both targets share. M8 and M9 can run alongside each other.
 
 ## M0 — Spec
 
@@ -89,32 +94,69 @@ The first slice of the real studio, built on the overworld because it is the nex
 
 **Depends on:** M2, M3 (a scripted level not yet compiled into the game must still be loadable).
 
-## M6 — Sprites and Rust levels
+## M6 — Rust levels
 
-**Delivers:** the sprite picker and level sprites on points (E10, R-OW-12); opening hand-written procedural Rust levels from `level_dump` at run time (R-RUST-02), with edits kept and exported on top of them (R-RUST-03, `SPEC.md` Q2); the full enemy docs (R-LANG-16).
+**Delivers:** opening hand-written procedural Rust levels from `level_dump` at run time (R-RUST-02), with edits kept and exported on top of them (R-RUST-03, `SPEC.md` Q2); the full enemy docs (R-LANG-16). The sprite picker and level sprites on points moved to M9, so one sprite design serves both targets.
 
 **Exit criteria:**
 
-- A level point's sprite can be chosen from the game's sprite names and the map draws it.
 - A Rust-written level opens, takes a painted edit, exports, and the game shows the edit while the Rust function is unchanged.
 
 **Depends on:** M5 (level data from WebAssembly), M3 (registry).
 
-## M7 — Fizz 2 target (planned)
+## M7 — Target profiles and the Fizz 2 dialect (planned)
 
-Nothing here is started. It follows the Fizz 2 repository's own plan (the level source, locks as data, rules in the simulation, the `fizz-script` crates and `fizz-bake`) and can begin once M2's editor exists.
+Nothing here is started. It follows the Fizz 2 repository's own plan (the level source refactor, the dialect, `fizz-bake`, the pack loaders), and it can begin once M2's editor exists, with the dialect work behind the conformance corpus so the studio does not run ahead of `fizz-script` without a check.
 
 **Delivers:**
 
-- In `packages/language`: the `script fizz2 0` header, the `map` block with the full legend, `at=` and the printer rule, `chicken`, `soda`, `floor`, required `id=`, objects sorted by kind, `channel`, `lock`, `when ... then ...` and `allow`, the E1xx errors and the W1xx lints, all agreeing with `fizz-script` through a shared conformance corpus.
-- The Fizz 1 export: lowering and the check (E120 to E122, W104).
-- In the editor: the Target setting and greying out, snap to floor, close all doors, the Rules window, inline rule lints, the dump view and the Channels lens (`EDITOR.md` section 13).
-- MCP: `target` on `get_level`, rule-aware `run_checks`, and a dump tool (`MCP.md` section 2).
+- **Target profiles** (R-TGT-01 to R-TGT-05): `fizz1` and `ep2` as data, generated from each game's tables (ENGINE-CHANGES E11 and F2), with capability states, the Capabilities card, `studio.json` and the `target` line.
+- **In `packages/language`:** the `script fizz2 0` header; `start`, `floor`, `channel`; the `map` block with the profile's legend; `at=` and the printer rule; the `objects` section with ids resolved to indices; `lock`, `when ... then ...`, `string` and `allow`; the reserved `theme`, `light` and `music`; E101 to E123 and W101 to W112, each with a test (R-F2-01 to R-F2-17).
+- **The Fizz 1 export** (lowering and its check) and **Convert to Fizz 2**.
+- **In the editor:** map painting, the Objects window with ids and indices, the Lock field, the Rules window with Strings and the cue pickers, snap to floor, close all doors, the Channels, Exit and Head room lenses, inline lints and the dump view (R-F2-06, R-F2-07, R-F2-18, R-F2-19).
+- **MCP:** `get_target`, rule, lock, string and object tools, `check_export` and `get_dump` (`MCP.md` section 2, R-F2-23).
 
 **Exit criteria:**
 
 - Every script in the conformance corpus parses, prints back unchanged and reports the same codes and positions as `fizz-script`.
-- A Fizz 2 level that uses rules exports to Fizz 1 with the expected E121 errors, and one that does not exports with only W104 warnings for moved items.
-- The dump view equals `fizz-bake dump` for the Light world's levels.
+- The slice level, written as a script in the studio, bakes through `fizz-bake` to the digest of the `const` slice (R-F2-22), and the studio's object indices and rule records match `fizz-bake dump`.
+- A Fizz 2 level that uses rules exports to Fizz 1 with the expected E121 errors, one that does not exports with only W104 and W110 warnings, and Crater Fields converts to Fizz 2 with exactly the expected E102 list.
+- Every capability in the matrix has a test that shows its state in each profile, and changing one row of a profile's data changes the editor's behaviour with no code change.
+- In a real Claude Code session, Claude proposes a lock and a rule over MCP and the person accepts them in the studio.
 
-**Depends on:** M2 (the editor), and the Fizz 2 repository's baker. Whether the editor loads `fizz-script` as WebAssembly or keeps its own parser is not decided.
+**Depends on:** M2 (the editor), and the Fizz 2 repository's level source (#137 to #140), grammar and baker. Whether the editor loads `fizz-script` as WebAssembly or keeps its own parser is not decided (`SPEC.md` Q10).
+
+## M8 — Fizz 2 look and budgets (planned)
+
+**Delivers:** the Game view drawn by the game's presenter in a Web Worker (the oblique ground, parallax, the Sky choice, Night and lights; R-F2-20), the Budget window with each meter's source (R-F2-21), and, once the Fizz 2 repository defines its level and theme format, the lowering of `theme`, `light` and `music` and the W111 light-budget lint.
+
+**Exit criteria:**
+
+- For the slice, the Game view's frames equal the game's pinned frame digests by day and at night.
+- Every budget meter shows the number `fizz-bake` reports for the slice, or says "estimate" or "not run".
+- With the Fizz 2 draw export absent, the Game view says "not available" and draws nothing.
+
+**Depends on:** M7, the bridge pattern of M5, and from the Fizz 2 repository a draw export (ENGINE-CHANGES F5) and the theme format (F3).
+
+## M9 — Sprites (planned)
+
+**Delivers:** the target's sprites on the canvas by kind (R-SPR-01), the Sprites window with Ben's pose sets, pickups, HUD keys and the enemy roster as it lands (R-SPR-02), animation preview (R-SPR-03), canonical reading and writing of Fizz 2 sprite files (R-SPR-04), the pixel editor for `drawn` sets (R-SPR-05), the night-ambient preview (R-SPR-06), and level sprites on overworld points with the sprite picker (E10, R-OW-12).
+
+**Exit criteria:**
+
+- Every Fizz 2 sprite file opens and saves byte for byte unchanged, and `bun tools/sprites/roundtrip.ts` in the Fizz 2 repository passes on a file the studio edited.
+- Every object kind in each profile draws with its sprite, or with a labelled placeholder where the target has none.
+- A level point's sprite can be chosen from the game's sprite names and the map draws it.
+
+**Depends on:** M7 (profiles map kinds to sprites), Fizz 2's sprite decisions (the `SPRT` layout, which Ben ships), and M1 for overworld points.
+
+## M10 — Episode 3 profile (planned)
+
+**Delivers:** an `ep3` profile on the `fizz2` dialect family, generated from Episode 3's own tables, and any dialect version it needs.
+
+**Exit criteria:**
+
+- A synthetic third profile (used by the tests from M7) and then the real one load with no change to the editor's code.
+- Fizz 2 levels still open, check and export unchanged under `ep2`.
+
+**Depends on:** M7, and an Episode 3 repository that publishes its tables.
