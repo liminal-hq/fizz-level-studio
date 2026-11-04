@@ -126,6 +126,23 @@ The critical path is S1, D1, D2, D3, U1, U2, U3, T1, T2: the Fizz 1 port gates t
 
 Nothing in this plan now waits on the owner except the confirmations in section 5, which are also settled.
 
+### CI access to the game repositories
+
+The runner learns about the game repositories from the studio's own manifests, not from configuration of its own: D8 pins the crates as git dependencies in `Cargo.toml` and `Cargo.lock`, and a pin is bumped in a reviewed change (D58). What CI needs on top is network reach and, for a private repository, a read-only credential stored as a Forgejo secret.
+
+| Repository | Remote | What the studio takes from it | How CI gets it | When |
+| --- | --- | --- | --- | --- |
+| Fizz 1 game | `liminal-hq/lieutenant-fizz` (GitHub) | `lf-sim` and `lf-episode-1`, linked natively (D8, D59) | Pinned git dependency, fetched by cargo | M1 |
+| Fizz 2 game | `ScottMorris/lieutenant-fizz-2` (GitHub) | `fizz-script`, `fizz-bake`, `fizz-pack`, `fizz-ep2`, and the presenter crates (D55, D58) | Pinned git dependency; compile-only in M1 | M1 (compile), M2 onward |
+| Fizz 1 for DOS | `ScottMorris/lieutenant-fizz-dos` (GitHub) | Nothing to link. It carries a patched `no_std` copy of the Fizz 1 simulation and must not change its rules, so the studio's rules come from `liminal-hq/lieutenant-fizz`, never from this copy. It is the reference for the Fizz 1 DOS target: the limits of a level that DOS can run, and how an exported level reaches it. | A pinned checkout (a revision in a small `pins` file, not a cargo dependency), used only by the optional job below | M10 onward |
+
+The DOS repository is not mentioned in the other documents, so these uses are proposed, not agreed:
+
+- **A DOS conformance job, nightly and optional.** It exports a level with the Fizz 1 export (M10) and runs it in the DOS build under DOSBox Staging, headless, as the DOS repository's own checks do. It is not part of the pull request checks: it needs DJGPP, DOSBox Staging, and CWSDPMI fetched with checksums (`tools/fetch-tools.sh` in that repository), and a toolchain that the house container may not carry.
+- **Target limits for the Fizz 1 profile.** Whatever limits DOS puts on a Fizz 1 level are read from the DOS repository's `docs/STATUS.md` by hand into the Fizz 1 profile's fixture, with a `SOURCE.md` naming the revision, as for the Fizz 2 fixtures in section 4. Nothing is read at run time.
+
+Unverified, and checked at the start of S11: whether the three repositories are public (a public one needs no credential), whether the Forgejo runner reaches github.com, and whether cargo's git fetch works in the runner (`net.git-fetch-with-cli = true` with a deploy key if a repository is private). Once fetched, the sources are cached so `cargo nextest` and `bun run prove` run offline.
+
 ## 4. Stubbing the Fizz 2 dependencies
 
 M1 and the early part of M2 start before `fizz-script` (F1), the content export (F2), `fizz-bake` (F4), `LEVL` version 2 (F10), world packs (F15), the draw API (F5), and the world-stepping API (F6) exist. The studio builds against **ports**: traits in its pure crates, each with a stub now and the Fizz 2 implementation later, as Folio's `Host` trait is implemented by its plugin. The stubs never invent results the game owns: where a real answer is unknown, the stub says "not run" or "not available", and the capability state shows it.
