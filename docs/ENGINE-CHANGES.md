@@ -4,18 +4,20 @@ Everything the game itself (`liminal-hq/lieutenant-fizz`) must change for the re
 
 | Id | Change | Needed by |
 | --- | --- | --- |
-| E1 | `OverworldBuilder` in `levels.rs` | M1 |
-| E2 | A home for generated level and overworld functions | M1 |
-| E3 | A level registry the exporter can write to, and a free id for the saucer | M3 |
-| E4 | Widen the progress and requirement masks | M3 |
-| E5 | An overworld registry | M3 |
-| E6 | Export level data to WebAssembly | M5 |
-| E7 | Build and enter a level from a script inside the sim | M5 |
-| E8 | Export enemy paths | M5 |
-| E9 | Export the playtest bot | M5 |
+| E1 | `OverworldBuilder` in `levels.rs` | M9 |
+| E2 | A home for generated level and overworld functions | M9 |
+| E3 | A level registry the exporter can write to, and a free id for the saucer | M11 |
+| E4 | Widen the progress and requirement masks | M11 |
+| E5 | An overworld registry | M11 |
+| E6 | Export level data to WebAssembly | M12 |
+| E7 | Build and enter a level from a script inside the sim | M12 |
+| E8 | Export enemy paths | M12 |
+| E9 | Export the playtest bot | M12 |
 | E10 | Sprite names for level points | M9 |
-| E11 | Name tables the studio can check against | M1 onward |
-| E12 | Move the proofs into the game's tests | M1 onward |
+| E11 | Name tables the studio can check against | M8 onward (the `fizz1` profile) |
+| E12 | Move the proofs into the game's tests | M9 onward |
+
+The milestone numbers are those of the reordered roadmap, in which the Fizz 2 milestones come first.
 
 ## E1. `OverworldBuilder` in `levels.rs`
 
@@ -91,20 +93,33 @@ Everything the game itself (`liminal-hq/lieutenant-fizz`) must change for the re
 
 ## Fizz 2 (planned)
 
-The list above is about Lieutenant Fizz 1. Lieutenant Fizz 2 is a separate repository whose levels are baked from `.fizz` sources, so its needs are a different list, kept here so the editor's side is visible. Each is a change in the Fizz 2 repository, owned and decided by it; the studio only asks. What exists there today is the `LEVL` data model (`fizz-pack`, `fizz-ep2`, and the level pull requests #137, #138 and #140, unmerged); none of the tools below exists yet.
+The list above is about Lieutenant Fizz 1. Lieutenant Fizz 2 is a separate repository, and the studio does not change it: every Fizz 2 change the studio depends on is a **change request** below, for the Fizz 2 repository to accept, reshape or refuse. Several are the owner's design intent decided on 2026-11-04 (`DECISIONS.md` D42 to D53), which the Fizz 2 repository does not have yet; each says what exists there today.
 
-| Id | Change | What the editor needs from it | Needed by |
-| --- | --- | --- | --- |
-| F1 | `fizz-script`, a reusable `std` crate, with the dialect's grammar written down | The parser, lossless AST, printer and validator, so the editor and the baker agree on what a script means; the home of the shared conformance corpus | M7 |
-| F2 | A content export: the `pack_content()` tables (tile ids and properties, the legend letters, object and snack kinds, key colours, effect and caption ids, styles, limits) and the capability states, written as JSON by a test or a `fizz-bake` command | The `ep2` target profile, generated rather than copied, with a check that fails on drift | M7 |
-| F3 | A level and theme format: the theme's back wall, parallax stack, horizon, night ambient, lamps and lanterns, and whether music is per level | Lowering for the reserved `theme`, `light` and `music` words (`docs/OBLIQUE.md` and `docs/LIGHTS.md` both say "a later level and theme format will carry them") | M8 |
-| F4 | `fizz-bake` (`fmt`, `bake`, `check`, `dump`, and a size report) | The baker, the lints, the disassembly for the dump view, and the numbers for the Budget window | M7, M8 |
-| F5 | A WebAssembly draw export in `fizz-present-web`: draw a level from `LEVL` bytes at a camera position with Night, Sky and detail options, into an RGBA buffer | The Game view (oblique ground, parallax, night and lights), drawn by the game's own presenter | M8 |
-| F6 | A WebAssembly world built from `LEVL` bytes (`world_from_view` exists in `fizz-ep2` on #137), stepped by inputs, with the playtest bot | Rule behaviour, enemy paths and finishability for Fizz 2 levels, as E7 to E9 give Fizz 1 | M7 onward |
-| F7 | The `SPRT` layout, and numeric sprite ids if names are replaced | Sprites reaching packs, and the profile's kind-to-sprite map | M9 |
-| F8 | The enemy roster's kinds, object records and sprite states | Objects beyond the chicken | M9 |
-| F9 | A rule for the missing wall-kick: a baker check or the playtest bot | Turning W103 from a design rule into a refusal (`SPEC.md` Q13) | M7 |
+| Id | Change request | Today in Fizz 2 | What the studio needs from it | Needed by |
+| --- | --- | --- | --- | --- |
+| F1 | `fizz-script`, a reusable `std` crate, with the dialect's grammar written down, and the shared conformance corpus | No crate, no grammar (`docs/FAP.md` says "not yet specified") | The parser, lossless AST, printer and validator, so the editor and the baker agree | M2 |
+| F2 | A content export: the `pack_content()` tables (tile ids and properties, legend letters, object and snack kinds, keys, effect and caption ids, styles, limits, step budgets) and the capability states, as JSON | `pack_content()` exists as bytes for the compatibility number | The `ep2` target profile, generated rather than copied, with a check that fails on drift | M2 |
+| F3 | A theme format: back-wall material, panel stack, horizon, night ambient, chosen by a world and overridden by a level | Constants in `oblique.rs` (#144); "a later level and theme format will carry them" | Lowering `theme` | M5 |
+| F4 | `fizz-bake`: `fmt`, `bake` of a whole world project into its world pack, `check` against manifests, `dump`, and a size report | Planned (`docs/FAP.md`) | Build world, the dump view and the Budget window's numbers | M2 |
+| F5 | A WebAssembly draw export in `fizz-present-web`: draw a level from its baked bytes and the world's art at a camera position with Night, Sky and detail options, into an RGBA buffer | The presenters draw the slice only | The Game view, the canvas of every Fizz 2 level | M2 (flat fallback until then), M5 |
+| F6 | A WebAssembly world built from baked bytes (`world_from_view` exists on #137), stepped by inputs, with the playtest bot | Native and Web run the slice | Rule and behaviour previews, the debugger, playtests | M3 |
+| F7 | The `SPRT` layout, and numeric sprite ids if names are replaced | "Not yet specified" (`docs/FAP.md`) | Sprites in the world pack | M2 |
+| F8 | The built-in enemy roster: kinds, records and sprite states | Planned (`enemy-roster`); only the chicken | Built-in enemies beside custom ones | M7 |
+| F9 | **The wall-kick as a core Fizz 2 mechanic, always on**, with no per-level switch, and Fizz 2's `docs/FIZZ1-DIFFERENCES.md` changed to say so | Left out (owner decision of 2026-10-30, recorded on that page); `roadmap.json` still lists it first in M3.5 | The `ep2` physics parameters; the reversal of the earlier decision (D47) | M2 |
+| F10 | **`LEVL` section version 2**, carrying states, bindings, the new objects and the new rule records; version 1 dropped with no reader kept; the slice level regenerated as version 2 and its golden hash re-pinned in the same change | Version 1 amended in place (#138) | The format the studio's lowering targets (D43) | M2 |
+| F11 | **A state table and rule inputs in the simulation:** named states with up to 8 values and a start value, bindings for doors, lights, platforms and panels, inputs (keys held, switches, enter, take, touch, use, hit, stomp, stun, defeat, a group cleared, time, a state change), conditions and actions (set, toggle, next, spend, give, score, ammo, raise a word or a cue), the switch object, the death reset of every state, and `lock` as the key-and-door case of it | A lock is a key colour, a channel fixed by the door tile and a cell; only locks run (#140) | The owner's design of states with rules (D42) | M3 |
+| F12 | **Placed lights as level objects:** position, radius, colour or palette bank, falloff, flicker, a state that switches them, and attachment to an enemy, item or Ben; their count and frame cost reported | Lights are constants and derived from objects (#146) | The Light tool and the light meters (D44) | M5 |
+| F13 | **The oblique ground as the look of every Fizz 2 level**, drawn from any level's map, not only the slice's | Built for the slice (#143) | The Game view as every Fizz 2 level's canvas (D45) | M5 |
+| F14 | Tile textures as data a world can supply, rather than generated code tables | `oblique_data.rs` generated by `tools/tiles/emit-oblique.ts` (#143) | The pixel editor's reach to tiles (Q34) | M6, later |
+| F15 | **One world pack per world project:** a world header (name, stem, theme, the level list), the levels, definitions, bytecode, sprites (with a retro set), panels and the sound library, with its manifest | `<WORLD>.FAP` planned with `LEVL`, `BDRP` and `SPRT` (`docs/FAP.md`) | Build world (D48) | M2 |
+| F16 | **A `DEFS` section** of fixed-size records for custom enemy and item definitions: sprite references per state, hitbox, stats, default reactions, item effects, register count | None | Custom enemies and items (D51) | M7 |
+| F17 | **A `BHVR` section and a behaviour interpreter:** fixed-width bytecode with forward jumps only, a load-time verifier, per-entity and per-level step budgets, defined results for division by zero and NaN, the numeric model's operations only, entity state in the hash, and a bytecode version in the compatibility number | None | Behaviour scripting (D51; [SCRIPTING.md](SCRIPTING.md)) | M7 |
+| F18 | **Raised events and a world sound library:** a rule action or an object raises a floating word (a level or world string, or a shared caption) or a cue from the world's sound library, drawn and played by each presenter and written to the transcript | Built-in events with a fixed presentation table; effects in `SHARED.FAP`; strings carried, not drawn (#138) | Words and sounds from rules and objects (D50; Q29) | M3 |
+| F19 | **Bitmap parallax panels:** a `BDRP` layout and a panel layer kind with scroll factors, repeat, vertical position, the open-air rule and a state | Procedural layers (#144); `BDRP` "not yet specified" | Panels from the pixel editor (D52) | M5 |
+| F20 | **The retro art set in a world pack:** Fizz 1's sprites, exported to grids as `tools/sprites/export-fizz1.ts` does, packed into a world's `SPRT` rather than `SHARED.FAP`, with how a Fizz 1 sprite is anchored over a Fizz 2 body | The exporter exists for the slice's sprites | Retro levels, art only (D49) | M8 |
+| F21 | Debug exports for the behaviour debugger: each entity's mode, registers and instructions used per tick, step by tick, from the WebAssembly world | None | The debugger and `run_behaviour` | M7 |
+| F22 | A cost model for the Budget window: the game's bench figures per light, panel and behaviour instruction on the DOS floor, as data | `/BENCH` measures whole frames | The DOS cost meters | M5, M7 |
 
-The rules phase in the simulation (triggers, channel actions and cues run as table rows) and the pack loaders are the Fizz 2 repository's own milestones; the editor waits for them through the capability states (an "accepted" trigger becomes "built" when the game runs it).
+The pack loaders and the rules phase are the Fizz 2 repository's own milestones; the editor waits for them through the capability states (an "accepted" feature becomes "built" when the game runs it).
 
-The Fizz 1 export check (E120 to E122, W104, W110) is the one place the editor writes back to the Fizz 1 game, and it uses the existing exporter, not a new engine change.
+The Fizz 1 export check (E120 to E123, W103, W104, W110) is the one place the editor writes back to the Fizz 1 game, and it uses the existing exporter, not a new engine change.
