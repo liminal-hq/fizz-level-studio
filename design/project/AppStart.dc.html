@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Start screen</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@500;600;700&display=swap">
+<style>body{margin:0;background:#050507}button{font-family:inherit;cursor:default}button:focus-visible,input:focus-visible{outline:2px solid #ffaa40;outline-offset:1px}</style>
+</helmet>
+<div style="width:1440px;height:900px;box-sizing:border-box;position:relative;display:flex;flex-direction:column;background:#050507;color:#e0e0e0;font-family:Inter,system-ui,sans-serif;font-size:13px;overflow:hidden;border:1px solid rgba(255,255,255,0.12);border-radius:12px">
+
+  <!-- title bar: app menu, centred title, GNOME controls; the window menu is open from a right-click -->
+  <div style="height:40px;flex:none;box-sizing:border-box;display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;column-gap:8px;padding:0 8px;background:#0c0c10;border-bottom:1px solid rgba(255,255,255,0.12)">
+    <div style="display:flex;align-items:center;gap:4px"><button aria-haspopup="menu" aria-label="Fizz Level Studio menu" style="display:inline-flex;align-items:center;gap:8px;height:28px;padding:0 8px;border:none;border-radius:6px;background:transparent;color:#e0e0e0;font-weight:600;font-size:13px"><span aria-hidden="true" style="width:16px;height:16px;border-radius:4px;background:linear-gradient(135deg,#ffaa40,#f43f5e,#a78bfa)"></span><span>Fizz Level Studio</span></button></div>
+    <div>Fizz Level Studio</div>
+    <div role="group" aria-label="Window controls" style="display:flex;justify-content:flex-end;gap:2px">
+      <sc-for list="{{ctl}}" as="c" hint-placeholder-count="3"><button aria-label="{{c.label}}" title="{{c.label}}" style="position:relative;width:28px;height:28px;padding:0;border:none;background:transparent;color:#e0e0e0;display:inline-flex;align-items:center;justify-content:center"><span aria-hidden="true" style="position:absolute;inset:2px;border-radius:50%;background:rgba(255,255,255,0.06)"></span><svg aria-hidden="true" style="position:relative" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><path d="{{c.d}}"></path></svg></button></sc-for>
+    </div>
+  </div>
+
+  <div style="position:relative;flex-grow:1;min-height:0;display:flex;justify-content:center;align-items:flex-start;padding-top:64px;background:radial-gradient(60% 50% at 30% 10%,rgba(167,139,250,0.08),transparent),radial-gradient(50% 40% at 80% 70%,rgba(244,63,94,0.06),transparent),#050507">
+    <div style="width:960px;display:grid;grid-template-columns:320px minmax(0,1fr);gap:32px">
+
+      <div style="display:flex;flex-direction:column;gap:20px">
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <span aria-hidden="true" style="width:48px;height:48px;border-radius:12px;background:linear-gradient(135deg,#ffaa40,#f43f5e,#a78bfa)"></span>
+          <h1 style="margin:0;font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:30px;letter-spacing:-0.01em;color:#fff">Fizz Level Studio</h1>
+          <p style="margin:0;color:#b4bfce;line-height:1.5">A level editor Claude can sit inside, for Lieutenant Fizz 2 worlds and Fizz 1 levels.</p>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <sc-for list="{{acts}}" as="a" hint-placeholder-count="4"><button style="display:flex;align-items:center;gap:12px;min-height:52px;padding:0 14px;border-radius:10px;text-align:left;{{a.s}}"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="{{a.d}}"></path></svg><span style="display:flex;flex-direction:column;gap:1px;flex:1"><span style="font-weight:500">{{a.n}}</span><span style="font-size:11.5px;opacity:0.8">{{a.sub}}</span></span><span style="font-family:'JetBrains Mono',monospace;font-size:11.5px;opacity:0.75">{{a.k}}</span></button></sc-for>
+        </div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <!-- recovery, after Folio's D-27 -->
+        <div role="status" style="display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:12px;border:1px solid rgba(255,170,64,0.45);background:rgba(255,170,64,0.06)">
+          <svg aria-hidden="true" width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="#ffaa40" stroke-width="1.4" stroke-linecap="round"><path d="M8 4.5V8l2.5 1.5 M8 14A6 6 0 1 0 8 2a6 6 0 0 0 0 12z"></path></svg>
+          <span style="flex:1;line-height:1.45"><span style="color:#fff;font-weight:500">Unsaved changes were kept for light-1.fizz.</span> <span style="color:#b4bfce">The studio closed before they were saved.</span></span>
+          <button style="min-height:32px;padding:0 14px;border-radius:999px;border:none;background:#ffaa40;color:#050507;font-weight:600">Restore</button>
+          <button style="min-height:32px;padding:0 14px;border-radius:999px;border:1px solid rgba(255,255,255,0.22);background:transparent;color:#e0e0e0">Discard</button>
+        </div>
+
+        <div style="border-radius:12px;border:1px solid rgba(255,255,255,0.08);background:rgba(20,20,25,0.55);display:flex;flex-direction:column;overflow:hidden">
+          <div style="height:48px;display:flex;align-items:center;gap:10px;padding:0 8px 0 16px;border-bottom:1px solid rgba(255,255,255,0.08)"><span style="font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:14px;color:#fff">Recent</span><span style="font-size:12px;color:#7c8796">sample entries</span><span style="flex-grow:1"></span><label for="rec-q" style="position:absolute;left:-9999px">Filter recent worlds</label><input id="rec-q" type="text" placeholder="Filter" style="width:200px;height:30px;box-sizing:border-box;padding:0 10px;border-radius:6px;border:1px solid rgba(255,255,255,0.14);background:rgba(0,0,0,0.22);color:#e0e0e0;font-size:12.5px"></div>
+          <div role="list" style="display:flex;flex-direction:column;padding:6px">
+            <sc-for list="{{recent}}" as="r" hint-placeholder-count="4"><button role="listitem" style="display:grid;grid-template-columns:40px minmax(0,1fr) auto;gap:12px;align-items:center;min-height:60px;padding:0 10px;border:none;border-radius:8px;text-align:left;{{r.s}}"><span aria-hidden="true" style="width:40px;height:40px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:12px;{{r.chip}}">{{r.g}}</span><span style="display:flex;flex-direction:column;gap:2px;min-width:0"><span style="color:#fff;font-weight:500">{{r.n}}</span><span style="font-family:'JetBrains Mono',monospace;font-size:11.5px;color:#7c8796;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{r.p}}</span></span><span style="display:flex;flex-direction:column;align-items:flex-end;gap:3px"><span style="height:20px;display:inline-flex;align-items:center;padding:0 8px;border-radius:999px;font-size:11px;{{r.ts}}">{{r.t}}</span><span style="font-size:11.5px;color:#b4bfce">{{r.m}}</span></span></button></sc-for>
+          </div>
+        </div>
+        <span style="font-size:12px;color:#7c8796">Recent worlds are kept in the studio's settings document, not in browser storage. A world opens in its own window; opening a world.fizz from the file manager goes to the running studio.</span>
+      </div>
+    </div>
+
+    <!-- the window menu, opened by a right-click on the title bar (Folio's WindowMenu) -->
+    <div role="menu" aria-label="Window menu" style="position:absolute;left:660px;top:-2px;width:220px;box-sizing:border-box;padding:4px;border-radius:8px;border:1px solid rgba(255,255,255,0.14);background:#16161c;box-shadow:0 8px 24px rgba(0,0,0,0.35);display:flex;flex-direction:column">
+      <sc-for list="{{wmenu}}" as="w" hint-placeholder-count="6">
+        <sc-if value="{{w.sep}}" hint-placeholder-val="{{false}}"><div role="separator" style="height:1px;margin:4px 0;background:rgba(255,255,255,0.12)"></div></sc-if>
+        <button role="menuitem" aria-disabled="{{w.dis}}" style="display:flex;align-items:center;gap:8px;height:28px;padding:0 8px;border:none;border-radius:6px;text-align:left;font-size:13px;{{w.s}}"><span style="flex:1">{{w.n}}</span><span style="font-family:'JetBrains Mono',monospace;font-size:11.5px;color:#7c8796">{{w.k}}</span></button>
+      </sc-for>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const A = (n, sub, k, d, primary) => ({ n: n, sub: sub, k: k, d: d, s: primary ? 'border:none;background:#ffaa40;color:#050507' : 'border:1px solid rgba(255,255,255,0.14);background:rgba(255,255,255,0.03);color:#e0e0e0' });
+    const acts = [
+      A('Open a world…', 'Choose a world.fizz or its folder', 'Ctrl+O', 'M2 4h4l1.5 1.5H14v8H2z', true),
+      A('New world…', 'A Fizz 2 world project; the target is fixed here', '', 'M8 2a6 6 0 1 0 0 12A6 6 0 0 0 8 2z M2 8h12'),
+      A('New level…', 'Fizz 2 in a world, or a Fizz 1 script', 'Ctrl+N', 'M4 2h5l3 3v9H4z M9 2v3h3'),
+      A('Open a Fizz 1 project…', 'A folder of Fizz 1 scripts and overworlds', '', 'M3 3h10v10H3z M3 7h10')
+    ];
+    const R = (n, p, t, m, g, chip, ts, sel) => ({ n: n, p: p, t: t, m: m, g: g, chip: chip, ts: ts, s: sel ? 'background:rgba(255,170,64,0.08)' : 'background:transparent' });
+    const f2 = 'border:1px solid rgba(255,170,64,0.6);color:#ffaa40', f1 = 'border:1px solid rgba(180,191,206,0.5);color:#b4bfce';
+    const recent = [
+      R('Lighthouse Point', '~/worlds/light/world.fizz', 'Fizz 2 · ep2', 'world · 2 levels', 'L', 'background:#0b1a4a;color:#FFFF55', f2, 1),
+      R('Episode 1 levels', '~/source/liminal-hq/lieutenant-fizz/levels', 'Fizz 1', 'project · 16 levels, overworld', 'E1', 'background:#2b2540;color:#ffaa40', f1),
+      R('Sample draft', '~/source/experiments/fizz-level-studio/levels/sample.fizz', 'Fizz 1', 'level · 40 × 16', 'S', 'background:#2b2540;color:#e0e0e0', f1)
+    ];
+    const W = (n, k, dis, sep) => ({ n: n, k: k || '', dis: dis ? 'true' : 'false', sep: !!sep, s: dis ? 'background:transparent;color:#7c8796' : 'background:transparent;color:#e0e0e0' });
+    const wmenu = [W('Restore', '', true), W('Move'), W('Minimise'), W('Maximise'), W('Always on Top', '', false, true), W('More options…'), W('Close', 'Ctrl+W', false, true)];
+    const ctl = [['Minimise', 'M3.5 8.5h9'], ['Maximise', 'M3.5 3.5h9v9h-9z'], ['Close', 'M4 4l8 8M12 4l-8 8']].map((c) => ({ label: c[0], d: c[1] }));
+    return { acts: acts, recent: recent, wmenu: wmenu, ctl: ctl };
+  }
+}
+</script>
+</body>
+</html>

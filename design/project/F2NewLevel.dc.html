@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>New world and New level</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@500;600;700&display=swap">
+<style>body{margin:0;background:#050507}button{font-family:inherit;cursor:pointer}button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid #ffaa40;outline-offset:1px}</style>
+</helmet>
+<div style="width:1440px;height:900px;box-sizing:border-box;position:relative;display:flex;flex-direction:column;background:#050507;color:#e0e0e0;font-family:Inter,system-ui,sans-serif;font-size:13px;overflow:hidden;border:1px solid rgba(255,255,255,0.12);border-radius:12px">
+
+  <!-- Liminal title bar, Folio chrome shape: app menu, centred title, GNOME controls -->
+  <div style="height:40px;flex:none;box-sizing:border-box;display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;column-gap:8px;padding:0 8px;background:#0c0c10;border-bottom:1px solid rgba(255,255,255,0.12)">
+    <div style="display:flex;align-items:center;gap:4px;min-width:0">
+      <button aria-haspopup="menu" aria-label="Fizz Level Studio menu" style="display:inline-flex;align-items:center;gap:8px;height:28px;padding:0 8px;border:none;border-radius:6px;background:transparent;color:#e0e0e0;font-weight:600;font-size:13px"><span aria-hidden="true" style="width:16px;height:16px;border-radius:4px;background:linear-gradient(135deg,#ffaa40,#f43f5e,#a78bfa)"></span><span>Fizz Level Studio</span></button>
+    </div>
+    <div style="color:#7c8796;white-space:nowrap">No world open</div>
+    <div role="group" aria-label="Window controls" style="display:flex;justify-content:flex-end;gap:2px">
+      <sc-for list="{{ctl}}" as="c" hint-placeholder-count="3"><button aria-label="{{c.label}}" title="{{c.label}}" style="position:relative;width:28px;height:28px;padding:0;border:none;background:transparent;color:#e0e0e0;display:inline-flex;align-items:center;justify-content:center"><span aria-hidden="true" style="position:absolute;inset:2px;border-radius:50%;background:rgba(255,255,255,0.06)"></span><svg aria-hidden="true" style="position:relative" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><path d="{{c.d}}"></path></svg></button></sc-for>
+    </div>
+  </div>
+
+  <!-- the empty workspace behind the dialogs, dimmed by the scrim -->
+  <div style="position:relative;flex-grow:1;min-height:0;background-color:#0a0a12;background-image:linear-gradient(rgba(255,255,255,0.035) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.035) 1px,transparent 1px);background-size:32px 32px">
+    <div style="position:absolute;inset:0;background:rgba(0,0,0,0.5)"></div>
+
+    <div style="position:absolute;left:24px;top:24px;right:24px;bottom:24px;display:flex;gap:20px;align-items:flex-start">
+
+      <!-- New world -->
+      <div role="dialog" aria-label="New world" style="width:430px;flex:none;box-sizing:border-box;border-radius:12px;border:1px solid rgba(255,255,255,0.14);background:#16161c;box-shadow:0 16px 48px rgba(0,0,0,0.45);display:flex;flex-direction:column">
+        <div style="height:52px;flex:none;display:flex;align-items:center;gap:10px;padding:0 4px 0 16px;border-bottom:1px solid rgba(255,255,255,0.08)">
+          <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#ffaa40" stroke-width="1.3" stroke-linecap="round"><circle cx="8" cy="8" r="6"></circle><path d="M2 8h12M8 2c2 2 2 10 0 12M8 2c-2 2-2 10 0 12"></path></svg>
+          <span style="font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:16px;color:#fff">New world</span>
+          <span style="flex-grow:1"></span>
+          <button aria-label="Close New world" style="width:44px;height:44px;border:none;border-radius:999px;background:transparent;color:#b4bfce;display:inline-flex;align-items:center;justify-content:center"><svg aria-hidden="true" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M4 4l8 8M12 4l-8 8"></path></svg></button>
+        </div>
+        <div style="padding:14px 16px;display:flex;flex-direction:column;gap:12px">
+          <div style="display:flex;flex-direction:column;gap:4px"><label for="nw-name" style="font-size:12px;color:#b4bfce">World name</label><input id="nw-name" type="text" value="Lighthouse Point" style="height:36px;box-sizing:border-box;padding:0 10px;border-radius:6px;border:1px solid rgba(255,255,255,0.14);background:rgba(0,0,0,0.22);color:#e0e0e0;font-size:13px"></div>
+          <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px">
+            <div style="display:flex;flex-direction:column;gap:4px"><label for="nw-id" style="font-size:12px;color:#b4bfce">World id</label><input id="nw-id" type="text" value="light" style="height:36px;box-sizing:border-box;padding:0 10px;border-radius:6px;border:1px solid rgba(255,255,255,0.14);background:rgba(0,0,0,0.22);color:#e0e0e0;font-family:'JetBrains Mono',monospace;font-size:12.5px"></div>
+            <div style="display:flex;flex-direction:column;gap:4px"><label for="nw-pack" style="font-size:12px;color:#b4bfce">Pack name (8.3 stem)</label><input id="nw-pack" type="text" value="LIGHT" style="height:36px;box-sizing:border-box;padding:0 10px;border-radius:6px;border:1px solid rgba(255,255,255,0.14);background:rgba(0,0,0,0.22);color:#e0e0e0;font-family:'JetBrains Mono',monospace;font-size:12.5px"></div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <span style="font-size:12px;color:#b4bfce">Target</span>
+            <div role="radiogroup" aria-label="World target" style="display:flex;flex-direction:column;gap:6px">
+              <button role="radio" aria-checked="true" style="min-height:52px;padding:8px 12px;border-radius:8px;border:1px solid #ffaa40;background:rgba(255,170,64,0.08);color:#fff;text-align:left;display:flex;align-items:center;gap:10px"><span aria-hidden="true" style="width:14px;height:14px;flex:none;border-radius:50%;border:4px solid #ffaa40;box-sizing:border-box"></span><span style="display:flex;flex-direction:column;gap:2px"><span style="font-weight:600">Fizz 2 <span style="font-family:'JetBrains Mono',monospace;font-size:11.5px;color:#ffaa40;font-weight:500">ep2 · script fizz2 0</span></span><span style="font-size:12px;color:#b4bfce">Lieutenant Fizz 2, the game in development</span></span></button>
+              <button role="radio" aria-checked="false" aria-disabled="true" title="No Episode 3 profile yet" style="min-height:44px;padding:8px 12px;border-radius:8px;border:1px solid rgba(255,255,255,0.1);background:transparent;color:#7c8796;text-align:left;display:flex;align-items:center;gap:10px;cursor:not-allowed"><span aria-hidden="true" style="width:14px;height:14px;flex:none;border-radius:50%;border:1.5px solid #7c8796;box-sizing:border-box"></span><span>Episode 3 <span style="font-family:'JetBrains Mono',monospace;font-size:11.5px">ep3</span> · no profile yet</span></button>
+            </div>
+            <span style="font-size:12px;color:#b4bfce;line-height:1.45">The target is written into <span style="font-family:'JetBrains Mono',monospace;color:#e0e0e0">world.fizz</span> and fixed: there is no Target switch later. A Fizz 1 project is a folder of Fizz 1 scripts, not a world.</span>
+          </div>
+          <label style="display:flex;align-items:center;gap:10px;min-height:32px;color:#e0e0e0"><input type="checkbox" checked style="width:16px;height:16px;accent-color:#ffaa40;margin:0">Import Fizz 1 art as a read-only retro set</label>
+          <div style="border-radius:8px;background:#050507;padding:8px 10px;font-family:'JetBrains Mono',monospace;font-size:11.5px;line-height:1.6;color:#b4bfce;white-space:pre">light/
+  world.fizz        <span style="color:#7c8796">name, id, pack, target, theme</span>
+  levels/           <span style="color:#7c8796">script fizz2 0 levels</span>
+  defs/             <span style="color:#7c8796">enemies, items, states, sounds, strings</span>
+  sprites/          <span style="color:#7c8796">drawn and generated sets</span>
+  art/retro-fizz1/  <span style="color:#7c8796">imported, read-only</span>
+  panels/           <span style="color:#7c8796">parallax panels</span>
+  studio.json       <span style="color:#7c8796">editor settings, never baked</span></div>
+        </div>
+        <div style="flex:none;display:flex;justify-content:flex-end;gap:8px;padding:12px 16px;border-top:1px solid rgba(255,255,255,0.08)">
+          <button style="min-height:36px;padding:0 16px;border-radius:999px;border:1px solid rgba(255,255,255,0.22);background:transparent;color:#e0e0e0;font-weight:500">Cancel</button>
+          <button style="min-height:36px;padding:0 16px;border-radius:999px;border:none;background:#ffaa40;color:#050507;font-weight:600">Create world</button>
+        </div>
+      </div>
+
+      <!-- New level -->
+      <div role="dialog" aria-label="New level" style="width:520px;flex:none;box-sizing:border-box;border-radius:12px;border:1px solid rgba(255,170,64,0.4);background:#16161c;box-shadow:0 16px 48px rgba(0,0,0,0.45);display:flex;flex-direction:column">
+        <div style="height:52px;flex:none;display:flex;align-items:center;gap:10px;padding:0 4px 0 16px;border-bottom:1px solid rgba(255,255,255,0.08)">
+          <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#ffaa40" stroke-width="1.3" stroke-linecap="round"><path d="M4 2h5l3 3v9H4z M9 2v3h3"></path></svg>
+          <span style="font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:16px;color:#fff">New level</span>
+          <span style="font-size:12px;color:#b4bfce">Which game is it for?</span>
+          <span style="flex-grow:1"></span>
+          <button aria-label="Close New level" style="width:44px;height:44px;border:none;border-radius:999px;background:transparent;color:#b4bfce;display:inline-flex;align-items:center;justify-content:center"><svg aria-hidden="true" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M4 4l8 8M12 4l-8 8"></path></svg></button>
+        </div>
+        <div style="padding:14px 16px;display:flex;flex-direction:column;gap:12px">
+          <div role="radiogroup" aria-label="Level target" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px">
+            <button role="radio" aria-checked="true" style="padding:12px;border-radius:10px;border:1px solid #ffaa40;background:rgba(255,170,64,0.08);color:#fff;text-align:left;display:flex;flex-direction:column;gap:6px">
+              <span style="display:flex;align-items:center;gap:8px"><span aria-hidden="true" style="width:14px;height:14px;border-radius:50%;border:4px solid #ffaa40;box-sizing:border-box"></span><span style="font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:15px">Fizz 2</span><span style="font-size:11px;color:#050507;background:#ffaa40;border-radius:999px;padding:1px 8px;font-weight:600">Primary</span></span>
+              <span style="font-size:12px;color:#b4bfce;line-height:1.45">In a world project. Oblique Game view, states and rules, placed lights, custom enemies and items. The wall-kick is always on.</span>
+            </button>
+            <button role="radio" aria-checked="false" style="padding:12px;border-radius:10px;border:1px solid rgba(255,255,255,0.14);background:transparent;color:#e0e0e0;text-align:left;display:flex;flex-direction:column;gap:6px">
+              <span style="display:flex;align-items:center;gap:8px"><span aria-hidden="true" style="width:14px;height:14px;border-radius:50%;border:1.5px solid #b4bfce;box-sizing:border-box"></span><span style="font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:15px">Fizz 1</span></span>
+              <span style="font-size:12px;color:#b4bfce;line-height:1.45">A Fizz 1 script. Flat view, the Fizz 1 roster, lifts, rooms and arenas, the overworld. Made without the wall-kick (W103).</span>
+            </button>
+          </div>
+          <div style="display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:10px">
+            <div style="display:flex;flex-direction:column;gap:4px"><label for="nl-world" style="font-size:12px;color:#b4bfce">World</label><select id="nl-world" style="height:36px;padding:0 8px;border-radius:6px;border:1px solid rgba(255,255,255,0.14);background:#0c0c10;color:#e0e0e0;font-size:13px"><option>Lighthouse Point (light)</option><option>New world…</option></select></div>
+            <div style="display:flex;flex-direction:column;gap:4px"><label for="nl-size" style="font-size:12px;color:#b4bfce">Size in tiles</label><input id="nl-size" type="text" value="40 × 14" style="height:36px;box-sizing:border-box;padding:0 10px;border-radius:6px;border:1px solid rgba(255,255,255,0.14);background:rgba(0,0,0,0.22);color:#e0e0e0;font-family:'JetBrains Mono',monospace;font-size:12.5px"></div>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px">
+            <div style="display:flex;flex-direction:column;gap:4px"><label for="nl-name" style="font-size:12px;color:#b4bfce">Level name</label><input id="nl-name" type="text" value="Lighthouse Point" style="height:36px;box-sizing:border-box;padding:0 10px;border-radius:6px;border:1px solid rgba(255,255,255,0.14);background:rgba(0,0,0,0.22);color:#e0e0e0;font-size:13px"></div>
+            <div style="display:flex;flex-direction:column;gap:4px"><label for="nl-id" style="font-size:12px;color:#b4bfce">Level id</label><input id="nl-id" type="text" value="light-1" style="height:36px;box-sizing:border-box;padding:0 10px;border-radius:6px;border:1px solid rgba(255,255,255,0.14);background:rgba(0,0,0,0.22);color:#e0e0e0;font-family:'JetBrains Mono',monospace;font-size:12.5px"></div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:8px;padding:10px 12px;border-radius:10px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08)">
+            <span style="font-size:12px;font-weight:600;color:#ffaa40">What a Fizz 2 level gets</span>
+            <sc-for list="{{gets}}" as="g" hint-placeholder-count="5">
+              <div style="display:flex;gap:10px;align-items:baseline"><span style="width:64px;flex:none;font-size:12px;color:#b4bfce">{{g.k}}</span><span style="display:flex;flex-wrap:wrap;gap:4px"><sc-for list="{{g.v}}" as="c" hint-placeholder-count="4"><span style="height:22px;display:inline-flex;align-items:center;padding:0 8px;border-radius:999px;border:1px solid rgba(255,255,255,0.14);font-size:11.5px;color:#e0e0e0">{{c}}</span></sc-for></span></div>
+            </sc-for>
+            <span style="font-size:12px;color:#b4bfce;line-height:1.45">Nothing from Fizz 1 is offered, greyed or otherwise: no Lift, Room or Arena tool, no Fizz 1 roster.</span>
+          </div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:11.5px;line-height:1.6;border-radius:8px;background:#050507;padding:8px 10px;color:#e0e0e0;white-space:pre"><span style="color:#ffaa40">script fizz2 0</span>              <span style="color:#7c8796">// line 1, for life</span>
+level "Lighthouse Point" 40x14 id=light-1</div>
+        </div>
+        <div style="flex:none;display:flex;align-items:center;gap:8px;padding:12px 16px;border-top:1px solid rgba(255,255,255,0.08)">
+          <span style="font-size:12px;color:#b4bfce;flex-grow:1">Later: Level, Convert to Fizz 2 on a Fizz 1 level; File, Export to Fizz 1 on this one.</span>
+          <button style="min-height:36px;padding:0 16px;border-radius:999px;border:1px solid rgba(255,255,255,0.22);background:transparent;color:#e0e0e0;font-weight:500">Cancel</button>
+          <button style="min-height:36px;padding:0 16px;border-radius:999px;border:none;background:#ffaa40;color:#050507;font-weight:600">Create level</button>
+        </div>
+      </div>
+
+      <!-- Capabilities card -->
+      <div role="dialog" aria-label="Capabilities" style="flex:1;min-width:0;box-sizing:border-box;border-radius:12px;border:1px solid rgba(255,255,255,0.14);background:#16161c;box-shadow:0 16px 48px rgba(0,0,0,0.45);display:flex;flex-direction:column;max-height:800px">
+        <div style="height:52px;flex:none;display:flex;align-items:center;gap:8px;padding:0 4px 0 16px;border-bottom:1px solid rgba(255,255,255,0.08)">
+          <span style="font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:16px;color:#fff">Capabilities</span>
+          <span style="font-family:'JetBrains Mono',monospace;font-size:11.5px;color:#ffaa40">ep2</span>
+          <span style="flex-grow:1"></span>
+          <button aria-label="Close Capabilities" style="width:44px;height:44px;border:none;border-radius:999px;background:transparent;color:#b4bfce;display:inline-flex;align-items:center;justify-content:center"><svg aria-hidden="true" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M4 4l8 8M12 4l-8 8"></path></svg></button>
+        </div>
+        <div style="padding:8px 12px;display:flex;flex-wrap:wrap;gap:6px;border-bottom:1px solid rgba(255,255,255,0.08)">
+          <sc-for list="{{legend}}" as="l" hint-placeholder-count="4"><span style="height:22px;display:inline-flex;align-items:center;gap:6px;padding:0 8px;border-radius:999px;font-size:11.5px;{{l.style}}">{{l.name}}</span></sc-for>
+        </div>
+        <div style="overflow:hidden;padding:4px 0">
+          <sc-for list="{{caps}}" as="c" hint-placeholder-count="10">
+            <div style="display:grid;grid-template-columns:minmax(0,1fr) 84px;gap:8px;align-items:center;padding:5px 12px;border-bottom:1px solid rgba(255,255,255,0.05)">
+              <div style="display:flex;flex-direction:column;gap:1px;min-width:0"><span style="font-size:12.5px;color:#e0e0e0">{{c.f}}</span><span style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#7c8796;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{c.src}}</span></div>
+              <span style="justify-self:end;height:22px;display:inline-flex;align-items:center;padding:0 8px;border-radius:999px;font-size:11px;{{c.style}}">{{c.st}}</span>
+            </div>
+          </sc-for>
+        </div>
+        <div style="padding:8px 12px 12px;font-size:11.5px;color:#b4bfce;line-height:1.45">Help, Capabilities. Provisional: once the game publishes its tables (F2) the profile is generated from them. Accepted rows carry a "not yet in the game" badge in the editor.</div>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const ST = {
+      built: 'border:1px solid rgba(46,198,106,0.6);color:#6ee7a0;background:rgba(46,198,106,0.1)',
+      accepted: 'border:1px solid rgba(251,191,36,0.6);color:#fcd34d;background:rgba(251,191,36,0.08)',
+      reserved: 'border:1px dashed rgba(180,191,206,0.6);color:#b4bfce;background:transparent',
+      absent: 'border:1px solid rgba(124,135,150,0.5);color:#b4bfce;background:transparent'
+    };
+    const caps = [
+      ['map grid, at= positions, floor solid', 'built', 'LEVL v1 today · F10 for v2'],
+      ['Tiles: fill, block, one-way, spike, doors, exit, back wall', 'built', 'tiles.rs'],
+      ['Choc and the six slopes', 'reserved', 'no letter yet · Q11'],
+      ['Snacks, soda, red and blue keys, chicken', 'built', '#137 · kind 1 to 4'],
+      ['lock (key and door)', 'built', '#140, provisional'],
+      ['States, bindings, other rule inputs', 'accepted', 'W106 · F11'],
+      ['Switches', 'accepted', 'W106 · F11, kind 6 reserved'],
+      ['Strings, floating words, cues', 'accepted', 'W106 · #138, F11, F18'],
+      ['Placed lights', 'accepted', 'W106 · F12; constants today, #146'],
+      ['Custom enemies and items', 'accepted', 'W106 · F16, F17'],
+      ['Theme', 'accepted', 'W109 · F3'],
+      ['music', 'reserved', 'W109'],
+      ['Bitmap parallax panels', 'accepted', 'F19; procedural today, #144'],
+      ['Wall-kick, always on', 'accepted', 'F9; not in today\'s build'],
+      ['Lifts, rooms, arena, ladders, overworld', 'absent', 'E102']
+    ].map((r) => ({ f: r[0], st: r[1], src: r[2], style: ST[r[1]] }));
+    const legend = [['built', 'built: lowers and runs'], ['accepted', 'accepted: the game refuses it yet'], ['reserved', 'reserved: shown, not lowered'], ['absent', 'absent: E102']].map((l) => ({ name: l[1], style: ST[l[0]] }));
+    const gets = [
+      ['Tools', ['Select', 'Paint the map', 'Erase', 'Pick', 'Stamp', 'Light']],
+      ['Windows', ['Objects with ids', 'States', 'Rules', 'Lights', 'Budget', 'Definitions', 'Sprites', 'Panels']],
+      ['Views', ['Game view (oblique)', 'Night', 'Sky', 'Flat grid aid', 'Dump']],
+      ['Checks', ['E101–E130', 'W101–W113', 'E2xx, W2xx']],
+      ['Export', ['Fizz 1, with the lossy check']]
+    ].map((g) => ({ k: g[0], v: g[1] }));
+    const ctl = [['Minimise', 'M3.5 8.5h9'], ['Maximise', 'M3.5 3.5h9v9h-9z'], ['Close', 'M4 4l8 8M12 4l-8 8']].map((c) => ({ label: c[0], d: c[1] }));
+    return { caps: caps, legend: legend, gets: gets, ctl: ctl };
+  }
+}
+</script>
+</body>
+</html>

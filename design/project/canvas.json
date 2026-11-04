@@ -4,21 +4,21 @@
   "boards": {
     "Canvas.dc.html": {
       "h": 900,
-      "title": "B \u00b7 Canvas first",
+      "title": "B · Canvas first",
       "w": 1440,
       "x": 0,
       "y": 1800
     },
     "Chat.dc.html": {
       "h": 900,
-      "title": "D \u00b7 Conversation first",
+      "title": "D · Conversation first",
       "w": 1440,
       "x": 3040,
       "y": 1800
     },
     "Float.dc.html": {
       "h": 900,
-      "title": "E \u00b7 Floating panels",
+      "title": "E · Floating panels",
       "w": 1440,
       "x": 0,
       "y": 3000
@@ -47,28 +47,28 @@
     "Main.dc.html": {
       "h": 900,
       "is_interactive": true,
-      "title": "A \u00b7 Workbench (interactive)",
+      "title": "A · Workbench (interactive)",
       "w": 1440,
       "x": 0,
       "y": 0
     },
     "Overlay.dc.html": {
       "h": 900,
-      "title": "G \u00b7 Layered overlay",
+      "title": "G · Layered overlay",
       "w": 1440,
       "x": 3040,
       "y": 3000
     },
     "Script.dc.html": {
       "h": 900,
-      "title": "C \u00b7 Script first",
+      "title": "C · Script first",
       "w": 1440,
       "x": 1520,
       "y": 1800
     },
     "Split.dc.html": {
       "h": 900,
-      "title": "F \u00b7 Side-by-side split",
+      "title": "F · Side-by-side split",
       "w": 1440,
       "x": 1520,
       "y": 3000
@@ -82,28 +82,28 @@
     },
     "Work1.dc.html": {
       "h": 900,
-      "title": "H1 \u00b7 Snapped panels",
+      "title": "H1 · Snapped panels",
       "w": 1440,
       "x": 0,
       "y": 5600
     },
     "Work2.dc.html": {
       "h": 900,
-      "title": "H2 \u00b7 Overlay editor",
+      "title": "H2 · Overlay editor",
       "w": 1440,
       "x": 1520,
       "y": 5600
     },
     "Work3.dc.html": {
       "h": 900,
-      "title": "H3 \u00b7 Conversation led",
+      "title": "H3 · Conversation led",
       "w": 1440,
       "x": 3040,
       "y": 5600
     },
     "Workspace.dc.html": {
       "h": 900,
-      "title": "H \u00b7 Design workspace",
+      "title": "H · Design workspace",
       "w": 1440,
       "x": 4560,
       "y": 3000
@@ -120,21 +120,21 @@
       "y": 6720,
       "w": 1440,
       "h": 900,
-      "title": "H4 \u00b7 Docked tabs and review"
+      "title": "H4 · Docked tabs and review"
     },
     "Work5.dc.html": {
       "x": 1520,
       "y": 6720,
       "w": 1440,
       "h": 900,
-      "title": "H5 \u00b7 Context ring and history"
+      "title": "H5 · Context ring and history"
     },
     "Work6.dc.html": {
       "x": 3040,
       "y": 6720,
       "w": 1440,
       "h": 900,
-      "title": "H6 \u00b7 Popped-out script and navigator"
+      "title": "H6 · Popped-out script and navigator"
     },
     "Logos4.dc.html": {
       "x": 4560,
@@ -171,7 +171,7 @@
       "y": 8000,
       "w": 1440,
       "h": 900,
-      "title": "Ultimate editor \u2014 menus and popped-out script"
+      "title": "Ultimate editor — menus and popped-out script"
     },
     "Proto.dc.html": {
       "x": 0,
@@ -211,6 +211,97 @@
       "expand": "fill",
       "is_interactive": true,
       "page": "level"
+    },
+    "F2NewLevel.dc.html": {
+      "x": 0,
+      "y": 9380,
+      "w": 1440,
+      "h": 900,
+      "title": "F2-1 · New world, New level and the Capabilities card"
+    },
+    "F2Editor.dc.html": {
+      "x": 1520,
+      "y": 9380,
+      "w": 1440,
+      "h": 900,
+      "title": "F2-2 · The Fizz 2 editor: Game view, tools, Objects, Script, world tree"
+    },
+    "F2States.dc.html": {
+      "x": 3040,
+      "y": 9380,
+      "w": 1440,
+      "h": 900,
+      "title": "F2-3 · States and Rules, with Words and Sounds"
+    },
+    "F2Lights.dc.html": {
+      "x": 4560,
+      "y": 9380,
+      "w": 1440,
+      "h": 900,
+      "title": "F2-4 · Lights and the night Game view"
+    },
+    "F2Panels.dc.html": {
+      "x": 0,
+      "y": 10640,
+      "w": 1440,
+      "h": 900,
+      "title": "F2-5 · Parallax panels and the pixel editor"
+    },
+    "F2Behaviour.dc.html": {
+      "x": 1520,
+      "y": 10640,
+      "w": 1440,
+      "h": 900,
+      "title": "F2-6 · Definitions and the behaviour editor"
+    },
+    "F2Budget.dc.html": {
+      "x": 3040,
+      "y": 10640,
+      "w": 1440,
+      "h": 900,
+      "title": "F2-7 · Budget, Fizz 1 export check and conversion report"
+    },
+    "F2Sprites.dc.html": {
+      "x": 4560,
+      "y": 10640,
+      "w": 1440,
+      "h": 900,
+      "title": "F2-8 · Sprites, with the retro set read-only"
+    },
+    "AppStart.dc.html": {
+      "x": 0,
+      "y": 11900,
+      "w": 1440,
+      "h": 900,
+      "title": "App-1 · Start screen: open a world, recent worlds"
+    },
+    "AppSettings.dc.html": {
+      "x": 1520,
+      "y": 11900,
+      "w": 880,
+      "h": 600,
+      "title": "App-2 · Settings window"
+    },
+    "AppAbout.dc.html": {
+      "x": 2480,
+      "y": 11900,
+      "w": 560,
+      "h": 700,
+      "title": "App-3 · About and third-party notices"
+    },
+    "AppConflict.dc.html": {
+      "x": 3120,
+      "y": 11900,
+      "w": 720,
+      "h": 520,
+      "title": "App-4 · The file changed on disk"
+    },
+    "AppRecovery.dc.html": {
+      "x": 3920,
+      "y": 11900,
+      "w": 520,
+      "h": 460,
+      "title": "App-5 · Autosave and crash recovery"
     }
   },
   "createdOnFiles": {
@@ -233,7 +324,7 @@
     "arr": {
       "kind": "title1",
       "maxW": 6000,
-      "text": "Four ways to arrange the whole workspace \u2014 the code editor moves, docks or floats",
+      "text": "Four ways to arrange the whole workspace — the code editor moves, docks or floats",
       "w": 240,
       "x": 0,
       "y": 2760
@@ -241,7 +332,7 @@
     "head": {
       "kind": "title1",
       "maxW": 3840,
-      "text": "Fizz Level Studio \u2014 a level editor Claude can sit inside",
+      "text": "Fizz Level Studio — a level editor Claude can sit inside",
       "w": 240,
       "x": 0,
       "y": -300
@@ -265,7 +356,7 @@
     "opts": {
       "kind": "title1",
       "maxW": 4480,
-      "text": "Four layouts to choose from \u2014 A is the workbench above",
+      "text": "Four layouts to choose from — A is the workbench above",
       "w": 240,
       "x": 0,
       "y": 1560
@@ -294,7 +385,7 @@
     "work": {
       "kind": "title1",
       "maxW": 4480,
-      "text": "Workspace iterations \u2014 the level is the background, every panel floats, snaps and resizes",
+      "text": "Workspace iterations — the level is the background, every panel floats, snaps and resizes",
       "w": 240,
       "x": 0,
       "y": 5360
@@ -329,7 +420,7 @@
       "kind": "title1",
       "w": 240,
       "maxW": 2960,
-      "text": "The ultimate editor \u2014 H4, H5 and H6 blended, with the Liminal desktop chrome"
+      "text": "The ultimate editor — H4, H5 and H6 blended, with the Liminal desktop chrome"
     },
     "dec": {
       "x": 1380,
@@ -337,6 +428,37 @@
       "w": 420,
       "fill": "orange",
       "text": "Decided: the Ultimate layout is the home layout, and the line park (28) is the logo direction. Next: a richer prototype, the language and Rust exporter, then the MCP server."
+    },
+    "f2a": {
+      "x": 0,
+      "y": 9140,
+      "kind": "title1",
+      "w": 240,
+      "maxW": 6000,
+      "text": "Fizz 2 in the studio, proposed: target, editor, states and rules, lights"
+    },
+    "f2b": {
+      "x": 0,
+      "y": 10400,
+      "kind": "title1",
+      "w": 240,
+      "maxW": 6000,
+      "text": "Fizz 2 in the studio, proposed: panels, behaviours, budgets and sprites"
+    },
+    "f2c": {
+      "x": 0,
+      "y": 11660,
+      "kind": "title1",
+      "w": 240,
+      "maxW": 4440,
+      "text": "The desktop app around it: start, settings, about, conflicts, recovery"
+    },
+    "f2note": {
+      "x": 6080,
+      "y": 9380,
+      "w": 420,
+      "fill": "orange",
+      "text": "Proposed. Every Fizz 2 line, layout and number here follows the studio docs (EDITOR.md 13 to 15, WORLD.md, SCRIPTING.md, LANGUAGE.md) on docs/fizz2-editor-docs. The syntax is the studio's proposal until Fizz 2's grammar (fizz-script) and baker (fizz-bake) exist; they win where they differ. Level data is a canned sample."
     }
   },
   "order": [
@@ -367,7 +489,20 @@
     "Proto.dc.html",
     "Guide.dc.html",
     "Manual.dc.html",
-    "Level.dc.html"
+    "Level.dc.html",
+    "F2NewLevel.dc.html",
+    "F2Editor.dc.html",
+    "F2States.dc.html",
+    "F2Lights.dc.html",
+    "F2Panels.dc.html",
+    "F2Behaviour.dc.html",
+    "F2Budget.dc.html",
+    "F2Sprites.dc.html",
+    "AppStart.dc.html",
+    "AppSettings.dc.html",
+    "AppAbout.dc.html",
+    "AppConflict.dc.html",
+    "AppRecovery.dc.html"
   ],
   "pages": [
     {

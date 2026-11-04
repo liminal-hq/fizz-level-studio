@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Lights and the night Game view</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@500;600;700&display=swap">
+<style>body{margin:0;background:#050507}button{font-family:inherit;cursor:pointer}button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid #ffaa40;outline-offset:1px}input[type=range]{accent-color:#ffaa40}</style>
+</helmet>
+<div style="width:1440px;height:900px;box-sizing:border-box;position:relative;display:flex;flex-direction:column;background:#050507;color:#e0e0e0;font-family:Inter,system-ui,sans-serif;font-size:13px;overflow:hidden;border:1px solid rgba(255,255,255,0.12);border-radius:12px">
+
+  <div style="height:40px;flex:none;box-sizing:border-box;display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;column-gap:8px;padding:0 8px;background:#0c0c10;border-bottom:1px solid rgba(255,255,255,0.12)">
+    <div style="display:flex;align-items:center;gap:4px"><button aria-haspopup="menu" aria-label="Fizz Level Studio menu" style="display:inline-flex;align-items:center;gap:8px;height:28px;padding:0 8px;border:none;border-radius:6px;background:transparent;color:#e0e0e0;font-weight:600;font-size:13px"><span aria-hidden="true" style="width:16px;height:16px;border-radius:4px;background:linear-gradient(135deg,#ffaa40,#f43f5e,#a78bfa)"></span><span>Fizz Level Studio</span></button></div>
+    <div style="display:flex;align-items:center;gap:8px;white-space:nowrap"><span>light-1.fizz — Lighthouse Point</span><span style="height:20px;display:inline-flex;align-items:center;padding:0 8px;border-radius:999px;border:1px solid rgba(255,170,64,0.6);color:#ffaa40;font-size:11.5px">Fizz 2 · ep2 · fizz2 0</span></div>
+    <div role="group" aria-label="Window controls" style="display:flex;justify-content:flex-end;gap:2px">
+      <sc-for list="{{ctl}}" as="c" hint-placeholder-count="3"><button aria-label="{{c.label}}" title="{{c.label}}" style="position:relative;width:28px;height:28px;padding:0;border:none;background:transparent;color:#e0e0e0;display:inline-flex;align-items:center;justify-content:center"><span aria-hidden="true" style="position:absolute;inset:2px;border-radius:50%;background:rgba(255,255,255,0.06)"></span><svg aria-hidden="true" style="position:relative" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><path d="{{c.d}}"></path></svg></button></sc-for>
+    </div>
+  </div>
+  <div role="menubar" aria-label="Menu bar" style="height:34px;flex:none;box-sizing:border-box;display:flex;align-items:center;gap:2px;padding:3px 8px;background:#0c0c10;border-bottom:1px solid rgba(255,255,255,0.08)">
+    <sc-for list="{{menus}}" as="m" hint-placeholder-count="8"><button role="menuitem" aria-haspopup="menu" style="height:28px;padding:0 10px;border:none;border-radius:6px;background:transparent;color:#e0e0e0;font-size:13px">{{m}}</button></sc-for>
+    <span style="flex-grow:1"></span><span style="font-size:12px;color:#b4bfce">Light tool (G) · click to place · Night on</span>
+  </div>
+
+  <div style="position:relative;flex-grow:1;min-height:0;overflow:hidden;background:#04040a">
+    <!-- Game view at night -->
+    <div style="position:absolute;left:76px;top:68px;width:1040px;height:364px;overflow:hidden;outline:1px solid rgba(255,255,255,0.14);background:linear-gradient(#000022,#0b1030 70%,#161a40)">
+      <sc-for list="{{stars}}" as="t" hint-placeholder-count="10"><div style="position:absolute;width:2px;height:2px;background:#AAAAAA;left:{{t.x}}px;top:{{t.y}}px"></div></sc-for>
+      <div style="position:absolute;inset:0;display:grid;grid-template-columns:repeat(40,26px);grid-auto-rows:26px">
+        <sc-for list="{{cells}}" as="c" hint-placeholder-count="40"><div style="box-sizing:border-box;{{c}}"></div></sc-for>
+      </div>
+      <div style="position:absolute;inset:0;background:rgba(0,0,24,0.55)"></div>
+      <sc-for list="{{glows}}" as="g" hint-placeholder-count="5"><div style="position:absolute;border-radius:50%;mix-blend-mode:screen;pointer-events:none;{{g.s}}"></div></sc-for>
+      <sc-for list="{{marks}}" as="m" hint-placeholder-count="6"><div style="position:absolute;box-sizing:border-box;{{m.s}}"></div><div style="position:absolute;height:20px;display:flex;align-items:center;padding:0 7px;border-radius:999px;background:rgba(12,12,16,0.92);font-size:10.5px;white-space:nowrap;{{m.ts}}">{{m.t}}</div></sc-for>
+      <div style="position:absolute;left:8px;bottom:8px;height:24px;display:flex;align-items:center;padding:0 10px;border-radius:999px;background:rgba(12,12,16,0.88);border:1px solid rgba(255,255,255,0.14);font-size:11.5px;color:#e0e0e0">Night preview: palette banks and lights from the game's presenter (F5, F12); this frame is a stand-in</div>
+    </div>
+
+    <!-- tool rail -->
+    <div role="toolbar" aria-label="Tools" aria-orientation="vertical" style="position:absolute;left:8px;top:8px;width:60px;box-sizing:border-box;padding:8px;border-radius:12px;border:1px solid rgba(255,255,255,0.1);background:rgba(20,20,25,0.72);display:flex;flex-direction:column;align-items:center;gap:4px">
+      <sc-for list="{{tools}}" as="t" hint-placeholder-count="7"><button aria-label="{{t.label}}" title="{{t.label}}" aria-pressed="{{t.on}}" style="width:44px;height:44px;border-radius:8px;font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:500;{{t.s}}">{{t.k}}</button></sc-for>
+    </div>
+
+    <!-- view bar -->
+    <div role="toolbar" aria-label="View" style="position:absolute;left:76px;top:8px;width:1040px;height:52px;box-sizing:border-box;padding:4px 8px 4px 12px;border-radius:999px;border:1px solid rgba(255,255,255,0.1);background:rgba(20,20,25,0.8);display:flex;align-items:center;gap:6px">
+      <span style="font-size:12px;color:#b4bfce">View</span>
+      <sc-for list="{{views}}" as="z" hint-placeholder-count="4"><button aria-pressed="{{z.on}}" style="height:40px;padding:0 12px;border-radius:999px;font-size:12.5px;{{z.s}}">{{z.n}}</button></sc-for>
+      <span style="flex-grow:1"></span>
+      <span style="font-size:12px;color:#b4bfce">Preview with</span>
+      <button aria-pressed="true" style="height:40px;padding:0 12px;border-radius:999px;border:1px solid #fb923c;background:rgba(251,146,60,0.1);color:#fff;font-size:12.5px;font-family:'JetBrains Mono',monospace">alarm on</button>
+      <span style="font-size:12px;color:#b4bfce">Lights in view</span><span style="font-family:'JetBrains Mono',monospace;font-size:12.5px;color:#fff">6 of 16</span>
+    </div>
+
+    <!-- light inspector -->
+    <div style="position:absolute;left:1124px;top:8px;width:308px;height:600px;border-radius:12px;border:1px solid rgba(255,255,85,0.45);background:rgba(20,20,25,0.94);box-shadow:0 10px 30px rgba(0,0,0,0.3);display:flex;flex-direction:column;overflow:hidden">
+      <div style="height:44px;flex:none;display:flex;align-items:center;gap:8px;padding:0 12px;border-bottom:1px solid rgba(255,255,255,0.08)"><span style="font-weight:500;color:#fff">Inspector</span><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#FFFF55">lamp-2</span><span style="flex-grow:1"></span><span style="font-size:12px;color:#b4bfce">light · new</span></div>
+      <div style="padding:10px 12px;display:flex;flex-direction:column;gap:10px">
+        <div style="display:flex;gap:8px"><div style="flex:1;display:flex;flex-direction:column;gap:3px"><label for="lt-x" style="font-size:11.5px;color:#b4bfce">at x</label><input id="lt-x" type="text" value="12" style="height:32px;box-sizing:border-box;padding:0 8px;border-radius:6px;border:1px solid rgba(255,255,255,0.14);background:#050507;color:#e0e0e0;font-family:'JetBrains Mono',monospace;font-size:12px"></div><div style="flex:1;display:flex;flex-direction:column;gap:3px"><label for="lt-y" style="font-size:11.5px;color:#b4bfce">at y</label><input id="lt-y" type="text" value="6" style="height:32px;box-sizing:border-box;padding:0 8px;border-radius:6px;border:1px solid rgba(255,255,255,0.14);background:#050507;color:#e0e0e0;font-family:'JetBrains Mono',monospace;font-size:12px"></div></div>
+        <div style="display:flex;align-items:center;gap:10px"><label for="lt-r" style="width:58px;flex:none;font-size:12px;color:#b4bfce">Radius</label><input id="lt-r" type="range" min="1" max="12" value="4" style="flex:1;margin:0"><span style="width:56px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:12px">4 tiles</span></div>
+        <div style="display:flex;flex-direction:column;gap:6px"><span style="font-size:12px;color:#b4bfce">Colour (EGA) or palette bank</span>
+          <div role="radiogroup" aria-label="Light colour" style="display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:4px"><sc-for list="{{ega}}" as="e" hint-placeholder-count="16"><button role="radio" aria-checked="{{e.on}}" aria-label="{{e.n}}" title="{{e.n}}" style="height:28px;border-radius:4px;background:{{e.c}};{{e.s}}"></button></sc-for></div>
+          <div style="display:flex;gap:6px"><button aria-pressed="true" style="flex:1;min-height:30px;border-radius:999px;border:1px solid #ffaa40;background:rgba(255,170,64,0.12);color:#fff;font-size:12px">colour=yellow</button><button aria-pressed="false" style="flex:1;min-height:30px;border-radius:999px;border:1px solid rgba(255,255,255,0.14);background:transparent;color:#b4bfce;font-size:12px">bank= …</button></div>
+        </div>
+        <sc-for list="{{segs}}" as="g" hint-placeholder-count="2"><div style="display:flex;align-items:center;gap:10px"><span style="width:58px;flex:none;font-size:12px;color:#b4bfce">{{g.k}}</span><div role="radiogroup" aria-label="{{g.k}}" style="flex:1;display:flex;padding:2px;border-radius:999px;border:1px solid rgba(255,255,255,0.14)"><sc-for list="{{g.v}}" as="v" hint-placeholder-count="3"><button role="radio" aria-checked="{{v.on}}" style="flex:1;height:30px;border:none;border-radius:999px;font-size:12px;{{v.s}}">{{v.n}}</button></sc-for></div></div></sc-for>
+        <div style="display:flex;gap:8px"><div style="flex:1;display:flex;flex-direction:column;gap:3px"><label for="lt-st" style="font-size:11.5px;color:#b4bfce">Switched by</label><select id="lt-st" style="height:32px;padding:0 6px;border-radius:6px;border:1px solid rgba(255,255,255,0.14);background:#0c0c10;color:#e0e0e0;font-size:12px"><option>alarm, on=on</option><option>none</option><option>red-door</option></select></div><div style="flex:1;display:flex;flex-direction:column;gap:3px"><label for="lt-at" style="font-size:11.5px;color:#b4bfce">Attach to</label><select id="lt-at" style="height:32px;padding:0 6px;border-radius:6px;border:1px solid rgba(255,255,255,0.14);background:#0c0c10;color:#e0e0e0;font-size:12px"><option>nothing</option><option>hen</option><option>bot-1</option><option>ben</option></select></div></div>
+        <div style="border-radius:8px;background:#050507;padding:6px 8px;font-family:'JetBrains Mono',monospace;font-size:11px;line-height:1.5;color:#e0e0e0;white-space:pre-wrap">light id=lamp-2 at=12,6 radius=4 colour=yellow falloff=soft flicker=candle state=alarm on=on</div>
+        <div style="display:flex;gap:6px;align-items:center"><span title="Not yet in the game (W106)" style="font-size:11px;padding:1px 7px;border-radius:999px;border:1px solid rgba(251,191,36,0.6);color:#fcd34d">W106 · F12</span><span style="font-size:11.5px;color:#b4bfce;line-height:1.4">Lights are constants in today's build (#146).</span></div>
+      </div>
+    </div>
+
+    <!-- light list -->
+    <div style="position:absolute;left:76px;top:440px;width:520px;height:378px;border-radius:12px;border:1px solid rgba(255,255,255,0.1);background:rgba(20,20,25,0.94);display:flex;flex-direction:column;overflow:hidden">
+      <div style="height:44px;flex:none;display:flex;align-items:center;gap:8px;padding:0 12px;border-bottom:1px solid rgba(255,255,255,0.08)"><span style="font-weight:500;color:#fff">Lights</span><span style="font-size:12px;color:#b4bfce">3 placed · 3 derived by the game</span></div>
+      <div style="padding:6px 8px;display:flex;flex-direction:column;gap:2px">
+        <sc-for list="{{list}}" as="l" hint-placeholder-count="6"><div style="display:grid;grid-template-columns:18px 96px minmax(0,1fr) 90px;gap:8px;align-items:center;min-height:40px;padding:0 6px;border-radius:6px;{{l.box}}"><span style="width:14px;height:14px;border-radius:50%;{{l.dot}}"></span><span style="font-family:'JetBrains Mono',monospace;font-size:12px">{{l.id}}</span><span style="font-size:12px;color:#b4bfce;line-height:1.35">{{l.d}}</span><span style="font-size:11px;color:#b4bfce;text-align:right">{{l.k}}</span></div></sc-for>
+      </div>
+      <div style="margin-top:auto;padding:8px 12px;font-size:11.5px;color:#b4bfce;line-height:1.45;border-top:1px solid rgba(255,255,255,0.08)">Derived lights (door badges, the exit glow, Ben's lantern, the shots) follow the game's own things and need no authoring.</div>
+    </div>
+
+    <!-- cost meters -->
+    <div style="position:absolute;left:604px;top:440px;width:512px;height:378px;border-radius:12px;border:1px solid rgba(255,255,255,0.1);background:rgba(20,20,25,0.94);display:flex;flex-direction:column;overflow:hidden">
+      <div style="height:44px;flex:none;display:flex;align-items:center;gap:8px;padding:0 12px;border-bottom:1px solid rgba(255,255,255,0.08)"><span style="font-weight:500;color:#fff">Budget · lights and panels</span></div>
+      <div style="padding:10px 12px;display:flex;flex-direction:column;gap:12px">
+        <sc-for list="{{meters}}" as="m" hint-placeholder-count="4">
+          <div style="display:flex;flex-direction:column;gap:5px">
+            <div style="display:flex;align-items:baseline;gap:8px"><span style="font-size:12.5px;color:#fff">{{m.n}}</span><span style="flex-grow:1"></span><span style="font-family:'JetBrains Mono',monospace;font-size:12px;{{m.ink}}">{{m.v}}</span></div>
+            <div style="height:8px;border-radius:4px;background:rgba(255,255,255,0.08);overflow:hidden"><div style="height:100%;{{m.bar}}"></div></div>
+            <span style="font-size:11px;color:#7c8796">{{m.src}}</span>
+          </div>
+        </sc-for>
+        <div style="font-size:11.5px;color:#b4bfce;line-height:1.45">Reference from #146: Full night averages 17.1 ms on the 486DX2-66 model against the 16.7 ms step. A meter with no source reads "not run".</div>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const T = 26, H = 14;
+    const map = ['#......................................#', '#......................................#', '#......................................#', '#......................................#', '#...............====...................#', '#......................................#', '#......................................#', '#.............................BBBBBBBBB#', '#....====...............====..Bwwwwwwww#', '#.............................Dwwwwwwww#', '#.............................Dwwwwwwww#', '#.............................DwwwwwEww#', '###########...##########################', '###########^^^##########################'];
+    const solid = (r, c) => r >= 0 && r < H && '#B'.indexOf(map[r][c]) >= 0;
+    const cells = [];
+    map.forEach((row, r) => row.split('').forEach((ch, c) => {
+      const top = !solid(r - 1, c);
+      const L = { '#': 'background:' + (top ? 'linear-gradient(#AAAAAA 0 5px,#555555 5px 8px,#3a3a44 8px)' : '#3a3a44'), B: 'background:repeating-linear-gradient(#AA5500 0 8px,#552a00 8px 9px)', '=': 'background:linear-gradient(#FFFF55 0 3px,#AA5500 3px 10px,transparent 10px)', D: 'background:#AA0000', w: 'background:#1c1c3a', E: 'background:#00AAAA', '^': 'background:linear-gradient(transparent 50%,#AAAAAA 50%)' };
+      cells.push(L[ch] || 'background:transparent');
+    }));
+    const px = (x) => x * T, py = (y) => (H - y) * T;
+    const glow = (x, y, r, col) => ({ s: 'left:' + (px(x) - r * T) + 'px;top:' + (py(y) - r * T) + 'px;width:' + 2 * r * T + 'px;height:' + 2 * r * T + 'px;background:radial-gradient(circle,' + col + ' 0,transparent 70%)' });
+    const glows = [glow(34, 5, 5, 'rgba(255,255,85,0.55)'), glow(12, 6, 4, 'rgba(255,255,85,0.45)'), glow(8, 2.6, 2, 'rgba(85,255,85,0.5)'), glow(36.5, 2.5, 2, 'rgba(85,255,255,0.45)'), glow(2.4, 2.8, 2.5, 'rgba(255,170,85,0.4)'), glow(30.5, 3, 1.5, 'rgba(255,85,85,0.45)')];
+    const marks = [
+      { s: 'left:' + (px(12) - 4 * T) + 'px;top:' + (py(6) - 4 * T) + 'px;width:' + 8 * T + 'px;height:' + 8 * T + 'px;border:2px solid #FFFF55;border-radius:50%', ts: 'left:' + (px(12) - 40) + 'px;top:' + (py(6) - 4 * T - 24) + 'px;border:1px solid #FFFF55;color:#fff', t: 'lamp-2 · radius 4 · new' },
+      { s: 'left:' + (px(12) - 7) + 'px;top:' + (py(6) - 7) + 'px;width:14px;height:14px;background:#FFFF55;border-radius:50%;border:2px solid #050507', ts: 'display:none', t: '' },
+      { s: 'left:' + (px(34) - 5 * T) + 'px;top:' + (py(5) - 5 * T) + 'px;width:' + 10 * T + 'px;height:' + 10 * T + 'px;border:1.5px dashed rgba(255,255,85,0.7);border-radius:50%', ts: 'left:' + (px(34) - 50) + 'px;top:' + (py(5) - 5 * T + 4) + 'px;border:1px dashed #FFFF55;color:#e0e0e0', t: 'lamp-1 · alarm on' },
+      { s: 'left:' + (px(8) - 2 * T) + 'px;top:' + (py(2.6) - 2 * T) + 'px;width:' + 4 * T + 'px;height:' + 4 * T + 'px;border:1.5px dashed #55FF55;border-radius:50%', ts: 'left:' + (px(8) - 30) + 'px;top:' + (py(2.6) - 2 * T - 22) + 'px;border:1px dashed #55FF55;color:#e0e0e0', t: 'hen-glow, attached to hen' },
+      { s: 'left:' + (px(8) - 11) + 'px;top:' + (py(2) - 24) + 'px;width:22px;height:24px;background:#FFFF55;border-radius:9px 9px 3px 3px', ts: 'display:none', t: '' },
+      { s: 'left:' + (px(36.5) - 2 * T) + 'px;top:' + (py(2.5) - 2 * T) + 'px;width:' + 4 * T + 'px;height:' + 4 * T + 'px;border:1px dotted #55FFFF;border-radius:50%', ts: 'left:' + (px(36.5) - 70) + 'px;top:' + (py(2.5) + 2 * T - 30) + 'px;border:1px dotted #55FFFF;color:#e0e0e0', t: 'exit glow · derived' }
+    ];
+    const stars = [];
+    for (let i = 0; i < 36; i++) stars.push({ x: (i * 211) % 1040, y: (i * 71) % 180 });
+    const tools = [['Select', 'S'], ['Paint the map', 'B'], ['Erase', 'E'], ['Pick', 'I'], ['Stamp', 'T'], ['Light', 'G', 1], ['Pan', 'H']].map((t) => ({ label: t[0] + ' (' + t[1] + ')', k: t[1], on: t[2] ? 'true' : 'false', s: t[2] ? 'border:1px solid #FFFF55;background:rgba(255,255,85,0.1);color:#FFFF55' : 'border:1px solid rgba(255,255,255,0.08);background:transparent;color:#b4bfce' }));
+    const views = [['Game view', 1], ['Flat grid', 0], ['Night', 1], ['Sky', 1]].map((z) => ({ n: z[0], on: z[1] ? 'true' : 'false', s: z[1] ? 'border:1px solid #ffaa40;background:rgba(255,170,64,0.12);color:#fff' : 'border:1px solid rgba(255,255,255,0.14);background:transparent;color:#b4bfce' }));
+    const EGA = [['black', '#000000'], ['blue', '#0000AA'], ['green', '#00AA00'], ['cyan', '#00AAAA'], ['red', '#AA0000'], ['magenta', '#AA00AA'], ['brown', '#AA5500'], ['light grey', '#AAAAAA'], ['dark grey', '#555555'], ['light blue', '#5555FF'], ['light green', '#55FF55'], ['light cyan', '#55FFFF'], ['light red', '#FF5555'], ['light magenta', '#FF55FF'], ['yellow', '#FFFF55'], ['white', '#FFFFFF']];
+    const ega = EGA.map((e) => ({ n: e[0], c: e[1], on: e[0] === 'yellow' ? 'true' : 'false', s: e[0] === 'yellow' ? 'border:2px solid #fff;box-shadow:0 0 0 2px #050507 inset' : 'border:1px solid rgba(255,255,255,0.14)' }));
+    const seg = (k, list, on) => ({ k: k, v: list.map((n) => ({ n: n, on: n === on ? 'true' : 'false', s: n === on ? 'background:rgba(255,170,64,0.18);color:#fff' : 'background:transparent;color:#b4bfce' })) });
+    const segs = [seg('Falloff', ['soft', 'hard', 'number'], 'soft'), seg('Flicker', ['none', 'candle', 'pulse', 'ticks'], 'candle')];
+    const L = (id, d, k, dot, sel) => ({ id: id, d: d, k: k, dot: dot, box: sel ? 'background:rgba(255,255,85,0.08);border:1px solid rgba(255,255,85,0.4)' : 'background:rgba(255,255,255,0.02);border:1px solid transparent' });
+    const list = [L('lamp-2', '12,6 · radius 4 · yellow · candle · alarm on', 'placed · new', 'background:#FFFF55', 1), L('lamp-1', '34,5 · radius 5 · yellow · soft · alarm on', 'placed', 'background:#FFFF55'), L('hen-glow', 'radius 2 · green · follows hen', 'placed', 'background:#55FF55'), L('exit', 'the exit glow at 36,2', 'derived', 'border:1.5px dotted #55FFFF'), L('door', 'red door badge at 30,3', 'derived', 'border:1.5px dotted #FF5555'), L('ben', 'Ben\'s lantern', 'derived', 'border:1.5px dotted #FFAA55')];
+    const M = (n, v, pct, ink, src) => ({ n: n, v: v, src: src, ink: ink, bar: pct === null ? 'width:100%;background:repeating-linear-gradient(90deg,rgba(255,255,255,0.08) 0 6px,transparent 6px 12px)' : 'width:' + pct + '%;background:' + (pct > 90 ? '#fb923c' : '#2ec66a') });
+    const meters = [M('Lights in view, most at once', '6 of 16 active', 37, 'color:#fff', 'Counted by the studio from any camera position · W111 above 16 · pool of 32 (#146)'), M('Lights, DOS frame cost', 'not run', null, 'color:#b4bfce', 'From the game\'s bench (F22)'), M('Panels, bytes', 'not run', null, 'color:#b4bfce', 'From fizz-bake\'s world build report (F15, F19)'), M('Panels, DOS cost at Full and Light Sky', 'not run', null, 'color:#b4bfce', 'From the game\'s bench (F22)')];
+    const menus = ['File', 'Edit', 'View', 'Level', 'World', 'Claude', 'Window', 'Help'];
+    const ctl = [['Minimise', 'M3.5 8.5h9'], ['Maximise', 'M3.5 3.5h9v9h-9z'], ['Close', 'M4 4l8 8M12 4l-8 8']].map((c) => ({ label: c[0], d: c[1] }));
+    return { cells: cells, glows: glows, marks: marks, stars: stars, tools: tools, views: views, ega: ega, segs: segs, list: list, meters: meters, menus: menus, ctl: ctl };
+  }
+}
+</script>
+</body>
+</html>

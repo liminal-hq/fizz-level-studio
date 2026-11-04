@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>About Fizz Level Studio</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@500;600;700&display=swap">
+<style>body{margin:0;background:#050507}button{font-family:inherit;cursor:default}button:focus-visible,a:focus-visible{outline:2px solid #ffaa40;outline-offset:1px}a{color:#ffaa40}a:hover{color:#ffc477}</style>
+</helmet>
+<div style="width:560px;height:700px;box-sizing:border-box;display:flex;flex-direction:column;background:#16161c;color:#e0e0e0;font-family:Inter,system-ui,sans-serif;font-size:13px;overflow:hidden;border:1px solid rgba(255,255,255,0.12);border-radius:12px">
+  <div style="height:40px;flex:none;box-sizing:border-box;display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;column-gap:8px;padding:0 8px;background:#0c0c10;border-bottom:1px solid rgba(255,255,255,0.12)">
+    <span></span><span>About Fizz Level Studio</span>
+    <div role="group" aria-label="Window controls" style="display:flex;justify-content:flex-end"><button aria-label="Close" title="Close" style="position:relative;width:28px;height:28px;padding:0;border:none;background:transparent;color:#e0e0e0;display:inline-flex;align-items:center;justify-content:center"><span aria-hidden="true" style="position:absolute;inset:2px;border-radius:50%;background:rgba(255,255,255,0.06)"></span><svg aria-hidden="true" style="position:relative" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><path d="M4 4l8 8M12 4l-8 8"></path></svg></button></div>
+  </div>
+  <div style="padding:24px 28px 12px;display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center">
+    <span aria-hidden="true" style="width:72px;height:72px;border-radius:18px;background:linear-gradient(135deg,#ffaa40,#f43f5e,#a78bfa)"></span>
+    <h1 style="margin:4px 0 0;font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:24px;color:#fff">Fizz Level Studio</h1>
+    <span style="color:#b4bfce">A level editor Claude can sit inside.</span>
+    <button title="Copy the version and build details" style="height:28px;display:inline-flex;align-items:center;gap:6px;padding:0 10px;border-radius:6px;border:none;background:rgba(255,255,255,0.08);color:#e0e0e0;font-family:'JetBrains Mono',monospace;font-size:12px"><svg aria-hidden="true" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M5.5 4h6.5v10.5H5.5zM3.5 12V1.5H10"></path></svg>Version [version] ([build])</button>
+  </div>
+  <div role="tablist" aria-label="About" style="align-self:center;display:flex;padding:2px;border-radius:8px;background:rgba(255,255,255,0.08)">
+    <sc-for list="{{tabs}}" as="t" hint-placeholder-count="3"><button role="tab" aria-selected="{{t.on}}" style="height:24px;padding:0 14px;border:none;border-radius:6px;font-size:12px;{{t.s}}">{{t.n}}</button></sc-for>
+  </div>
+  <div style="padding:14px 28px;display:flex;flex-direction:column;gap:10px;overflow:hidden">
+    <div style="font-size:12.5px;color:#b4bfce;line-height:1.5">Fizz Level Studio is free software, licensed under the Apache License 2.0 or the MIT licence, at your option. Every dependency's licence is listed in THIRD_PARTY_NOTICES.md and checked by cargo deny.</div>
+    <div role="table" aria-label="Third-party notices" style="border-radius:10px;border:1px solid rgba(255,255,255,0.12);display:flex;flex-direction:column">
+      <sc-for list="{{third}}" as="r" hint-placeholder-count="7"><div role="row" style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.2fr);gap:10px;padding:7px 12px;border-bottom:1px solid rgba(255,255,255,0.06)"><span role="cell" style="color:#e0e0e0">{{r.n}}</span><span role="cell" style="font-size:12px;color:#b4bfce">{{r.l}}</span></div></sc-for>
+    </div>
+    <span style="font-size:11.5px;color:#7c8796">Shown in part: the full list is generated from the lock files.</span>
+  </div>
+  <div style="margin-top:auto;display:flex;align-items:center;gap:14px;justify-content:center;padding:12px 16px;border-top:1px solid rgba(255,255,255,0.08);font-size:12px">
+    <a href="#">Open THIRD_PARTY_NOTICES.md</a><a href="#">Licence texts</a><a href="#">Source</a>
+    <span style="color:#7c8796">© 2026 Liminal HQ, Scott Morris</span>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":560,"height":700}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const tabs = ['About', 'Credits', 'Third-party'].map((n) => ({ n: n, on: n === 'Third-party' ? 'true' : 'false', s: n === 'Third-party' ? 'background:#2b2d31;color:#fff;box-shadow:0 1px 2px rgba(0,0,0,0.3)' : 'background:transparent;color:#9a9a9a' }));
+    const third = [['Tauri 2', 'Apache-2.0 or MIT'], ['React', 'MIT'], ['Window chrome, from Waypoint', 'Apache-2.0 or MIT · Liminal HQ'], ['window-tearoff, window-effects', 'Copied from Waypoint, with PROVENANCE.md'], ['Lieutenant Fizz and Fizz 2 crates', 'Apache-2.0 or MIT · linked natively'], ['Inter, Space Grotesk, JetBrains Mono', 'SIL Open Font License 1.1'], ['Fizz 1 retro art (when imported)', 'From the Fizz 1 repository, at a pinned commit']].map((r) => ({ n: r[0], l: r[1] }));
+    return { tabs: tabs, third: third };
+  }
+}
+</script>
+</body>
+</html>
