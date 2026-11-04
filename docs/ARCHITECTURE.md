@@ -137,7 +137,7 @@ Lieutenant Fizz 2 bakes its levels from `.fizz` sources in its own repository. N
       │
       └── fizz-bake (Fizz 2 repository, Rust)
             fizz-script : parse → resolve → validate → lint → lower
-            LEVL        : header, name, objects, rules (up to 32), strings (up to 32), tiles; section version 1
+            LEVL 2      : header, name, states, bindings, objects, rules, strings, tiles
             LIGHT.FAP   : the world's pack; manifests and digests reviewable as text
             dump        : disassembly of objects and rule records
 ```
@@ -148,6 +148,8 @@ Lieutenant Fizz 2 bakes its levels from `.fizz` sources in its own repository. N
 - **Digests and manifests.** The pack's manifest and digest include the rule records and the decompiled lines, so a change to a rule shows in review as text. The editor does not compute them; it can show them.
 - **What exists in the Fizz 2 repository.** The `LEVL` data model is built and tested (`crates/fizz-pack`, `crates/fizz-ep2`; rules, strings and locks on the unmerged #137, #138 and #140). `fizz-script`, `fizz-bake`, the dialect's grammar and the packs are plans. So the record layout is a fact the editor can rely on, and the syntax is a proposal (`LANGUAGE.md`).
 - **The compatibility number.** A world pack carries a number derived from the schema and the game's content tables (tile properties, ids, snack kinds, key colours, cue ids, styles, the rules' semantics). A change to any of them makes old packs refuse to load, which is why the editor reads those tables from the target profile and never assumes them.
-- **Target profiles.** The editor keeps one script and a Target that names a profile (`fizz1`, `ep2`, later `ep3`): the dialect versions it accepts, its content tables, limits, budgets, the lints' physics parameters and a capability state per feature. Profiles are data generated from each game's own tables (ENGINE-CHANGES E11 and F2). The Fizz 1 export is a lowering plus a check inside the language package; Convert to Fizz 2 goes the other way.
-- **The game's look.** The oblique ground, parallax, the sky and night lights are drawn by Fizz 2's presenter crates; the editor shows them through a WebAssembly draw export (F5) in a worker, beside the Paths lens and the playtest bot, and never redraws them in TypeScript.
+- **Target profiles.** Each level is bound at creation to a profile (`fizz1`, `ep2`, later `ep3`): the dialect versions it accepts, its content tables, limits, budgets, the lints' physics parameters and a capability state per feature. Profiles are data generated from each game's own tables (ENGINE-CHANGES E11 and F2). The Fizz 1 export is a lowering plus the lossy check inside the language package; Convert to Fizz 2 writes a new level.
+- **World projects.** A Fizz 2 level lives in a world project whose levels, definitions, sprites, panels, sounds and strings `fizz-bake` builds into one world pack ([WORLD.md](WORLD.md)). The studio runs the baker; it never writes pack bytes.
+- **Behaviours.** Custom enemies and items are compiled to bytecode and run by the game's interpreter; the studio's behaviour editor, preview and debugger drive that interpreter in WebAssembly ([SCRIPTING.md](SCRIPTING.md)).
+- **The game's look.** The oblique ground, the parallax panels, the sky and the lights are drawn by Fizz 2's presenter crates; a Fizz 2 level's canvas is that drawing, through a WebAssembly draw export (F5) in a worker, and the editor never redraws it in TypeScript.
 - **Sprites.** Fizz 2's sprites are JSON grids in its `assets/sprites/`; the editor reads them for drawing and edits only `drawn` sets, writing canonically. Sprites reach packs through `fizz-bake`, not through the editor.
