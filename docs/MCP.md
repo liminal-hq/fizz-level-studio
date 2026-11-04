@@ -129,7 +129,7 @@ Rewriting a line is a new kind of history entry: it records the line number, the
 
 | Tool | Input | Returns |
 | --- | --- | --- |
-| `get_enemy_paths` | `region?` | For each walking enemy, the cells it covers and where it turns, from the game's WebAssembly (`ARCHITECTURE.md` §5); refused with "not available" until that export exists |
+| `get_enemy_paths` | `region?` | For each walking enemy, the cells it covers and where it turns, from the game host (`ARCHITECTURE.md` §5); refused with "not available" until the host can trace |
 | `run_playtest` | `route?` (waypoints), `options?` (`climb`, `fire`, `pogo`, `keep_enemies`) | Finished or not, ticks, the furthest waypoint, the best position, keys held; through the game's `playtest::solve`. `run_checks` reports its result instead of "not run". |
 | `describe_word` | `word`, `scope?` (`level`, `overworld`) | The `docs.ts` entry: kind, section, syntax, example, note, fields, field notes |
 | `check_lines` | `lines`, `file?` | The parser's verdict on lines without storing anything, for drafting |
@@ -162,7 +162,7 @@ Not built, and not before the dialect exists in the language package (`ROADMAP.m
 | `get_dump` | `file?` | Read only: the baker's disassembly of the level (objects with indices, rule and string records), when the baker is available; otherwise "not run" |
 | `list_defs`, `get_def` | `kind?`; `name` | The world's custom enemies and items: text, fields, the mode graph and the worst-case step counts ([SCRIPTING.md](SCRIPTING.md#64-mcp)) |
 | `add_def`, `set_def`, `check_def` | the definition's text, or `name` and `expect` | A definition as a proposal, or the compiler's verdict without storing |
-| `run_behaviour` | `name` or an object `id`, `ticks`, `inputs?` | A run in the game's WebAssembly: the trace of modes, positions, registers and events per tick, or "not available" |
+| `run_behaviour` | `name` or an object `id`, `ticks`, `inputs?` | A run in the game host: the trace of modes, positions, registers and events per tick, or "not available" |
 | `list_sprites`, `get_sprite` | `set?`, `kind?`; `name` | Read only: the target's sprite sets, which kind and state each sprite serves, and one sprite as its text grid of palette letters with its size, anchor, source and provisional note, so Claude can read the art |
 | `get_preview` | `x0, y0, x1, y1`, `night?`, `sky?` | An image of the region drawn by the game's presenter (the Game view), when the game's draw export is loaded; otherwise "not available", never a stand-in |
 
@@ -190,6 +190,17 @@ Claude and the person edit **the same `.fizz` file**. There is no second copy to
 
 Open: two processes writing the sidecar need a lock or a single writer (the studio), with the CLI retired once the studio's buttons exist.
 
-## 5. Adding it to Claude Code
+## 5. In the desktop app (planned)
+
+The studio's end goal is a Tauri desktop app ([DESKTOP.md](DESKTOP.md)), so the server moves to Rust and to the shape Folio uses for its agent server (`folio/spec/13-agents.md`, Folio's D-45), with this studio's propose rules kept (proposed, `DECISIONS.md` D57):
+
+- **One binary, two modes.** `fizz-studio-mcp` (`rmcp` over stdio) is what Claude Code launches. In **live** mode it relays to the running app over a user-only local socket (Unix mode 0600, or a named pipe on Windows), so Claude reads and proposes against the person's open sessions, revisions and history, and sees the selection. In **headless** mode, when the app is not running, it hosts its own session on the files, holding a lock file so the app and the server never both write one world. A flag chooses `live`, `headless` or `auto`, and the person can close the socket in Preferences.
+- **Propose stays the default.** Folio's agent edits directly with undo as the safety net; the studio keeps D8 and D9: a proposal is pending until the person accepts it in the app, the mode is the person's, and no tool accepts, rejects or changes the mode. In headless mode the proposals wait in the sidecar until the person opens the world.
+- **One writer.** Every write, the person's or Claude's, goes through the session's writer; a proposal accepted in the app is checked against the current revision.
+- **Packaging.** The binary ships as a Tauri sidecar, with an installer command and a Help, Connect an agent item, as Folio does.
+- **Today's server** (`packages/mcp`) is the reference for the tools and the propose rules until the Rust server matches it; its file-based behaviour is what headless mode keeps for scripts and CI.
+- **Not the MCP bridge.** `tauri-plugin-mcp-bridge`, used with `tauri-mcp-server` to drive the running app in tests, is a separate, debug-only plugin (Folio's D-14). It is never in a release build and has nothing to do with Claude designing levels.
+
+## 6. Adding it to Claude Code
 
 The README shows `claude mcp add` and a project `.mcp.json` for the current server. Work on a copy of a level (`cp levels/crater.fizz levels/crater-play.fizz`), because accepted and direct edits change the file.

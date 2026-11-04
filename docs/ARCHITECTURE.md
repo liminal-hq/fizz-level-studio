@@ -1,10 +1,10 @@
 # Architecture
 
-How Fizz Level Studio is put together: the packages, how a script flows through them, where the game owns the rules, the WebAssembly plan for enemy paths and playtests, and the file layout.
+How Fizz Level Studio is put together: the packages, how a script flows through them, where the game owns the rules, the game host for enemy paths and playtests, and the file layout.
 
 ## 1. Principles
 
-- **The game owns the simulation.** Deterministic rules (physics, collision, enemy behaviour, timing) live in Rust in the game (`crates/sim`, `episodes/episode-1/game`) behind a raw C-ABI WebAssembly export surface with no `wasm-bindgen`. The studio's TypeScript draws and edits; it never re-derives a simulation rule. This is the game repository's own rule (`CLAUDE.md`, `docs/ENGINE_SPEC.md` §4.1) carried into the studio.
+- **The game owns the simulation.** Deterministic rules (physics, collision, enemy behaviour, timing) live in Rust in the game (`crates/sim`, `episodes/episode-1/game`) (which also builds to WebAssembly behind a raw C-ABI export surface for its own web and Android builds). The studio never re-derives a simulation rule: in the desktop app it links the games' crates natively (D59, proposed) and its own logic is Rust too (D55); the webview only draws. This is the game repository's own rule (`CLAUDE.md`, `docs/ENGINE_SPEC.md` §4.1) carried into the studio.
 - **The script is the source.** A level or overworld is a `.fizz` text file. The canvas, Claude's view and the exported Rust are all derived from it.
 - **The `Builder` is the semantics.** The language is a thin skin over the private `Builder` in `episodes/episode-1/game/src/levels.rs`. Where a design idea disagreed with the `Builder`, the `Builder` won (`docs/LANGUAGE.md`, "Changes from the sketch").
 - **Prove against the game's own data.** Every claim of equality is checked by building the real thing and comparing, not by reading code.
@@ -19,7 +19,7 @@ How Fizz Level Studio is put together: the packages, how a script flows through 
 | Proof copy | `scratch/rust/` | A Cargo workspace copied from the game, plus the generated functions and proof tests | The game's crates |
 | Fizz 2 dialect and target profiles | not built | Planned: the dialect, the target profiles and their capability states, the Fizz 1 export check and Convert to Fizz 2, in `packages/language`; the profiles as generated data files | Language |
 | Design prototype | `design/project/` | `Proto.dc.html` and the other canvas pages | `levels-data.js`, `lang-docs.js` (generated) |
-| Studio app | not built | | Language, MCP, the game's WebAssembly |
+| Studio app | not built | Planned as a Tauri v2 desktop app: `apps/studio`, `crates/fizz-studio-*`, `plugins/*` ([DESKTOP.md](DESKTOP.md)) | The studio's crates; the Fizz 1 and Fizz 2 game crates, linked natively |
 
 The level rasteriser lives in `packages/mcp/src/world.ts` because the MCP server needed it first; the overworld rasteriser lives in `packages/language/src/overworld.ts`. The real studio needs both from one place, so the level rasteriser should move into the language package beside the overworld one.
 
@@ -74,21 +74,25 @@ Details that matter:
 
 The gap check in `world.ts` (`findGaps`) and the prototype's Gaps lens apply a stated design rule (3, 4, 5 or more) to the grid; they are not checked against the jump physics and are labelled that way. The prototype's Reach lens is a rough three-tile box and is labelled a rough guide.
 
-## 5. The WebAssembly boundary
+## 5. The game host
 
-The game is one WebAssembly module with a single `World` held in a static, and exports such as `game_new`, `enter_level(id)`, `enter_map`, `step(held)`, `state_get(i)`, `state_set(i, v)`, `level_hash(id)`, `area_of(x, y)`, the name tables (`table_len`, `name_ptr`, `name_len`) and buffer pointers for instances, lights and events (`episodes/episode-1/game/src/lib.rs`). The studio talks to the same module, in a Web Worker so a long search never blocks the canvas, and adds the exports below (detail in [ENGINE-CHANGES.md](ENGINE-CHANGES.md)).
+The desktop app links the games' own Rust and runs it natively, on worker threads, behind one `GameHost` trait in `fizz-studio-host` with an implementation per game (D59, proposed). Results stream to the webview over Tauri `Channel`s; nothing about a game's rules runs in the webview.
 
-| Need | Export (proposed) | Shape |
+| Need | Fizz 1 (links `lf-sim` and `lf-episode-1`) | Fizz 2 (links `fizz-ep2`, `fizz-slice-view` and the presenter crates) |
 | --- | --- | --- |
-| Open a built-in or Rust-written level by its data | `level_dump(id)` → pointer and length of a serialised `LevelData` | Tiles, switches, floor flag, spawns, items, platforms, start, arena, rooms — the fields `dump_all_truth` writes as JSON today |
-| Build a level from a script, unsaved | `load_ops(ptr, len)` then `enter_loaded()` | A builder-op stream: one op per `Builder` call the exporter would write, run by the real `Builder` |
-| Enemy paths | `trace_enemy(index, ticks)` → a buffer of positions | The real `World` stepped with Ben out of reach and only that enemy live, recording where it goes |
-| Playtest | `playtest_begin(route, options)`, `playtest_step(budget)` → done flag, `playtest_result()` | `playtest::solve` driven in slices so the worker can report progress and stop |
-| Names | existing `table_len(t)`, `name_ptr`, `name_len`, plus tables for tiles, items, kinds and level ids | So `tables.ts` can be checked or generated |
+| Open a built-in or Rust-written level by its data | A public API returning a level's `LevelData` (E6), the fields `dump_all_truth` writes as JSON today | The `LEVL` section through `fizz-pack`'s `LevelView` |
+| Build a level from a script, unsaved | A builder-op stream run on the real `Builder` (E7) | Bake in memory with `fizz-bake`'s library and build the world with `world_from_view` (F4, F6) |
+| Draw it as the game does | Not needed: Fizz 1 levels use the flat view | A public draw call into an indexed frame for any level and the world's art (F5), streamed with its palette |
+| Enemy paths | A trace of one enemy with Ben out of reach (E8) | The same, from the stepped world |
+| Rules and behaviours | — | Rule previews and the behaviour debugger's per-tick inspection (F21) |
+| Playtest | `playtest::solve` behind a feature, stepped in slices (E9) | The playtest bot when Fizz 2 has one |
+| Names | The game's name tables (E11) | The content export (F2) |
 
-Why a builder-op stream rather than shipping the rasteriser's grid into the sim: the op stream is run by the game's own `Builder`, so a script previewed in the studio is built by the same code that the exported Rust calls, and the fingerprint the studio shows is the game's. The rasteriser stays as a fast picture for drawing and for Claude's text view, checked against the game by `tools/verify-rasteriser.ts`.
+Why a builder-op stream rather than the rasteriser's grid for a Fizz 1 preview: the op stream is run by the game's own `Builder`, so a script previewed in the studio is built by the same code that the exported Rust calls, and the fingerprint the studio shows is the game's. The rasteriser stays as a fast picture for drawing and for Claude's text view, checked against the game by the proofs.
 
-The prototype's Paths lens (`walkExtent` in `Proto.dc.html`: a gloop turns at a wall or where the ground ends, a marsh only at walls, a drone flies a 2.6 × 1.4 tile oval, a hopper reacts inside 10 tiles across and 4 up or down) is the design reference for what the lens shows. The real lens draws the positions `trace_enemy` returns.
+The prototype's Paths lens (`walkExtent` in `Proto.dc.html`: a gloop turns at a wall or where the ground ends, a marsh only at walls, a drone flies a 2.6 × 1.4 tile oval, a hopper reacts inside 10 tiles across and 4 up or down) is the design reference for what the lens shows. The real lens draws the positions the host's trace returns.
+
+The game's WebAssembly exports (`game_new`, `enter_level(id)`, `step(held)` and the rest in `episodes/episode-1/game/src/lib.rs`) are the game's own web build; the studio does not use them, and the exports once planned for it (E6 to E9 as C-ABI functions) are needed only if a web build of the studio ever returns, which is out of scope (D54).
 
 ## 6. File layout
 
@@ -117,14 +121,7 @@ fizz-level-studio/
   design/                    copy of the published design canvas
 ```
 
-For the real studio, the proposal is to keep the two packages, move the level rasteriser into the language package, and add:
-
-```text
-  packages/studio/           the app (canvas, windows, tools, objects, lenses, history)
-  packages/wasm-bridge/      the worker that loads the game's module and wraps the new exports
-```
-
-and, in the game repository, generated level and overworld functions under a child module of `levels.rs` (for example `episodes/episode-1/game/src/levels/generated/`) so they can reach the private `Builder`, with the proof tests beside them.
+For the desktop app, the repository moves to the Liminal HQ layout of [DESKTOP.md](DESKTOP.md) section 3 (`apps/studio`, `crates/fizz-studio-*`, `plugins/*`, `packages/chrome`, `packages/protocol`, `spec/`), with the TypeScript packages kept as the reference until the Rust port matches (D56), and, in the game repository, generated level and overworld functions under a child module of `levels.rs` (for example `episodes/episode-1/game/src/levels/generated/`) so they can reach the private `Builder`, with the proof tests beside them.
 
 ## 7. Fizz 2 and the baker (planned)
 
@@ -143,13 +140,13 @@ Lieutenant Fizz 2 bakes its levels from `.fizz` sources in its own repository. N
 ```
 
 - **The baker is the authority.** `fizz-script` and `fizz-bake` decide what a Fizz 2 script means and what it bakes to. The editor's parser must agree with them on the dialect's grammar, its error codes and its positions.
-- **Two parsers is the risk.** The language package is TypeScript and `fizz-script` is Rust. The options (a shared conformance corpus of scripts with expected codes and printed output, or loading `fizz-script` through WebAssembly as the Paths lens will load the sim) are not decided; see the open questions in [DECISIONS.md](DECISIONS.md). Either way, a corpus of golden scripts belongs in both repositories' tests.
+- **One parser for Fizz 2.** The desktop app links `fizz-script` natively (D55, proposed), so the studio and the baker share one parser and the old question of a second TypeScript parser or a WebAssembly build of `fizz-script` falls away. A corpus of golden scripts still belongs in both repositories' tests, because the studio adds owned-line rewrites and completion on top of the parser.
 - **Rules are data.** A `when ... then ...` rule becomes a fixed 32-byte record at bake time. There is no VM on DOS and no rule text on the device, so the editor shows rules from the source and, in the dump view, from the records.
 - **Digests and manifests.** The pack's manifest and digest include the rule records and the decompiled lines, so a change to a rule shows in review as text. The editor does not compute them; it can show them.
 - **What exists in the Fizz 2 repository.** The `LEVL` data model is built and tested (`crates/fizz-pack`, `crates/fizz-ep2`; rules, strings and locks on the unmerged #137, #138 and #140). `fizz-script`, `fizz-bake`, the dialect's grammar and the packs are plans. So the record layout is a fact the editor can rely on, and the syntax is a proposal (`LANGUAGE.md`).
 - **The compatibility number.** A world pack carries a number derived from the schema and the game's content tables (tile properties, ids, snack kinds, key colours, cue ids, styles, the rules' semantics). A change to any of them makes old packs refuse to load, which is why the editor reads those tables from the target profile and never assumes them.
 - **Target profiles.** Each level is bound at creation to a profile (`fizz1`, `ep2`, later `ep3`): the dialect versions it accepts, its content tables, limits, budgets, the lints' physics parameters and a capability state per feature. Profiles are data generated from each game's own tables (ENGINE-CHANGES E11 and F2). The Fizz 1 export is a lowering plus the lossy check inside the language package; Convert to Fizz 2 writes a new level.
 - **World projects.** A Fizz 2 level lives in a world project whose levels, definitions, sprites, panels, sounds and strings `fizz-bake` builds into one world pack ([WORLD.md](WORLD.md)). The studio runs the baker; it never writes pack bytes.
-- **Behaviours.** Custom enemies and items are compiled to bytecode and run by the game's interpreter; the studio's behaviour editor, preview and debugger drive that interpreter in WebAssembly ([SCRIPTING.md](SCRIPTING.md)).
-- **The game's look.** The oblique ground, the parallax panels, the sky and the lights are drawn by Fizz 2's presenter crates; a Fizz 2 level's canvas is that drawing, through a WebAssembly draw export (F5) in a worker, and the editor never redraws it in TypeScript.
+- **Behaviours.** Custom enemies and items are compiled to bytecode and run by the game's interpreter; the studio's behaviour editor, preview and debugger drive that interpreter natively through the game host ([SCRIPTING.md](SCRIPTING.md)).
+- **The game's look.** The oblique ground, the parallax panels, the sky and the lights are drawn by Fizz 2's presenter crates; a Fizz 2 level's canvas is that drawing, made natively by the game host through a public draw call (F5) and streamed to the webview over a `Channel`, and the editor never redraws it in TypeScript.
 - **Sprites.** Fizz 2's sprites are JSON grids in its `assets/sprites/`; the editor reads them for drawing and edits only `drawn` sets, writing canonically. Sprites reach packs through `fizz-bake`, not through the editor.

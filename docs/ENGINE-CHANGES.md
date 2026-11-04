@@ -9,15 +9,15 @@ Everything the game itself (`liminal-hq/lieutenant-fizz`) must change for the re
 | E3 | A level registry the exporter can write to, and a free id for the saucer | M11 |
 | E4 | Widen the progress and requirement masks | M11 |
 | E5 | An overworld registry | M11 |
-| E6 | Export level data to WebAssembly | M12 |
-| E7 | Build and enter a level from a script inside the sim | M12 |
-| E8 | Export enemy paths | M12 |
-| E9 | Export the playtest bot | M12 |
+| E6 | A public API for a level's data | M12 |
+| E7 | Build a level from a script inside the sim | M12 |
+| E8 | Enemy path traces | M12 |
+| E9 | The playtest bot outside tests | M12 |
 | E10 | Sprite names for level points | M9 |
 | E11 | Name tables the studio can check against | M8 onward (the `fizz1` profile) |
 | E12 | Move the proofs into the game's tests | M9 onward |
 
-The milestone numbers are those of the reordered roadmap, in which the Fizz 2 milestones come first.
+The milestone numbers are those of the reordered roadmap, in which the Fizz 2 milestones come first. Because the studio is a desktop app that links the game's crates natively (`DECISIONS.md` D54, D59), E6 to E9 are **public Rust APIs** in `lf-episode-1` (behind a `studio` feature where they would otherwise grow the game), not WebAssembly exports; the C-ABI shapes below are kept only for a web build of the studio, which is out of scope.
 
 ## E1. `OverworldBuilder` in `levels.rs`
 
@@ -49,29 +49,29 @@ The milestone numbers are those of the reordered roadmap, in which the Fizz 2 mi
 - **What changes.** An overworld table indexed by id with each map's build function; `World` holds the current overworld id; `enter_map(id)`; `area_of` and `overworld_thumb` read the current map's own `areas` (delete `overworld_areas()`); `LevelDef` gains the overworld a level belongs to. How Ben travels between maps and how the save records the current map are design questions (`OVERWORLD.md` §6).
 - **Check.** With two generated overworlds, entering each by id gives its own tiles, points and areas; `area_of` answers from the current map; the thumbnail draws the current map; existing saves open on overworld 0.
 
-## E6. Export level data to WebAssembly
+## E6. A public API for a level's data
 
 - **Why.** Both authoring paths stay: a hand-written procedural Rust level must open in the studio by reading its data. Today that data is reached offline only, by the `dump_all_truth` test writing JSON (`FIZZ_DUMP_ALL=<dir> cargo test dump_`), which `tools/decompile-level.ts` turns into fill scripts.
-- **What changes.** An export that builds a level by id and writes it into a buffer the shell can read: map size, tiles, `switches`, `floor_solid`, spawns (kind, x, y, dir, ride), items (kind, x, y), platforms (ax, ay, bx, by, speed, w, h, dwell, ph), start, arena and rooms (x0, y0, x1, y1, secret) — the fields `dump_all_truth` writes. Raw C-ABI, as every other export: `level_dump(id) -> u32` (length) and `level_dump_ptr() -> *const u8`.
-- **Check.** For all 16 levels, the studio's reading of `level_dump` equals the `dump_all_truth` JSON, and `tools/verify-rasteriser.ts` run against it agrees on every tile, item, spawn and the start.
+- **What changes.** A public function that builds a level by id and returns its data (a `LevelData`, or a plain struct of public fields): map size, tiles, `switches`, `floor_solid`, spawns (kind, x, y, dir, ride), items (kind, x, y), platforms (ax, ay, bx, by, speed, w, h, dwell, ph), start, arena and rooms (x0, y0, x1, y1, secret) — the fields `dump_all_truth` writes. The studio's game host calls it directly. (For a web build only: the same as raw C-ABI exports, `level_dump(id) -> u32` and `level_dump_ptr() -> *const u8`.)
+- **Check.** For all 16 levels, the data the API returns equals the `dump_all_truth` JSON, and `tools/verify-rasteriser.ts` run against it agrees on every tile, item, spawn and the start.
 
-## E7. Build and enter a level from a script inside the sim
+## E7. Build a level from a script inside the sim
 
 - **Why.** To preview, trace enemy paths in, or playtest a script that has not been compiled into the game, the sim must build it. The game's `World::load_level(id)` only builds levels from the compiled table. Building it in TypeScript and shipping a grid would make the studio's TypeScript the builder of record; the rule is that the game owns this.
-- **What changes.** A builder-op stream: the exporter can write, beside the Rust source, a compact list of ops (one per `Builder` call it emits: `new`, `run` with segments, `fill`, `plat`, `hover` with size and dwell, `set_switch`, `crys`, `room`, `secret_room`, `wall_behind`, `mural`, `ladder`, `stairs_right`, `stairs_left`, `vine_nook`, `item`, `row`, `pogo_cache`, `ent`, `ent_at`, `rider`, `ent_dir`, `walls`, `liquid`, and `out` with the start and arena). A Rust interpreter runs them on the real `Builder` and returns a `LevelData`; exports `load_ops(ptr, len) -> u32` (0 on success, an error code otherwise) and `enter_loaded()`.
+- **What changes.** A builder-op stream: the exporter can write, beside the Rust source, a compact list of ops (one per `Builder` call it emits: `new`, `run` with segments, `fill`, `plat`, `hover` with size and dwell, `set_switch`, `crys`, `room`, `secret_room`, `wall_behind`, `mural`, `ladder`, `stairs_right`, `stairs_left`, `vine_nook`, `item`, `row`, `pogo_cache`, `ent`, `ent_at`, `rider`, `ent_dir`, `walls`, `liquid`, and `out` with the start and arena). A public Rust function runs them on the real `Builder` and returns a `LevelData`, and `World` can be entered on it (for a web build only: `load_ops(ptr, len) -> u32` and `enter_loaded()`). With it the studio can also prove a script against the game natively, by comparing fingerprints, without generating Rust into a copy of the game (see E12).
 - **Check.** For all 16 levels and the kitchen sink, the op stream run in the sim gives the same `fingerprint()` as the compiled function; a malformed stream returns an error and leaves the world unchanged.
 
-## E8. Export enemy paths
+## E8. Enemy path traces
 
 - **Why.** The Paths lens shows where walking enemies go. Movement is a simulation rule (`world.rs`), so the studio must not compute it. The prototype's JavaScript (`walkExtent`) is a reference only and is approximate on slopes.
-- **What changes.** An export that, on a copy of the current level, removes Ben's influence, keeps one spawn live, steps the world a fixed number of ticks and records the enemy's position each tick: `trace_enemy(spawn_index, ticks) -> u32` (count) and a pointer to `(x, y)` pairs. The studio draws the covered cells and turning points; for a drone the trace is its loop; for a hopper the lens may still show its trigger box (10 tiles across, 4 up or down) from the game's own constants.
+- **What changes.** A public function that, on a copy of the current level, removes Ben's influence, keeps one spawn live, steps the world a fixed number of ticks and records the enemy's position each tick: `trace_enemy(level, spawn_index, ticks) -> Vec<(f64, f64)>`. The studio draws the covered cells and turning points; for a drone the trace is its loop; for a hopper the lens may still show its trigger box (10 tiles across, 4 up or down) from the game's own constants.
 - **Check.** A Rust test traces each gloop and marshmallow in Crater Fields and asserts the turning columns equal those found by stepping the full game with Ben parked out of reach; the TypeScript lens draws exactly the cells in the trace.
 
-## E9. Export the playtest bot
+## E9. The playtest bot outside tests
 
 - **Why.** The idea from the design canvas: the playtest bot as a studio button and an MCP tool, so Claude can check a level is finishable before offering it. The bot exists in `episodes/episode-1/game/src/playtest.rs` but is compiled only for tests (`#[cfg(test)] mod playtest;` in `lib.rs`). It is a beam search (default beam 120, 4 per bucket, at most 6,000 ticks) over input macros, forking the real `World` each step; hostile enemies are removed by default so a result speaks for the platforming; a level passes when the exit is reached. It needs a route of waypoints (`Waypoint::stand(x, y)`, `Waypoint::gate(channel, x, y)`), written by hand per level in its tests.
-- **What changes.** Compile `playtest` into the WebAssembly build (behind a feature if size matters), and add exports that run it in slices so a worker can report progress and stop: `playtest_begin(route_ptr, len, options)`, `playtest_step(max_ticks) -> u32` (0 running, 1 done), `playtest_result(field) -> f64` (finished, ticks, furthest waypoint, best x, best y, keys). Let it start from a level loaded by E7. Decide how a route is given for a new level (the exit alone, waypoints placed in the studio, or both; `SPEC.md` Q7).
-- **Check.** Through the exports, every route in `playtest.rs`'s tests (Crater Fields, Caves, Zarg Lookout, Marshmallow Meadows, the Saucer, Whisper Hollow, Bonbon Playhouse, Fudge Bog, Mirror Shafts, Sugar Glass Gallery, Frosting Flats, Frosting Spire, Cocoa Foundry, Gumdrop Isle, Meteor Mesa) gives the same outcome as the Rust tests (including `whisper_hollow_cannot_be_finished_without_climbing` failing as expected); a run on the largest level completes in a worker without blocking the page.
+- **What changes.** Compile `playtest` outside `#[cfg(test)]` behind a `studio` feature, with a public stepper that runs it in slices so the studio's worker thread can report progress over a `Channel` and stop: `Playtest::begin(level, route, options)`, `step(max_ticks) -> Progress`, `result() -> Outcome` (finished, ticks, furthest waypoint, best position, keys). Let it start from a level built by E7. Decide how a route is given for a new level (the exit alone, waypoints placed in the studio, or both; `SPEC.md` Q7).
+- **Check.** Through the API, every route in `playtest.rs`'s tests (Crater Fields, Caves, Zarg Lookout, Marshmallow Meadows, the Saucer, Whisper Hollow, Bonbon Playhouse, Fudge Bog, Mirror Shafts, Sugar Glass Gallery, Frosting Flats, Frosting Spire, Cocoa Foundry, Gumdrop Isle, Meteor Mesa) gives the same outcome as the Rust tests (including `whisper_hollow_cannot_be_finished_without_climbing` failing as expected); a run on the largest level completes on a worker thread without blocking the window.
 
 ## E10. Sprite names for level points
 
@@ -88,7 +88,7 @@ The milestone numbers are those of the reordered roadmap, in which the Fizz 2 mi
 ## E12. Move the proofs into the game's tests
 
 - **Why.** The proofs run in `scratch/rust/`, a copy of the game's crates that matches the game today except for the proof modules. A copy can drift without anyone noticing.
-- **What changes.** The generated functions (E2) and the `assert_same` comparison live in the game; the scripts live beside the episode (for example `episodes/episode-1/levels/*.fizz`, `episodes/episode-1/overworlds/*.fizz`); a check script regenerates the Rust and fails if it differs from what is committed; `bun run validate` runs it.
+- **What changes.** With the studio linking the game's crates natively, its own tests can prove each script against a pinned revision of the game through E7 (same fingerprint and data). The generated Rust (E2) still needs its proof in the game, so the generated functions and the `assert_same` comparison live in the game; the scripts live beside the episode (for example `episodes/episode-1/levels/*.fizz`, `episodes/episode-1/overworlds/*.fizz`); a check script regenerates the Rust and fails if it differs from what is committed; `bun run validate` runs it.
 - **Check.** Changing one tile in a script without regenerating fails the check; changing a hand-written Rust level that has a script fails its proof test.
 
 ## Fizz 2 (planned)
@@ -101,8 +101,8 @@ The list above is about Lieutenant Fizz 1. Lieutenant Fizz 2 is a separate repos
 | F2 | A content export: the `pack_content()` tables (tile ids and properties, legend letters, object and snack kinds, keys, effect and caption ids, styles, limits, step budgets) and the capability states, as JSON | `pack_content()` exists as bytes for the compatibility number | The `ep2` target profile, generated rather than copied, with a check that fails on drift | M2 |
 | F3 | A theme format: back-wall material, panel stack, horizon, night ambient, chosen by a world and overridden by a level | Constants in `oblique.rs` (#144); "a later level and theme format will carry them" | Lowering `theme` | M5 |
 | F4 | `fizz-bake`: `fmt`, `bake` of a whole world project into its world pack, `check` against manifests, `dump`, and a size report | Planned (`docs/FAP.md`) | Build world, the dump view and the Budget window's numbers | M2 |
-| F5 | A WebAssembly draw export in `fizz-present-web`: draw a level from its baked bytes and the world's art at a camera position with Night, Sky and detail options, into an RGBA buffer | The presenters draw the slice only | The Game view, the canvas of every Fizz 2 level | M2 (flat fallback until then), M5 |
-| F6 | A WebAssembly world built from baked bytes (`world_from_view` exists on #137), stepped by inputs, with the playtest bot | Native and Web run the slice | Rule and behaviour previews, the debugger, playtests | M3 |
+| F5 | A public draw API in `fizz-slice-view` (or the crate that replaces it): draw any level from its baked bytes and the world's art at a camera position with Night, Sky and detail options into an indexed frame with its palette, for the studio to call natively | `draw_slice` draws the slice only | The Game view, the canvas of every Fizz 2 level, streamed over a `Channel` | M2 (flat fallback until then), M5 |
+| F6 | A public API to build a world from baked bytes (`world_from_view` exists on #137), step it by inputs and read its events and hash, called natively | Native, Web and DOS run the slice | Rule and behaviour previews, the debugger, playtests | M3 |
 | F7 | The `SPRT` layout, and numeric sprite ids if names are replaced | "Not yet specified" (`docs/FAP.md`) | Sprites in the world pack | M2 |
 | F8 | The built-in enemy roster: kinds, records and sprite states | Planned (`enemy-roster`); only the chicken | Built-in enemies beside custom ones | M7 |
 | F9 | **The wall-kick as a core Fizz 2 mechanic, always on**, with no per-level switch, and Fizz 2's `docs/FIZZ1-DIFFERENCES.md` changed to say so | Left out (owner decision of 2026-10-30, recorded on that page); `roadmap.json` still lists it first in M3.5 | The `ep2` physics parameters; the reversal of the earlier decision (D47) | M2 |
@@ -117,7 +117,8 @@ The list above is about Lieutenant Fizz 1. Lieutenant Fizz 2 is a separate repos
 | F18 | **Raised events and a world sound library:** a rule action or an object raises a floating word (a level or world string, or a shared caption) or a cue from the world's sound library, drawn and played by each presenter and written to the transcript | Built-in events with a fixed presentation table; effects in `SHARED.FAP`; strings carried, not drawn (#138) | Words and sounds from rules and objects (D50; Q29) | M3 |
 | F19 | **Bitmap parallax panels:** a `BDRP` layout and a panel layer kind with scroll factors, repeat, vertical position, the open-air rule and a state | Procedural layers (#144); `BDRP` "not yet specified" | Panels from the pixel editor (D52) | M5 |
 | F20 | **The retro art set in a world pack:** Fizz 1's sprites, exported to grids as `tools/sprites/export-fizz1.ts` does, packed into a world's `SPRT` rather than `SHARED.FAP`, with how a Fizz 1 sprite is anchored over a Fizz 2 body | The exporter exists for the slice's sprites | Retro levels, art only (D49) | M8 |
-| F21 | Debug exports for the behaviour debugger: each entity's mode, registers and instructions used per tick, step by tick, from the WebAssembly world | None | The debugger and `run_behaviour` | M7 |
+| F21 | A debug inspection API for the behaviour debugger: each entity's mode, registers and instructions used per tick, step by tick | None | The debugger and `run_behaviour` | M7 |
+| F23 | The Fizz 2 crates the studio links (`fizz-sim`, `fizz-phys`, `fizz-ep2`, `fizz-pack`, `fizz-view`, `fizz-slice-view`, and `fizz-script` and `fizz-bake` as libraries) usable as git dependencies from outside the repository at a pinned revision, with the APIs the studio calls marked public and stable within a revision | Workspace crates; `fizz-script` and `fizz-bake` are planned | The native game host and the single parser (D55, D58) | M1 |
 | F22 | A cost model for the Budget window: the game's bench figures per light, panel and behaviour instruction on the DOS floor, as data | `/BENCH` measures whole frames | The DOS cost meters | M5, M7 |
 
 The pack loaders and the rules phase are the Fizz 2 repository's own milestones; the editor waits for them through the capability states (an "accepted" feature becomes "built" when the game runs it).
