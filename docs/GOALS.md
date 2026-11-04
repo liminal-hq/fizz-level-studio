@@ -35,3 +35,6 @@ The ranks order goals, not targets. Of the two games, Fizz 2 is the more importa
 | 25 | G-F2-6 | The game's look is the game's | The Game view's frames equal the game's frame digests, and no Fizz 2 drawing rule is implemented in TypeScript. Today: not built. |
 | 26 | G-SPR-1 | Sprites are shown truly and edited safely | Every object draws with its target's sprite; every sprite file round-trips byte for byte; generated sets cannot be edited. Today: not built. |
 | 27 | G-EP3-1 | Later episodes need data, not code | An Episode 3 profile is added as data and passes the same corpus and matrix tests. Today: not built. |
+| 28 | G-ST-1 | States and rules say every puzzle the owner described | A lock, a switch, an enemy-cleared door, a timer and a state-change chain each author, bake and run as fixtures, and every `lock` expands exactly. Today: not built. |
+| 29 | G-BHV-1 | Behaviours are deterministic and within budget | Every behaviour fixture gives equal hashes on native, Web and DOS, and every handler's worst case is known at bake time. Today: not built. |
+| 30 | G-WLD-1 | A world builds as one pack, from the studio | Build world produces the world pack through `fizz-bake` and its manifest matches. Today: not built. |
