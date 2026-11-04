@@ -1,0 +1,5 @@
+{
+	"extends": "../.markdownlint.jsonc",
+	// Issue and pull request templates open with a second-level heading, not a title.
+	"MD041": false,
+}
