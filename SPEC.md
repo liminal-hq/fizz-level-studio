@@ -550,7 +550,7 @@ Status values: **Proven** — built in `packages/language` or `packages/mcp` and
 | Q37 | When are `SPEC.md` and `docs/` split into the standard's `spec/` and `docs/`? | Proposed: in M1 |
 | Q38 | Which locales ship first? | Proposed: en-CA, with fr-CA and pseudo-locales as Waypoint has (`waypoint/SPEC.md` §9) |
 | Q39 | What happens when a file changes on disk while the session has unsaved changes to it? | Options: merge when the changed lines do not overlap and ask otherwise (proposed), or always ask |
-| Q40 | Does the studio move to GitHub to use the Liminal HQ CI containers and shared workflows, or port them to Forgejo? | `docs/DESKTOP.md` section 11 |
+| Q40 | **Settled:** the studio's home is GitHub, with GitHub Actions on the Liminal HQ containers and shared workflows, and Forgejo holds a mirror. | `docs/DESKTOP.md` section 11 |
 | Q41 | Can two episodes' crates link into one app (Episode 2 and Episode 3 depending on different revisions of `fizz-sim`)? | Cargo refuses two copies of one package from the same source at the same version; options are one revision for all episodes, a host process per episode, or renamed packages per episode (D58) |
 | Q42 | Which Fizz 1 APIs (E6 to E9) can the Fizz 1 repository accept behind a feature, and does `lf-episode-1` stay one crate for its web build and for linking? | `lf-episode-1` is a `cdylib` and `rlib` with raw C-ABI exports today |
 | Q43 | What frame format, rate and size does the Game view stream, and is it fast enough on Linux and Windows webviews? | Proposed: indexed frames with a palette on change; measured in M1 |
