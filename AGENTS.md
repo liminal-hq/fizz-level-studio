@@ -29,7 +29,7 @@ For the owner to apply on the Forgejo repository; nothing here is read by a tool
 
 ## Project Status
 
-Fizz Level Studio is the level and overworld editor for Lieutenant Fizz, where a person and Claude design levels together. The studio app itself is not built yet. What exists is the design (`SPEC.md`, `docs/`, the prototype in `design/`), the language package (`packages/language`: parser, printer, edits, Rust exporter, overworld scripts and rasteriser, completion data), an MCP server that lets Claude read and propose edits to one level file (`packages/mcp`), and proofs that all 16 Episode 1 levels and the overworld, written as scripts, rebuild the game's own data exactly (`scripts/prove-all.sh`, `scratch/rust/`). The next work is the shared editor shell, then world projects and the Fizz 2 dialect with states and rules (see [The Fizz 2 Dialect](#the-fizz-2-dialect)); none of it is built in this repository yet. Update this section as each part lands.
+Fizz Level Studio is the level and overworld editor for Lieutenant Fizz, where a person and Claude design levels together. The studio app itself is not built yet; its end goal is a Tauri v2 desktop app to the Liminal HQ Tauri standards (`docs/DESKTOP.md`, D54), with the standards taken from `folio/AGENTS.md` and the other Liminal HQ apps. What exists is the design (`SPEC.md`, `docs/`, the prototype in `design/`), the language package (`packages/language`: parser, printer, edits, Rust exporter, overworld scripts and rasteriser, completion data), an MCP server that lets Claude read and propose edits to one level file (`packages/mcp`), and proofs that all 16 Episode 1 levels and the overworld, written as scripts, rebuild the game's own data exactly (`scripts/prove-all.sh`, `scratch/rust/`). The next work is the shared editor shell, then world projects and the Fizz 2 dialect with states and rules (see [The Fizz 2 Dialect](#the-fizz-2-dialect)); none of it is built in this repository yet. Update this section as each part lands.
 
 ## Localization and Spelling
 
@@ -74,7 +74,7 @@ A `.fizz` file is one level or one overworld as plain text, read and written by 
 
 ## The Fizz 2 Dialect
 
-Planned, not built, and the more important target. Lieutenant Fizz 2 is a separate game that will bake its levels from `.fizz` sources. Its dialect is a **superset of the Fizz 1 script in text, not in meaning**: the two games are diverging. The design is the owner's (2026-11-04, `docs/DECISIONS.md` D42 to D53); what Fizz 2 lacks for it is a numbered change request (F1 to F22 in `docs/ENGINE-CHANGES.md`). Do not edit the Fizz 2 repository from here.
+Planned, not built, and the more important target. Lieutenant Fizz 2 is a separate game that will bake its levels from `.fizz` sources. Its dialect is a **superset of the Fizz 1 script in text, not in meaning**: the two games are diverging. The design is the owner's (2026-11-04, `docs/DECISIONS.md` D42 to D53); what Fizz 2 lacks for it is a numbered change request (F1 to F23 in `docs/ENGINE-CHANGES.md`). Do not edit the Fizz 2 repository from here.
 
 - The first line is `script fizz2 0` (dialect and version), written when the level is created: **a level's target is fixed for life**. Fizz 1 levels convert up to Fizz 2 with a conversion report; Fizz 2 levels export down to Fizz 1 with the lossy check, never a conversion.
 - A Fizz 2 level belongs to a **world project** (`docs/WORLD.md`): levels, overworld, shared definitions, sprites (and the retro Fizz 1 art set, art only), parallax panels, sounds and strings, built by `fizz-bake` into one world pack.
@@ -109,6 +109,7 @@ Planned, not built, and the more important target. Lieutenant Fizz 2 is a separa
 - **Hand-written lines are never rewritten.** The studio rewrites only the object lines it owns (`docs/EDITOR.md`, section 4).
 - **Claude proposes by default.** Accept, reject and the mode are the person's alone, and no MCP tool can change them.
 - **The language package is pure.** No DOM, no storage, no network.
+- **The desktop app follows the Liminal HQ Tauri standards** (`docs/DESKTOP.md`): Rust owns state (intents in, patches out, one writer, a revision on every change), pure crates with no `tauri` dependency, thin plugins with `guest-js`, windows created in Rust, no browser storage, every string from the catalogue. The planned domain logic is Rust, including a port of the TypeScript language package (proposed, D56); the games are linked natively, not run as WebAssembly (proposed, D59).
 - **No barrel files.** Import from the defining file.
 
 ## What Not to Touch
