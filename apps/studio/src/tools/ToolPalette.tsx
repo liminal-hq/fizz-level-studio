@@ -8,6 +8,7 @@ import { ITEM_WORDS, TOOL_KEYS } from './shortcuts';
 import styles from './ToolPalette.module.css';
 import { TOOL_IDS, type ToolId } from './tool';
 import type { ToolHandle } from './useTool';
+import { WordChooser } from './WordChooser';
 
 export interface ToolPaletteProps {
 	handle: Pick<ToolHandle, 'tool' | 'setTool' | 'tile' | 'setTile' | 'item' | 'setItem'>;
@@ -44,26 +45,24 @@ export function ToolPalette({ handle, palette }: ToolPaletteProps) {
 					</button>
 				))}
 			</div>
-			<label className={styles.chooser}>
-				<span>{t('tools.tile')}</span>
-				<select value={handle.tile} onChange={(event) => handle.setTile(event.target.value)}>
-					{tiles.map((word) => (
-						<option key={word} value={word}>
-							{word}
-						</option>
-					))}
-				</select>
-			</label>
-			<label className={styles.chooser}>
-				<span>{t('tools.item')}</span>
-				<select value={handle.item} onChange={(event) => handle.setItem(event.target.value)}>
-					{ITEM_WORDS.map((word) => (
-						<option key={word} value={word}>
-							{word}
-						</option>
-					))}
-				</select>
-			</label>
+			<WordChooser
+				label={t('tools.tile')}
+				value={handle.tile}
+				options={tiles}
+				onChoose={(word) => {
+					handle.setTile(word);
+					handle.setTool('paint');
+				}}
+			/>
+			<WordChooser
+				label={t('tools.item')}
+				value={handle.item}
+				options={ITEM_WORDS}
+				onChoose={(word) => {
+					handle.setItem(word);
+					handle.setTool('stamp');
+				}}
+			/>
 		</div>
 	);
 }

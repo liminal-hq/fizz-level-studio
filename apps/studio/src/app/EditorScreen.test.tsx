@@ -80,7 +80,8 @@ describe('EditorScreen', () => {
 	it('sends a one-row stroke as one applyEdit sharing a merge key, then ends the step', async () => {
 		const { client, canvas } = mount();
 		const endStep = vi.spyOn(client, 'endStep');
-		await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Tile' }), 'grass');
+		await userEvent.click(screen.getByRole('button', { name: /^Tile:/ }));
+		await userEvent.click(screen.getByRole('option', { name: 'grass' }));
 		stroke(canvas, [
 			[2, 3],
 			[3, 3],
@@ -141,17 +142,6 @@ describe('EditorScreen', () => {
 		await waitFor(() => expect(client.snapshot().view.cells[2 * 12 + 6]).toBe(0));
 	});
 
-	it('chooses a tool with its key and ignores the key while a menu has focus', async () => {
-		const user = userEvent.setup();
-		mount();
-		screen.getByRole('application').focus();
-		await user.keyboard('e');
-		expect(screen.getByRole('button', { name: 'Erase' })).toHaveAttribute('aria-pressed', 'true');
-		screen.getByRole('combobox', { name: 'Tile' }).focus();
-		await user.keyboard('p');
-		expect(screen.getByRole('button', { name: 'Erase' })).toHaveAttribute('aria-pressed', 'true');
-	});
-
 	it('paints at the keyboard cursor with Space', async () => {
 		const user = userEvent.setup();
 		const { client, canvas } = mount();
@@ -165,7 +155,8 @@ describe('EditorScreen', () => {
 		const user = userEvent.setup();
 		const { client, canvas } = mount();
 		await user.click(screen.getByRole('button', { name: 'Stamp' }));
-		await user.selectOptions(screen.getByRole('combobox', { name: 'Item' }), 'soda');
+		await user.click(screen.getByRole('button', { name: /^Item:/ }));
+		await user.click(screen.getByRole('option', { name: 'soda' }));
 		stroke(canvas, [[5, 5]]);
 		await waitFor(() =>
 			expect(client.snapshot().view.items).toEqual([{ kind: 'soda', x: 5, y: 5 }]),
@@ -254,6 +245,17 @@ describe('EditorScreen panels', () => {
 		return client;
 	}
 
+	it('chooses a tool with its key and ignores the key while a field has focus', async () => {
+		const user = userEvent.setup();
+		mountWithWords();
+		screen.getByRole('application').focus();
+		await user.keyboard('e');
+		expect(screen.getByRole('button', { name: 'Erase' })).toHaveAttribute('aria-pressed', 'true');
+		(await screen.findByRole('combobox', { name: 'Script line' })).focus();
+		await user.keyboard('p');
+		expect(screen.getByRole('button', { name: 'Erase' })).toHaveAttribute('aria-pressed', 'true');
+	});
+
 	it('chooses a palette tile for Paint and an item for Stamp', async () => {
 		const user = userEvent.setup();
 		mountWithWords();
@@ -265,7 +267,7 @@ describe('EditorScreen panels', () => {
 			'aria-pressed',
 			'true',
 		);
-		expect(screen.getByRole('combobox', { name: 'Tile' })).toHaveValue('grass');
+		expect(screen.getByRole('button', { name: 'Tile: grass' })).toBeInTheDocument();
 		await user.click(await within(region).findByRole('button', { name: 'soda' }));
 		expect(screen.getByRole('button', { name: /^Stamp/ })).toHaveAttribute('aria-pressed', 'true');
 	});

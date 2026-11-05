@@ -37,8 +37,7 @@
 	border-color: var(--fls-accent);
 }
 
-.tool:focus-visible,
-.chooser select:focus-visible {
+.tool:focus-visible {
 	outline: 2px solid var(--fls-focus-ring);
 	outline-offset: 2px;
 }
@@ -47,21 +46,4 @@
 	font-family: ui-monospace, monospace;
 	font-size: 0.75em;
 	opacity: 0.75;
-}
-
-.chooser {
-	display: inline-flex;
-	align-items: center;
-	gap: 0.4rem;
-	color: var(--fls-text-secondary);
-}
-
-.chooser select {
-	min-height: var(--fls-hit-target);
-	color: var(--fls-text-primary);
-	background: var(--fls-bg-content);
-	border: 1px solid var(--fls-border-subtle);
-	border-radius: 6px;
-	font: inherit;
-	cursor: default;
 }

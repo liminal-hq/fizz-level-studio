@@ -61,13 +61,36 @@ describe('ToolPalette', () => {
 		expect(screen.getByTestId('state')).toHaveTextContent('erase|');
 	});
 
-	it('chooses the tile from the level palette and the item from the constant list', async () => {
+	it('chooses the tile from the level palette and the item from the constant list, switching tool', async () => {
 		const user = userEvent.setup();
 		render(<Harness palette={['empty', 'fill', 'grass']} />);
-		expect(screen.getByRole('combobox', { name: 'Tile' })).toHaveValue('fill');
-		await user.selectOptions(screen.getByRole('combobox', { name: 'Tile' }), 'grass');
-		await user.selectOptions(screen.getByRole('combobox', { name: 'Item' }), 'soda');
-		expect(screen.getByTestId('state')).toHaveTextContent('paint|grass|soda');
+		expect(screen.getByRole('button', { name: 'Tile: fill' })).toBeInTheDocument();
+		await user.click(screen.getByRole('button', { name: 'Tile: fill' }));
+		await user.click(screen.getByRole('option', { name: 'grass' }));
+		expect(screen.queryByRole('listbox')).toBeNull();
+		await user.click(screen.getByRole('button', { name: /^Item:/ }));
+		await user.click(screen.getByRole('option', { name: 'soda' }));
+		expect(screen.getByTestId('state')).toHaveTextContent('stamp|grass|soda');
+		await user.click(screen.getByRole('button', { name: 'Tile: grass' }));
+		await user.click(screen.getByRole('option', { name: 'fill' }));
+		expect(screen.getByTestId('state')).toHaveTextContent('paint|fill|soda');
+	});
+
+	it('closes on Escape and when something else is clicked, so that click is not lost', async () => {
+		const user = userEvent.setup();
+		render(
+			<>
+				<Harness palette={['empty', 'fill', 'grass']} />
+				<button type="button">Elsewhere</button>
+			</>,
+		);
+		await user.click(screen.getByRole('button', { name: 'Tile: fill' }));
+		expect(screen.getByRole('listbox', { name: 'Tile' })).toBeInTheDocument();
+		await user.keyboard('{Escape}');
+		expect(screen.queryByRole('listbox')).toBeNull();
+		await user.click(screen.getByRole('button', { name: 'Tile: fill' }));
+		await user.click(screen.getByRole('button', { name: 'Elsewhere' }));
+		expect(screen.queryByRole('listbox')).toBeNull();
 	});
 });
 
