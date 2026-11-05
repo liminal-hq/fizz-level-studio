@@ -456,6 +456,31 @@ describe('SegmentedRow', () => {
 		await user.keyboard('{Home}');
 		expect(screen.getByRole('radio', { name: 'List' })).toBeChecked();
 	});
+
+	it('draws one joined group of keycaps with only the chosen key lit', async () => {
+		const user = userEvent.setup();
+		render(<Segmented />);
+		const [first, middle, last] = screen.getAllByRole('radio');
+		expect(first?.className).toMatch(/segmentFirst/);
+		expect(middle?.className).toMatch(/segmentMiddle/);
+		expect(last?.className).toMatch(/segmentLast/);
+		expect(middle?.className).not.toMatch(/segmentFirst|segmentLast/);
+		expect(first).toHaveAttribute('data-lit');
+		expect(middle).not.toHaveAttribute('data-lit');
+		await user.click(screen.getByRole('radio', { name: 'Grid' }));
+		expect(screen.getByRole('radio', { name: 'Grid' })).toHaveAttribute('data-lit');
+		expect(screen.getByRole('radio', { name: 'List' })).not.toHaveAttribute('data-lit');
+	});
+
+	it('moves with the vertical arrows too', async () => {
+		const user = userEvent.setup();
+		render(<Segmented />);
+		screen.getByRole('radio', { name: 'List' }).focus();
+		await user.keyboard('{ArrowDown}');
+		expect(screen.getByRole('radio', { name: 'Grid' })).toBeChecked();
+		await user.keyboard('{ArrowUp}');
+		expect(screen.getByRole('radio', { name: 'List' })).toBeChecked();
+	});
 });
 
 describe('ButtonRow and LinkRow', () => {

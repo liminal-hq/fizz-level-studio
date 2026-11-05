@@ -1160,12 +1160,12 @@ function clickLabelOnly(bridge: Bridge, label: string): Promise<boolean> {
  * Lists every visible button-like control in a window that is not drawn as a keycap. A keycap has a
  * raised bottom edge (3px at rest, 1px while pressed or lit) and the key gradient as its
  * background. Controls with a look of their own are left out on purpose: menus and the menu bar,
- * the title bar's buttons, tabs, list and palette rows (the `entry` class), the settings navigation (`navItem`), a floating panel's drag grip and fold chevron, and a palette group's disclosure heading, switches, checkboxes and radios, and the
+ * the title bar's buttons, tabs, list and palette rows (the `entry` class), the settings navigation (`navItem`), a floating panel's drag grip and fold chevron, and a palette group's disclosure heading, switches and checkboxes, and the
  * resize and drag grips.
  */
 function keycapOffenders(bridge: Bridge, windowLabel = 'main-1'): Promise<string[]> {
 	return bridge.js<string[]>(
-		`const skip = '[role=menuitem], [role=menuitemradio], [role=menuitemcheckbox], [role=menubar] *, [role=menu] *, [data-tauri-drag-region] *, [role=tab], [role=option], [role=listbox] *, [role=switch], [role=checkbox], [role=radio], [role=separator], [role=slider], [class*=_entry_], [class*=_navItem_], [data-grip], [class*=_grip_], [class*=_chevron_], [class*=_fold_], [data-keycap-exempt]';
+		`const skip = '[role=menuitem], [role=menuitemradio], [role=menuitemcheckbox], [role=menubar] *, [role=menu] *, [data-tauri-drag-region] *, [role=tab], [role=option], [role=listbox] *, [role=switch], [role=checkbox], [role=separator], [role=slider], [class*=_entry_], [class*=_navItem_], [data-grip], [class*=_grip_], [class*=_chevron_], [class*=_fold_], [data-keycap-exempt]';
 		 const visible = (e) => { const r = e.getBoundingClientRect(); const c = getComputedStyle(e); return r.width > 0 && r.height > 0 && c.visibility !== 'hidden' && c.display !== 'none'; };
 		 const bad = [];
 		 for (const e of document.querySelectorAll('button, [role=button]')) {
@@ -1591,6 +1591,33 @@ async function main(): Promise<void> {
 		});
 		check('the Appearance heading renders with a size', heading !== null, JSON.stringify(heading));
 		await checkKeycaps(bridge, 'the Preferences window', 'preferences');
+		// The selectors are joined groups of keycaps with one lit key, and the audit above counts them.
+		const joined = await bridge.js<{ groups: number; bad: string[] }>(
+			`const bad = []; const groups = [...document.querySelectorAll('[role=radiogroup]')];
+			 for (const g of groups) {
+				 const keys = [...g.querySelectorAll('[role=radio]')];
+				 const lit = keys.filter((k) => k.getAttribute('aria-checked') === 'true');
+				 if (lit.length !== 1) bad.push('lit keys: ' + lit.length);
+				 const rects = keys.map((k) => k.getBoundingClientRect());
+				 for (let i = 1; i < rects.length; i++) if (Math.abs(rects[i].left - rects[i - 1].right) > 1.5) bad.push('gap before key ' + i);
+				 if (new Set(rects.map((r) => Math.round(r.height))).size !== 1) bad.push('uneven heights');
+				 keys.forEach((k, i) => {
+					 const c = getComputedStyle(k);
+					 const edge = c.borderBottomWidth;
+					 if (!(edge === '3px' || edge === '1px') || !c.backgroundImage.includes('linear-gradient')) bad.push('key ' + i + ' is not a keycap');
+					 const left = c.borderTopLeftRadius !== '0px'; const right = c.borderTopRightRadius !== '0px';
+					 if (left !== (i === 0) || right !== (i === keys.length - 1)) bad.push('key ' + i + ' rounding');
+				 });
+				 const lk = lit[0]; if (lk && getComputedStyle(lk).boxShadow === 'none') bad.push('lit key has no glow');
+			 }
+			 return { groups: groups.length, bad };`,
+			'preferences',
+		);
+		check(
+			'the Preferences selectors are joined keycap groups with one lit key',
+			joined.groups > 0 && joined.bad.length === 0,
+			JSON.stringify(joined),
+		);
 		const prefsAccent = (
 			await bridge.js<{ v: string }>(
 				`return { v: document.documentElement.style.getPropertyValue('--fls-accent') };`,
