@@ -8,7 +8,7 @@
 // current one.
 
 use fizz_studio_protocol::PanelLayout;
-use serde_json::Value;
+use serde_json::{json, Value};
 
 /// One step: turns the `settings` value of version `from` into that of version `from + 1`.
 #[derive(Clone, Copy)]
@@ -18,10 +18,29 @@ pub struct Migration {
 }
 
 /// The steps this build knows, in order.
-pub const MIGRATIONS: &[Migration] = &[Migration {
-    from: 1,
-    apply: layouts_become_typed,
-}];
+pub const MIGRATIONS: &[Migration] = &[
+    Migration {
+        from: 1,
+        apply: layouts_become_typed,
+    },
+    Migration {
+        from: 2,
+        apply: add_accent_and_glass,
+    },
+];
+
+/// Version 3 adds the accent choice and the glass setting. A file that already has either keeps
+/// it; otherwise each takes its default, the system's.
+fn add_accent_and_glass(mut settings: Value) -> Result<Value, String> {
+    let object = settings
+        .as_object_mut()
+        .ok_or("settings is not an object")?;
+    object
+        .entry("accent")
+        .or_insert_with(|| json!({ "kind": "system" }));
+    object.entry("glass").or_insert_with(|| json!("system"));
+    Ok(settings)
+}
 
 /// Version 1 kept each panel layout as an opaque JSON string. Version 2 types it. Nothing wrote
 /// layouts in version 1, but a string that already has the typed shape is kept; any other entry is

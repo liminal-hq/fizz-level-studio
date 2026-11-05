@@ -7,8 +7,8 @@ use std::collections::BTreeMap;
 use std::sync::Arc;
 
 use fizz_studio_protocol::{
-    ColourMode, PanelLayout, PanelPlacement, Settings, SettingsError, SettingsPatch,
-    RECENT_WORLDS_CAP,
+    AccentChoice, ColourMode, GlassMode, PanelLayout, PanelPlacement, Settings, SettingsError,
+    SettingsField, SettingsPatch, RECENT_WORLDS_CAP,
 };
 use fizz_studio_settings::{
     apply_patch, default_layout, resolve_layout, touch_recent, BlobStorage, DiskStorage,
@@ -136,7 +136,7 @@ fn a_version_one_file_without_layouts_migrates_untouched() {
 #[test]
 fn a_version_with_no_step_is_unreadable_not_guessed() {
     let file = memory_file(Some(r#"{ "version": 0, "settings": {} }"#));
-    assert_eq!(SETTINGS_VERSION, 2);
+    assert_eq!(SETTINGS_VERSION, 3);
     let report = file.load();
     assert!(report
         .problem
@@ -502,4 +502,107 @@ fn a_layout_with_no_room_is_refused_and_changes_nothing() {
         Err(SettingsError::Invalid { .. })
     ));
     assert_eq!(store.snapshot().revision, 0);
+}
+
+#[test]
+fn the_accent_and_glass_default_to_the_system() {
+    let settings = Settings::default();
+    assert_eq!(settings.accent, AccentChoice::System);
+    assert_eq!(settings.glass, GlassMode::System);
+}
+
+#[test]
+fn a_version_two_file_migrates_to_three_with_the_default_accent_and_glass() {
+    let file = memory_file(Some(
+        r#"{ "version": 2, "settings": { "colour_mode": "dark", "locale": "fr-CA" } }"#,
+    ));
+    let report = file.load();
+    assert_eq!(report.problem, None);
+    assert_eq!(report.settings.colour_mode, ColourMode::Dark);
+    assert_eq!(report.settings.accent, AccentChoice::System);
+    assert_eq!(report.settings.glass, GlassMode::System);
+    // A version one file passes through both steps.
+    let older = memory_file(Some(r#"{ "version": 1, "settings": {} }"#)).load();
+    assert_eq!(older.problem, None);
+    assert_eq!(older.settings.accent, AccentChoice::System);
+}
+
+#[test]
+fn a_version_two_migration_keeps_an_accent_that_is_already_there() {
+    let file = memory_file(Some(
+        r##"{ "version": 2, "settings": { "accent": { "kind": "custom", "hex": "#123abc" }, "glass": "off" } }"##,
+    ));
+    let settings = file.load().settings;
+    assert_eq!(
+        settings.accent,
+        AccentChoice::Custom {
+            hex: "#123abc".to_owned()
+        }
+    );
+    assert_eq!(settings.glass, GlassMode::Off);
+}
+
+#[test]
+fn a_patch_sets_the_accent_and_glass() {
+    let patch = SettingsPatch {
+        accent: Some(AccentChoice::AfterglowOrange),
+        glass: Some(GlassMode::Off),
+        ..SettingsPatch::default()
+    };
+    let next = apply_patch(&Settings::default(), &patch).unwrap();
+    assert_eq!(next.accent, AccentChoice::AfterglowOrange);
+    assert_eq!(next.glass, GlassMode::Off);
+    assert_eq!(next.colour_mode, ColourMode::System);
+}
+
+#[test]
+fn a_bad_custom_accent_is_refused_and_names_its_field() {
+    for hex in [
+        "", "#fff", "123456", "#12345g", "#ABCDEF", "#1234567", "red",
+    ] {
+        let patch = SettingsPatch {
+            accent: Some(AccentChoice::Custom {
+                hex: hex.to_owned(),
+            }),
+            ..SettingsPatch::default()
+        };
+        let refused = apply_patch(&Settings::default(), &patch).unwrap_err();
+        assert!(
+            matches!(
+                refused,
+                SettingsError::InvalidField {
+                    field: SettingsField::AccentHex,
+                    ..
+                }
+            ),
+            "{hex}"
+        );
+    }
+}
+
+#[test]
+fn the_accent_and_glass_survive_a_save_and_load() {
+    let store_file = memory_file(None);
+    let settings = Settings {
+        accent: AccentChoice::Custom {
+            hex: "#00e5ff".to_owned(),
+        },
+        glass: GlassMode::On,
+        ..Settings::default()
+    };
+    store_file.save(&settings).unwrap();
+    let saved: Value =
+        serde_json::from_str(&store_file.storage().get(SETTINGS_FILE).unwrap()).unwrap();
+    assert_eq!(saved["version"], 3);
+    assert_eq!(saved["settings"]["accent"]["kind"], "custom");
+    assert_eq!(saved["settings"]["glass"], "on");
+    assert_eq!(store_file.load().settings, settings);
+}
+
+#[test]
+fn a_file_with_a_bad_custom_accent_is_set_aside() {
+    let file = memory_file(Some(
+        r##"{ "version": 3, "settings": { "accent": { "kind": "custom", "hex": "nope" } } }"##,
+    ));
+    assert!(file.load().set_aside.is_some());
 }

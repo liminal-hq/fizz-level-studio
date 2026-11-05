@@ -5,11 +5,14 @@
 
 import { invoke } from '@tauri-apps/api/core';
 import { listen, type UnlistenFn } from '@tauri-apps/api/event';
+import type { AccentChoice } from '@liminal-hq/fizz-studio-protocol/generated/AccentChoice';
 import type { ColourMode } from '@liminal-hq/fizz-studio-protocol/generated/ColourMode';
+import type { GlassMode } from '@liminal-hq/fizz-studio-protocol/generated/GlassMode';
 import type { PanelLayout } from '@liminal-hq/fizz-studio-protocol/generated/PanelLayout';
 import type { PanelPlacement } from '@liminal-hq/fizz-studio-protocol/generated/PanelPlacement';
 import type { Settings } from '@liminal-hq/fizz-studio-protocol/generated/Settings';
 import type { SettingsError } from '@liminal-hq/fizz-studio-protocol/generated/SettingsError';
+import type { SettingsField } from '@liminal-hq/fizz-studio-protocol/generated/SettingsField';
 import type { SettingsPatch } from '@liminal-hq/fizz-studio-protocol/generated/SettingsPatch';
 import type { SettingsSnapshot } from '@liminal-hq/fizz-studio-protocol/generated/SettingsSnapshot';
 
@@ -99,11 +102,14 @@ export function onSettingsChanged(
 }
 
 export type {
+	AccentChoice,
 	ColourMode,
+	GlassMode,
 	PanelLayout,
 	PanelPlacement,
 	Settings,
 	SettingsError,
+	SettingsField,
 	SettingsPatch,
 	SettingsSnapshot,
 };
