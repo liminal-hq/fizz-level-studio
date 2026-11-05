@@ -81,11 +81,6 @@ export const enMessages = {
 	// translator: Accessible name of the button that puts dragged items further apart.
 	'spacing.more': 'Place items further apart',
 
-	// translator: Accessible name of the row of tabs that switch the palette between tiles, items and enemies.
-	'palette.groups': 'Palette groups',
-	// translator: Accessible name of the list of choices in the palette. {group} is the tab’s name.
-	'palette.list': '{group} to paint',
-
 	// translator: Accessible name of the level canvas. {name} is the level’s name; the size is in cells.
 	'canvas.label': 'Level canvas, {name}, {width} by {height} cells',
 	// translator: Describes the cell the keyboard cursor is on: its column, row and tile word.
@@ -207,12 +202,16 @@ export const enMessages = {
 
 	// translator: Heading of the panel that lists the words the person can paint or place with.
 	'palette.title': 'Palette',
-	// translator: Heading of the Palette’s list of tile words (the kinds of ground and wall).
-	'palette.tiles': 'Tiles',
-	// translator: Heading of the Palette’s list of item words (collectables, such as a key).
-	'palette.items': 'Items',
-	// translator: Heading of the Palette’s list of enemy words.
-	'palette.enemies': 'Enemies',
+	// translator: Heading of the Palette section with the kinds of ground and wall: blocks, slopes, doors and the like.
+	'palette.section.terrain': 'Terrain',
+	// translator: Heading of the Palette section with the things that hurt, such as spikes.
+	'palette.section.hazards': 'Hazards',
+	// translator: Heading of the Palette section with the collectable items, such as a cookie or a key.
+	'palette.section.treats': 'Treats',
+	// translator: Heading of the Palette section with the enemies and the props that are placed like enemies.
+	'palette.section.enemies': 'Enemies',
+	// translator: Heading of the Palette section with the markers of a level, such as its exit.
+	'palette.section.markers': 'Markers',
 	// translator: Shown in place of the Palette’s item and enemy lists while the words are loading or unavailable.
 	'palette.unavailable': 'The word list is not available.',
 

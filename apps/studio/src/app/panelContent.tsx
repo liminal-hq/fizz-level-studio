@@ -24,6 +24,8 @@ export interface PanelContentContext {
 	words: WordDoc[];
 	brush: Brush;
 	onBrush: (brush: Brush) => void;
+	spacing: number;
+	onSpacing: (spacing: number) => void;
 	onObjectChosen: (cell: Cell) => void;
 	showLine: (line: number) => void;
 	undo: () => void;
@@ -50,6 +52,8 @@ export function panelContent(id: PanelId, ctx: PanelContentContext): ReactNode {
 					words={ctx.words}
 					brush={ctx.brush}
 					onBrush={ctx.onBrush}
+					spacing={ctx.spacing}
+					onSpacing={ctx.onSpacing}
 				/>
 			);
 		case 'objects':

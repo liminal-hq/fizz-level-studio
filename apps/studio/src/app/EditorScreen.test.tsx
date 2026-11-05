@@ -96,7 +96,7 @@ describe('EditorScreen', () => {
 	it('sends a one-row stroke as one applyEdit sharing a merge key, then ends the step', async () => {
 		const { client, canvas } = await mount();
 		const endStep = vi.spyOn(client, 'endStep');
-		await userEvent.click(screen.getByRole('button', { name: 'grass' }));
+		await userEvent.click(screen.getByRole('option', { name: 'grass' }));
 		stroke(canvas, [
 			[2, 3],
 			[3, 3],
@@ -181,8 +181,7 @@ describe('EditorScreen', () => {
 	it('drops one item per cell along a drag, as one undo step named for the run', async () => {
 		const user = userEvent.setup();
 		const { client, canvas } = await mount();
-		await user.click(screen.getByRole('tab', { name: 'Items' }));
-		await user.click(screen.getByRole('button', { name: 'cheezie' }));
+		await user.click(screen.getByRole('option', { name: 'cheezie' }));
 		stroke(canvas, [
 			[2, 4],
 			[3, 4],
@@ -206,8 +205,9 @@ describe('EditorScreen', () => {
 	it('spaces the items by the chosen step and writes it as by=', async () => {
 		const user = userEvent.setup();
 		const { client, canvas } = await mount();
-		await user.click(screen.getByRole('tab', { name: 'Items' }));
-		await user.click(screen.getByRole('button', { name: 'choc' }));
+		await user.click(
+			within(screen.getByRole('group', { name: 'Treats' })).getByRole('option', { name: 'choc' }),
+		);
 		await user.click(screen.getByRole('button', { name: 'Place items further apart' }));
 		await user.click(screen.getByRole('button', { name: 'Place items further apart' }));
 		stroke(
@@ -222,8 +222,7 @@ describe('EditorScreen', () => {
 	it('steps the spacing with the bracket keys', async () => {
 		const user = userEvent.setup();
 		await mount();
-		await user.click(screen.getByRole('tab', { name: 'Items' }));
-		await user.click(screen.getByRole('button', { name: 'cheezie' }));
+		await user.click(screen.getByRole('option', { name: 'cheezie' }));
 		screen.getByRole('application').focus();
 		await user.keyboard(']]');
 		expect(screen.getByRole('group', { name: 'Item spacing' })).toHaveTextContent('Every 3 cells');
@@ -234,8 +233,7 @@ describe('EditorScreen', () => {
 	it('places one enemy per click and none along a drag', async () => {
 		const user = userEvent.setup();
 		const { client, canvas } = await mount();
-		await user.click(screen.getByRole('tab', { name: 'Enemies' }));
-		await user.click(screen.getByRole('button', { name: 'drone' }));
+		await user.click(screen.getByRole('option', { name: 'drone' }));
 		stroke(canvas, [
 			[3, 4],
 			[4, 4],
@@ -431,15 +429,14 @@ describe('EditorScreen panels', () => {
 		await mountWithWords();
 		const region = await screen.findByRole('region', { name: 'Palette' });
 		await user.click(screen.getByRole('button', { name: 'Stamp' }));
-		await user.click(within(region).getByRole('button', { name: 'grass' }));
+		await user.click(within(region).getByRole('option', { name: 'grass' }));
 		expect(screen.getByRole('button', { name: /^Paint/ })).toHaveAttribute('aria-pressed', 'true');
-		expect(within(region).getByRole('button', { name: 'grass' })).toHaveAttribute(
-			'aria-pressed',
+		expect(within(region).getByRole('option', { name: 'grass' })).toHaveAttribute(
+			'aria-selected',
 			'true',
 		);
 		expect(screen.getByText('Brush: grass')).toBeInTheDocument();
-		await user.click(within(region).getByRole('tab', { name: 'Items' }));
-		await user.click(await within(region).findByRole('button', { name: 'soda' }));
+		await user.click(await within(region).findByRole('option', { name: 'soda' }));
 		expect(screen.getByRole('button', { name: /^Paint/ })).toHaveAttribute('aria-pressed', 'true');
 		expect(screen.getByText(/^Brush: soda/)).toBeInTheDocument();
 	});

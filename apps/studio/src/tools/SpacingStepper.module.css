@@ -1,0 +1,25 @@
+.spacing {
+	display: flex;
+	align-items: center;
+	gap: 0.3rem;
+	min-width: 0;
+	color: var(--fls-text-secondary);
+}
+
+.value {
+	flex: 1;
+	min-width: 0;
+	overflow: hidden;
+	color: var(--fls-text-primary);
+	font-size: 0.85rem;
+	text-align: center;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.step {
+	composes: keycap from '@liminal-hq/fizz-studio-chrome/Keycap/keycap.module.css';
+	flex: none;
+	min-width: var(--fls-key-height);
+	padding: 0 0.5rem;
+}

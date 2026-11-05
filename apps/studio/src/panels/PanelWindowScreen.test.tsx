@@ -119,8 +119,8 @@ describe('a panel window', () => {
 	it('sends the brush chosen in the Palette window to the main window', async () => {
 		const user = userEvent.setup();
 		const { heard } = mount('panel-palette-1');
-		await screen.findByRole('tab', { name: 'Tiles' });
-		await user.click(screen.getAllByRole('button', { pressed: false })[0]!);
+		await screen.findByRole('group', { name: 'Terrain' });
+		await user.click(screen.getAllByRole('option', { selected: false })[0]!);
 		await waitFor(() => expect(heard.some((h) => h.topic === 'palette/set')).toBe(true));
 		expect(heard.find((h) => h.topic === 'palette/set')!.payload).toMatchObject({
 			brush: { group: 'tile' },
@@ -129,13 +129,13 @@ describe('a panel window', () => {
 
 	it('shows the brush the main window reports and follows its changes', async () => {
 		const { main } = mount('panel-palette-1', share({ brush: { group: 'item', kind: 'cookie' } }));
-		await screen.findByRole('tab', { name: 'Items' });
-		expect(screen.getByRole('tab', { name: 'Items' })).toHaveAttribute('aria-selected', 'true');
+		await screen.findByRole('group', { name: 'Treats' });
+		expect(screen.getByRole('option', { name: 'cookie' })).toHaveAttribute('aria-selected', 'true');
 		act(() =>
 			main.send('panel-palette-1', 'editor', share({ brush: { group: 'enemy', kind: 'bat' } })),
 		);
 		await waitFor(() =>
-			expect(screen.getByRole('tab', { name: 'Enemies' })).toHaveAttribute('aria-selected', 'true'),
+			expect(screen.getByRole('option', { name: 'bat' })).toHaveAttribute('aria-selected', 'true'),
 		);
 	});
 

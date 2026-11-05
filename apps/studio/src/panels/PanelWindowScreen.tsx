@@ -89,6 +89,8 @@ function PanelWindow({ windowLabel, spec, client, levels, bridge: given }: Panel
 							words: session.words,
 							brush: share.brush,
 							onBrush: (brush) => bridge.send(owner, 'palette/set', { brush }),
+							spacing: share.spacing,
+							onSpacing: (spacing) => bridge.send(owner, 'palette/set', { spacing }),
 							onObjectChosen: (cell) => bridge.send(owner, 'objects/choose', cell),
 							showLine: (line) => bridge.send(owner, 'script/show', { line }),
 							undo: session.undo,

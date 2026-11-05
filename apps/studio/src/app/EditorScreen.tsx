@@ -564,6 +564,8 @@ export function EditorScreen({
 				words,
 				brush: tool.brush,
 				onBrush: tool.setBrush,
+				spacing: tool.spacing,
+				onSpacing: tool.setSpacing,
 				onObjectChosen,
 				showLine,
 				undo,

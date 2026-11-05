@@ -46,25 +46,6 @@
 	border-radius: 50%;
 }
 
-.spacing {
-	display: inline-flex;
-	align-items: center;
-	gap: 0.3rem;
-	color: var(--fls-text-secondary);
-}
-
-.spacingValue {
-	min-width: 6.5rem;
-	text-align: center;
-	color: var(--fls-text-primary);
-}
-
-.step {
-	composes: keycap from '@liminal-hq/fizz-studio-chrome/Keycap/keycap.module.css';
-	min-width: var(--fls-key-height);
-	padding: 0 0.5rem;
-}
-
 .hint {
 	color: var(--fls-text-secondary);
 }
