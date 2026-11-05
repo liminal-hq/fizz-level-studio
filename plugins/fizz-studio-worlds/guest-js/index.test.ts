@@ -29,6 +29,8 @@ const {
 	onLevelConflict,
 	openLevel,
 	openProject,
+	languageWords,
+	levelGhosts,
 	listRecovery,
 	redo,
 	restoreRecovery,
@@ -138,6 +140,19 @@ describe('commands', () => {
 			[`${prefix}level_redo`, { id: 'a', basedOn: 7 }],
 			[`${prefix}level_save`, { id: 'a' }],
 			[`${prefix}level_close`, { id: 'a' }],
+		]);
+	});
+});
+
+describe('words and ghosts', () => {
+	it('reads the language words and the ghosts under the plugin prefix', async () => {
+		invoke.mockResolvedValue([]);
+		await languageWords();
+		await levelGhosts('a');
+		const prefix = 'plugin:fizz-studio-worlds|';
+		expect(invoke.mock.calls).toEqual([
+			[`${prefix}language_words`, undefined],
+			[`${prefix}level_ghosts`, { id: 'a' }],
 		]);
 	});
 });

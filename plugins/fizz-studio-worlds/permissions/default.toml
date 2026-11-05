@@ -13,4 +13,6 @@ permissions = [
 	"allow-recovery-list",
 	"allow-recovery-restore",
 	"allow-recovery-discard",
+	"allow-language-words",
+	"allow-level-ghosts",
 ]

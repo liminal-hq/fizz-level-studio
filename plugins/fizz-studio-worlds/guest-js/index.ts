@@ -5,12 +5,14 @@
 
 import { invoke } from '@tauri-apps/api/core';
 import { listen, type UnlistenFn } from '@tauri-apps/api/event';
+import type { GhostProposal } from '@liminal-hq/fizz-studio-protocol/generated/GhostProposal';
 import type { LevelEdit } from '@liminal-hq/fizz-studio-protocol/generated/LevelEdit';
 import type { LevelError } from '@liminal-hq/fizz-studio-protocol/generated/LevelError';
 import type { LevelSnapshot } from '@liminal-hq/fizz-studio-protocol/generated/LevelSnapshot';
 import type { NewLevelRequest } from '@liminal-hq/fizz-studio-protocol/generated/NewLevelRequest';
 import type { ProjectInfo } from '@liminal-hq/fizz-studio-protocol/generated/ProjectInfo';
 import type { RecoveryEntry } from '@liminal-hq/fizz-studio-protocol/generated/RecoveryEntry';
+import type { WordDoc } from '@liminal-hq/fizz-studio-protocol/generated/WordDoc';
 
 const PREFIX = 'plugin:fizz-studio-worlds|';
 
@@ -109,6 +111,22 @@ export function discardRecovery(id: string): Promise<void> {
 }
 
 /**
+ * The words a level script can use, documented, from the language in Rust. The Palette lists the
+ * tiles, items and enemies among them, and the Script panel's completion offers all of them.
+ */
+export function languageWords(): Promise<WordDoc[]> {
+	return cmd<WordDoc[]>('language_words');
+}
+
+/**
+ * The changes Claude proposed for an open level that the person has not yet accepted or rejected,
+ * read from the level's `<level>.studio.json` sidecar and spread into cells. Read-only.
+ */
+export function levelGhosts(id: string): Promise<GhostProposal[]> {
+	return cmd<GhostProposal[]>('level_ghosts', { id });
+}
+
+/**
  * Wraps `listener` so it hears only snapshots newer than what it has applied for that level.
  * Events can arrive out of order or twice (a window's own edit comes back as an event), and a
  * revision at or below the one already applied for the same level id is older news: it is ignored.
@@ -145,4 +163,13 @@ export function onLevelConflict(listener: (conflict: LevelConflict) => void): Pr
 	return listen<LevelConflict>(LEVEL_CONFLICT_EVENT, (event) => listener(event.payload));
 }
 
-export type { LevelEdit, LevelError, LevelSnapshot, NewLevelRequest, ProjectInfo, RecoveryEntry };
+export type {
+	GhostProposal,
+	LevelEdit,
+	LevelError,
+	LevelSnapshot,
+	NewLevelRequest,
+	ProjectInfo,
+	RecoveryEntry,
+	WordDoc,
+};

@@ -180,6 +180,56 @@ pub enum LevelError {
     Io { message: String },
 }
 
+/// One word of the language, documented, for the Palette and for completion in the Script panel.
+/// The text comes from the language crate's data (English (Canada) for now); the webview never keeps
+/// its own copy.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[ts(export, export_to = "../../../packages/protocol/src/generated/")]
+pub struct WordDoc {
+    pub word: String,
+    /// One of `statement`, `section`, `segment`, `tile`, `item`, `enemy`.
+    pub kind: String,
+    pub syntax: String,
+    pub example: String,
+    pub note: String,
+}
+
+/// What a proposed line does to a cell.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "snake_case")]
+#[ts(export, export_to = "../../../packages/protocol/src/generated/")]
+pub enum GhostOp {
+    Paint,
+    Clear,
+    Place,
+}
+
+/// One cell a pending proposal would change, counted from the bottom-left corner.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[ts(export, export_to = "../../../packages/protocol/src/generated/")]
+pub struct GhostCell {
+    pub x: u32,
+    pub y: u32,
+    pub op: GhostOp,
+    /// The tile or item word for a paint or place; `None` for a clear.
+    pub word: Option<String>,
+}
+
+/// A change Claude proposed that the person has not yet accepted or rejected, read from the
+/// level's `<level>.studio.json` sidecar. Read-only: accepting and rejecting come later.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[ts(export, export_to = "../../../packages/protocol/src/generated/")]
+pub struct GhostProposal {
+    /// The proposal's id in the sidecar, such as `h3`.
+    pub id: String,
+    pub title: String,
+    pub why: Option<String>,
+    /// The proposed lines, as the sidecar holds them.
+    pub lines: Vec<String>,
+    /// The cells the lines would change, clipped to the level and in line order.
+    pub cells: Vec<GhostCell>,
+}
+
 /// A recovery copy left by a session that did not close cleanly: an unsaved level and when the
 /// studio last kept it.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, TS)]

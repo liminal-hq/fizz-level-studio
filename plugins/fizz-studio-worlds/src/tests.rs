@@ -744,3 +744,38 @@ fn the_new_world_window_may_only_create_a_level() {
         serde_json::json!(["fizz-studio-worlds:allow-level-create"])
     );
 }
+
+#[test]
+fn the_language_words_come_from_rust() {
+    let words = commands::language_words();
+    let paint = words.iter().find(|w| w.word == "paint").expect("paint");
+    assert_eq!(paint.kind, "statement");
+    assert!(words.iter().any(|w| w.kind == "enemy"));
+}
+
+#[test]
+fn the_ghosts_are_the_pending_proposals_in_the_sidecar() {
+    let app = app();
+    let (_dir, path) = project();
+    let opened = open(&app, &path);
+    let ghosts = |app: &App| commands::level_ghosts(worlds(app), opened.id.clone()).unwrap();
+    assert!(ghosts(&app).is_empty(), "no sidecar, no ghosts");
+
+    let sidecar = path.with_extension("studio.json");
+    std::fs::write(
+        &sidecar,
+        r#"{"version":1,"mode":"propose","nextId":3,"nextNote":1,"notes":[],"history":[
+        {"id":"h1","title":"A ledge","lines":["paint grass x=5..6 y=10"],"status":"pending"},
+        {"id":"h2","title":"Done","lines":["paint grass x=1 y=1"],"status":"accepted"}]}"#,
+    )
+    .unwrap();
+    let found = ghosts(&app);
+    assert_eq!(found.len(), 1);
+    assert_eq!(found[0].id, "h1");
+    assert_eq!(found[0].cells.len(), 2);
+    // Reading changes nothing: the level has not moved.
+    assert_eq!(current(&app, &opened.id).revision, opened.revision);
+
+    let missing = commands::level_ghosts(worlds(&app), "nope".into());
+    assert!(matches!(missing, Err(LevelError::NotOpen { .. })));
+}

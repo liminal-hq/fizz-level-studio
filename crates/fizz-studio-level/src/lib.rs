@@ -10,6 +10,7 @@ mod document;
 mod fizz2;
 mod fizz2_view;
 mod new;
+mod proposals;
 mod view;
 
 #[cfg(test)]
@@ -26,3 +27,4 @@ pub use new::{
     default_ground, is_slug, new_level_text, new_world_text, pack_name, validate_new_level,
     HEIGHT_RANGE, WIDTH_RANGE,
 };
+pub use proposals::{pending_ghosts, sidecar_path, word_docs};

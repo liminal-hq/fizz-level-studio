@@ -129,6 +129,17 @@ impl OpenLevel {
         }
     }
 
+    /// The proposals Claude left pending in the level's sidecar, drawn over the level as it is now.
+    /// A sidecar that is missing or unreadable has none.
+    pub(crate) fn ghosts(&self) -> Vec<fizz_studio_protocol::GhostProposal> {
+        let sidecar = fizz_studio_level::sidecar_path(&self.path.to_string_lossy());
+        let Ok(json) = std::fs::read_to_string(sidecar) else {
+            return Vec::new();
+        };
+        let view = self.session.document().view();
+        fizz_studio_level::pending_ghosts(self.session.text(), view.width, view.height, &json)
+    }
+
     /// Writes the session's text to its file and records that as saved.
     pub(crate) fn save(&mut self) -> Result<(), LevelError> {
         let text = self.session.text().to_string();

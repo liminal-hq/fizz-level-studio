@@ -74,6 +74,20 @@ var __TAURI_PLUGIN_FIZZ_STUDIO_WORLDS__ = (function (exports, core, event) {
         return cmd('recovery_discard', { id });
     }
     /**
+     * The words a level script can use, documented, from the language in Rust. The Palette lists the
+     * tiles, items and enemies among them, and the Script panel's completion offers all of them.
+     */
+    function languageWords() {
+        return cmd('language_words');
+    }
+    /**
+     * The changes Claude proposed for an open level that the person has not yet accepted or rejected,
+     * read from the level's `<level>.studio.json` sidecar and spread into cells. Read-only.
+     */
+    function levelGhosts(id) {
+        return cmd('level_ghosts', { id });
+    }
+    /**
      * Wraps `listener` so it hears only snapshots newer than what it has applied for that level.
      * Events can arrive out of order or twice (a window's own edit comes back as an event), and a
      * revision at or below the one already applied for the same level id is older news: it is ignored.
@@ -109,6 +123,8 @@ var __TAURI_PLUGIN_FIZZ_STUDIO_WORLDS__ = (function (exports, core, event) {
     exports.createLevel = createLevel;
     exports.discardRecovery = discardRecovery;
     exports.endStep = endStep;
+    exports.languageWords = languageWords;
+    exports.levelGhosts = levelGhosts;
     exports.listRecovery = listRecovery;
     exports.newerOnly = newerOnly;
     exports.onLevelChanged = onLevelChanged;
