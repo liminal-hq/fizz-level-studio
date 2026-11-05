@@ -1,0 +1,36 @@
+{
+	"id": "overworld/header-malformed",
+	"from": "tools/fizz1-cases.ts: a malformed header puts the error on its line and the missing start on line 0",
+	"isOverworld": true,
+	"ast": {
+		"nodes": [
+			{
+				"type": "error",
+				"code": "E004",
+				"line": 1,
+				"raw": "overworld T 20x20 id=test",
+				"comment": null
+			},
+			{
+				"type": "blank",
+				"line": 2,
+				"raw": "",
+				"comment": null
+			}
+		]
+	},
+	"errors": [
+		{
+			"line": 0,
+			"code": "E010",
+			"message": "the script has no `start` line",
+			"fix": "add `start 9.2,8.2` (where Ben stands when the map opens)"
+		},
+		{
+			"line": 1,
+			"code": "E004",
+			"message": "the overworld header is malformed",
+			"fix": "write: overworld \"Name\" 60x44 id=main"
+		}
+	]
+}

@@ -1,0 +1,1342 @@
+{
+	"id": "overworld/tracked-overworlds-main",
+	"from": "overworlds/main.fizz",
+	"isOverworld": true,
+	"ast": {
+		"nodes": [
+			{
+				"type": "comment",
+				"line": 1,
+				"raw": "// The Episode 1 overworld, written as a script. It rebuilds `build_overworld()` in levels.rs tile for tile.",
+				"comment": "The Episode 1 overworld, written as a script. It rebuilds `build_overworld()` in levels.rs tile for tile."
+			},
+			{
+				"type": "overworld",
+				"name": "Overworld",
+				"w": 60,
+				"h": 44,
+				"id": "main",
+				"line": 2,
+				"raw": "overworld \"Overworld\" 60x44 id=main",
+				"comment": null
+			},
+			{
+				"type": "start",
+				"x": {
+					"value": 9.2,
+					"text": "9.2"
+				},
+				"y": {
+					"value": 8.2,
+					"text": "8.2"
+				},
+				"line": 3,
+				"raw": "start 9.2,8.2",
+				"comment": null
+			},
+			{
+				"type": "blank",
+				"line": 4,
+				"raw": "",
+				"comment": null
+			},
+			{
+				"type": "comment",
+				"line": 5,
+				"raw": "// The first area to match a tile decides its area, so the lake comes first.",
+				"comment": "The first area to match a tile decides its area, so the lake comes first."
+			},
+			{
+				"type": "area",
+				"area": "gumdrop-isle",
+				"x": {
+					"lo": 20,
+					"hi": 29
+				},
+				"y": {
+					"lo": 18,
+					"hi": 27
+				},
+				"line": 6,
+				"raw": "area gumdrop-isle x=20..29 y=18..27",
+				"comment": null
+			},
+			{
+				"type": "area",
+				"area": "crater-fields",
+				"x": {
+					"lo": 0,
+					"hi": 24
+				},
+				"y": {
+					"lo": 0,
+					"hi": 22
+				},
+				"line": 7,
+				"raw": "area crater-fields x=0..24 y=0..22",
+				"comment": null
+			},
+			{
+				"type": "area",
+				"area": "marshmallow-meadows",
+				"x": {
+					"lo": 0,
+					"hi": 24
+				},
+				"y": {
+					"lo": 23,
+					"hi": 43
+				},
+				"line": 8,
+				"raw": "area marshmallow-meadows x=0..24 y=23..43",
+				"comment": null
+			},
+			{
+				"type": "area",
+				"area": "frosting-frontier",
+				"x": {
+					"lo": 25,
+					"hi": 59
+				},
+				"y": {
+					"lo": 0,
+					"hi": 22
+				},
+				"line": 9,
+				"raw": "area frosting-frontier x=25..59 y=0..22",
+				"comment": null
+			},
+			{
+				"type": "area",
+				"area": "rock-candy-reach",
+				"x": {
+					"lo": 25,
+					"hi": 59
+				},
+				"y": {
+					"lo": 23,
+					"hi": 43
+				},
+				"line": 10,
+				"raw": "area rock-candy-reach x=25..59 y=23..43",
+				"comment": null
+			},
+			{
+				"type": "blank",
+				"line": 11,
+				"raw": "",
+				"comment": null
+			},
+			{
+				"type": "section",
+				"name": "blocks",
+				"line": 12,
+				"raw": "blocks",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "grass",
+				"x": {
+					"lo": 0,
+					"hi": 59
+				},
+				"y": {
+					"lo": 0,
+					"hi": 43
+				},
+				"line": 13,
+				"raw": "  grass x=0..59 y=0..43",
+				"comment": null
+			},
+			{
+				"type": "comment",
+				"line": 14,
+				"raw": "  // The sea around the edge.",
+				"comment": "The sea around the edge."
+			},
+			{
+				"type": "tile",
+				"tile": "river",
+				"x": {
+					"lo": 0,
+					"hi": 59
+				},
+				"y": {
+					"lo": 0,
+					"hi": 1
+				},
+				"line": 15,
+				"raw": "  river x=0..59 y=0..1",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "river",
+				"x": {
+					"lo": 0,
+					"hi": 59
+				},
+				"y": {
+					"lo": 42,
+					"hi": 43
+				},
+				"line": 16,
+				"raw": "  river x=0..59 y=42..43",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "river",
+				"x": {
+					"lo": 0,
+					"hi": 1
+				},
+				"y": {
+					"lo": 2,
+					"hi": 41
+				},
+				"line": 17,
+				"raw": "  river x=0..1 y=2..41",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "river",
+				"x": {
+					"lo": 58,
+					"hi": 59
+				},
+				"y": {
+					"lo": 2,
+					"hi": 41
+				},
+				"line": 18,
+				"raw": "  river x=58..59 y=2..41",
+				"comment": null
+			},
+			{
+				"type": "comment",
+				"line": 19,
+				"raw": "  // Two rivers cross the map and cut it into four regions; where they meet is a lake with an island that can only be reached by teleporter.",
+				"comment": "Two rivers cross the map and cut it into four regions; where they meet is a lake with an island that can only be reached by teleporter."
+			},
+			{
+				"type": "tile",
+				"tile": "river",
+				"x": {
+					"lo": 24,
+					"hi": 25
+				},
+				"y": {
+					"lo": 0,
+					"hi": 43
+				},
+				"line": 20,
+				"raw": "  river x=24..25 y=0..43",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "river",
+				"x": {
+					"lo": 0,
+					"hi": 59
+				},
+				"y": {
+					"lo": 22,
+					"hi": 23
+				},
+				"line": 21,
+				"raw": "  river x=0..59 y=22..23",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "river",
+				"x": {
+					"lo": 20,
+					"hi": 29
+				},
+				"y": {
+					"lo": 18,
+					"hi": 27
+				},
+				"line": 22,
+				"raw": "  river x=20..29 y=18..27",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "grass",
+				"x": {
+					"lo": 23,
+					"hi": 26
+				},
+				"y": {
+					"lo": 21,
+					"hi": 24
+				},
+				"line": 23,
+				"raw": "  grass x=23..26 y=21..24",
+				"comment": null
+			},
+			{
+				"type": "comment",
+				"line": 24,
+				"raw": "  // Paths run x first, then y, between the points.",
+				"comment": "Paths run x first, then y, between the points."
+			},
+			{
+				"type": "path",
+				"from": [
+					8,
+					9
+				],
+				"to": [
+					14,
+					6
+				],
+				"line": 25,
+				"raw": "  path from=8,9 to=14,6",
+				"comment": null
+			},
+			{
+				"type": "path",
+				"from": [
+					14,
+					6
+				],
+				"to": [
+					16,
+					14
+				],
+				"line": 26,
+				"raw": "  path from=14,6 to=16,14",
+				"comment": null
+			},
+			{
+				"type": "path",
+				"from": [
+					16,
+					14
+				],
+				"to": [
+					6,
+					16
+				],
+				"line": 27,
+				"raw": "  path from=16,14 to=6,16",
+				"comment": null
+			},
+			{
+				"type": "path",
+				"from": [
+					6,
+					16
+				],
+				"to": [
+					12,
+					19
+				],
+				"line": 28,
+				"raw": "  path from=6,16 to=12,19",
+				"comment": null
+			},
+			{
+				"type": "path",
+				"from": [
+					12,
+					26
+				],
+				"to": [
+					5,
+					30
+				],
+				"line": 29,
+				"raw": "  path from=12,26 to=5,30",
+				"comment": null
+			},
+			{
+				"type": "path",
+				"from": [
+					5,
+					30
+				],
+				"to": [
+					8,
+					37
+				],
+				"line": 30,
+				"raw": "  path from=5,30 to=8,37",
+				"comment": null
+			},
+			{
+				"type": "path",
+				"from": [
+					5,
+					30
+				],
+				"to": [
+					16,
+					31
+				],
+				"line": 31,
+				"raw": "  path from=5,30 to=16,31",
+				"comment": null
+			},
+			{
+				"type": "path",
+				"from": [
+					8,
+					37
+				],
+				"to": [
+					20,
+					38
+				],
+				"line": 32,
+				"raw": "  path from=8,37 to=20,38",
+				"comment": null
+			},
+			{
+				"type": "path",
+				"from": [
+					29,
+					38
+				],
+				"to": [
+					37,
+					34
+				],
+				"line": 33,
+				"raw": "  path from=29,38 to=37,34",
+				"comment": null
+			},
+			{
+				"type": "path",
+				"from": [
+					37,
+					34
+				],
+				"to": [
+					46,
+					38
+				],
+				"line": 34,
+				"raw": "  path from=37,34 to=46,38",
+				"comment": null
+			},
+			{
+				"type": "path",
+				"from": [
+					37,
+					34
+				],
+				"to": [
+					41,
+					28
+				],
+				"line": 35,
+				"raw": "  path from=37,34 to=41,28",
+				"comment": null
+			},
+			{
+				"type": "path",
+				"from": [
+					46,
+					38
+				],
+				"to": [
+					53,
+					27
+				],
+				"line": 36,
+				"raw": "  path from=46,38 to=53,27",
+				"comment": null
+			},
+			{
+				"type": "path",
+				"from": [
+					46,
+					38
+				],
+				"to": [
+					51,
+					30
+				],
+				"line": 37,
+				"raw": "  path from=46,38 to=51,30",
+				"comment": null
+			},
+			{
+				"type": "path",
+				"from": [
+					53,
+					18
+				],
+				"to": [
+					33,
+					15
+				],
+				"line": 38,
+				"raw": "  path from=53,18 to=33,15",
+				"comment": null
+			},
+			{
+				"type": "path",
+				"from": [
+					47,
+					18
+				],
+				"to": [
+					47,
+					14
+				],
+				"line": 39,
+				"raw": "  path from=47,18 to=47,14",
+				"comment": null
+			},
+			{
+				"type": "path",
+				"from": [
+					33,
+					15
+				],
+				"to": [
+					34,
+					6
+				],
+				"line": 40,
+				"raw": "  path from=33,15 to=34,6",
+				"comment": null
+			},
+			{
+				"type": "path",
+				"from": [
+					34,
+					6
+				],
+				"to": [
+					44,
+					6
+				],
+				"line": 41,
+				"raw": "  path from=34,6 to=44,6",
+				"comment": null
+			},
+			{
+				"type": "comment",
+				"line": 42,
+				"raw": "  // Trees and rocks on free ground, by each area's rates, keeping clear of every point and path.",
+				"comment": "Trees and rocks on free ground, by each area's rates, keeping clear of every point and path."
+			},
+			{
+				"type": "scatter",
+				"line": 43,
+				"raw": "  scatter",
+				"comment": null
+			},
+			{
+				"type": "comment",
+				"line": 44,
+				"raw": "  // Crater Corners, around Zarg Lookout: two houses and a shop north of the street, and a house and the fountain west of the tower.",
+				"comment": "Crater Corners, around Zarg Lookout: two houses and a shop north of the street, and a house and the fountain west of the tower."
+			},
+			{
+				"type": "tile",
+				"tile": "house-a",
+				"x": {
+					"lo": 7,
+					"hi": 7
+				},
+				"y": {
+					"lo": 17,
+					"hi": 17
+				},
+				"line": 45,
+				"raw": "  house-a x=7 y=17",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "house-b",
+				"x": {
+					"lo": 9,
+					"hi": 9
+				},
+				"y": {
+					"lo": 17,
+					"hi": 17
+				},
+				"line": 46,
+				"raw": "  house-b x=9 y=17",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "shop",
+				"x": {
+					"lo": 11,
+					"hi": 11
+				},
+				"y": {
+					"lo": 17,
+					"hi": 17
+				},
+				"line": 47,
+				"raw": "  shop x=11 y=17",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "house-b",
+				"x": {
+					"lo": 4,
+					"hi": 4
+				},
+				"y": {
+					"lo": 17,
+					"hi": 17
+				},
+				"line": 48,
+				"raw": "  house-b x=4 y=17",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "fountain",
+				"x": {
+					"lo": 4,
+					"hi": 4
+				},
+				"y": {
+					"lo": 15,
+					"hi": 15
+				},
+				"line": 49,
+				"raw": "  fountain x=4 y=15",
+				"comment": null
+			},
+			{
+				"type": "comment",
+				"line": 50,
+				"raw": "  // The hidden pad's clearing: a ring of trees with a single gap to the west, and the way in kept clear.",
+				"comment": "The hidden pad's clearing: a ring of trees with a single gap to the west, and the way in kept clear."
+			},
+			{
+				"type": "tile",
+				"tile": "grass",
+				"x": {
+					"lo": 53,
+					"hi": 57
+				},
+				"y": {
+					"lo": 38,
+					"hi": 42
+				},
+				"line": 51,
+				"raw": "  grass x=53..57 y=38..42",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "tree",
+				"x": {
+					"lo": 53,
+					"hi": 57
+				},
+				"y": {
+					"lo": 38,
+					"hi": 38
+				},
+				"line": 52,
+				"raw": "  tree x=53..57 y=38",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "tree",
+				"x": {
+					"lo": 53,
+					"hi": 57
+				},
+				"y": {
+					"lo": 42,
+					"hi": 42
+				},
+				"line": 53,
+				"raw": "  tree x=53..57 y=42",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "tree",
+				"x": {
+					"lo": 53,
+					"hi": 53
+				},
+				"y": {
+					"lo": 39,
+					"hi": 39
+				},
+				"line": 54,
+				"raw": "  tree x=53 y=39",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "tree",
+				"x": {
+					"lo": 53,
+					"hi": 53
+				},
+				"y": {
+					"lo": 41,
+					"hi": 41
+				},
+				"line": 55,
+				"raw": "  tree x=53 y=41",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "tree",
+				"x": {
+					"lo": 57,
+					"hi": 57
+				},
+				"y": {
+					"lo": 39,
+					"hi": 41
+				},
+				"line": 56,
+				"raw": "  tree x=57 y=39..41",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "grass",
+				"x": {
+					"lo": 50,
+					"hi": 53
+				},
+				"y": {
+					"lo": 40,
+					"hi": 40
+				},
+				"line": 57,
+				"raw": "  grass x=50..53 y=40",
+				"comment": null
+			},
+			{
+				"type": "blank",
+				"line": 58,
+				"raw": "",
+				"comment": null
+			},
+			{
+				"type": "section",
+				"name": "points",
+				"line": 59,
+				"raw": "points",
+				"comment": null
+			},
+			{
+				"type": "saucer",
+				"at": [
+					{
+						"value": 8,
+						"text": "8"
+					},
+					{
+						"value": 10,
+						"text": "10"
+					}
+				],
+				"line": 60,
+				"raw": "  saucer at=8,10",
+				"comment": null
+			},
+			{
+				"type": "level",
+				"slug": "crater",
+				"at": [
+					{
+						"value": 14,
+						"text": "14"
+					},
+					{
+						"value": 6,
+						"text": "6"
+					}
+				],
+				"req": [],
+				"big": false,
+				"hidden": false,
+				"line": 61,
+				"raw": "  level crater at=14,6",
+				"comment": null
+			},
+			{
+				"type": "comment",
+				"line": 62,
+				"raw": "  // The first area is a tutorial: Crater Fields, then Meteor Mesa, then Zarg Lookout.",
+				"comment": "The first area is a tutorial: Crater Fields, then Meteor Mesa, then Zarg Lookout."
+			},
+			{
+				"type": "level",
+				"slug": "meteor-mesa",
+				"at": [
+					{
+						"value": 16,
+						"text": "16"
+					},
+					{
+						"value": 14,
+						"text": "14"
+					}
+				],
+				"req": [
+					"crater"
+				],
+				"big": false,
+				"hidden": false,
+				"line": 63,
+				"raw": "  level meteor-mesa at=16,14 req=crater",
+				"comment": null
+			},
+			{
+				"type": "level",
+				"slug": "zarg-lookout",
+				"at": [
+					{
+						"value": 6,
+						"text": "6"
+					},
+					{
+						"value": 16,
+						"text": "16"
+					}
+				],
+				"req": [
+					"meteor-mesa"
+				],
+				"big": false,
+				"hidden": false,
+				"line": 64,
+				"raw": "  level zarg-lookout at=6,16 req=meteor-mesa",
+				"comment": null
+			},
+			{
+				"type": "comment",
+				"line": 65,
+				"raw": "  // The three levels of Crater Fields power the way down to the Meadows.",
+				"comment": "The three levels of Crater Fields power the way down to the Meadows."
+			},
+			{
+				"type": "tele",
+				"label": "crater-down",
+				"at": [
+					{
+						"value": 12,
+						"text": "12"
+					},
+					{
+						"value": 19,
+						"text": "19"
+					}
+				],
+				"with": "meadows-up",
+				"req": [
+					"crater",
+					"meteor-mesa",
+					"zarg-lookout"
+				],
+				"hidden": false,
+				"line": 66,
+				"raw": "  tele crater-down at=12,19 with=meadows-up req=crater,meteor-mesa,zarg-lookout",
+				"comment": null
+			},
+			{
+				"type": "tele",
+				"label": "meadows-up",
+				"at": [
+					{
+						"value": 12,
+						"text": "12"
+					},
+					{
+						"value": 26,
+						"text": "26"
+					}
+				],
+				"with": "crater-down",
+				"req": [
+					"crater",
+					"meteor-mesa",
+					"zarg-lookout"
+				],
+				"hidden": false,
+				"line": 67,
+				"raw": "  tele meadows-up at=12,26 with=crater-down req=crater,meteor-mesa,zarg-lookout",
+				"comment": null
+			},
+			{
+				"type": "level",
+				"slug": "marshmallow-meadows",
+				"at": [
+					{
+						"value": 5,
+						"text": "5"
+					},
+					{
+						"value": 30,
+						"text": "30"
+					}
+				],
+				"req": [],
+				"big": false,
+				"hidden": false,
+				"line": 68,
+				"raw": "  level marshmallow-meadows at=5,30",
+				"comment": null
+			},
+			{
+				"type": "level",
+				"slug": "fudge-bog",
+				"at": [
+					{
+						"value": 16,
+						"text": "16"
+					},
+					{
+						"value": 31,
+						"text": "31"
+					}
+				],
+				"req": [],
+				"big": false,
+				"hidden": false,
+				"line": 69,
+				"raw": "  level fudge-bog at=16,31",
+				"comment": null
+			},
+			{
+				"type": "level",
+				"slug": "bonbon-playhouse",
+				"at": [
+					{
+						"value": 8,
+						"text": "8"
+					},
+					{
+						"value": 37,
+						"text": "37"
+					}
+				],
+				"req": [],
+				"big": false,
+				"hidden": false,
+				"line": 70,
+				"raw": "  level bonbon-playhouse at=8,37",
+				"comment": null
+			},
+			{
+				"type": "tele",
+				"label": "meadows-east",
+				"at": [
+					{
+						"value": 20,
+						"text": "20"
+					},
+					{
+						"value": 38,
+						"text": "38"
+					}
+				],
+				"with": "rock-candy-west",
+				"req": [
+					"marshmallow-meadows",
+					"bonbon-playhouse"
+				],
+				"hidden": false,
+				"line": 71,
+				"raw": "  tele meadows-east at=20,38 with=rock-candy-west req=marshmallow-meadows,bonbon-playhouse",
+				"comment": null
+			},
+			{
+				"type": "tele",
+				"label": "rock-candy-west",
+				"at": [
+					{
+						"value": 29,
+						"text": "29"
+					},
+					{
+						"value": 38,
+						"text": "38"
+					}
+				],
+				"with": "meadows-east",
+				"req": [
+					"marshmallow-meadows",
+					"bonbon-playhouse"
+				],
+				"hidden": false,
+				"line": 72,
+				"raw": "  tele rock-candy-west at=29,38 with=meadows-east req=marshmallow-meadows,bonbon-playhouse",
+				"comment": null
+			},
+			{
+				"type": "level",
+				"slug": "caves",
+				"at": [
+					{
+						"value": 37,
+						"text": "37"
+					},
+					{
+						"value": 34,
+						"text": "34"
+					}
+				],
+				"req": [],
+				"big": false,
+				"hidden": false,
+				"line": 73,
+				"raw": "  level caves at=37,34",
+				"comment": null
+			},
+			{
+				"type": "level",
+				"slug": "mirror-shafts",
+				"at": [
+					{
+						"value": 46,
+						"text": "46"
+					},
+					{
+						"value": 38,
+						"text": "38"
+					}
+				],
+				"req": [],
+				"big": false,
+				"hidden": false,
+				"line": 74,
+				"raw": "  level mirror-shafts at=46,38",
+				"comment": null
+			},
+			{
+				"type": "level",
+				"slug": "sugar-glass-gallery",
+				"at": [
+					{
+						"value": 51,
+						"text": "51"
+					},
+					{
+						"value": 30,
+						"text": "30"
+					}
+				],
+				"req": [],
+				"big": false,
+				"hidden": false,
+				"line": 75,
+				"raw": "  level sugar-glass-gallery at=51,30",
+				"comment": null
+			},
+			{
+				"type": "tele",
+				"label": "candy-north",
+				"at": [
+					{
+						"value": 53,
+						"text": "53"
+					},
+					{
+						"value": 27,
+						"text": "27"
+					}
+				],
+				"with": "frontier-south",
+				"req": [
+					"caves",
+					"mirror-shafts"
+				],
+				"hidden": false,
+				"line": 76,
+				"raw": "  tele candy-north at=53,27 with=frontier-south req=caves,mirror-shafts",
+				"comment": null
+			},
+			{
+				"type": "tele",
+				"label": "frontier-south",
+				"at": [
+					{
+						"value": 53,
+						"text": "53"
+					},
+					{
+						"value": 18,
+						"text": "18"
+					}
+				],
+				"with": "candy-north",
+				"req": [
+					"caves",
+					"mirror-shafts"
+				],
+				"hidden": false,
+				"line": 77,
+				"raw": "  tele frontier-south at=53,18 with=candy-north req=caves,mirror-shafts",
+				"comment": null
+			},
+			{
+				"type": "level",
+				"slug": "frosting-flats",
+				"at": [
+					{
+						"value": 47,
+						"text": "47"
+					},
+					{
+						"value": 14,
+						"text": "14"
+					}
+				],
+				"req": [],
+				"big": false,
+				"hidden": false,
+				"line": 78,
+				"raw": "  level frosting-flats at=47,14",
+				"comment": null
+			},
+			{
+				"type": "level",
+				"slug": "frosting-spire",
+				"at": [
+					{
+						"value": 33,
+						"text": "33"
+					},
+					{
+						"value": 15,
+						"text": "15"
+					}
+				],
+				"req": [],
+				"big": false,
+				"hidden": false,
+				"line": 79,
+				"raw": "  level frosting-spire at=33,15",
+				"comment": null
+			},
+			{
+				"type": "level",
+				"slug": "cocoa-foundry",
+				"at": [
+					{
+						"value": 34,
+						"text": "34"
+					},
+					{
+						"value": 6,
+						"text": "6"
+					}
+				],
+				"req": [],
+				"big": false,
+				"hidden": false,
+				"line": 80,
+				"raw": "  level cocoa-foundry at=34,6",
+				"comment": null
+			},
+			{
+				"type": "comment",
+				"line": 81,
+				"raw": "  // The Citadel stays locked until both Frosting Frontier levels on the way are done.",
+				"comment": "The Citadel stays locked until both Frosting Frontier levels on the way are done."
+			},
+			{
+				"type": "level",
+				"slug": "citadel",
+				"at": [
+					{
+						"value": 44,
+						"text": "44"
+					},
+					{
+						"value": 6,
+						"text": "6"
+					}
+				],
+				"req": [
+					"frosting-spire",
+					"cocoa-foundry"
+				],
+				"big": true,
+				"hidden": false,
+				"line": 82,
+				"raw": "  level citadel at=44,6 req=frosting-spire,cocoa-foundry big",
+				"comment": null
+			},
+			{
+				"type": "comment",
+				"line": 83,
+				"raw": "  // The secret pair: a pad on the island, always on show, and its hidden partner in a ring of trees in the far north-east.",
+				"comment": "The secret pair: a pad on the island, always on show, and its hidden partner in a ring of trees in the far north-east."
+			},
+			{
+				"type": "tele",
+				"label": "island-pad",
+				"at": [
+					{
+						"value": 26,
+						"text": "26"
+					},
+					{
+						"value": 22,
+						"text": "22"
+					}
+				],
+				"with": "hidden-pad",
+				"req": [
+					"secret"
+				],
+				"hidden": false,
+				"line": 84,
+				"raw": "  tele island-pad at=26,22 with=hidden-pad req=secret",
+				"comment": null
+			},
+			{
+				"type": "tele",
+				"label": "hidden-pad",
+				"at": [
+					{
+						"value": 55,
+						"text": "55"
+					},
+					{
+						"value": 40,
+						"text": "40"
+					}
+				],
+				"with": "island-pad",
+				"req": [
+					"secret"
+				],
+				"hidden": true,
+				"line": 85,
+				"raw": "  tele hidden-pad at=55,40 with=island-pad req=secret hidden",
+				"comment": null
+			},
+			{
+				"type": "level",
+				"slug": "gumdrop-isle",
+				"at": [
+					{
+						"value": 24,
+						"text": "24"
+					},
+					{
+						"value": 23,
+						"text": "23"
+					}
+				],
+				"req": [],
+				"big": false,
+				"hidden": false,
+				"line": 86,
+				"raw": "  level gumdrop-isle at=24,23",
+				"comment": null
+			},
+			{
+				"type": "level",
+				"slug": "whisper-hollow",
+				"at": [
+					{
+						"value": 41,
+						"text": "41"
+					},
+					{
+						"value": 28,
+						"text": "28"
+					}
+				],
+				"req": [],
+				"big": false,
+				"hidden": false,
+				"line": 87,
+				"raw": "  level whisper-hollow at=41,28",
+				"comment": null
+			},
+			{
+				"type": "comment",
+				"line": 88,
+				"raw": "  // Crater Corners: the welcome sign, the bakery sign and the fountain sign.",
+				"comment": "Crater Corners: the welcome sign, the bakery sign and the fountain sign."
+			},
+			{
+				"type": "sign",
+				"n": 0,
+				"at": [
+					{
+						"value": 8,
+						"text": "8"
+					},
+					{
+						"value": 16,
+						"text": "16"
+					}
+				],
+				"line": 89,
+				"raw": "  sign 0 at=8,16",
+				"comment": null
+			},
+			{
+				"type": "sign",
+				"n": 1,
+				"at": [
+					{
+						"value": 11,
+						"text": "11"
+					},
+					{
+						"value": 16,
+						"text": "16"
+					}
+				],
+				"line": 90,
+				"raw": "  sign 1 at=11,16",
+				"comment": null
+			},
+			{
+				"type": "sign",
+				"n": 2,
+				"at": [
+					{
+						"value": 4,
+						"text": "4"
+					},
+					{
+						"value": 16,
+						"text": "16"
+					}
+				],
+				"line": 91,
+				"raw": "  sign 2 at=4,16",
+				"comment": null
+			},
+			{
+				"type": "blank",
+				"line": 92,
+				"raw": "",
+				"comment": null
+			}
+		]
+	},
+	"errors": []
+}

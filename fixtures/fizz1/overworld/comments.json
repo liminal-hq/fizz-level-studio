@@ -1,0 +1,86 @@
+{
+	"id": "overworld/comments",
+	"from": "tools/fizz1-cases.ts: comments, a quoted // in the name, and comment-only lines",
+	"isOverworld": true,
+	"ast": {
+		"nodes": [
+			{
+				"type": "comment",
+				"line": 1,
+				"raw": "// top",
+				"comment": "top"
+			},
+			{
+				"type": "overworld",
+				"name": "A // B",
+				"w": 20,
+				"h": 20,
+				"id": "test",
+				"line": 2,
+				"raw": "overworld \"A // B\" 20x20 id=test // header",
+				"comment": "header"
+			},
+			{
+				"type": "comment",
+				"line": 3,
+				"raw": "  // indented",
+				"comment": "indented"
+			},
+			{
+				"type": "start",
+				"x": {
+					"value": 3,
+					"text": "3"
+				},
+				"y": {
+					"value": 3,
+					"text": "3"
+				},
+				"line": 4,
+				"raw": "start 3,3   //",
+				"comment": ""
+			},
+			{
+				"type": "blank",
+				"line": 5,
+				"raw": "",
+				"comment": null
+			},
+			{
+				"type": "blank",
+				"line": 6,
+				"raw": "   ",
+				"comment": null
+			},
+			{
+				"type": "section",
+				"name": "blocks",
+				"line": 7,
+				"raw": "blocks // here",
+				"comment": "here"
+			},
+			{
+				"type": "tile",
+				"tile": "grass",
+				"x": {
+					"lo": 0,
+					"hi": 0
+				},
+				"y": {
+					"lo": 0,
+					"hi": 0
+				},
+				"line": 8,
+				"raw": "  grass x=0 y=0 // tile",
+				"comment": "tile"
+			},
+			{
+				"type": "blank",
+				"line": 9,
+				"raw": "",
+				"comment": null
+			}
+		]
+	},
+	"errors": []
+}

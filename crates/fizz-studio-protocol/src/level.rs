@@ -145,6 +145,26 @@ pub struct ProjectInfo {
     pub levels: Vec<String>,
 }
 
+/// What the person fills in to make a new level. The target is fixed here and no later edit can
+/// change it (R-WLD-02).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[ts(export, export_to = "../../../packages/protocol/src/generated/")]
+pub struct NewLevelRequest {
+    /// The name the person sees, on one line and without quotes.
+    pub name: String,
+    /// A slug of lowercase letters, digits, and hyphens; it names the file or the world folder.
+    pub id: String,
+    pub width: u32,
+    pub height: u32,
+    /// Fizz 1 only: the ground height; a quarter of the height when left out.
+    pub ground: Option<u32>,
+    /// Fizz 1 only: one of the language's theme words.
+    pub theme: Option<String>,
+    pub target: LevelTarget,
+    /// The folder the level file (Fizz 1) or the world folder (Fizz 2) is made in.
+    pub folder: String,
+}
+
 /// Why a level command was refused. Nothing changed.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, TS)]
 #[serde(tag = "kind", rename_all = "snake_case")]

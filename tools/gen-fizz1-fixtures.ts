@@ -6,7 +6,8 @@
 // Usage: bun tools/gen-fizz1-fixtures.ts [--check]
 //
 // Each input becomes `fixtures/fizz1/<group>/<name>.fizz` (the input), `.print` (the printed output)
-// and `.json` (the full AST and the errors). An `edits/` case adds `.edits.json` (the edits applied)
+// and `.json` (the full AST and the errors). An `overworld/` case is read by the overworld parser instead and
+// its `.json` also records `isOverworld`. An `edits/` case adds `.edits.json` (the edits applied)
 // and `.after` (the printed script once they are appended). With `--check` nothing is written; the process exits 1
 // when the committed fixtures differ from regenerated ones. The Rust crate's tests read the same files.
 import { spawnSync } from 'node:child_process';
@@ -24,7 +25,8 @@ import { fileURLToPath } from 'node:url';
 import { parse } from '../packages/language/src/parser.ts';
 import { print } from '../packages/language/src/printer.ts';
 import { appendEdits } from '../packages/language/src/edits.ts';
-import { CASES, EDIT_CASES } from './fizz1-cases.ts';
+import { isOverworld, parseOverworld, printOverworld } from '../packages/language/src/overworld.ts';
+import { CASES, EDIT_CASES, OVERWORLD_CASES } from './fizz1-cases.ts';
 import type { Case, EditCase } from './fizz1-cases.ts';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
@@ -43,6 +45,27 @@ function levelCases(): Case[] {
 		if (parse(source).errors.length > 0) continue;
 		const parts = path.replace(/\.fizz$/, '').split('/');
 		cases.push({ id: `${parts[0]}/${parts.slice(1).join('-')}`, from: path, source });
+	}
+	return cases;
+}
+
+/** The tracked scripts the TypeScript package treats as an overworld and that parse cleanly. */
+function overworldCases(): Case[] {
+	const listed = spawnSync('git', ['ls-files', '-z', '--', '*.fizz'], {
+		cwd: ROOT,
+		encoding: 'utf8',
+	});
+	if (listed.status !== 0) throw new Error(`git ls-files failed: ${listed.stderr}`);
+	const cases: Case[] = [];
+	for (const path of listed.stdout.split('\0').filter((p) => p.endsWith('.fizz'))) {
+		if (path.startsWith('fixtures/')) continue;
+		const source = readFileSync(join(ROOT, path), 'utf8');
+		if (!isOverworld(source) || parseOverworld(source).errors.length > 0) continue;
+		const slug = path
+			.replace(/\.fizz$/, '')
+			.split('/')
+			.join('-');
+		cases.push({ id: `overworld/tracked-${slug}`, from: path, source });
 	}
 	return cases;
 }
@@ -70,6 +93,22 @@ function build(): Map<string, string> {
 			files.set(`${c.id}.edits.json`, JSON.stringify(edits, null, '\t') + '\n');
 			files.set(`${c.id}.after`, print(appendEdits(ast, edits)));
 		}
+	}
+	// Overworld scripts: the same files, read by the overworld parser, with whether they are one.
+	for (const c of [...overworldCases(), ...OVERWORLD_CASES]) {
+		if (ids.has(c.id)) throw new Error(`duplicate case id ${c.id}`);
+		ids.add(c.id);
+		const { ast, errors } = parseOverworld(c.source);
+		const doc = {
+			id: c.id,
+			from: c.from,
+			isOverworld: isOverworld(c.source),
+			ast,
+			errors: errors.map(({ line, code, message, fix }) => ({ line, code, message, fix })),
+		};
+		files.set(`${c.id}.fizz`, c.source);
+		files.set(`${c.id}.print`, printOverworld(ast));
+		files.set(`${c.id}.json`, JSON.stringify(doc, null, '\t') + '\n');
 	}
 	return files;
 }

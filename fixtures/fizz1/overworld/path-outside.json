@@ -1,0 +1,74 @@
+{
+	"id": "overworld/path-outside",
+	"from": "tools/fizz1-cases.ts: a path that leaves the map",
+	"isOverworld": true,
+	"ast": {
+		"nodes": [
+			{
+				"type": "overworld",
+				"name": "T",
+				"w": 20,
+				"h": 20,
+				"id": "test",
+				"line": 1,
+				"raw": "overworld \"T\" 20x20 id=test",
+				"comment": null
+			},
+			{
+				"type": "start",
+				"x": {
+					"value": 3,
+					"text": "3"
+				},
+				"y": {
+					"value": 3,
+					"text": "3"
+				},
+				"line": 2,
+				"raw": "start 3,3",
+				"comment": null
+			},
+			{
+				"type": "section",
+				"name": "blocks",
+				"line": 3,
+				"raw": "blocks",
+				"comment": null
+			},
+			{
+				"type": "error",
+				"code": "E013",
+				"line": 4,
+				"raw": "  path from=1,2 to=40,4",
+				"comment": null
+			},
+			{
+				"type": "error",
+				"code": "E013",
+				"line": 5,
+				"raw": "  path from=1,2 to=4,-3",
+				"comment": null
+			},
+			{
+				"type": "blank",
+				"line": 6,
+				"raw": "",
+				"comment": null
+			}
+		]
+	},
+	"errors": [
+		{
+			"line": 4,
+			"code": "E013",
+			"message": "x 40 is outside the overworld (x runs 0..19)",
+			"fix": "keep x within 0..19, or change the size on the `overworld` line"
+		},
+		{
+			"line": 5,
+			"code": "E013",
+			"message": "y -3 is outside the overworld (y runs 0..19)",
+			"fix": "keep y within 0..19, or change the size on the `overworld` line"
+		}
+	]
+}

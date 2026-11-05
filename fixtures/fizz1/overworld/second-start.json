@@ -1,0 +1,54 @@
+{
+	"id": "overworld/second-start",
+	"from": "tools/fizz1-cases.ts: a second start line",
+	"isOverworld": true,
+	"ast": {
+		"nodes": [
+			{
+				"type": "overworld",
+				"name": "T",
+				"w": 20,
+				"h": 20,
+				"id": "test",
+				"line": 1,
+				"raw": "overworld \"T\" 20x20 id=test",
+				"comment": null
+			},
+			{
+				"type": "start",
+				"x": {
+					"value": 3,
+					"text": "3"
+				},
+				"y": {
+					"value": 3,
+					"text": "3"
+				},
+				"line": 2,
+				"raw": "start 3,3",
+				"comment": null
+			},
+			{
+				"type": "error",
+				"code": "E006",
+				"line": 3,
+				"raw": "start 4,4",
+				"comment": null
+			},
+			{
+				"type": "blank",
+				"line": 4,
+				"raw": "",
+				"comment": null
+			}
+		]
+	},
+	"errors": [
+		{
+			"line": 3,
+			"code": "E006",
+			"message": "a second `start` line",
+			"fix": "keep one `start` line"
+		}
+	]
+}

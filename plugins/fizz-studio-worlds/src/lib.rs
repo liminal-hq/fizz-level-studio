@@ -51,6 +51,7 @@ pub fn init_with<R: Runtime>(config: RecoveryConfig) -> TauriPlugin<R> {
             commands::level_redo,
             commands::level_save,
             commands::level_close,
+            commands::level_create,
             commands::recovery_list,
             commands::recovery_restore,
             commands::recovery_discard,

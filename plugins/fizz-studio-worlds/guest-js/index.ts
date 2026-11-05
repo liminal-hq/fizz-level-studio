@@ -8,6 +8,7 @@ import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 import type { LevelEdit } from '@liminal-hq/fizz-studio-protocol/generated/LevelEdit';
 import type { LevelError } from '@liminal-hq/fizz-studio-protocol/generated/LevelError';
 import type { LevelSnapshot } from '@liminal-hq/fizz-studio-protocol/generated/LevelSnapshot';
+import type { NewLevelRequest } from '@liminal-hq/fizz-studio-protocol/generated/NewLevelRequest';
 import type { ProjectInfo } from '@liminal-hq/fizz-studio-protocol/generated/ProjectInfo';
 import type { RecoveryEntry } from '@liminal-hq/fizz-studio-protocol/generated/RecoveryEntry';
 
@@ -39,6 +40,15 @@ export function openProject(path: string): Promise<ProjectInfo> {
 /** Opens a level file as a session this app is the writer of, and starts watching its folder. */
 export function openLevel(path: string): Promise<LevelSnapshot> {
 	return cmd<LevelSnapshot>('level_open', { path });
+}
+
+/**
+ * Makes a new level and opens it. A Fizz 1 level is the file `<folder>/<id>.fizz`; a Fizz 2 level
+ * is a world project `<folder>/<id>/`. The target is fixed here. An existing file or folder rejects
+ * with a `LevelError` of kind `invalid`, and nothing is written.
+ */
+export function createLevel(request: NewLevelRequest): Promise<LevelSnapshot> {
+	return cmd<LevelSnapshot>('level_create', { request });
 }
 
 /**
@@ -135,4 +145,4 @@ export function onLevelConflict(listener: (conflict: LevelConflict) => void): Pr
 	return listen<LevelConflict>(LEVEL_CONFLICT_EVENT, (event) => listener(event.payload));
 }
 
-export type { LevelEdit, LevelError, LevelSnapshot, ProjectInfo, RecoveryEntry };
+export type { LevelEdit, LevelError, LevelSnapshot, NewLevelRequest, ProjectInfo, RecoveryEntry };

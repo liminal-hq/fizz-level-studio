@@ -1,0 +1,67 @@
+{
+	"id": "overworld/before-any-section",
+	"from": "tools/fizz1-cases.ts: a statement before any section header",
+	"isOverworld": true,
+	"ast": {
+		"nodes": [
+			{
+				"type": "overworld",
+				"name": "T",
+				"w": 20,
+				"h": 20,
+				"id": "test",
+				"line": 1,
+				"raw": "overworld \"T\" 20x20 id=test",
+				"comment": null
+			},
+			{
+				"type": "start",
+				"x": {
+					"value": 3,
+					"text": "3"
+				},
+				"y": {
+					"value": 3,
+					"text": "3"
+				},
+				"line": 2,
+				"raw": "start 3,3",
+				"comment": null
+			},
+			{
+				"type": "error",
+				"code": "E008",
+				"line": 3,
+				"raw": "grass x=1 y=1",
+				"comment": null
+			},
+			{
+				"type": "error",
+				"code": "E008",
+				"line": 4,
+				"raw": "saucer at=2,2",
+				"comment": null
+			},
+			{
+				"type": "blank",
+				"line": 5,
+				"raw": "",
+				"comment": null
+			}
+		]
+	},
+	"errors": [
+		{
+			"line": 3,
+			"code": "E008",
+			"message": "`grass` appears before any section header",
+			"fix": "put it under a `blocks` or `points` header"
+		},
+		{
+			"line": 4,
+			"code": "E008",
+			"message": "`saucer` appears before any section header",
+			"fix": "put it under a `blocks` or `points` header"
+		}
+	]
+}

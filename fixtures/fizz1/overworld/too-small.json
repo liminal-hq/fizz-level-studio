@@ -1,0 +1,44 @@
+{
+	"id": "overworld/too-small",
+	"from": "tools/fizz1-cases.ts: an overworld smaller than 3x3",
+	"isOverworld": true,
+	"ast": {
+		"nodes": [
+			{
+				"type": "error",
+				"code": "E015",
+				"line": 1,
+				"raw": "overworld \"T\" 2x40 id=test",
+				"comment": null
+			},
+			{
+				"type": "start",
+				"x": {
+					"value": 0,
+					"text": "0"
+				},
+				"y": {
+					"value": 0,
+					"text": "0"
+				},
+				"line": 2,
+				"raw": "start 0,0",
+				"comment": null
+			},
+			{
+				"type": "blank",
+				"line": 3,
+				"raw": "",
+				"comment": null
+			}
+		]
+	},
+	"errors": [
+		{
+			"line": 1,
+			"code": "E015",
+			"message": "an overworld 2x40 is too small",
+			"fix": "make it at least 3x3"
+		}
+	]
+}

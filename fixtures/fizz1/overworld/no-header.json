@@ -1,0 +1,35 @@
+{
+	"id": "overworld/no-header",
+	"from": "tools/fizz1-cases.ts: a script with no header and no other error",
+	"isOverworld": false,
+	"ast": {
+		"nodes": [
+			{
+				"type": "comment",
+				"line": 1,
+				"raw": "// nothing here",
+				"comment": "nothing here"
+			},
+			{
+				"type": "blank",
+				"line": 2,
+				"raw": "",
+				"comment": null
+			},
+			{
+				"type": "blank",
+				"line": 3,
+				"raw": "",
+				"comment": null
+			}
+		]
+	},
+	"errors": [
+		{
+			"line": 1,
+			"code": "E007",
+			"message": "the script has no `overworld` header",
+			"fix": "start the script with: overworld \"Name\" 60x44 id=main"
+		}
+	]
+}

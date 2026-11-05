@@ -33,6 +33,9 @@ vi.mock('@tauri-apps/api/window', () => {
 	return { getCurrentWindow: () => win };
 });
 
+const openWindow = vi.hoisted(() => vi.fn(async () => {}));
+vi.mock('../services/windowsClient', () => ({ openWindow }));
+
 import { MainScreen } from './MainScreen';
 
 /** A level backend over `FakeLevelClient` that opens a canned level for any path. */
@@ -149,6 +152,13 @@ beforeEach(() => {
 });
 
 describe('the start screen', () => {
+	it('opens the New level window from the start screen', async () => {
+		const user = userEvent.setup();
+		setup();
+		await user.click(screen.getByRole('button', { name: 'New level…' }));
+		expect(openWindow).toHaveBeenCalledWith({ kind: 'new-world' });
+	});
+
 	it('shows the product name, Open level and an empty recent list', async () => {
 		setup();
 		expect(screen.getByRole('heading', { name: 'Fizz Level Studio' })).toBeInTheDocument();

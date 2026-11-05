@@ -1,0 +1,80 @@
+{
+	"id": "overworld/area-missing-parts",
+	"from": "tools/fizz1-cases.ts: an area with no name, no x and no y",
+	"isOverworld": true,
+	"ast": {
+		"nodes": [
+			{
+				"type": "overworld",
+				"name": "T",
+				"w": 20,
+				"h": 20,
+				"id": "test",
+				"line": 1,
+				"raw": "overworld \"T\" 20x20 id=test",
+				"comment": null
+			},
+			{
+				"type": "start",
+				"x": {
+					"value": 3,
+					"text": "3"
+				},
+				"y": {
+					"value": 3,
+					"text": "3"
+				},
+				"line": 2,
+				"raw": "start 3,3",
+				"comment": null
+			},
+			{
+				"type": "error",
+				"code": "E003",
+				"line": 3,
+				"raw": "area",
+				"comment": null
+			},
+			{
+				"type": "error",
+				"code": "E003",
+				"line": 4,
+				"raw": "area crater-fields y=0..1",
+				"comment": null
+			},
+			{
+				"type": "error",
+				"code": "E003",
+				"line": 5,
+				"raw": "area crater-fields x=0..1",
+				"comment": null
+			},
+			{
+				"type": "blank",
+				"line": 6,
+				"raw": "",
+				"comment": null
+			}
+		]
+	},
+	"errors": [
+		{
+			"line": 3,
+			"code": "E003",
+			"message": "missing area name",
+			"fix": "write `area crater-fields x=0..24 y=0..22`"
+		},
+		{
+			"line": 4,
+			"code": "E003",
+			"message": "missing field `x=`",
+			"fix": "add `x=0..24`"
+		},
+		{
+			"line": 5,
+			"code": "E003",
+			"message": "missing field `y=`",
+			"fix": "add `y=0..22`"
+		}
+	]
+}

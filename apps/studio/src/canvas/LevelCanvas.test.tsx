@@ -101,6 +101,13 @@ describe('LevelCanvas', () => {
 		expect(screen.getByText('Zoom 3×')).toBeInTheDocument();
 	});
 
+	it('does not zoom on a sideways wheel: it pans the map instead', () => {
+		const { canvas } = setup();
+		fireEvent.wheel(canvas, { deltaX: 120, clientX: 300, clientY: 200 });
+		fireEvent.wheel(canvas, { deltaX: -120, clientX: 300, clientY: 200 });
+		expect(screen.getByText('Zoom 4×')).toBeInTheDocument();
+	});
+
 	it('turns pointer events into tool events in cell coordinates, row 0 at the bottom', () => {
 		const { props, canvas } = setup();
 		// At 4x the 12 by 8 level is 192 by 128 pixels, centred in the 640 by 384 window.

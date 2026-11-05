@@ -1,0 +1,4 @@
+overworld "T" 20x20 id=test
+start 3,3
+area crater-field x=0..1 y=0..1
+area moon x=0..1 y=0..1

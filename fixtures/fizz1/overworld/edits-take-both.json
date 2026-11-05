@@ -1,0 +1,84 @@
+{
+	"id": "overworld/edits-take-both",
+	"from": "tools/fizz1-cases.ts: the edits block takes tile lines and points",
+	"isOverworld": true,
+	"ast": {
+		"nodes": [
+			{
+				"type": "overworld",
+				"name": "T",
+				"w": 20,
+				"h": 20,
+				"id": "test",
+				"line": 1,
+				"raw": "overworld \"T\" 20x20 id=test",
+				"comment": null
+			},
+			{
+				"type": "start",
+				"x": {
+					"value": 3,
+					"text": "3"
+				},
+				"y": {
+					"value": 3,
+					"text": "3"
+				},
+				"line": 2,
+				"raw": "start 3,3",
+				"comment": null
+			},
+			{
+				"type": "section",
+				"name": "edits",
+				"line": 3,
+				"raw": "edits",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "river",
+				"x": {
+					"lo": 1,
+					"hi": 1
+				},
+				"y": {
+					"lo": 1,
+					"hi": 1
+				},
+				"line": 4,
+				"raw": "  river x=1 y=1",
+				"comment": null
+			},
+			{
+				"type": "saucer",
+				"at": [
+					{
+						"value": 2,
+						"text": "2"
+					},
+					{
+						"value": 2,
+						"text": "2"
+					}
+				],
+				"line": 5,
+				"raw": "  saucer at=2,2",
+				"comment": null
+			},
+			{
+				"type": "scatter",
+				"line": 6,
+				"raw": "  scatter",
+				"comment": null
+			},
+			{
+				"type": "blank",
+				"line": 7,
+				"raw": "",
+				"comment": null
+			}
+		]
+	},
+	"errors": []
+}

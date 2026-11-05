@@ -1,0 +1,3 @@
+overworld "T" 20x20 id=a size=3
+start 3,3
+overworld "U" 20x20 id=a loose

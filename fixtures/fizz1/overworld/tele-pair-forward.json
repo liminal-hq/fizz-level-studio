@@ -1,0 +1,112 @@
+{
+	"id": "overworld/tele-pair-forward",
+	"from": "packages/language/test/overworld.test.ts: a teleporter may pair with one declared later",
+	"isOverworld": true,
+	"ast": {
+		"nodes": [
+			{
+				"type": "overworld",
+				"name": "T",
+				"w": 20,
+				"h": 20,
+				"id": "test",
+				"line": 1,
+				"raw": "overworld \"T\" 20x20 id=test",
+				"comment": null
+			},
+			{
+				"type": "start",
+				"x": {
+					"value": 3,
+					"text": "3"
+				},
+				"y": {
+					"value": 3,
+					"text": "3"
+				},
+				"line": 2,
+				"raw": "start 3,3",
+				"comment": null
+			},
+			{
+				"type": "section",
+				"name": "blocks",
+				"line": 3,
+				"raw": "blocks",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "grass",
+				"x": {
+					"lo": 0,
+					"hi": 19
+				},
+				"y": {
+					"lo": 0,
+					"hi": 19
+				},
+				"line": 4,
+				"raw": "  grass x=0..19 y=0..19",
+				"comment": null
+			},
+			{
+				"type": "section",
+				"name": "points",
+				"line": 5,
+				"raw": "points",
+				"comment": null
+			},
+			{
+				"type": "tele",
+				"label": "a",
+				"at": [
+					{
+						"value": 3,
+						"text": "3"
+					},
+					{
+						"value": 3,
+						"text": "3"
+					}
+				],
+				"with": "b",
+				"req": [],
+				"hidden": false,
+				"line": 6,
+				"raw": "  tele a at=3,3 with=b",
+				"comment": null
+			},
+			{
+				"type": "tele",
+				"label": "b",
+				"at": [
+					{
+						"value": 9,
+						"text": "9"
+					},
+					{
+						"value": 9,
+						"text": "9"
+					}
+				],
+				"with": "a",
+				"req": [
+					"crater",
+					"secret"
+				],
+				"hidden": false,
+				"line": 7,
+				"raw": "  tele b at=9,9 with=a req=crater,secret",
+				"comment": null
+			},
+			{
+				"type": "blank",
+				"line": 8,
+				"raw": "",
+				"comment": null
+			}
+		]
+	},
+	"errors": []
+}

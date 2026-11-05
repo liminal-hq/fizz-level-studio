@@ -9,6 +9,7 @@ use std::path::{Path, PathBuf};
 use fizz_studio_language::ast::Range;
 use fizz_studio_language::edits::{append_edits, Edit};
 use fizz_studio_language::messages::{fix, message};
+use fizz_studio_language::overworld::{is_overworld, parse_overworld, print_overworld};
 use fizz_studio_language::parser::parse;
 use fizz_studio_language::printer::print;
 use serde_json::{json, Value};
@@ -44,6 +45,8 @@ fn every_fixture_matches_the_reference() {
     let root = repo_root().join("fixtures/fizz1");
     let mut inputs = Vec::new();
     files_with_extension(&root, "fizz", &mut inputs);
+    // The `overworld/` group has its own parser and its own test below.
+    inputs.retain(|p| !p.starts_with(root.join("overworld")));
     assert!(inputs.len() > 100, "found only {} fixtures", inputs.len());
 
     let mut failures = Vec::new();
@@ -101,6 +104,98 @@ fn every_fixture_matches_the_reference() {
         inputs.len(),
         failures.join("\n")
     );
+}
+
+#[test]
+fn every_overworld_fixture_matches_the_reference() {
+    let root = repo_root().join("fixtures/fizz1/overworld");
+    let mut inputs = Vec::new();
+    files_with_extension(&root, "fizz", &mut inputs);
+    assert!(inputs.len() > 60, "found only {} fixtures", inputs.len());
+
+    let mut failures = Vec::new();
+    for input in &inputs {
+        let id = input
+            .strip_prefix(&root)
+            .expect("under the group")
+            .with_extension("")
+            .display()
+            .to_string();
+        let source = read(input);
+        let printed = read(&input.with_extension("print"));
+        let recorded: Value = serde_json::from_str(&read(&input.with_extension("json")))
+            .expect("fixture JSON parses");
+
+        let result = parse_overworld(&source);
+
+        if print_overworld(&result.ast) != printed {
+            failures.push(format!("{id}: printed output differs"));
+        }
+        if recorded["isOverworld"] != is_overworld(&source) {
+            failures.push(format!("{id}: isOverworld differs"));
+        }
+
+        let errors: Vec<Value> = result
+            .errors
+            .iter()
+            .map(|d| {
+                json!({
+                    "line": d.line,
+                    "code": d.code,
+                    "message": message(d),
+                    "fix": fix(d),
+                })
+            })
+            .collect();
+        if Value::Array(errors.clone()) != recorded["errors"] {
+            failures.push(format!(
+                "{id}: errors differ\n  rust: {}\n  want: {}",
+                Value::Array(errors),
+                recorded["errors"]
+            ));
+        }
+
+        let ast = serde_json::to_value(&result.ast).expect("the AST serialises");
+        if ast != recorded["ast"] {
+            let first = ast["nodes"]
+                .as_array()
+                .zip(recorded["ast"]["nodes"].as_array())
+                .and_then(|(got, want)| got.iter().zip(want).find(|(g, w)| g != w));
+            failures.push(format!("{id}: AST differs\n  first mismatch: {first:?}"));
+        }
+    }
+    assert!(
+        failures.is_empty(),
+        "{} of {} overworld fixtures differ:\n{}",
+        failures.len(),
+        inputs.len(),
+        failures.join("\n")
+    );
+}
+
+#[test]
+fn every_tracked_overworld_prints_back_byte_for_byte() {
+    let root = repo_root();
+    let mut scripts = Vec::new();
+    files_with_extension(&root.join("overworlds"), "fizz", &mut scripts);
+    assert!(!scripts.is_empty(), "no tracked overworld scripts");
+    for path in scripts {
+        let source = read(&path);
+        assert!(is_overworld(&source), "{}", path.display());
+        let result = parse_overworld(&source);
+        assert!(
+            result.errors.is_empty(),
+            "{}: {:?}",
+            path.display(),
+            result.errors
+        );
+        assert_eq!(
+            print_overworld(&result.ast),
+            source,
+            "{} does not round-trip",
+            path.display()
+        );
+    }
 }
 
 #[test]

@@ -1,0 +1,41 @@
+{
+	"id": "overworld/edge-blank-lines",
+	"from": "tools/fizz1-cases.ts: blank lines only",
+	"isOverworld": false,
+	"ast": {
+		"nodes": [
+			{
+				"type": "blank",
+				"line": 1,
+				"raw": "",
+				"comment": null
+			},
+			{
+				"type": "blank",
+				"line": 2,
+				"raw": "",
+				"comment": null
+			},
+			{
+				"type": "blank",
+				"line": 3,
+				"raw": "  ",
+				"comment": null
+			},
+			{
+				"type": "blank",
+				"line": 4,
+				"raw": "",
+				"comment": null
+			}
+		]
+	},
+	"errors": [
+		{
+			"line": 1,
+			"code": "E007",
+			"message": "the script has no `overworld` header",
+			"fix": "start the script with: overworld \"Name\" 60x44 id=main"
+		}
+	]
+}

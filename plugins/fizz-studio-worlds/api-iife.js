@@ -23,6 +23,14 @@ var __TAURI_PLUGIN_FIZZ_STUDIO_WORLDS__ = (function (exports, core, event) {
         return cmd('level_open', { path });
     }
     /**
+     * Makes a new level and opens it. A Fizz 1 level is the file `<folder>/<id>.fizz`; a Fizz 2 level
+     * is a world project `<folder>/<id>/`. The target is fixed here. An existing file or folder rejects
+     * with a `LevelError` of kind `invalid`, and nothing is written.
+     */
+    function createLevel(request) {
+        return cmd('level_create', { request });
+    }
+    /**
      * Appends an edit, provided `basedOn` is the revision of the snapshot the caller drew. A stale
      * revision rejects with a `LevelError` of kind `stale` carrying both revisions, and nothing changes.
      * Edits that follow each other with the same `mergeKey` undo as one step until `endStep`.
@@ -98,6 +106,7 @@ var __TAURI_PLUGIN_FIZZ_STUDIO_WORLDS__ = (function (exports, core, event) {
     exports.LEVEL_CONFLICT_EVENT = LEVEL_CONFLICT_EVENT;
     exports.applyEdit = applyEdit;
     exports.closeLevel = closeLevel;
+    exports.createLevel = createLevel;
     exports.discardRecovery = discardRecovery;
     exports.endStep = endStep;
     exports.listRecovery = listRecovery;

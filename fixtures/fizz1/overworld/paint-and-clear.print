@@ -1,0 +1,5 @@
+overworld "T" 20x20 id=test
+start 3,3
+blocks
+  paint grass x=1 y=1
+  clear x=1 y=1

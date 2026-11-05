@@ -55,7 +55,7 @@ pub fn spec_for(kind: WindowKind) -> WindowSpec {
         },
         WindowKind::NewWorld => WindowSpec {
             title: "New level",
-            size: (760.0, 560.0),
+            size: (760.0, 700.0),
             min_size: None,
             resizable: false,
             skip_taskbar: true,

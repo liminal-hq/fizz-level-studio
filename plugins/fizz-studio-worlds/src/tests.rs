@@ -7,7 +7,9 @@ use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
-use fizz_studio_protocol::{LevelEdit, LevelError, LevelSnapshot, LevelTarget, ProjectKind};
+use fizz_studio_protocol::{
+    LevelEdit, LevelError, LevelSnapshot, LevelTarget, NewLevelRequest, ProjectKind,
+};
 use tauri::test::{mock_builder, mock_context, noop_assets, MockRuntime};
 use tauri::{Listener, Manager, WebviewUrl, WebviewWindowBuilder};
 
@@ -589,4 +591,156 @@ fn a_fizz_1_level_has_no_banner() {
     let opened = open(&app, &path);
     assert_eq!(opened.target, LevelTarget::Fizz1);
     assert_eq!(opened.banner, None);
+}
+
+fn new_request(dir: &Path, id: &str, target: LevelTarget) -> NewLevelRequest {
+    NewLevelRequest {
+        name: "Sugar Hill".to_string(),
+        id: id.to_string(),
+        width: 40,
+        height: 24,
+        ground: None,
+        theme: None,
+        target,
+        folder: dir.to_string_lossy().into_owned(),
+    }
+}
+
+fn create(app: &App, request: NewLevelRequest) -> Result<LevelSnapshot, LevelError> {
+    commands::level_create(app.handle().clone(), worlds(app), request)
+}
+
+fn entries(dir: &Path) -> Vec<String> {
+    let mut names: Vec<String> = std::fs::read_dir(dir)
+        .unwrap()
+        .map(|e| e.unwrap().file_name().to_string_lossy().into_owned())
+        .collect();
+    names.sort();
+    names
+}
+
+#[test]
+fn a_new_fizz_1_level_is_a_file_that_opens_and_has_no_script_line() {
+    let app = app();
+    let dir = tempfile::tempdir().unwrap();
+    let mut request = new_request(dir.path(), "crater", LevelTarget::Fizz1);
+    request.theme = Some("crater".to_string());
+    let snapshot = create(&app, request).expect("the level is made");
+    assert_eq!(snapshot.target, LevelTarget::Fizz1);
+    assert_eq!(snapshot.banner, None);
+    assert!(snapshot.view.diagnostics.is_empty());
+    assert_eq!((snapshot.view.width, snapshot.view.height), (40, 24));
+    assert_eq!(snapshot.revision, snapshot.saved_revision);
+    let written = std::fs::read_to_string(dir.path().join("crater.fizz")).unwrap();
+    assert_eq!(written, snapshot.text);
+    assert!(written.starts_with("level \"Sugar Hill\" 40x24 ground=6 id=crater\ntheme crater\n"));
+    assert!(!written.lines().any(|l| l.starts_with("script")));
+    assert_eq!(entries(dir.path()), vec!["crater.fizz"]);
+}
+
+#[test]
+fn a_new_fizz_2_level_is_a_world_project_that_opens_flat() {
+    let app = app();
+    let dir = tempfile::tempdir().unwrap();
+    let snapshot = create(
+        &app,
+        new_request(dir.path(), "sugar-hill", LevelTarget::Fizz2),
+    )
+    .expect("the world is made");
+    assert_eq!(snapshot.target, LevelTarget::Fizz2);
+    assert_eq!(snapshot.banner.as_deref(), Some("level.flatFallback"));
+    assert!(snapshot.view.diagnostics.is_empty());
+    assert!(snapshot.text.starts_with("script fizz2 0\n"));
+    let root = dir.path().join("sugar-hill");
+    assert_eq!(entries(&root), vec!["levels", "world.fizz"]);
+    assert_eq!(
+        std::fs::read_to_string(root.join("world.fizz")).unwrap(),
+        "script fizz2 0\nworld \"Sugar Hill\" id=sugar-hill pack=SUGARHIL target=ep2\nlevels   levels/sugar-hill.fizz\n"
+    );
+    assert_eq!(entries(&root.join("levels")), vec!["sugar-hill.fizz"]);
+    let info = commands::project_open(root.to_string_lossy().into_owned()).unwrap();
+    assert_eq!(info.kind, ProjectKind::Fizz2);
+    assert_eq!(info.levels.len(), 1);
+}
+
+#[test]
+fn an_existing_file_or_world_is_never_overwritten() {
+    let app = app();
+    let dir = tempfile::tempdir().unwrap();
+    std::fs::write(dir.path().join("taken.fizz"), "keep me").unwrap();
+    let refused = create(&app, new_request(dir.path(), "taken", LevelTarget::Fizz1));
+    assert!(
+        matches!(refused, Err(LevelError::Invalid { .. })),
+        "{refused:?}"
+    );
+    assert_eq!(
+        std::fs::read_to_string(dir.path().join("taken.fizz")).unwrap(),
+        "keep me"
+    );
+
+    std::fs::create_dir(dir.path().join("world")).unwrap();
+    std::fs::write(dir.path().join("world/note.txt"), "keep me").unwrap();
+    let refused = create(&app, new_request(dir.path(), "world", LevelTarget::Fizz2));
+    assert!(
+        matches!(refused, Err(LevelError::Invalid { .. })),
+        "{refused:?}"
+    );
+    assert_eq!(entries(&dir.path().join("world")), vec!["note.txt"]);
+    assert_eq!(entries(dir.path()), vec!["taken.fizz", "world"]);
+}
+
+#[test]
+fn a_bad_request_or_folder_writes_nothing() {
+    let app = app();
+    let dir = tempfile::tempdir().unwrap();
+    let mut bad = new_request(dir.path(), "Not A Slug", LevelTarget::Fizz2);
+    assert!(matches!(
+        create(&app, bad.clone()),
+        Err(LevelError::Invalid { .. })
+    ));
+    bad.id = "fine".to_string();
+    bad.folder = dir.path().join("missing").to_string_lossy().into_owned();
+    assert!(matches!(create(&app, bad), Err(LevelError::Invalid { .. })));
+    assert!(entries(dir.path()).is_empty());
+}
+
+#[test]
+fn a_created_level_keeps_its_script_line_through_edits_and_a_save() {
+    let app = app();
+    let dir = tempfile::tempdir().unwrap();
+    for (id, target, tile) in [
+        ("crater", LevelTarget::Fizz1, "grass"),
+        ("far", LevelTarget::Fizz2, "FILL"),
+    ] {
+        let made = create(&app, new_request(dir.path(), id, target)).unwrap();
+        let header = |text: &str| text.lines().take(2).map(str::to_string).collect::<Vec<_>>();
+        let before = header(&made.text);
+        let mut revision = made.revision;
+        for x in 0..10 {
+            let edit = LevelEdit::Paint {
+                tile: tile.to_string(),
+                x: vec![[x, x + 1]],
+                y: vec![[1, 2]],
+            };
+            revision = apply(&app, &made.id, edit, revision).unwrap().revision;
+        }
+        let saved = save(&app, &made.id);
+        assert_eq!(header(&saved.text), before);
+        assert_eq!(saved.target, target);
+    }
+}
+
+/// The new-world window may create a level and do nothing else with the worlds plugin.
+#[test]
+fn the_new_world_window_may_only_create_a_level() {
+    let file = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../../apps/studio/src-tauri/capabilities/new-world.json");
+    let capability: serde_json::Value =
+        serde_json::from_str(&std::fs::read_to_string(file).expect("the capability exists"))
+            .expect("valid JSON");
+    assert_eq!(capability["windows"], serde_json::json!(["new-world"]));
+    assert_eq!(
+        capability["permissions"],
+        serde_json::json!(["fizz-studio-worlds:allow-level-create"])
+    );
 }

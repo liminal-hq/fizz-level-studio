@@ -88,9 +88,107 @@ pub fn serialize_number<S: Serializer>(n: &f64, serializer: S) -> Result<S::Ok, 
     serializer.serialize_f64(n)
 }
 
+/// JavaScript's `Number(text)` for a word with no whitespace in it: decimal and exponent forms, the
+/// `0x`, `0o` and `0b` integers, and `Infinity`; anything else is `NaN`.
+pub fn js_number(text: &str) -> f64 {
+    if text.is_empty() {
+        return 0.0;
+    }
+    let radix = |digits: &str, radix: u32| -> f64 {
+        if digits.is_empty() {
+            return f64::NAN;
+        }
+        let mut value = 0.0;
+        for c in digits.chars() {
+            match c.to_digit(radix) {
+                Some(d) => value = value * f64::from(radix) + f64::from(d),
+                None => return f64::NAN,
+            }
+        }
+        value
+    };
+    for (prefix, base) in [
+        ("0x", 16),
+        ("0X", 16),
+        ("0o", 8),
+        ("0O", 8),
+        ("0b", 2),
+        ("0B", 2),
+    ] {
+        if let Some(digits) = text.strip_prefix(prefix) {
+            return radix(digits, base);
+        }
+    }
+    let (negative, unsigned) = match text.as_bytes()[0] {
+        b'-' => (true, &text[1..]),
+        b'+' => (false, &text[1..]),
+        _ => (false, text),
+    };
+    let magnitude = if unsigned == "Infinity" {
+        f64::INFINITY
+    } else {
+        let bytes = unsigned.as_bytes();
+        let digits = |from: usize| {
+            bytes[from..]
+                .iter()
+                .take_while(|b| b.is_ascii_digit())
+                .count()
+        };
+        let whole = digits(0);
+        let mut end = whole;
+        let mut fraction = 0;
+        if bytes.get(end) == Some(&b'.') {
+            fraction = digits(end + 1);
+            end += 1 + fraction;
+        }
+        if whole + fraction == 0 {
+            return f64::NAN;
+        }
+        if matches!(bytes.get(end), Some(b'e' | b'E')) {
+            let sign = usize::from(matches!(bytes.get(end + 1), Some(b'+' | b'-')));
+            let exponent = digits(end + 1 + sign);
+            if exponent == 0 {
+                return f64::NAN;
+            }
+            end += 1 + sign + exponent;
+        }
+        if end != bytes.len() {
+            return f64::NAN;
+        }
+        unsigned.parse::<f64>().unwrap_or(f64::NAN)
+    };
+    if negative {
+        -magnitude
+    } else {
+        magnitude
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn reads_numbers_like_javascript() {
+        for (text, want) in [
+            ("0", 0.0),
+            ("12", 12.0),
+            ("5.", 5.0),
+            (".5", 0.5),
+            ("1e3", 1000.0),
+            ("+7", 7.0),
+            ("0x10", 16.0),
+            ("0b11", 3.0),
+            ("0o17", 15.0),
+            ("-2", -2.0),
+        ] {
+            assert_eq!(js_number(text), want, "{text}");
+        }
+        for text in ["abc", "1e", "0x", "-0x1", "inf", "nan", "1_0", ".", "1.5.2"] {
+            assert!(js_number(text).is_nan(), "{text}");
+        }
+        assert!(js_number("Infinity").is_infinite());
+    }
 
     #[test]
     fn writes_numbers_like_javascript() {

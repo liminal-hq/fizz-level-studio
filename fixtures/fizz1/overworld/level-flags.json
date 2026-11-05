@@ -1,0 +1,103 @@
+{
+	"id": "overworld/level-flags",
+	"from": "tools/fizz1-cases.ts: level flags in any order, and a repeated flag",
+	"isOverworld": true,
+	"ast": {
+		"nodes": [
+			{
+				"type": "overworld",
+				"name": "T",
+				"w": 20,
+				"h": 20,
+				"id": "test",
+				"line": 1,
+				"raw": "overworld \"T\" 20x20 id=test",
+				"comment": null
+			},
+			{
+				"type": "start",
+				"x": {
+					"value": 3,
+					"text": "3"
+				},
+				"y": {
+					"value": 3,
+					"text": "3"
+				},
+				"line": 2,
+				"raw": "start 3,3",
+				"comment": null
+			},
+			{
+				"type": "section",
+				"name": "points",
+				"line": 3,
+				"raw": "points",
+				"comment": null
+			},
+			{
+				"type": "level",
+				"slug": "crater",
+				"at": [
+					{
+						"value": 1,
+						"text": "1"
+					},
+					{
+						"value": 1,
+						"text": "1"
+					}
+				],
+				"req": [],
+				"big": true,
+				"hidden": true,
+				"line": 4,
+				"raw": "  level crater hidden at=1,1 big",
+				"comment": null
+			},
+			{
+				"type": "error",
+				"code": "E009",
+				"line": 5,
+				"raw": "  level crater at=2,2 big big",
+				"comment": null
+			},
+			{
+				"type": "level",
+				"slug": "crater",
+				"at": [
+					{
+						"value": 3,
+						"text": "3"
+					},
+					{
+						"value": 3,
+						"text": "3"
+					}
+				],
+				"req": [
+					"caves"
+				],
+				"big": false,
+				"hidden": false,
+				"line": 6,
+				"raw": "  level crater at=3,3 req=caves",
+				"comment": null
+			},
+			{
+				"type": "blank",
+				"line": 7,
+				"raw": "",
+				"comment": null
+			}
+		]
+	},
+	"errors": [
+		{
+			"line": 5,
+			"code": "E009",
+			"message": "unexpected `big`",
+			"fix": "this statement takes: LEVEL at=X,Y [req=LIST] [big] [hidden]"
+		}
+	]
+}

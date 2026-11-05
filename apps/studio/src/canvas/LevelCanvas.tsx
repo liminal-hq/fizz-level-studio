@@ -11,6 +11,7 @@ import { drawLevel, readCanvasColours, type DrawContext } from './drawLevel';
 import styles from './LevelCanvas.module.css';
 import { ObjectList } from './ObjectList';
 import { resolveTileColours } from './tileColours';
+import { wheelAction } from './wheel';
 import {
 	DEFAULT_ZOOM,
 	MAX_ZOOM,
@@ -77,27 +78,28 @@ export function LevelCanvas({
 		return () => observer.disconnect();
 	}, []);
 
-	// Wheel zooms about the pointer; Shift scrolls sideways and Alt scrolls up and down. It is a
+	// The wheel zooms about the pointer, and pans when it moves sideways (see `wheelAction`). It is a
 	// native listener because a React wheel handler is passive and cannot stop the page scrolling.
 	useEffect(() => {
 		const canvas = canvasRef.current;
 		if (!canvas) return;
 		const onWheel = (event: WheelEvent) => {
 			event.preventDefault();
+			const action = wheelAction(event);
+			if (action.kind === 'none') return;
 			const rect = canvas.getBoundingClientRect();
 			const px = event.clientX - rect.left;
 			const py = event.clientY - rect.top;
 			setCamera((current) => {
-				const delta = event.deltaY || event.deltaX;
-				if (event.shiftKey || event.altKey) {
+				if (action.kind === 'pan') {
 					const scrolled = {
 						...current,
-						scrollX: current.scrollX + (event.shiftKey ? delta : 0),
-						scrollY: current.scrollY + (event.altKey ? delta : 0),
+						scrollX: current.scrollX + action.dx,
+						scrollY: current.scrollY + action.dy,
 					};
 					return { ...scrolled, ...clampScroll(scrolled, size, view) };
 				}
-				return zoomAt(current, current.zoom + (delta < 0 ? 1 : -1), px, py, size, view);
+				return zoomAt(current, current.zoom + action.step, px, py, size, view);
 			});
 		};
 		canvas.addEventListener('wheel', onWheel, { passive: false });

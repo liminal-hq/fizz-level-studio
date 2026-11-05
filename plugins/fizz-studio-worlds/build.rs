@@ -12,6 +12,7 @@ const COMMANDS: &[&str] = &[
     "level_redo",
     "level_save",
     "level_close",
+    "level_create",
     "recovery_list",
     "recovery_restore",
     "recovery_discard",

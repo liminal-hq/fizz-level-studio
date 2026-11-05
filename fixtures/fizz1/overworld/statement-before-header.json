@@ -1,0 +1,46 @@
+{
+	"id": "overworld/statement-before-header",
+	"from": "tools/fizz1-cases.ts: a statement before the overworld header",
+	"isOverworld": false,
+	"ast": {
+		"nodes": [
+			{
+				"type": "error",
+				"code": "E007",
+				"line": 1,
+				"raw": "start 3,3",
+				"comment": null
+			},
+			{
+				"type": "overworld",
+				"name": "T",
+				"w": 20,
+				"h": 20,
+				"id": "test",
+				"line": 2,
+				"raw": "overworld \"T\" 20x20 id=test",
+				"comment": null
+			},
+			{
+				"type": "blank",
+				"line": 3,
+				"raw": "",
+				"comment": null
+			}
+		]
+	},
+	"errors": [
+		{
+			"line": 1,
+			"code": "E007",
+			"message": "the script has a statement before its `overworld` header",
+			"fix": "start the script with: overworld \"Name\" 60x44 id=main"
+		},
+		{
+			"line": 2,
+			"code": "E010",
+			"message": "the script has no `start` line",
+			"fix": "add `start 9.2,8.2` (where Ben stands when the map opens)"
+		}
+	]
+}

@@ -8,6 +8,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { t, type MessageId } from '../i18n/messages';
 import { launchClient, type LaunchClient } from '../services/launchClient';
 import { pickLevelFile, type PickLevelFile } from '../services/filePicker';
+import { openWindow } from '../services/windowsClient';
 import { recentClient, type RecentClient } from '../services/recentClient';
 import type { LevelClient } from '../worlds/levelClient';
 import { recoveryClient, type RecoveryClient, type RecoveryEntry } from '../worlds/recoveryClient';
@@ -320,14 +321,24 @@ export function MainScreen({
 					{bannerView}
 					<h1 className={styles.name}>{t('app.name')}</h1>
 					<p className={styles.tagline}>{t('main.tagline')}</p>
-					<button
-						type="button"
-						className={`${styles.button} ${styles.primary}`}
-						disabled={busy}
-						onClick={() => void choose()}
-					>
-						{t('main.openLevel')}
-					</button>
+					<div className={styles.starts}>
+						<button
+							type="button"
+							className={`${styles.button} ${styles.primary}`}
+							disabled={busy}
+							onClick={() => void openWindow({ kind: 'new-world' })}
+						>
+							{t('main.newLevel')}
+						</button>
+						<button
+							type="button"
+							className={styles.button}
+							disabled={busy}
+							onClick={() => void choose()}
+						>
+							{t('main.openLevel')}
+						</button>
+					</div>
 					<RecoverySection
 						entries={recoverable}
 						busy={busy}

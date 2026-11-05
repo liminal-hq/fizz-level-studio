@@ -41,4 +41,15 @@ describe('catalogue parity', () => {
 			expect(message, id).not.toBe('');
 		}
 	});
+
+	it('carries every New level key in both pseudo-locales', () => {
+		const keys = Object.keys(enMessages).filter(
+			(id) => id.startsWith('newLevel.') || id === 'main.newLevel',
+		);
+		expect(keys.length).toBeGreaterThan(20);
+		for (const id of keys) {
+			expect(enXA, id).toHaveProperty(id);
+			expect(arXB, id).toHaveProperty(id);
+		}
+	});
 });

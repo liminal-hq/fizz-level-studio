@@ -1,0 +1,318 @@
+{
+	"id": "overworld/everything",
+	"from": "tools/fizz1-cases.ts: one of every statement, with a trailing comment on some",
+	"isOverworld": true,
+	"ast": {
+		"nodes": [
+			{
+				"type": "comment",
+				"line": 1,
+				"raw": "// A small map",
+				"comment": "A small map"
+			},
+			{
+				"type": "overworld",
+				"name": "Everything",
+				"w": 30,
+				"h": 24,
+				"id": "main",
+				"line": 2,
+				"raw": "overworld \"Everything\" 30x24 id=main   // header",
+				"comment": "header"
+			},
+			{
+				"type": "start",
+				"x": {
+					"value": 9.2,
+					"text": "9.2"
+				},
+				"y": {
+					"value": 8.2,
+					"text": "8.2"
+				},
+				"line": 3,
+				"raw": "start 9.2, 8.2",
+				"comment": null
+			},
+			{
+				"type": "area",
+				"area": "crater-fields",
+				"x": {
+					"lo": 0,
+					"hi": 14
+				},
+				"y": {
+					"lo": 0,
+					"hi": 23
+				},
+				"line": 4,
+				"raw": "area crater-fields x=0..14 y=0..23",
+				"comment": null
+			},
+			{
+				"type": "area",
+				"area": "gumdrop-isle",
+				"x": {
+					"lo": 15,
+					"hi": 29
+				},
+				"y": {
+					"lo": 0,
+					"hi": 23
+				},
+				"line": 5,
+				"raw": "area gumdrop-isle x=15..29 y=0..23",
+				"comment": null
+			},
+			{
+				"type": "blank",
+				"line": 6,
+				"raw": "",
+				"comment": null
+			},
+			{
+				"type": "section",
+				"name": "blocks",
+				"line": 7,
+				"raw": "blocks",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "grass",
+				"x": {
+					"lo": 0,
+					"hi": 29
+				},
+				"y": {
+					"lo": 0,
+					"hi": 23
+				},
+				"line": 8,
+				"raw": "  grass x=0..29 y=0..23",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "river",
+				"x": {
+					"lo": 10,
+					"hi": 11
+				},
+				"y": {
+					"lo": 0,
+					"hi": 23
+				},
+				"line": 9,
+				"raw": "  river x=10..11 y=0..23   // the river",
+				"comment": "the river"
+			},
+			{
+				"type": "path",
+				"from": [
+					8,
+					9
+				],
+				"to": [
+					14,
+					6
+				],
+				"line": 10,
+				"raw": "  path from=8,9 to=14,6",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "path",
+				"x": {
+					"lo": 3,
+					"hi": 4
+				},
+				"y": {
+					"lo": 3,
+					"hi": 3
+				},
+				"line": 11,
+				"raw": "  path x=3..4 y=3",
+				"comment": null
+			},
+			{
+				"type": "scatter",
+				"line": 12,
+				"raw": "  scatter",
+				"comment": null
+			},
+			{
+				"type": "section",
+				"name": "points",
+				"line": 13,
+				"raw": "points",
+				"comment": null
+			},
+			{
+				"type": "level",
+				"slug": "crater",
+				"at": [
+					{
+						"value": 14,
+						"text": "14"
+					},
+					{
+						"value": 6,
+						"text": "6"
+					}
+				],
+				"req": [],
+				"big": true,
+				"hidden": false,
+				"line": 14,
+				"raw": "  level crater at=14,6 big",
+				"comment": null
+			},
+			{
+				"type": "level",
+				"slug": "caves",
+				"at": [
+					{
+						"value": 20.5,
+						"text": "20.5"
+					},
+					{
+						"value": 10,
+						"text": "10"
+					}
+				],
+				"req": [
+					"crater",
+					"secret"
+				],
+				"big": false,
+				"hidden": true,
+				"line": 15,
+				"raw": "  level caves at=20.5,10 req=crater,secret hidden",
+				"comment": null
+			},
+			{
+				"type": "tele",
+				"label": "pad-a",
+				"at": [
+					{
+						"value": 12,
+						"text": "12"
+					},
+					{
+						"value": 19,
+						"text": "19"
+					}
+				],
+				"with": "pad-b",
+				"req": [],
+				"hidden": false,
+				"line": 16,
+				"raw": "  tele pad-a at=12,19 with=pad-b",
+				"comment": null
+			},
+			{
+				"type": "tele",
+				"label": "pad-b",
+				"at": [
+					{
+						"value": 2,
+						"text": "2"
+					},
+					{
+						"value": 2,
+						"text": "2"
+					}
+				],
+				"with": "pad-a",
+				"req": [
+					"crater"
+				],
+				"hidden": false,
+				"line": 17,
+				"raw": "  tele pad-b at=2,2 with=pad-a req=crater",
+				"comment": null
+			},
+			{
+				"type": "saucer",
+				"at": [
+					{
+						"value": 3,
+						"text": "3"
+					},
+					{
+						"value": 3,
+						"text": "3"
+					}
+				],
+				"line": 18,
+				"raw": "  saucer at=3,3",
+				"comment": null
+			},
+			{
+				"type": "sign",
+				"n": 0,
+				"at": [
+					{
+						"value": 8,
+						"text": "8"
+					},
+					{
+						"value": 16,
+						"text": "16"
+					}
+				],
+				"line": 19,
+				"raw": "  sign 0 at=8,16",
+				"comment": null
+			},
+			{
+				"type": "section",
+				"name": "edits",
+				"line": 20,
+				"raw": "edits",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "tree",
+				"x": {
+					"lo": 5,
+					"hi": 5
+				},
+				"y": {
+					"lo": 5,
+					"hi": 5
+				},
+				"line": 21,
+				"raw": "  tree x=5 y=5",
+				"comment": null
+			},
+			{
+				"type": "sign",
+				"n": 1,
+				"at": [
+					{
+						"value": 6,
+						"text": "6"
+					},
+					{
+						"value": 6,
+						"text": "6"
+					}
+				],
+				"line": 22,
+				"raw": "  sign 1 at=6,6",
+				"comment": null
+			},
+			{
+				"type": "blank",
+				"line": 23,
+				"raw": "",
+				"comment": null
+			}
+		]
+	},
+	"errors": []
+}

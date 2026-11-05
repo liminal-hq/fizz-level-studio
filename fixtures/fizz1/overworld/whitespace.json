@@ -1,0 +1,77 @@
+{
+	"id": "overworld/whitespace",
+	"from": "tools/fizz1-cases.ts: tabs, odd spacing and a non-breaking space",
+	"isOverworld": true,
+	"ast": {
+		"nodes": [
+			{
+				"type": "overworld",
+				"name": "T",
+				"w": 20,
+				"h": 20,
+				"id": "test",
+				"line": 1,
+				"raw": "overworld\t\"T\"\t20x20\tid=test",
+				"comment": null
+			},
+			{
+				"type": "start",
+				"x": {
+					"value": 3,
+					"text": "3"
+				},
+				"y": {
+					"value": 4,
+					"text": "4"
+				},
+				"line": 2,
+				"raw": "\tstart\t3 ,\t4",
+				"comment": null
+			},
+			{
+				"type": "section",
+				"name": "blocks",
+				"line": 3,
+				"raw": "blocks",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "grass",
+				"x": {
+					"lo": 0,
+					"hi": 1
+				},
+				"y": {
+					"lo": 0,
+					"hi": 0
+				},
+				"line": 4,
+				"raw": "\t\tgrass\tx=0..1\ty=0",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "river",
+				"x": {
+					"lo": 2,
+					"hi": 2
+				},
+				"y": {
+					"lo": 2,
+					"hi": 2
+				},
+				"line": 5,
+				"raw": "  river x=2 y=2",
+				"comment": null
+			},
+			{
+				"type": "blank",
+				"line": 6,
+				"raw": "",
+				"comment": null
+			}
+		]
+	},
+	"errors": []
+}

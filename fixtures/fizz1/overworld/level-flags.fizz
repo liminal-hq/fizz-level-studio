@@ -1,0 +1,6 @@
+overworld "T" 20x20 id=test
+start 3,3
+points
+  level crater hidden at=1,1 big
+  level crater at=2,2 big big
+  level crater at=3,3 req=caves

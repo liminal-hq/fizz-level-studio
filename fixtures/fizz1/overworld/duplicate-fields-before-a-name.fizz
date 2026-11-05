@@ -1,0 +1,4 @@
+overworld "T" 20x20 id=test
+start 3,3
+start a=1 a=2
+area x=1 x=2

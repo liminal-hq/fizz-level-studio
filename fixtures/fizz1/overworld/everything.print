@@ -1,0 +1,22 @@
+// A small map
+overworld "Everything" 30x24 id=main   // header
+start 9.2, 8.2
+area crater-fields x=0..14 y=0..23
+area gumdrop-isle x=15..29 y=0..23
+
+blocks
+  grass x=0..29 y=0..23
+  river x=10..11 y=0..23   // the river
+  path from=8,9 to=14,6
+  path x=3..4 y=3
+  scatter
+points
+  level crater at=14,6 big
+  level caves at=20.5,10 req=crater,secret hidden
+  tele pad-a at=12,19 with=pad-b
+  tele pad-b at=2,2 with=pad-a req=crater
+  saucer at=3,3
+  sign 0 at=8,16
+edits
+  tree x=5 y=5
+  sign 1 at=6,6

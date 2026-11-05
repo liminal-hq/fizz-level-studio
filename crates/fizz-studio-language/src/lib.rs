@@ -13,6 +13,7 @@ pub mod edits;
 pub mod errors;
 pub mod js;
 pub mod messages;
+pub mod overworld;
 pub mod parser;
 pub mod printer;
 pub mod raster;

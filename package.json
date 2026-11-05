@@ -39,12 +39,16 @@
 		"check:bindings": "bash scripts/check-bindings-drift.sh",
 		"check:bundles": "bash scripts/check-plugin-bundles.sh",
 		"check": "bash tools/check.sh",
-		"check:scope": "bash tools/ci-scope.sh --self-test"
+		"check:scope": "bash tools/ci-scope.sh --self-test",
+		"app:build": "bun run build:plugins && bun run --cwd apps/studio build && bun run --cwd apps/studio tauri build --debug --no-bundle --config src-tauri/tauri.conf.dev.json",
+		"check:app": "bun tools/app-checks/run.ts"
 	},
 	"description": "A level and overworld editor for Lieutenant Fizz: a plain-text level language, an MCP server for Claude and proofs against the game",
 	"license": "Apache-2.0 OR MIT",
 	"author": "Liminal HQ, Scott Morris",
 	"devDependencies": {
+		"@hypothesi/tauri-mcp-server": "^0.13.2",
+		"@modelcontextprotocol/sdk": "^1",
 		"@rollup/plugin-typescript": "^12.1.4",
 		"markdownlint-cli2": "0.24.0",
 		"prettier": "3.6.2",

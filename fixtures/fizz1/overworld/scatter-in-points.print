@@ -1,0 +1,5 @@
+overworld "T" 20x20 id=test
+start 3,3
+points
+  scatter
+  path from=1,1 to=2,2

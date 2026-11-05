@@ -1,0 +1,61 @@
+{
+	"id": "overworld/level-in-blocks",
+	"from": "packages/language/test/overworld.test.ts: a level point belongs under points",
+	"isOverworld": true,
+	"ast": {
+		"nodes": [
+			{
+				"type": "overworld",
+				"name": "T",
+				"w": 20,
+				"h": 20,
+				"id": "test",
+				"line": 1,
+				"raw": "overworld \"T\" 20x20 id=test",
+				"comment": null
+			},
+			{
+				"type": "start",
+				"x": {
+					"value": 3,
+					"text": "3"
+				},
+				"y": {
+					"value": 3,
+					"text": "3"
+				},
+				"line": 2,
+				"raw": "start 3,3",
+				"comment": null
+			},
+			{
+				"type": "section",
+				"name": "blocks",
+				"line": 3,
+				"raw": "blocks",
+				"comment": null
+			},
+			{
+				"type": "error",
+				"code": "E008",
+				"line": 4,
+				"raw": "  saucer at=3,3",
+				"comment": null
+			},
+			{
+				"type": "blank",
+				"line": 5,
+				"raw": "",
+				"comment": null
+			}
+		]
+	},
+	"errors": [
+		{
+			"line": 4,
+			"code": "E008",
+			"message": "`saucer` belongs under `points`, not `blocks`",
+			"fix": "move the line under a `points` header"
+		}
+	]
+}

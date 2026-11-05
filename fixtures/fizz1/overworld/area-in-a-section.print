@@ -1,0 +1,4 @@
+overworld "T" 20x20 id=test
+start 3,3
+points
+  area gumdrop-isle x=0..4 y=0..4

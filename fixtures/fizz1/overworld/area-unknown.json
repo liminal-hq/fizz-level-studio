@@ -1,0 +1,67 @@
+{
+	"id": "overworld/area-unknown",
+	"from": "tools/fizz1-cases.ts: an unknown area, near and far",
+	"isOverworld": true,
+	"ast": {
+		"nodes": [
+			{
+				"type": "overworld",
+				"name": "T",
+				"w": 20,
+				"h": 20,
+				"id": "test",
+				"line": 1,
+				"raw": "overworld \"T\" 20x20 id=test",
+				"comment": null
+			},
+			{
+				"type": "start",
+				"x": {
+					"value": 3,
+					"text": "3"
+				},
+				"y": {
+					"value": 3,
+					"text": "3"
+				},
+				"line": 2,
+				"raw": "start 3,3",
+				"comment": null
+			},
+			{
+				"type": "error",
+				"code": "E002",
+				"line": 3,
+				"raw": "area crater-field x=0..1 y=0..1",
+				"comment": null
+			},
+			{
+				"type": "error",
+				"code": "E002",
+				"line": 4,
+				"raw": "area moon x=0..1 y=0..1",
+				"comment": null
+			},
+			{
+				"type": "blank",
+				"line": 5,
+				"raw": "",
+				"comment": null
+			}
+		]
+	},
+	"errors": [
+		{
+			"line": 3,
+			"code": "E002",
+			"message": "unknown area `crater-field`",
+			"fix": "did you mean `crater-fields`?"
+		},
+		{
+			"line": 4,
+			"code": "E002",
+			"message": "unknown area `moon`",
+			"fix": "use one of: crater-fields, marshmallow-meadows, rock-candy-reach, frosting-frontier, gumdrop-isle"
+		}
+	]
+}

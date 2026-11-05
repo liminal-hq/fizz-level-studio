@@ -1,0 +1,171 @@
+{
+	"id": "overworld/sign-numbers",
+	"from": "tools/fizz1-cases.ts: sign numbers as JavaScript's Number() reads them",
+	"isOverworld": true,
+	"ast": {
+		"nodes": [
+			{
+				"type": "overworld",
+				"name": "T",
+				"w": 20,
+				"h": 20,
+				"id": "test",
+				"line": 1,
+				"raw": "overworld \"T\" 20x20 id=test",
+				"comment": null
+			},
+			{
+				"type": "start",
+				"x": {
+					"value": 3,
+					"text": "3"
+				},
+				"y": {
+					"value": 3,
+					"text": "3"
+				},
+				"line": 2,
+				"raw": "start 3,3",
+				"comment": null
+			},
+			{
+				"type": "section",
+				"name": "blocks",
+				"line": 3,
+				"raw": "blocks",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "grass",
+				"x": {
+					"lo": 0,
+					"hi": 19
+				},
+				"y": {
+					"lo": 0,
+					"hi": 19
+				},
+				"line": 4,
+				"raw": "  grass x=0..19 y=0..19",
+				"comment": null
+			},
+			{
+				"type": "section",
+				"name": "points",
+				"line": 5,
+				"raw": "points",
+				"comment": null
+			},
+			{
+				"type": "sign",
+				"n": 0,
+				"at": [
+					{
+						"value": 1,
+						"text": "1"
+					},
+					{
+						"value": 1,
+						"text": "1"
+					}
+				],
+				"line": 6,
+				"raw": "  sign 0 at=1,1",
+				"comment": null
+			},
+			{
+				"type": "sign",
+				"n": 16,
+				"at": [
+					{
+						"value": 1,
+						"text": "1"
+					},
+					{
+						"value": 1,
+						"text": "1"
+					}
+				],
+				"line": 7,
+				"raw": "  sign 0x10 at=1,1",
+				"comment": null
+			},
+			{
+				"type": "sign",
+				"n": 10,
+				"at": [
+					{
+						"value": 1,
+						"text": "1"
+					},
+					{
+						"value": 1,
+						"text": "1"
+					}
+				],
+				"line": 8,
+				"raw": "  sign 1e1 at=1,1",
+				"comment": null
+			},
+			{
+				"type": "sign",
+				"n": 5,
+				"at": [
+					{
+						"value": 1,
+						"text": "1"
+					},
+					{
+						"value": 1,
+						"text": "1"
+					}
+				],
+				"line": 9,
+				"raw": "  sign 5. at=1,1",
+				"comment": null
+			},
+			{
+				"type": "sign",
+				"n": 0,
+				"at": [
+					{
+						"value": 1,
+						"text": "1"
+					},
+					{
+						"value": 1,
+						"text": "1"
+					}
+				],
+				"line": 10,
+				"raw": "  sign -0 at=1,1",
+				"comment": null
+			},
+			{
+				"type": "sign",
+				"n": 3,
+				"at": [
+					{
+						"value": 1,
+						"text": "1"
+					},
+					{
+						"value": 1,
+						"text": "1"
+					}
+				],
+				"line": 11,
+				"raw": "  sign +3 at=1,1",
+				"comment": null
+			},
+			{
+				"type": "blank",
+				"line": 12,
+				"raw": "",
+				"comment": null
+			}
+		]
+	},
+	"errors": []
+}

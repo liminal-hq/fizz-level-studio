@@ -28,6 +28,8 @@ vi.mock('@tauri-apps/api/window', () => {
 // The main screen has its own tests; here it only has to be chosen.
 vi.mock('./MainScreen', () => ({ MainScreen: () => <p data-testid="main-screen" /> }));
 
+vi.mock('./NewLevelScreen', () => ({ NewLevelScreen: () => <p data-testid="new-level-screen" /> }));
+
 import { App } from './App';
 
 describe('App', () => {
@@ -39,13 +41,17 @@ describe('App', () => {
 	it.each([
 		['about', 'About Fizz Level Studio', 'About is coming.'],
 		['preferences', 'Preferences', 'Preferences are coming.'],
-		['new-world', 'New level', 'New level is coming.'],
 	])('shows a placeholder in the %s window', (label, title, message) => {
 		render(<App windowLabel={label} />);
 		expect(screen.getByText(title)).toBeInTheDocument();
 		expect(screen.getByText(message)).toBeInTheDocument();
 		expect(screen.getByRole('button', { name: 'Close' })).toBeInTheDocument();
 		expect(screen.queryByTestId('main-screen')).toBeNull();
+	});
+
+	it('shows the New level screen in the new-world window', () => {
+		render(<App windowLabel="new-world" />);
+		expect(screen.getByTestId('new-level-screen')).toBeInTheDocument();
 	});
 
 	it.each(['mystery', 'main-0', 'panel-script-1', 'tear-ghost'])(

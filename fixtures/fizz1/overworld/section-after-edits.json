@@ -1,0 +1,87 @@
+{
+	"id": "overworld/section-after-edits",
+	"from": "tools/fizz1-cases.ts: a section after the edits block",
+	"isOverworld": true,
+	"ast": {
+		"nodes": [
+			{
+				"type": "overworld",
+				"name": "T",
+				"w": 20,
+				"h": 20,
+				"id": "test",
+				"line": 1,
+				"raw": "overworld \"T\" 20x20 id=test",
+				"comment": null
+			},
+			{
+				"type": "start",
+				"x": {
+					"value": 3,
+					"text": "3"
+				},
+				"y": {
+					"value": 3,
+					"text": "3"
+				},
+				"line": 2,
+				"raw": "start 3,3",
+				"comment": null
+			},
+			{
+				"type": "section",
+				"name": "edits",
+				"line": 3,
+				"raw": "edits",
+				"comment": null
+			},
+			{
+				"type": "error",
+				"code": "E008",
+				"line": 4,
+				"raw": "blocks",
+				"comment": null
+			},
+			{
+				"type": "error",
+				"code": "E008",
+				"line": 5,
+				"raw": "points",
+				"comment": null
+			},
+			{
+				"type": "error",
+				"code": "E008",
+				"line": 6,
+				"raw": "edits",
+				"comment": null
+			},
+			{
+				"type": "blank",
+				"line": 7,
+				"raw": "",
+				"comment": null
+			}
+		]
+	},
+	"errors": [
+		{
+			"line": 4,
+			"code": "E008",
+			"message": "`blocks` cannot follow the edits block",
+			"fix": "the edits block is last; move this section above `edits`"
+		},
+		{
+			"line": 5,
+			"code": "E008",
+			"message": "`points` cannot follow the edits block",
+			"fix": "the edits block is last; move this section above `edits`"
+		},
+		{
+			"line": 6,
+			"code": "E008",
+			"message": "`edits` cannot follow the edits block",
+			"fix": "the edits block is last; move this section above `edits`"
+		}
+	]
+}

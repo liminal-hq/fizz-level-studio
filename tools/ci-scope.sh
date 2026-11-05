@@ -76,6 +76,7 @@ RULES=(
   'scratch/*;language;scratch/kitchen-sink.fizz'
   # The desktop app and its Rust.
   'shared/*;app;shared/rollup.config.js'
+  'tools/app-checks/*;app;tools/app-checks/run.ts'
   'packages/chrome/*;frontend;packages/chrome/src/TitleBar/TitleBar.tsx'
   'packages/protocol/*;frontend,app;packages/protocol/src/generated/WindowId.ts'
   'apps/studio/src-tauri/*;rust,app;apps/studio/src-tauri/src/lib.rs'

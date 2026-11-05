@@ -1,0 +1,53 @@
+{
+	"id": "overworld/start-not-a-number",
+	"from": "tools/fizz1-cases.ts: start with words",
+	"isOverworld": true,
+	"ast": {
+		"nodes": [
+			{
+				"type": "overworld",
+				"name": "T",
+				"w": 20,
+				"h": 20,
+				"id": "test",
+				"line": 1,
+				"raw": "overworld \"T\" 20x20 id=test",
+				"comment": null
+			},
+			{
+				"type": "error",
+				"code": "E004",
+				"line": 2,
+				"raw": "start a,2",
+				"comment": null
+			},
+			{
+				"type": "error",
+				"code": "E006",
+				"line": 3,
+				"raw": "start 1,b",
+				"comment": null
+			},
+			{
+				"type": "blank",
+				"line": 4,
+				"raw": "",
+				"comment": null
+			}
+		]
+	},
+	"errors": [
+		{
+			"line": 2,
+			"code": "E004",
+			"message": "start x must be a number, found `a`",
+			"fix": "write a decimal such as 7 or 88.5"
+		},
+		{
+			"line": 3,
+			"code": "E006",
+			"message": "a second `start` line",
+			"fix": "keep one `start` line"
+		}
+	]
+}

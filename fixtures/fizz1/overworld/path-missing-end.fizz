@@ -1,0 +1,6 @@
+overworld "T" 20x20 id=test
+start 3,3
+blocks
+  path from=1,2
+  path from=1 to=2,2
+  path from=1,2 to=3,3 loose

@@ -1,0 +1,100 @@
+{
+	"id": "overworld/tele-missing-parts",
+	"from": "tools/fizz1-cases.ts: teleporters with a missing name, position or partner",
+	"isOverworld": true,
+	"ast": {
+		"nodes": [
+			{
+				"type": "overworld",
+				"name": "T",
+				"w": 20,
+				"h": 20,
+				"id": "test",
+				"line": 1,
+				"raw": "overworld \"T\" 20x20 id=test",
+				"comment": null
+			},
+			{
+				"type": "start",
+				"x": {
+					"value": 3,
+					"text": "3"
+				},
+				"y": {
+					"value": 3,
+					"text": "3"
+				},
+				"line": 2,
+				"raw": "start 3,3",
+				"comment": null
+			},
+			{
+				"type": "section",
+				"name": "points",
+				"line": 3,
+				"raw": "points",
+				"comment": null
+			},
+			{
+				"type": "error",
+				"code": "E003",
+				"line": 4,
+				"raw": "  tele",
+				"comment": null
+			},
+			{
+				"type": "error",
+				"code": "E003",
+				"line": 5,
+				"raw": "  tele a",
+				"comment": null
+			},
+			{
+				"type": "error",
+				"code": "E003",
+				"line": 6,
+				"raw": "  tele b at=1,1",
+				"comment": null
+			},
+			{
+				"type": "error",
+				"code": "E003",
+				"line": 7,
+				"raw": "  tele c at=1,1 with=",
+				"comment": null
+			},
+			{
+				"type": "blank",
+				"line": 8,
+				"raw": "",
+				"comment": null
+			}
+		]
+	},
+	"errors": [
+		{
+			"line": 4,
+			"code": "E003",
+			"message": "missing teleporter name",
+			"fix": "write `tele pad-a at=12,19 with=pad-b`"
+		},
+		{
+			"line": 5,
+			"code": "E003",
+			"message": "missing field `at=`",
+			"fix": "add `at=14,6`"
+		},
+		{
+			"line": 6,
+			"code": "E003",
+			"message": "missing field `with=`",
+			"fix": "add `with=pad-b`"
+		},
+		{
+			"line": 7,
+			"code": "E003",
+			"message": "field `with=` has no value",
+			"fix": "write a value after `with=`"
+		}
+	]
+}

@@ -1,0 +1,6 @@
+overworld "T" 20x20 id=test
+start 3,3
+blocks
+  grass x=0..19 y=0..19
+points
+  saucer at=3,-1

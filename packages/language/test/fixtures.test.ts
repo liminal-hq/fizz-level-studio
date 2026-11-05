@@ -8,6 +8,7 @@ import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { parse } from '../src/parser.ts';
 import { print } from '../src/printer.ts';
+import { isOverworld, parseOverworld, printOverworld } from '../src/overworld.ts';
 
 const ROOT = new URL('../../../fixtures/fizz1/', import.meta.url).pathname;
 
@@ -26,7 +27,21 @@ describe('conformance fixtures', () => {
 		expect(ids.length).toBeGreaterThan(100);
 	});
 
-	for (const id of ids) {
+	for (const id of ids.filter((i) => i.startsWith('overworld/'))) {
+		test(id, () => {
+			const source = readFileSync(join(ROOT, `${id}.fizz`), 'utf8');
+			const recorded = JSON.parse(readFileSync(join(ROOT, `${id}.json`), 'utf8'));
+			const { ast, errors } = parseOverworld(source);
+			expect(printOverworld(ast)).toBe(readFileSync(join(ROOT, `${id}.print`), 'utf8'));
+			expect(isOverworld(source)).toBe(recorded.isOverworld);
+			expect(JSON.parse(JSON.stringify(ast))).toEqual(recorded.ast);
+			expect(errors.map(({ line, code, message, fix }) => ({ line, code, message, fix }))).toEqual(
+				recorded.errors,
+			);
+		});
+	}
+
+	for (const id of ids.filter((i) => !i.startsWith('overworld/'))) {
 		test(id, () => {
 			const source = readFileSync(join(ROOT, `${id}.fizz`), 'utf8');
 			expect(existsSync(join(ROOT, `${id}.print`))).toBe(true);
