@@ -7,6 +7,7 @@ use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::mpsc::{self, RecvTimeoutError, Sender};
 use std::sync::{Arc, Mutex};
+use std::thread::JoinHandle;
 use std::time::{Duration, Instant};
 
 use crate::open::OpenLevel;
@@ -47,15 +48,31 @@ pub(crate) fn recovery_id(path: &Path) -> String {
     format!("level-{hash:016x}")
 }
 
-/// Keeps recovery copies on a timer until the returned sender is dropped (or sent to).
+/// The autosave timer. Dropping it stops the timer and waits for a tick in progress to finish, so
+/// that nothing is written to the recovery folder once the handle is gone.
+pub(crate) struct AutosaveHandle {
+    stop: Option<Sender<()>>,
+    thread: Option<JoinHandle<()>>,
+}
+
+impl Drop for AutosaveHandle {
+    fn drop(&mut self) {
+        drop(self.stop.take());
+        if let Some(thread) = self.thread.take() {
+            let _ = thread.join();
+        }
+    }
+}
+
+/// Keeps recovery copies on a timer until the returned handle is dropped.
 pub(crate) fn start_autosave(
     levels: Arc<Mutex<HashMap<String, OpenLevel>>>,
     interval: Duration,
-) -> std::io::Result<Sender<()>> {
+) -> std::io::Result<AutosaveHandle> {
     let (stop, stopped) = mpsc::channel::<()>();
     // Look more often than the interval, so a level is never left waiting for a whole extra tick.
     let tick = (interval / 4).max(Duration::from_millis(1));
-    std::thread::Builder::new()
+    let thread = std::thread::Builder::new()
         .name("fizz-studio-autosave".to_string())
         .spawn(move || {
             while let Err(RecvTimeoutError::Timeout) = stopped.recv_timeout(tick) {
@@ -66,5 +83,8 @@ pub(crate) fn start_autosave(
                 }
             }
         })?;
-    Ok(stop)
+    Ok(AutosaveHandle {
+        stop: Some(stop),
+        thread: Some(thread),
+    })
 }

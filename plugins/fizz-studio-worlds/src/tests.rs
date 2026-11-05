@@ -48,6 +48,14 @@ fn worlds(app: &App) -> tauri::State<'_, Worlds> {
     app.state::<Worlds>()
 }
 
+/// Ends the app the way a crash does: its levels stay open and unsaved, and nothing runs after it.
+/// Dropping the app is not enough in a test, because the handles the watchers hold keep its state
+/// (and so its autosave timer) alive, and that timer would go on rewriting recovery copies for a
+/// session that is supposed to be dead. A real crash takes the timer with the process.
+fn crash(app: &App) {
+    worlds(app).stop_autosave();
+}
+
 /// A folder holding a copy of `crater.fizz`.
 fn project() -> (tempfile::TempDir, PathBuf) {
     let dir = tempfile::tempdir().unwrap();
@@ -452,8 +460,9 @@ fn a_crash_leaves_a_copy_that_restores_byte_for_byte_and_can_be_discarded() {
         let opened = open(&app, &path);
         let painted = apply(&app, &opened.id, paint("grass", 5), 0).unwrap();
         wait_for_copy(recovery.path());
+        crash(&app);
         painted
-        // Dropped without closing: the session did not end cleanly.
+        // Never closed: the session did not end cleanly.
     };
     assert_eq!(std::fs::read_to_string(&path).unwrap(), CRATER);
 
@@ -489,6 +498,7 @@ fn a_crash_leaves_a_copy_that_restores_byte_for_byte_and_can_be_discarded() {
         let opened = open(&app, &path);
         apply(&app, &opened.id, paint("grass", 9), 0).unwrap();
         wait_for_copy(recovery.path());
+        crash(&app);
     }
     let app = app_with(recovery.path().to_path_buf(), FAST);
     let offered = copies(&app);
@@ -507,6 +517,7 @@ fn a_level_whose_file_is_gone_restores_as_a_new_unsaved_level() {
         let opened = open(&app, &path);
         let painted = apply(&app, &opened.id, paint("grass", 5), 0).unwrap();
         wait_for_copy(recovery.path());
+        crash(&app);
         painted
     };
     std::fs::remove_file(&path).unwrap();

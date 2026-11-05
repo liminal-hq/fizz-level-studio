@@ -6,7 +6,7 @@
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
-use std::sync::mpsc::{RecvTimeoutError, Sender};
+use std::sync::mpsc::RecvTimeoutError;
 use std::sync::{Arc, Mutex, MutexGuard};
 use std::time::{Duration, Instant, UNIX_EPOCH};
 
@@ -19,7 +19,7 @@ use fizz_studio_world::{
 };
 use tauri::{AppHandle, Emitter, Manager, Runtime};
 
-use crate::recovery::{recovery_id, start_autosave, RecoveryConfig, COPY_FILE};
+use crate::recovery::{recovery_id, start_autosave, AutosaveHandle, RecoveryConfig, COPY_FILE};
 use crate::{LevelConflict, CHANGED_EVENT, CONFLICT_EVENT};
 
 /// How often a watcher thread looks up from waiting for a change to see whether its level closed.
@@ -34,8 +34,8 @@ pub struct Worlds {
     next: AtomicU64,
     store: RecoveryStore,
     interval: Duration,
-    /// Dropping this stops the autosave thread.
-    autosave_stop: Mutex<Option<Sender<()>>>,
+    /// Dropping this stops the autosave thread and waits for a tick in progress to finish.
+    autosave_stop: Mutex<Option<AutosaveHandle>>,
 }
 
 impl std::fmt::Debug for Worlds {
