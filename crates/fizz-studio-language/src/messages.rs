@@ -20,6 +20,10 @@ fn what_text(what: &What) -> String {
         What::OnOrOff => "on or off".to_string(),
         What::ItemKind => "item kind".to_string(),
         What::TileName => "tile name".to_string(),
+        What::AreaName => "area name".to_string(),
+        What::LevelName => "level id".to_string(),
+        What::TeleporterName => "teleporter name".to_string(),
+        What::SignNumber => "sign number".to_string(),
     }
 }
 
@@ -31,6 +35,8 @@ fn noun_text(noun: Noun) -> &'static str {
         Noun::TerrainSegment => "terrain segment",
         Noun::Theme => "theme",
         Noun::Area => "area",
+        Noun::Level => "level",
+        Noun::Requirement => "requirement",
     }
 }
 
@@ -137,7 +143,37 @@ pub fn message(d: &Diagnostic) -> String {
         Key::WrongSection => format!("`{}` belongs under `{}`, not `{}`", a(0), a(1), a(2)),
         Key::UnknownInSection => format!("unknown statement `{}` in `{}`", a(0), a(1)),
         Key::NoLevelHeader => "the script has no `level` header".to_string(),
-        Key::NoStartLine => "the script has no `start` line".to_string(),
+        Key::NoStartLine | Key::NoOverworldStart => "the script has no `start` line".to_string(),
+        Key::OutsideOverworld => format!(
+            "{} {} is outside the overworld ({} runs 0..{})",
+            a(0),
+            a(1),
+            a(0),
+            a(2)
+        ),
+        Key::OverworldHeaderMalformed => "the overworld header is malformed".to_string(),
+        Key::OverworldTooSmall => format!("an overworld {}x{} is too small", a(0), a(1)),
+        Key::SecondOverworldHeader => "a second `overworld` header".to_string(),
+        Key::StatementBeforeOverworld => {
+            "the script has a statement before its `overworld` header".to_string()
+        }
+        Key::NoOverworldHeader => "the script has no `overworld` header".to_string(),
+        Key::OverworldStartNeedsTwoNumbers => "`start` takes two numbers".to_string(),
+        Key::DuplicateTeleporter => format!("a second teleporter called `{}`", a(0)),
+        Key::NotInOverworld => format!("`{}` is not used in an overworld script", a(0)),
+        Key::OverworldBeforeAnySection => {
+            format!("`{}` appears before any section header", a(0))
+        }
+        Key::PathNotWhole => "a path runs between whole tiles".to_string(),
+        Key::SignNumberBad => "a sign number is a whole number from 0".to_string(),
+        Key::OverworldUnknownInSection => {
+            format!("unknown statement `{}` in `{}`", a(0), a(1))
+        }
+        Key::TeleporterPartnerMissing => format!(
+            "teleporter `{}` pairs with `{}`, which does not exist",
+            a(0),
+            a(1)
+        ),
     }
 }
 
@@ -235,6 +271,34 @@ pub fn fix(d: &Diagnostic) -> String {
             }
         }
         Key::NoStartLine => "add `start 3,4` (Ben's spawn tile, x then y)".to_string(),
+        Key::OutsideOverworld => format!(
+            "keep {} within 0..{}, or change the size on the `overworld` line",
+            a(0),
+            a(2)
+        ),
+        Key::OverworldHeaderMalformed => {
+            "write: overworld \"Name\" 60x44 id=main".to_string()
+        }
+        Key::OverworldTooSmall => "make it at least 3x3".to_string(),
+        Key::SecondOverworldHeader => "a script holds one overworld".to_string(),
+        Key::StatementBeforeOverworld | Key::NoOverworldHeader => {
+            "start the script with: overworld \"Name\" 60x44 id=main".to_string()
+        }
+        Key::NoOverworldStart => {
+            "add `start 9.2,8.2` (where Ben stands when the map opens)".to_string()
+        }
+        Key::OverworldStartNeedsTwoNumbers => "write `start 9.2,8.2`".to_string(),
+        Key::DuplicateTeleporter => "give each teleporter its own name".to_string(),
+        Key::NotInOverworld => {
+            "write the tile word first, such as `river x=24..25 y=0..43`".to_string()
+        }
+        Key::OverworldBeforeAnySection => {
+            "put it under a `blocks` or `points` header".to_string()
+        }
+        Key::PathNotWhole => "write whole numbers, such as `from=8,9`".to_string(),
+        Key::SignNumberBad => "write `sign 0 at=8,16`".to_string(),
+        Key::OverworldUnknownInSection => format!("`{}` takes: {}", a(1), a(2)),
+        Key::TeleporterPartnerMissing => format!("name an existing teleporter: {}", a(2)),
     }
 }
 

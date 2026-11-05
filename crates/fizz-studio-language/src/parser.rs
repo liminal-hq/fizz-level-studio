@@ -215,10 +215,14 @@ fn need_ground(st: &State, word: &str) -> Parsed<()> {
     Ok(())
 }
 
-/// Reads `level "Name" WxH [fields]` by hand, with the reference parser's regular expression rules:
-/// JavaScript whitespace, ASCII digits, and a field tail that may hold no line terminator.
-fn level_header(body: &str) -> Option<(&str, &str, &str, &str)> {
-    let after_keyword = body.strip_prefix("level")?;
+/// Reads `level "Name" WxH [fields]` (or `overworld "Name" WxH [fields]`, by `keyword`) by hand, with
+/// the reference parser's regular expression rules: JavaScript whitespace, ASCII digits, and a field
+/// tail that may hold no line terminator.
+pub(crate) fn header_line<'a>(
+    keyword: &str,
+    body: &'a str,
+) -> Option<(&'a str, &'a str, &'a str, &'a str)> {
+    let after_keyword = body.strip_prefix(keyword)?;
     let rest = after_keyword.trim_start_matches(is_space);
     if rest.len() == after_keyword.len() {
         return None;
@@ -252,7 +256,7 @@ fn level_header(body: &str) -> Option<(&str, &str, &str, &str)> {
 }
 
 fn parse_level(body: &str, st: &mut State) -> Parsed<Body> {
-    let Some((name, w_text, h_text, fields)) = level_header(body) else {
+    let Some((name, w_text, h_text, fields)) = header_line("level", body) else {
         st.level = Some(LevelState {
             w: f64::INFINITY,
             h: f64::INFINITY,

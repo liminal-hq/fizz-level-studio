@@ -24,6 +24,12 @@ pub enum What {
     OnOrOff,
     ItemKind,
     TileName,
+    /// The area name an overworld `area` line takes.
+    AreaName,
+    /// The level id an overworld `level` point takes.
+    LevelName,
+    TeleporterName,
+    SignNumber,
 }
 
 /// The kind of name an "unknown ..." message is about.
@@ -35,6 +41,10 @@ pub enum Noun {
     TerrainSegment,
     Theme,
     Area,
+    /// A level named in an overworld `level` point.
+    Level,
+    /// A name in an overworld `req=` list.
+    Requirement,
 }
 
 /// One argument of a diagnostic message.
@@ -149,6 +159,28 @@ pub enum Key {
     UnknownInSection,
     NoLevelHeader,
     NoStartLine,
+    /// `[axis, span, max]`
+    OutsideOverworld,
+    OverworldHeaderMalformed,
+    /// `[w, h]`
+    OverworldTooSmall,
+    SecondOverworldHeader,
+    StatementBeforeOverworld,
+    NoOverworldHeader,
+    NoOverworldStart,
+    OverworldStartNeedsTwoNumbers,
+    /// `[label]`
+    DuplicateTeleporter,
+    /// `[word]`
+    NotInOverworld,
+    /// `[word]`
+    OverworldBeforeAnySection,
+    PathNotWhole,
+    SignNumberBad,
+    /// `[word, section, takes]`
+    OverworldUnknownInSection,
+    /// `[label, with, labels]`
+    TeleporterPartnerMissing,
 }
 
 /// A failure on one line, before the parser knows which line it was.
