@@ -1,13 +1,13 @@
-// The tool shortcut keys and the short list of item words the Stamp tool places
+// The tool shortcut keys and the keys that step the item spacing
 //
 // (c) Copyright 2026 Liminal HQ, Scott Morris
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
 import type { ToolId } from './tool';
 
-/** The key that picks each tool (`P`aint, `E`rase, p`I`ck, `S`elect, s`T`amp). */
+/** The key that picks each tool (`B`rush, `E`rase, p`I`ck, `S`elect, s`T`amp). */
 export const TOOL_KEYS: Record<ToolId, string> = {
-	paint: 'p',
+	paint: 'b',
 	erase: 'e',
 	pick: 'i',
 	select: 's',
@@ -26,14 +26,5 @@ export function toolForKey(
 	return null;
 }
 
-/** The item words a Fizz 1 level can `place`; the backend validates, this is only the chooser. */
-export const ITEM_WORDS: readonly string[] = [
-	'cheezie',
-	'choc',
-	'cookie',
-	'soda',
-	'key-red',
-	'key-blue',
-	'key-green',
-	'usb',
-];
+/** The keys that step the item spacing down and up. */
+export const SPACING_KEYS = { less: '[', more: ']' } as const;

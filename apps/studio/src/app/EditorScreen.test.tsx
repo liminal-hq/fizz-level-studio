@@ -83,8 +83,7 @@ describe('EditorScreen', () => {
 	it('sends a one-row stroke as one applyEdit sharing a merge key, then ends the step', async () => {
 		const { client, canvas } = mount();
 		const endStep = vi.spyOn(client, 'endStep');
-		await userEvent.click(screen.getByRole('button', { name: /^Tile:/ }));
-		await userEvent.click(screen.getByRole('option', { name: 'grass' }));
+		await userEvent.click(screen.getByRole('button', { name: 'grass' }));
 		stroke(canvas, [
 			[2, 3],
 			[3, 3],
@@ -145,6 +144,18 @@ describe('EditorScreen', () => {
 		await waitFor(() => expect(client.snapshot().view.cells[2 * 12 + 6]).toBe(0));
 	});
 
+	it('chooses a tool with its key', async () => {
+		const user = userEvent.setup();
+		mount();
+		screen.getByRole('application').focus();
+		await user.keyboard('e');
+		expect(screen.getByRole('button', { name: 'Erase' })).toHaveAttribute('aria-pressed', 'true');
+		await user.keyboard('b');
+		expect(screen.getByRole('button', { name: 'Paint' })).toHaveAttribute('aria-pressed', 'true');
+		await user.keyboard('t');
+		expect(screen.getByRole('button', { name: 'Stamp' })).toHaveAttribute('aria-pressed', 'true');
+	});
+
 	it('paints at the keyboard cursor with Space', async () => {
 		const user = userEvent.setup();
 		const { client, canvas } = mount();
@@ -154,16 +165,105 @@ describe('EditorScreen', () => {
 		expect(client.applied[0]?.edit).toMatchObject({ kind: 'paint', x: [[2, 2]], y: [[2, 2]] });
 	});
 
-	it('places the chosen item with the Stamp tool', async () => {
+	it('drops one item per cell along a drag, as one undo step named for the run', async () => {
 		const user = userEvent.setup();
 		const { client, canvas } = mount();
-		await user.click(screen.getByRole('button', { name: 'Stamp' }));
-		await user.click(screen.getByRole('button', { name: /^Item:/ }));
-		await user.click(screen.getByRole('option', { name: 'soda' }));
-		stroke(canvas, [[5, 5]]);
+		await user.click(screen.getByRole('tab', { name: 'Items' }));
+		await user.click(screen.getByRole('button', { name: 'cheezie' }));
+		stroke(canvas, [
+			[2, 4],
+			[3, 4],
+			[4, 4],
+			[5, 4],
+		]);
+		await waitFor(() => expect(client.applied).toHaveLength(1));
+		expect(client.applied[0]?.edit).toEqual({
+			kind: 'row',
+			item: 'cheezie',
+			x: [2, 5],
+			y: 4,
+			by: 1,
+		});
+		expect(client.snapshot().view.items).toHaveLength(4);
 		await waitFor(() =>
-			expect(client.snapshot().view.items).toEqual([{ kind: 'soda', x: 5, y: 5 }]),
+			expect(screen.getByRole('button', { name: 'Undo Place 4 cheezie' })).toBeEnabled(),
 		);
+	});
+
+	it('spaces the items by the chosen step and writes it as by=', async () => {
+		const user = userEvent.setup();
+		const { client, canvas } = mount();
+		await user.click(screen.getByRole('tab', { name: 'Items' }));
+		await user.click(screen.getByRole('button', { name: 'choc' }));
+		await user.click(screen.getByRole('button', { name: 'Place items further apart' }));
+		await user.click(screen.getByRole('button', { name: 'Place items further apart' }));
+		stroke(
+			canvas,
+			[1, 2, 3, 4, 5, 6, 7].map((x) => [x, 5]),
+		);
+		await waitFor(() => expect(client.applied).toHaveLength(1));
+		expect(client.applied[0]?.edit).toEqual({ kind: 'row', item: 'choc', x: [1, 7], y: 5, by: 3 });
+		expect(client.snapshot().text).toContain('row choc x=1..7 y=5 by=3');
+	});
+
+	it('steps the spacing with the bracket keys', async () => {
+		const user = userEvent.setup();
+		mount();
+		await user.click(screen.getByRole('tab', { name: 'Items' }));
+		await user.click(screen.getByRole('button', { name: 'cheezie' }));
+		screen.getByRole('application').focus();
+		await user.keyboard(']]');
+		expect(screen.getByRole('group', { name: 'Item spacing' })).toHaveTextContent('Every 3 cells');
+		await user.keyboard('[[');
+		expect(screen.getByRole('group', { name: 'Item spacing' })).toHaveTextContent('Every 2 cells');
+	});
+
+	it('places one enemy per click and none along a drag', async () => {
+		const user = userEvent.setup();
+		const { client, canvas } = mount();
+		await user.click(screen.getByRole('tab', { name: 'Enemies' }));
+		await user.click(screen.getByRole('button', { name: 'drone' }));
+		stroke(canvas, [
+			[3, 4],
+			[4, 4],
+			[5, 4],
+		]);
+		await waitFor(() => expect(client.applied).toHaveLength(1));
+		expect(client.applied[0]?.edit).toEqual({ kind: 'spawn', enemy: 'drone', x: 3, y: 4 });
+		expect(client.snapshot().view.spawns).toHaveLength(1);
+	});
+
+	it('picks an item into the brush and goes back to Paint', async () => {
+		const user = userEvent.setup();
+		const snapshot = levelSnapshot({}, levelView(12, 8, { items: [{ kind: 'soda', x: 4, y: 3 }] }));
+		render(<EditorScreen snapshot={snapshot} client={new FakeLevelClient(snapshot)} />);
+		await user.click(screen.getByRole('button', { name: 'Pick' }));
+		stroke(screen.getByRole('application'), [[4, 3]]);
+		await waitFor(() =>
+			expect(screen.getByRole('button', { name: 'Paint' })).toHaveAttribute('aria-pressed', 'true'),
+		);
+		expect(screen.getByText('Brush: soda, Every cell')).toBeInTheDocument();
+	});
+
+	it('copies the outlined area with Stamp and pastes it as one undo step', async () => {
+		const user = userEvent.setup();
+		const { client, canvas } = mount();
+		await user.click(screen.getByRole('button', { name: 'Select' }));
+		stroke(canvas, [
+			[0, 0],
+			[2, 0],
+		]);
+		await user.click(screen.getByRole('button', { name: 'Stamp' }));
+		stroke(canvas, [[6, 4]]);
+		await waitFor(() => expect(client.applied).toHaveLength(1));
+		expect(client.applied[0]?.edit).toEqual({
+			kind: 'paint',
+			tile: 'fill',
+			x: [[6, 8]],
+			y: [[4, 4]],
+		});
+		expect(client.snapshot().view.cells[4 * 12 + 7]).toBe(1);
+		await waitFor(() => expect(client.snapshot().can_undo).toBe(true));
 	});
 
 	it('ignores a snapshot at or below the revision it has, and takes a newer one', async () => {
@@ -299,7 +399,7 @@ describe('EditorScreen panels', () => {
 		expect(screen.getByRole('button', { name: 'Erase' })).toHaveAttribute('aria-pressed', 'true');
 	});
 
-	it('chooses a palette tile for Paint and an item for Stamp', async () => {
+	it('chooses a palette tile, then an item, as the one brush for Paint', async () => {
 		const user = userEvent.setup();
 		mountWithWords();
 		const region = await screen.findByRole('region', { name: 'Palette' });
@@ -310,9 +410,11 @@ describe('EditorScreen panels', () => {
 			'aria-pressed',
 			'true',
 		);
-		expect(screen.getByRole('button', { name: 'Tile: grass' })).toBeInTheDocument();
+		expect(screen.getByText('Brush: grass')).toBeInTheDocument();
+		await user.click(within(region).getByRole('tab', { name: 'Items' }));
 		await user.click(await within(region).findByRole('button', { name: 'soda' }));
-		expect(screen.getByRole('button', { name: /^Stamp/ })).toHaveAttribute('aria-pressed', 'true');
+		expect(screen.getByRole('button', { name: /^Paint/ })).toHaveAttribute('aria-pressed', 'true');
+		expect(screen.getByText(/^Brush: soda/)).toBeInTheDocument();
 	});
 
 	it('offers paint for pa in the Script panel from the backend words', async () => {

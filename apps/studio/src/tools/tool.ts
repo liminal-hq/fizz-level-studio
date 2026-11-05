@@ -5,6 +5,10 @@
 
 import type { LevelEdit } from '@liminal-hq/fizz-studio-protocol/generated/LevelEdit';
 import type { LevelView } from '@liminal-hq/fizz-studio-protocol/generated/LevelView';
+import { restingRow } from '../canvas/drawLevel';
+import type { Brush } from './brush';
+import { pasteEdits, type Clip } from './clip';
+import { coalesce, enemyEdit, itemEdits, spacedCells } from './runs';
 
 export type ToolId = 'paint' | 'erase' | 'pick' | 'select' | 'stamp';
 
@@ -39,19 +43,22 @@ export interface ToolState {
 	selection: Rect | null;
 }
 
-/** What a tool reads: the level as drawn, and what the person has chosen to place. */
+/** What a tool reads: the level as drawn, the brush, the item spacing and the copied area. */
 export interface ToolContext {
 	view: LevelView;
-	tile: string;
-	item: string;
+	brush: Brush;
+	/** Item brushes drop one item in every `spacing` visited cells. */
+	spacing: number;
+	/** What Stamp pastes; `null` until an area has been copied. */
+	clip: Clip | null;
 }
 
 export interface ToolResult {
 	state: ToolState;
 	/** Edits to send now. They form one stroke group: one merge key, then `endStep`. */
 	edits: LevelEdit[];
-	/** The tile word Pick read, if it read one. */
-	pick: string | null;
+	/** The brush Pick read (a tile, an item or an enemy), if it read one. */
+	pick: Brush | null;
 }
 
 export const initialToolState: ToolState = {
@@ -98,78 +105,6 @@ export function rectOf(a: Cell, b: Cell): Rect {
 	};
 }
 
-interface Block {
-	x: Array<[number, number]>;
-	y: [number, number];
-}
-
-/**
- * Folds a set of cells into as few `x` by `y` blocks as the language's cross product allows. Runs
- * along a row become one range; rows with the same run and neighbouring `y` become one `y` range;
- * blocks with the same `y` range share one edit with several `x` ranges. A horizontal drag is one
- * range, and a drag that paints a filled rectangle is one block.
- */
-export function coalesce(cells: readonly Cell[]): Block[] {
-	const rows = new Map<number, Set<number>>();
-	for (const { x, y } of cells) {
-		const row = rows.get(y) ?? new Set<number>();
-		row.add(x);
-		rows.set(y, row);
-	}
-	// Runs per row, keyed by their x range so equal runs on neighbouring rows can join.
-	const runs = new Map<string, { x0: number; x1: number; ys: number[] }>();
-	for (const [y, xs] of rows) {
-		const sorted = [...xs].sort((a, b) => a - b);
-		let start = sorted[0];
-		let previous = sorted[0];
-		const close = () => {
-			if (start === undefined || previous === undefined) return;
-			const key = `${start}:${previous}`;
-			const run = runs.get(key) ?? { x0: start, x1: previous, ys: [] };
-			run.ys.push(y);
-			runs.set(key, run);
-		};
-		for (const x of sorted.slice(1)) {
-			if (x === (previous ?? x) + 1) {
-				previous = x;
-				continue;
-			}
-			close();
-			start = x;
-			previous = x;
-		}
-		close();
-	}
-	const rectangles: Array<{ x0: number; x1: number; y0: number; y1: number }> = [];
-	for (const run of runs.values()) {
-		const ys = [...run.ys].sort((a, b) => a - b);
-		let y0 = ys[0];
-		let y1 = ys[0];
-		for (const y of ys.slice(1)) {
-			if (y === (y1 ?? y) + 1) {
-				y1 = y;
-				continue;
-			}
-			if (y0 !== undefined && y1 !== undefined) {
-				rectangles.push({ x0: run.x0, x1: run.x1, y0, y1 });
-			}
-			y0 = y;
-			y1 = y;
-		}
-		if (y0 !== undefined && y1 !== undefined) {
-			rectangles.push({ x0: run.x0, x1: run.x1, y0, y1 });
-		}
-	}
-	const blocks = new Map<string, Block>();
-	for (const r of rectangles.sort((a, b) => a.y0 - b.y0 || a.x0 - b.x0)) {
-		const key = `${r.y0}:${r.y1}`;
-		const block = blocks.get(key) ?? { x: [], y: [r.y0, r.y1] as [number, number] };
-		block.x.push([r.x0, r.x1]);
-		blocks.set(key, block);
-	}
-	return [...blocks.values()];
-}
-
 /** Turns a visited path into the `LevelEdit`s that paint, clear or place on it. */
 export function pathEdits(
 	path: readonly Cell[],
@@ -183,6 +118,11 @@ function strokeTool(
 ): (state: ToolState, phase: PointerPhase, cell: Cell, context: ToolContext) => ToolResult {
 	return (state, phase, cell, context) => {
 		const inside = inBounds(context.view, cell);
+		// An enemy is placed by one click; dragging does not spray them.
+		if (kind === 'paint' && context.brush.group === 'enemy') {
+			if (phase !== 'down' || !inside) return { state, edits: [], pick: null };
+			return { state, edits: [enemyEdit(context.brush.kind, cell)], pick: null };
+		}
 		if (phase === 'down') {
 			return {
 				state: { ...state, active: true, path: inside ? [cell] : [] },
@@ -195,22 +135,39 @@ function strokeTool(
 		const added = last ? lineCells(last, cell).slice(1) : inside ? [cell] : [];
 		const path = [...state.path, ...added.filter((c) => inBounds(context.view, c))];
 		if (phase === 'move') return { state: { ...state, path }, edits: [], pick: null };
-		const edits =
-			kind === 'paint'
-				? pathEdits(path, (x, y) => ({ kind: 'paint', tile: context.tile, x, y }))
-				: pathEdits(path, (x, y) => ({ kind: 'clear', x, y }));
+		let edits: LevelEdit[];
+		if (kind === 'clear') {
+			edits = pathEdits(path, (x, y) => ({ kind: 'clear', x, y }));
+		} else if (context.brush.group === 'item') {
+			edits = itemEdits(context.brush.kind, spacedCells(path, context.spacing));
+		} else {
+			const tile = context.brush.kind;
+			edits = pathEdits(path, (x, y) => ({ kind: 'paint', tile, x, y }));
+		}
 		return { state: { ...state, active: false, path: [] }, edits, pick: null };
 	};
 }
 
+/** What lies on a cell, topmost first: an item, an enemy, then the tile. */
+function brushAt(view: LevelView, cell: Cell): Brush | null {
+	if (!inBounds(view, cell)) return null;
+	const item = view.items.find((i) => Math.floor(i.x) === cell.x && Math.floor(i.y) === cell.y);
+	if (item) return { group: 'item', kind: item.kind };
+	const spawn = view.spawns.find(
+		(s) => Math.floor(s.x) === cell.x && Math.floor(s.y ?? restingRow(view, cell.x)) === cell.y,
+	);
+	if (spawn) return { group: 'enemy', kind: spawn.kind };
+	const word = view.palette[view.cells[cell.y * view.width + cell.x] ?? 0];
+	return word === undefined ? null : { group: 'tile', kind: word };
+}
+
 function pick(state: ToolState, phase: PointerPhase, cell: Cell, context: ToolContext): ToolResult {
 	const active = phase !== 'up' && (phase === 'down' || state.active);
-	const index = cell.y * context.view.width + cell.x;
-	const word =
-		active && inBounds(context.view, cell)
-			? (context.view.palette[context.view.cells[index] ?? 0] ?? null)
-			: null;
-	return { state: { ...state, active }, edits: [], pick: word };
+	return {
+		state: { ...state, active },
+		edits: [],
+		pick: active ? brushAt(context.view, cell) : null,
+	};
 }
 
 function select(
@@ -239,20 +196,17 @@ function select(
 	};
 }
 
+/** Pastes the copied area with its top-left cell on the pressed cell, as one stroke. */
 function stamp(
 	state: ToolState,
 	phase: PointerPhase,
 	cell: Cell,
 	context: ToolContext,
 ): ToolResult {
-	if (phase !== 'down' || !inBounds(context.view, cell)) {
+	if (phase !== 'down' || !context.clip || !inBounds(context.view, cell)) {
 		return { state, edits: [], pick: null };
 	}
-	return {
-		state,
-		edits: [{ kind: 'place', item: context.item, x: [[cell.x, cell.x]], y: [[cell.y, cell.y]] }],
-		pick: null,
-	};
+	return { state, edits: pasteEdits(context.view, context.clip, cell), pick: null };
 }
 
 const paintTool = strokeTool('paint');
@@ -261,7 +215,7 @@ const eraseTool = strokeTool('clear');
 /**
  * One pointer event for one tool. The result carries the next state, the edits to send now (a
  * paint or erase stroke sends its edits when the pointer is released; a stamp sends on press),
- * and the tile Pick read. It never touches the canvas or the backend.
+ * and the brush Pick read. It never touches the canvas or the backend.
  */
 export function reduceTool(
 	tool: ToolId,

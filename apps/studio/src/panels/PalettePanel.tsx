@@ -1,95 +1,112 @@
-// The Palette: the level's tile words and the language's item and enemy words, to choose from
+// The palette: tiles, items and enemies in one list, the only place the brush is chosen
 //
 // (c) Copyright 2026 Liminal HQ, Scott Morris
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
 import type { WordDoc } from '@liminal-hq/fizz-studio-protocol/generated/WordDoc';
-import { t } from '../i18n/messages';
+import { useState, type KeyboardEvent } from 'react';
+import { t, type MessageId } from '../i18n/messages';
+import { BRUSH_GROUPS, sameBrush, wordsOf, type Brush, type BrushGroup } from '../tools/brush';
+import { brushSwatch } from '../tools/swatch';
 import styles from './PalettePanel.module.css';
 
 export interface PalettePanelProps {
 	/** The tile words of the open level (`LevelView.palette`). */
 	tiles: readonly string[];
-	/** The language's documented words, from the backend; the items and enemies come from here. */
+	/** The language's documented words, from the backend; their notes show as tooltips. */
 	words: readonly WordDoc[];
-	/** The tile Paint lays down, and the item Stamp places. */
-	tile: string;
-	item: string;
-	/** Choosing a tile also makes Paint the current tool. */
-	onPickTile: (word: string) => void;
-	/** Choosing an item also makes Stamp the current tool. */
-	onPickItem: (word: string) => void;
+	brush: Brush;
+	/** Chooses the brush; the caller also switches the tool to Paint. */
+	onBrush: (brush: Brush) => void;
 }
 
-function noteOf(words: readonly WordDoc[], word: string): string | undefined {
-	return words.find((doc) => doc.word === word && doc.kind === 'tile')?.note || undefined;
+const TAB_LABELS = {
+	tile: 'palette.tiles',
+	item: 'palette.items',
+	enemy: 'palette.enemies',
+} as const satisfies Record<BrushGroup, MessageId>;
+
+/** Left and right move between the tabs, as a tab list does. */
+function nextGroup(group: BrushGroup, key: string): BrushGroup | null {
+	const at = BRUSH_GROUPS.indexOf(group);
+	if (key === 'ArrowRight') return BRUSH_GROUPS[(at + 1) % BRUSH_GROUPS.length] ?? null;
+	if (key === 'ArrowLeft') {
+		return BRUSH_GROUPS[(at + BRUSH_GROUPS.length - 1) % BRUSH_GROUPS.length] ?? null;
+	}
+	return null;
 }
 
-/**
- * Buttons for the words a person can paint or place with. A word is a pressed toggle, so the
- * current choice is spoken as well as shown. Enemies are listed for reference only.
- */
-export function PalettePanel({
-	tiles,
-	words,
-	tile,
-	item,
-	onPickTile,
-	onPickItem,
-}: PalettePanelProps) {
-	const items = words.filter((doc) => doc.kind === 'item');
-	const enemies = words.filter((doc) => doc.kind === 'enemy');
+export function PalettePanel({ tiles, words: docs, brush, onBrush }: PalettePanelProps) {
+	// The tab follows the brush when Pick or a stroke changes its group.
+	const [shown, setShown] = useState<BrushGroup>(brush.group);
+	const [lastGroup, setLastGroup] = useState<BrushGroup>(brush.group);
+	if (lastGroup !== brush.group) {
+		setLastGroup(brush.group);
+		setShown(brush.group);
+	}
+	// The documented items and enemies lead when the backend has sent them; the built-in lists
+	// stand in until then, so the palette is never empty.
+	const documented = docs.filter((doc) => doc.kind === shown).map((doc) => doc.word);
+	const words =
+		shown !== 'tile' && documented.length > 0 ? documented : wordsOf(shown, { palette: tiles });
+	const noteOf = (word: string) =>
+		docs.find((doc) => doc.word === word && doc.kind === (shown === 'tile' ? 'tile' : shown))
+			?.note || undefined;
+
+	const onTabKeyDown = (event: KeyboardEvent<HTMLButtonElement>) => {
+		const next = nextGroup(shown, event.key);
+		if (!next) return;
+		event.preventDefault();
+		setShown(next);
+		event.currentTarget.parentElement
+			?.querySelector<HTMLElement>(`[data-group="${next}"]`)
+			?.focus();
+	};
+
 	return (
-		<section className={styles.panel} aria-labelledby="palette-panel-title">
-			<h2 id="palette-panel-title" className={styles.title}>
-				{t('palette.title')}
-			</h2>
-			<h3 className={styles.subtitle}>{t('palette.tiles')}</h3>
-			<ul className={styles.words} role="list">
-				{tiles.map((word) => (
-					<li key={word}>
-						<button
-							type="button"
-							className={styles.word}
-							aria-pressed={word === tile}
-							title={noteOf(words, word)}
-							onClick={() => onPickTile(word)}
-						>
-							{word}
-						</button>
-					</li>
+		<section className={styles.panel} aria-label={t('palette.title')}>
+			<h2 className={styles.title}>{t('palette.title')}</h2>
+			<div className={styles.tabs} role="tablist" aria-label={t('palette.groups')}>
+				{BRUSH_GROUPS.map((group) => (
+					<button
+						key={group}
+						type="button"
+						role="tab"
+						data-group={group}
+						className={styles.tab}
+						aria-selected={shown === group}
+						tabIndex={shown === group ? 0 : -1}
+						onClick={() => setShown(group)}
+						onKeyDown={onTabKeyDown}
+					>
+						{t(TAB_LABELS[group])}
+					</button>
 				))}
+			</div>
+			<ul className={styles.list} aria-label={t('palette.list', { group: t(TAB_LABELS[shown]) })}>
+				{words.map((word) => {
+					const entry: Brush = { group: shown, kind: word };
+					return (
+						<li key={word}>
+							<button
+								type="button"
+								className={styles.entry}
+								aria-pressed={sameBrush(brush, entry)}
+								data-group={shown}
+								title={noteOf(word)}
+								onClick={() => onBrush(entry)}
+							>
+								<span className={styles.swatch} style={brushSwatch(entry)} aria-hidden="true">
+									{word.charAt(0).toUpperCase()}
+								</span>
+								<span className={styles.name}>{word}</span>
+							</button>
+						</li>
+					);
+				})}
 			</ul>
-			{words.length === 0 ? (
+			{shown !== 'tile' && docs.length === 0 && (
 				<p className={styles.note}>{t('palette.unavailable')}</p>
-			) : (
-				<>
-					<h3 className={styles.subtitle}>{t('palette.items')}</h3>
-					<ul className={styles.words} role="list">
-						{items.map((doc) => (
-							<li key={doc.word}>
-								<button
-									type="button"
-									className={styles.word}
-									aria-pressed={doc.word === item}
-									title={doc.note || undefined}
-									onClick={() => onPickItem(doc.word)}
-								>
-									{doc.word}
-								</button>
-							</li>
-						))}
-					</ul>
-					<h3 className={styles.subtitle}>{t('palette.enemies')}</h3>
-					<ul className={styles.words} role="list">
-						{enemies.map((doc) => (
-							<li key={doc.word} className={styles.plain} title={doc.note || undefined}>
-								{doc.word}
-							</li>
-						))}
-					</ul>
-					<p className={styles.note}>{t('palette.enemiesNote')}</p>
-				</>
 			)}
 		</section>
 	);

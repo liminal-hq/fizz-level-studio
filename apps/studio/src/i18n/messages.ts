@@ -42,20 +42,49 @@ export const enMessages = {
 	'chrome.windowControls': 'Window controls',
 	// translator: The accessible name of the group of editing tools.
 	'tools.group': 'Tools',
-	// translator: Verb. A tool that lays the chosen tile down where the pointer drags.
+	// translator: Verb. A tool that lays the brush down where the pointer drags: a tile, a row of items or one enemy.
 	'tools.paint': 'Paint',
-	// translator: Verb. A tool that clears the cells the pointer drags over.
+	// translator: Verb. A tool that clears the tiles of the cells the pointer drags over.
 	'tools.erase': 'Erase',
-	// translator: Verb. A tool that copies the tile under the pointer into the tile chooser.
+	// translator: Verb. A tool that copies what is on the cell under the pointer into the brush.
 	'tools.pick': 'Pick',
 	// translator: Verb. A tool that outlines a rectangle of cells.
 	'tools.select': 'Select',
-	// translator: Verb. A tool that places the chosen item on a cell, like a rubber stamp.
+	// translator: Verb. A tool that pastes the outlined rectangle, copied when the tool is chosen, where the pointer presses, like a rubber stamp.
 	'tools.stamp': 'Stamp',
-	// translator: Label of the chooser for the tile the Paint tool lays down.
-	'tools.tile': 'Tile',
-	// translator: Label of the chooser for the item the Stamp tool places (a collectable, such as a key).
-	'tools.item': 'Item',
+	// translator: A hint shown while the Stamp tool has nothing copied yet.
+	'tools.stampEmpty': 'Outline an area with Select, then choose Stamp to paste it.',
+	// translator: The brush chip in the toolbar. {kind} is the name of the tile, item or enemy that Paint lays down, such as “cheezie”.
+	'brush.chip': 'Brush: {kind}',
+	// translator: The brush chip when the brush is an item that is spaced out. {kind} is the item; {spacing} says how far apart, such as “Every 3 cells”.
+	'brush.chipSpaced': 'Brush: {kind}, {spacing}',
+	// translator: The kind of thing the brush lays down: a tile of the grid.
+	'brush.group.tile': 'Tile',
+	// translator: The kind of thing the brush lays down: an item, a collectable such as a cheezie or a key.
+	'brush.group.item': 'Item',
+	// translator: The kind of thing the brush lays down: an enemy, or a prop the game places like one (a switch, a terminal).
+	'brush.group.enemy': 'Enemy',
+	// translator: Accessible name of the group holding the item spacing control.
+	'spacing.group': 'Item spacing',
+	// translator: Label before the control that sets how many cells apart a dragged row of items is placed.
+	'spacing.label': 'Spacing',
+	// translator: The spacing when every cell gets an item.
+	'spacing.everyCell': 'Every cell',
+	// translator: The spacing when only some cells get an item. {n} is a whole number from 2 to 8, such as “Every 3 cells”.
+	'spacing.everyN': 'Every {n} cells',
+	// translator: Visible text of the button that puts dragged items closer together: a minus sign.
+	'spacing.lessGlyph': '−',
+	// translator: Visible text of the button that puts dragged items further apart: a plus sign.
+	'spacing.moreGlyph': '+',
+	// translator: Accessible name of the button that puts dragged items closer together.
+	'spacing.less': 'Place items closer together',
+	// translator: Accessible name of the button that puts dragged items further apart.
+	'spacing.more': 'Place items further apart',
+
+	// translator: Accessible name of the row of tabs that switch the palette between tiles, items and enemies.
+	'palette.groups': 'Palette groups',
+	// translator: Accessible name of the list of choices in the palette. {group} is the tab’s name.
+	'palette.list': '{group} to paint',
 
 	// translator: Accessible name of the level canvas. {name} is the level’s name; the size is in cells.
 	'canvas.label': 'Level canvas, {name}, {width} by {height} cells',
@@ -184,8 +213,6 @@ export const enMessages = {
 	'palette.items': 'Items',
 	// translator: Heading of the Palette’s list of enemy words.
 	'palette.enemies': 'Enemies',
-	// translator: Shown under the enemies; enemies are listed for reference and cannot be placed with a tool yet.
-	'palette.enemiesNote': 'Listed for reference. Enemies are placed in the script for now.',
 	// translator: Shown in place of the Palette’s item and enemy lists while the words are loading or unavailable.
 	'palette.unavailable': 'The word list is not available.',
 

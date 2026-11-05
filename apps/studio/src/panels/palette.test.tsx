@@ -34,44 +34,52 @@ describe('PalettePanel', () => {
 	const props = () => ({
 		tiles: ['empty', 'fill', 'grass'],
 		words,
-		tile: 'fill',
-		item: 'cheezie',
-		onPickTile: vi.fn(),
-		onPickItem: vi.fn(),
+		brush: { group: 'tile' as const, kind: 'fill' },
+		onBrush: vi.fn(),
 	});
 
-	it('lists the level tiles and the documented items and enemies', () => {
+	it('lists the level tiles, then the documented items and enemies on their tabs', async () => {
 		render(<PalettePanel {...props()} />);
 		const region = screen.getByRole('region', { name: 'Palette' });
 		expect(within(region).getByRole('button', { name: 'grass' })).toHaveAttribute(
 			'title',
 			'Grassy ground',
 		);
+		expect(within(region).queryByRole('button', { name: 'empty' })).toBeNull();
+		await userEvent.click(within(region).getByRole('tab', { name: 'Items' }));
 		expect(within(region).getByRole('button', { name: 'soda' })).toBeInTheDocument();
-		expect(within(region).queryByRole('button', { name: 'gloop' })).toBeNull();
-		expect(within(region).getByText('gloop')).toBeInTheDocument();
+		await userEvent.click(within(region).getByRole('tab', { name: 'Enemies' }));
+		expect(within(region).getByRole('button', { name: 'gloop' })).toBeInTheDocument();
+		expect(within(region).queryByRole('button', { name: 'soda' })).toBeNull();
 	});
 
-	it('marks the current tile and item as pressed', () => {
+	it('marks the current brush as pressed', () => {
 		render(<PalettePanel {...props()} />);
 		expect(screen.getByRole('button', { name: 'fill' })).toHaveAttribute('aria-pressed', 'true');
 		expect(screen.getByRole('button', { name: 'grass' })).toHaveAttribute('aria-pressed', 'false');
-		expect(screen.getByRole('button', { name: 'cheezie' })).toHaveAttribute('aria-pressed', 'true');
 	});
 
-	it('picks a tile or an item when it is clicked', async () => {
+	it('chooses a tile, an item or an enemy as the brush when it is clicked', async () => {
 		const p = props();
 		render(<PalettePanel {...p} />);
 		await userEvent.click(screen.getByRole('button', { name: 'grass' }));
+		await userEvent.click(screen.getByRole('tab', { name: 'Items' }));
 		await userEvent.click(screen.getByRole('button', { name: 'soda' }));
-		expect(p.onPickTile).toHaveBeenCalledWith('grass');
-		expect(p.onPickItem).toHaveBeenCalledWith('soda');
+		await userEvent.click(screen.getByRole('tab', { name: 'Enemies' }));
+		await userEvent.click(screen.getByRole('button', { name: 'gloop' }));
+		expect(p.onBrush.mock.calls.map(([brush]) => brush)).toEqual([
+			{ group: 'tile', kind: 'grass' },
+			{ group: 'item', kind: 'soda' },
+			{ group: 'enemy', kind: 'gloop' },
+		]);
 	});
 
-	it('says so when the words are not available, and still lists the tiles', () => {
+	it('says so when the words are not available, and still offers the built-in lists', async () => {
 		render(<PalettePanel {...props()} words={[]} />);
-		expect(screen.getByText('The word list is not available.')).toBeInTheDocument();
 		expect(screen.getByRole('button', { name: 'grass' })).toBeInTheDocument();
+		await userEvent.click(screen.getByRole('tab', { name: 'Items' }));
+		expect(screen.getByText('The word list is not available.')).toBeInTheDocument();
+		expect(screen.getByRole('button', { name: 'cheezie' })).toBeInTheDocument();
 	});
 });
 

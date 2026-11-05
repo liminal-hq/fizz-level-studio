@@ -17,7 +17,8 @@ import { ScriptPanel } from '../panels/ScriptPanel';
 import { TornOffNotice } from '../panels/TornOffNotice';
 import { usePanelDock } from '../panels/usePanelDock';
 import type { PanelWindowClient } from '../services/panelWindowClient';
-import { toolForKey } from '../tools/shortcuts';
+import { pasteRect } from '../tools/clip';
+import { SPACING_KEYS, toolForKey } from '../tools/shortcuts';
 import { ToolPalette } from '../tools/ToolPalette';
 import type { Cell, PointerPhase } from '../tools/tool';
 import { useTool } from '../tools/useTool';
@@ -205,6 +206,14 @@ export function EditorScreen({
 			else redo();
 			return;
 		}
+		if (!event.ctrlKey && !event.metaKey && !event.altKey) {
+			const step = event.key === SPACING_KEYS.less ? -1 : event.key === SPACING_KEYS.more ? 1 : 0;
+			if (step !== 0) {
+				event.preventDefault();
+				tool.setSpacing(tool.spacing + step);
+				return;
+			}
+		}
 		const picked = toolForKey(event.nativeEvent);
 		if (picked) {
 			event.preventDefault();
@@ -238,7 +247,7 @@ export function EditorScreen({
 					{t(problem)}
 				</p>
 			)}
-			<ToolPalette handle={tool} palette={snapshot.view.palette} />
+			<ToolPalette handle={tool} />
 			<div className={styles.body}>
 				<LevelCanvas
 					view={snapshot.view}
@@ -246,6 +255,8 @@ export function EditorScreen({
 					onCursorChange={setCursor}
 					onToolEvent={onToolEvent}
 					preview={tool.preview}
+					previewShape={tool.tool === 'paint' && tool.brush.group === 'item' ? 'item' : 'cell'}
+					paste={tool.tool === 'stamp' && tool.clip ? pasteRect(tool.clip, cursor) : null}
 					selection={tool.selection}
 					ghosts={ghostCells}
 					onSelectLine={showLine}
@@ -255,16 +266,8 @@ export function EditorScreen({
 					<PalettePanel
 						tiles={snapshot.view.palette}
 						words={words}
-						tile={tool.tile}
-						item={tool.item}
-						onPickTile={(word) => {
-							tool.setTile(word);
-							tool.setTool('paint');
-						}}
-						onPickItem={(word) => {
-							tool.setItem(word);
-							tool.setTool('stamp');
-						}}
+						brush={tool.brush}
+						onBrush={tool.setBrush}
 					/>
 					<GhostsPanel
 						proposals={proposals}

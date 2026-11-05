@@ -51,6 +51,7 @@ function recorder(): { ctx: DrawContext; calls: Call[] } {
 		arc: note('arc'),
 		fill: note('fill'),
 		stroke: note('stroke'),
+		setLineDash: note('setLineDash'),
 	} as unknown as DrawContext;
 	return { ctx, calls };
 }
@@ -75,6 +76,7 @@ function nullContext(): DrawContext {
 		arc: nothing,
 		fill: nothing,
 		stroke: nothing,
+		setLineDash: nothing,
 	} as unknown as DrawContext;
 }
 
@@ -190,6 +192,26 @@ describe('drawLevel', () => {
 		expect(washes.map((c) => c.args)).toEqual([[16, 16, 16, 16]]);
 		expect(calls.some((c) => c.op === 'strokeRect' && c.stroke === 'ghostClear')).toBe(true);
 		expect(calls.some((c) => c.op === 'arc')).toBe(true);
+	});
+
+	it('draws item ghosts as discs and a paste outline dashed', () => {
+		const { ctx, calls } = recorder();
+		drawLevel(
+			ctx,
+			levelView(6, 4),
+			options({
+				preview: [{ x: 1, y: 2 }],
+				previewShape: 'item',
+				paste: { x0: 2, y0: 1, x1: 4, y1: 2 },
+			}),
+		);
+		expect(calls.some((c) => c.op === 'arc' && c.fill === 'preview')).toBe(true);
+		expect(calls.some((c) => c.op === 'fillRect' && c.fill === 'preview')).toBe(false);
+		const ops = calls.map((c) => c.op);
+		const dash = ops.indexOf('setLineDash');
+		expect(dash).toBeGreaterThan(-1);
+		expect(ops[dash + 1]).toBe('strokeRect');
+		expect(calls[ops.lastIndexOf('setLineDash')]?.args).toEqual([[]]);
 	});
 
 	it('skips cells that are scrolled out of the window', () => {

@@ -36,6 +36,10 @@ export interface LevelCanvasProps {
 	onToolEvent: (phase: PointerPhase, cell: Cell) => void;
 	/** Cells a stroke in progress covers, drawn as a wash. */
 	preview?: readonly Cell[];
+	/** `item` draws the preview as ghost discs at the cells an item stroke will write. */
+	previewShape?: 'cell' | 'item';
+	/** Where a paste would land, drawn dashed. */
+	paste?: Rect | null;
 	/** Select's rectangle, drawn as an outline. */
 	selection?: Rect | null;
 	/** Claude's pending proposals to draw as ghosts; leave out to draw none. */
@@ -57,6 +61,8 @@ export function LevelCanvas({
 	onCursorChange,
 	onToolEvent,
 	preview = NO_CELLS,
+	previewShape = 'cell',
+	paste = null,
 	selection = null,
 	ghosts = NO_GHOSTS,
 	onSelectLine,
@@ -144,8 +150,10 @@ export function LevelCanvas({
 			selection,
 			preview,
 			ghosts,
+			previewShape,
+			paste,
 		});
-	}, [view, viewport, size, cursor, selection, preview, ghosts]);
+	}, [view, viewport, size, cursor, selection, preview, ghosts, previewShape, paste]);
 
 	const cellAt = (event: PointerEvent<HTMLCanvasElement>): Cell => {
 		const rect = event.currentTarget.getBoundingClientRect();

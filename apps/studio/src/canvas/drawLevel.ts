@@ -29,6 +29,7 @@ export type DrawContext = Pick<
 	| 'arc'
 	| 'fill'
 	| 'stroke'
+	| 'setLineDash'
 	| 'font'
 	| 'fillStyle'
 	| 'strokeStyle'
@@ -93,6 +94,10 @@ export interface DrawOptions {
 	preview: readonly Cell[];
 	/** Claude's pending proposals as translucent cells over the level; none when the lens is off. */
 	ghosts?: readonly GhostCell[];
+	/** `item` draws each preview cell as a ghost disc (the spaced cells an item stroke writes). */
+	previewShape?: 'cell' | 'item';
+	/** Where a paste would land, outlined with a dashed line. */
+	paste?: Rect | null;
 }
 
 /**
@@ -263,7 +268,23 @@ export function drawLevel(ctx: DrawContext, view: LevelView, options: DrawOption
 	for (const cell of options.preview) {
 		if (!visible(cell)) continue;
 		const at = origin(cell);
-		ctx.fillRect(at.x, at.y, size, size);
+		if (options.previewShape === 'item') {
+			ctx.beginPath();
+			ctx.arc(at.x + size / 2, at.y + size / 2, size * 0.36, 0, Math.PI * 2);
+			ctx.fill();
+		} else {
+			ctx.fillRect(at.x, at.y, size, size);
+		}
+	}
+
+	if (options.paste) {
+		const { x0, y0, x1, y1 } = options.paste;
+		const corner = origin({ x: x0, y: y1 });
+		ctx.strokeStyle = colours.selection;
+		ctx.lineWidth = 2;
+		ctx.setLineDash([size / 3, size / 4]);
+		ctx.strokeRect(corner.x, corner.y, (x1 - x0 + 1) * size, (y1 - y0 + 1) * size);
+		ctx.setLineDash([]);
 	}
 
 	if (options.selection) {

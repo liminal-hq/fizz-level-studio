@@ -1,12 +1,14 @@
-// A hook holding the current tool, tile and item, and turning pointer events into level edits
+// A hook holding the current tool, brush, item spacing and copied area, and turning pointer events into level edits
 //
 // (c) Copyright 2026 Liminal HQ, Scott Morris
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
 import type { LevelEdit } from '@liminal-hq/fizz-studio-protocol/generated/LevelEdit';
 import type { LevelView } from '@liminal-hq/fizz-studio-protocol/generated/LevelView';
-import { useCallback, useRef, useState } from 'react';
-import { ITEM_WORDS } from './shortcuts';
+import { useCallback, useMemo, useRef, useState } from 'react';
+import { clampSpacing, defaultBrush, type Brush } from './brush';
+import { copyArea, type Clip } from './clip';
+import { spacedCells } from './runs';
 import {
 	initialToolState,
 	reduceTool,
@@ -20,12 +22,19 @@ import {
 export interface ToolHandle {
 	tool: ToolId;
 	setTool: (tool: ToolId) => void;
-	/** The tile Paint lays down: the person's choice, else the first palette word that is not empty. */
-	tile: string;
-	setTile: (tile: string) => void;
-	item: string;
-	setItem: (item: string) => void;
-	/** Cells a paint or erase drag has covered so far, for the canvas to outline. */
+	/** What Paint lays down: a tile, an item or an enemy. */
+	brush: Brush;
+	/** Chooses the brush, and leaves Erase, Pick, Select and Stamp for Paint. */
+	setBrush: (brush: Brush) => void;
+	/** For an item brush, one item in every `spacing` visited cells (1 to 8). */
+	spacing: number;
+	setSpacing: (spacing: number) => void;
+	/** What Stamp pastes: the area Select outlined when Stamp was chosen. */
+	clip: Clip | null;
+	/**
+	 * Cells a drag has covered so far, for the canvas to outline. For an item brush these are the
+	 * spaced cells the stroke will write, not every cell the pointer crossed.
+	 */
 	preview: readonly Cell[];
 	/** Select's rectangle, kept after the drag. */
 	selection: Rect | null;
@@ -36,45 +45,66 @@ export interface ToolHandle {
 	pointer: (phase: PointerPhase, cell: Cell) => LevelEdit[];
 }
 
-export function defaultTile(view: LevelView): string {
-	return view.palette.find((word) => word !== 'empty') ?? 'fill';
-}
-
 export function useTool(view: LevelView): ToolHandle {
 	const [tool, setToolState] = useState<ToolId>('paint');
-	const [tileChoice, setTile] = useState<string | null>(null);
-	const [item, setItem] = useState<string>(ITEM_WORDS[0] ?? 'cheezie');
+	const [brushChoice, setBrushChoice] = useState<Brush | null>(null);
+	const [spacing, setSpacingState] = useState(1);
+	const [clip, setClip] = useState<Clip | null>(null);
 	const [toolState, setState] = useState<ToolState>(initialToolState);
 	// Pointer events can arrive faster than React renders, so the reducer reads the latest state here.
 	const latest = useRef<ToolState>(initialToolState);
-	const tile = tileChoice ?? defaultTile(view);
+	const brush = brushChoice ?? defaultBrush(view);
 
-	const setTool = useCallback((next: ToolId) => {
+	const setTool = useCallback(
+		(next: ToolId) => {
+			latest.current = { ...initialToolState, selection: latest.current.selection };
+			setState(latest.current);
+			setToolState(next);
+			// Choosing Stamp copies what Select outlined; with nothing outlined it keeps its last copy.
+			if (next === 'stamp' && latest.current.selection) {
+				setClip(copyArea(view, latest.current.selection));
+			}
+		},
+		[view],
+	);
+
+	const setBrush = useCallback((next: Brush) => {
+		setBrushChoice(next);
 		latest.current = { ...initialToolState, selection: latest.current.selection };
 		setState(latest.current);
-		setToolState(next);
+		setToolState('paint');
 	}, []);
+
+	const setSpacing = useCallback((next: number) => setSpacingState(clampSpacing(next)), []);
 
 	const pointer = useCallback(
 		(phase: PointerPhase, cell: Cell): LevelEdit[] => {
-			const result = reduceTool(tool, latest.current, phase, cell, { view, tile, item });
+			const result = reduceTool(tool, latest.current, phase, cell, { view, brush, spacing, clip });
 			latest.current = result.state;
 			setState(result.state);
-			if (result.pick !== null) setTile(result.pick);
+			if (result.pick !== null) setBrushChoice(result.pick);
 			if (tool === 'pick' && phase === 'up') setToolState('paint');
 			return result.edits;
 		},
-		[tool, view, tile, item],
+		[tool, view, brush, spacing, clip],
 	);
+
+	const preview = useMemo(() => {
+		if (!toolState.active) return [];
+		if (tool === 'paint' && brush.group === 'item') return spacedCells(toolState.path, spacing);
+		if (tool === 'paint' && brush.group === 'enemy') return [];
+		return toolState.path;
+	}, [toolState, tool, brush.group, spacing]);
 
 	return {
 		tool,
 		setTool,
-		tile,
-		setTile,
-		item,
-		setItem,
-		preview: toolState.active ? toolState.path : [],
+		brush,
+		setBrush,
+		spacing,
+		setSpacing,
+		clip,
+		preview,
 		selection: toolState.selection,
 		pointer,
 	};

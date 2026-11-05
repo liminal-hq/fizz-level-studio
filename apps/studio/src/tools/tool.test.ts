@@ -5,8 +5,9 @@
 
 import { describe, expect, it } from 'vitest';
 import { levelView } from '../test/levelFixtures';
+import { copyArea } from './clip';
+import { coalesce } from './runs';
 import {
-	coalesce,
 	initialToolState,
 	lineCells,
 	reduceTool,
@@ -17,7 +18,17 @@ import {
 	type ToolState,
 } from './tool';
 
-const context: ToolContext = { view: levelView(12, 8), tile: 'grass', item: 'cheezie' };
+const context: ToolContext = {
+	view: levelView(12, 8),
+	brush: { group: 'tile', kind: 'grass' },
+	spacing: 1,
+	clip: null,
+};
+const itemContext = (spacing: number): ToolContext => ({
+	...context,
+	brush: { group: 'item', kind: 'cheezie' },
+	spacing,
+});
 
 function gesture(tool: ToolId, cells: Cell[], ctx: ToolContext = context) {
 	let state: ToolState = initialToolState;
@@ -146,15 +157,90 @@ describe('erase', () => {
 	});
 });
 
+describe('paint with an item brush', () => {
+	it('drops one item per visited cell, as one row line', () => {
+		const result = gesture(
+			'paint',
+			[
+				{ x: 2, y: 3 },
+				{ x: 6, y: 3 },
+			],
+			itemContext(1),
+		);
+		expect(result.edits).toEqual([{ kind: 'row', item: 'cheezie', x: [2, 6], y: 3, by: 1 }]);
+	});
+
+	it('steps by the spacing along the drag', () => {
+		const result = gesture(
+			'paint',
+			[
+				{ x: 2, y: 3 },
+				{ x: 8, y: 3 },
+			],
+			itemContext(3),
+		);
+		expect(result.edits).toEqual([{ kind: 'row', item: 'cheezie', x: [2, 8], y: 3, by: 3 }]);
+	});
+
+	it('writes a row going left the same way', () => {
+		const result = gesture(
+			'paint',
+			[
+				{ x: 8, y: 3 },
+				{ x: 2, y: 3 },
+			],
+			itemContext(3),
+		);
+		expect(result.edits).toEqual([{ kind: 'row', item: 'cheezie', x: [2, 8], y: 3, by: 3 }]);
+	});
+
+	it('places a single click as one item', () => {
+		expect(gesture('paint', [{ x: 4, y: 4 }], itemContext(1)).edits).toEqual([
+			{ kind: 'place', item: 'cheezie', x: [[4, 4]], y: [[4, 4]] },
+		]);
+	});
+});
+
+describe('paint with an enemy brush', () => {
+	const enemy: ToolContext = { ...context, brush: { group: 'enemy', kind: 'drone' } };
+
+	it('places one enemy on press and none while dragging', () => {
+		const down = reduceTool('paint', initialToolState, 'down', { x: 5, y: 4 }, enemy);
+		expect(down.edits).toEqual([{ kind: 'spawn', enemy: 'drone', x: 5, y: 4 }]);
+		expect(reduceTool('paint', down.state, 'move', { x: 7, y: 4 }, enemy).edits).toEqual([]);
+		expect(reduceTool('paint', down.state, 'up', { x: 7, y: 4 }, enemy).edits).toEqual([]);
+	});
+
+	it('places nothing outside the level', () => {
+		expect(reduceTool('paint', initialToolState, 'down', { x: 40, y: 4 }, enemy).edits).toEqual([]);
+	});
+});
+
 describe('pick', () => {
 	it('reads the tile under the pointer and sends no edit', () => {
 		const down = reduceTool('pick', initialToolState, 'down', { x: 3, y: 0 }, context);
-		expect(down.pick).toBe('fill');
+		expect(down.pick).toEqual({ group: 'tile', kind: 'fill' });
 		expect(down.edits).toEqual([]);
 		const empty = reduceTool('pick', down.state, 'move', { x: 3, y: 4 }, context);
-		expect(empty.pick).toBe('empty');
+		expect(empty.pick).toEqual({ group: 'tile', kind: 'empty' });
 		const up = reduceTool('pick', empty.state, 'up', { x: 3, y: 4 }, context);
 		expect(up.pick).toBeNull();
+	});
+
+	it('reads an item or an enemy before the tile beneath it', () => {
+		const view = levelView(12, 8, {
+			items: [{ kind: 'soda', x: 3, y: 1 }],
+			spawns: [{ kind: 'gloop', x: 5, y: 1, dir: null, ride: false }],
+		});
+		const on = { ...context, view };
+		expect(reduceTool('pick', initialToolState, 'down', { x: 3, y: 1 }, on).pick).toEqual({
+			group: 'item',
+			kind: 'soda',
+		});
+		expect(reduceTool('pick', initialToolState, 'down', { x: 5, y: 1 }, on).pick).toEqual({
+			group: 'enemy',
+			kind: 'gloop',
+		});
 	});
 
 	it('reads nothing outside the level', () => {
@@ -191,15 +277,34 @@ describe('select', () => {
 });
 
 describe('stamp', () => {
-	it('places the current item on press', () => {
-		const result = reduceTool('stamp', initialToolState, 'down', { x: 7, y: 2 }, context);
-		expect(result.edits).toEqual([{ kind: 'place', item: 'cheezie', x: [[7, 7]], y: [[2, 2]] }]);
+	const view = levelView(12, 8, {
+		items: [{ kind: 'cheezie', x: 2, y: 3 }],
+		spawns: [{ kind: 'gloop', x: 3, y: 1, dir: null, ride: false }],
+	});
+	const clip = copyArea(view, { x0: 1, y0: 0, x1: 3, y1: 3 });
+	const pasting: ToolContext = { ...context, view, clip };
+
+	it('pastes the copied area with its top-left cell on the pressed cell', () => {
+		const result = reduceTool('stamp', initialToolState, 'down', { x: 6, y: 6 }, pasting);
+		expect(result.edits).toEqual([
+			{ kind: 'paint', tile: 'fill', x: [[6, 8]], y: [[3, 3]] },
+			{ kind: 'place', item: 'cheezie', x: [[7, 7]], y: [[6, 6]] },
+			{ kind: 'spawn', enemy: 'gloop', x: 8, y: 4 },
+		]);
 	});
 
-	it('places nothing outside the level or on release', () => {
-		expect(reduceTool('stamp', initialToolState, 'down', { x: 99, y: 2 }, context).edits).toEqual(
+	it('cuts a paste at the edge of the level', () => {
+		const result = reduceTool('stamp', initialToolState, 'down', { x: 11, y: 6 }, pasting);
+		expect(result.edits).toEqual([{ kind: 'paint', tile: 'fill', x: [[11, 11]], y: [[3, 3]] }]);
+	});
+
+	it('pastes nothing without a copy, outside the level or on release', () => {
+		expect(reduceTool('stamp', initialToolState, 'down', { x: 7, y: 2 }, context).edits).toEqual(
 			[],
 		);
-		expect(reduceTool('stamp', initialToolState, 'up', { x: 1, y: 2 }, context).edits).toEqual([]);
+		expect(reduceTool('stamp', initialToolState, 'down', { x: 99, y: 2 }, pasting).edits).toEqual(
+			[],
+		);
+		expect(reduceTool('stamp', initialToolState, 'up', { x: 1, y: 2 }, pasting).edits).toEqual([]);
 	});
 });
