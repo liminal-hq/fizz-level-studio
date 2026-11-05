@@ -13,6 +13,7 @@ import type { LaunchClient } from '../services/launchClient';
 import type { RecentClient } from '../services/recentClient';
 import { levelSnapshot, levelView } from '../test/levelFixtures';
 import { FakeLevelClient } from '../worlds/fakeLevelClient';
+import { FakeRecoveryClient } from '../worlds/fakeRecoveryClient';
 import type { LevelConflict, WorldsClient } from '../worlds/tauriLevelClient';
 
 // The chrome follows the real window; in a test there is none, so it gets a quiet stand-in.
@@ -97,7 +98,14 @@ class FakeRecents implements RecentClient {
 	}
 }
 
-function setup(options: { recent?: string[]; launchPaths?: string[]; pick?: string | null } = {}) {
+function setup(
+	options: {
+		recent?: string[];
+		launchPaths?: string[];
+		pick?: string | null;
+		recovery?: FakeRecoveryClient;
+	} = {},
+) {
 	const base = levelSnapshot({}, levelView(12, 8, { name: 'Crater Fields' }));
 	const client = new FakeWorlds(base);
 	const recents = new FakeRecents(options.recent);
@@ -112,8 +120,23 @@ function setup(options: { recent?: string[]; launchPaths?: string[]; pick?: stri
 	const pickFile = vi.fn(async () =>
 		options.pick === undefined ? '/levels/a.fizz' : options.pick,
 	);
-	render(<MainScreen client={client} recents={recents} launch={launch} pickFile={pickFile} />);
-	return { client, recents, pickFile, sendOpenRequest: (paths: string[]) => openRequest?.(paths) };
+	const recovery = options.recovery ?? new FakeRecoveryClient();
+	render(
+		<MainScreen
+			client={client}
+			recents={recents}
+			launch={launch}
+			pickFile={pickFile}
+			recovery={recovery}
+		/>,
+	);
+	return {
+		client,
+		recents,
+		pickFile,
+		recovery,
+		sendOpenRequest: (paths: string[]) => openRequest?.(paths),
+	};
 }
 
 async function openFromDialog(user: ReturnType<typeof userEvent.setup>) {
@@ -349,5 +372,115 @@ describe('under the pseudo-locale', () => {
 		expect(screen.getByRole('button', { name: /^\[Öþéñ.*\]$/ })).toBeInTheDocument();
 		expect(screen.queryByText('Open level…')).toBeNull();
 		expect(await screen.findByText(/^\[Ñö ŕéçéñţ.*\]$/)).toBeInTheDocument();
+	});
+});
+
+describe('recovered changes', () => {
+	const entries = [
+		{ id: 'r1', path: '/levels/a.fizz', name: 'a.fizz', saved_at_ms: 1_700_000_000_000n },
+		{ id: 'r2', path: '/levels/b.fizz', name: 'b.fizz', saved_at_ms: 1_700_000_100_000n },
+	];
+
+	function recoveryWith(list = entries) {
+		const recovered = levelSnapshot(
+			{ id: 'rec-1', path: '/levels/a.fizz', revision: 2n, saved_revision: 1n },
+			levelView(12, 8, { name: 'Crater Fields' }),
+		);
+		return new FakeRecoveryClient(list, { r1: recovered, r2: recovered });
+	}
+
+	it('is absent when there is nothing to recover', async () => {
+		const recovery = new FakeRecoveryClient();
+		setup({ recovery });
+		await screen.findByText('No recent levels yet.');
+		expect(recovery.listCalls).toBe(1);
+		expect(screen.queryByRole('heading', { name: 'Recovered changes' })).toBeNull();
+	});
+
+	it('lists each copy with its name, path and time above the recent levels', async () => {
+		setup({ recovery: recoveryWith(), recent: ['/levels/c.fizz'] });
+		const heading = await screen.findByRole('heading', { name: 'Recovered changes' });
+		const recent = screen.getByRole('heading', { name: 'Recent levels' });
+		expect(heading.compareDocumentPosition(recent) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+		const row = screen.getByText('/levels/a.fizz').closest('li')!;
+		expect(within(row).getByText('a.fizz')).toBeInTheDocument();
+		expect(within(row).getByText(/^Kept .*2023/)).toBeInTheDocument();
+	});
+
+	it('restores into the editor with the dirty title and a dismissible notice', async () => {
+		const user = userEvent.setup();
+		const recovery = recoveryWith();
+		const { client, recents } = setup({ recovery });
+		await user.click(await screen.findByRole('button', { name: 'Restore a.fizz' }));
+		await screen.findByRole('group', { name: 'Level editor' });
+		expect(recovery.restored).toEqual(['r1']);
+		expect(client.opened).toEqual([]);
+		expect(recents.paths).toEqual(['/levels/a.fizz']);
+		expect(screen.getByText('• Crater Fields — Fizz Level Studio')).toBeInTheDocument();
+		expect(screen.getByText('Recovered unsaved changes from your last session.')).toBeVisible();
+		await user.click(screen.getByRole('button', { name: 'Dismiss' }));
+		expect(screen.queryByText('Recovered unsaved changes from your last session.')).toBeNull();
+		await user.click(screen.getByRole('button', { name: 'Save' }));
+		await waitFor(() => expect(client.saves).toBe(1));
+	});
+
+	it('discards one copy and removes its row', async () => {
+		const user = userEvent.setup();
+		const recovery = recoveryWith();
+		setup({ recovery });
+		await user.click(await screen.findByRole('button', { name: 'Discard a.fizz' }));
+		await waitFor(() => expect(screen.queryByText('/levels/a.fizz')).toBeNull());
+		expect(recovery.discarded).toEqual(['r1']);
+		expect(screen.getByText('/levels/b.fizz')).toBeInTheDocument();
+	});
+
+	it('discards all copies and hides the section', async () => {
+		const user = userEvent.setup();
+		const recovery = recoveryWith();
+		setup({ recovery });
+		await user.click(await screen.findByRole('button', { name: 'Discard all' }));
+		await waitFor(() =>
+			expect(screen.queryByRole('heading', { name: 'Recovered changes' })).toBeNull(),
+		);
+		expect(recovery.discarded).toEqual(['r1', 'r2']);
+	});
+
+	it('keeps the row and shows the error banner when a restore fails', async () => {
+		const user = userEvent.setup();
+		const recovery = recoveryWith();
+		recovery.failRestore.add('r1');
+		setup({ recovery });
+		await user.click(await screen.findByRole('button', { name: 'Restore a.fizz' }));
+		expect(await screen.findByText('Could not restore /levels/a.fizz.')).toBeInTheDocument();
+		expect(screen.getByText('/levels/a.fizz')).toBeInTheDocument();
+		expect(screen.queryByRole('group', { name: 'Level editor' })).toBeNull();
+		await user.click(screen.getByRole('button', { name: 'Dismiss' }));
+		expect(screen.queryByText('Could not restore /levels/a.fizz.')).toBeNull();
+	});
+
+	it('keeps the row when a discard fails', async () => {
+		const user = userEvent.setup();
+		const recovery = recoveryWith();
+		recovery.failDiscard.add('r2');
+		setup({ recovery });
+		await user.click(await screen.findByRole('button', { name: 'Discard b.fizz' }));
+		expect(
+			await screen.findByText('Could not discard the recovery copy of /levels/b.fizz.'),
+		).toBeInTheDocument();
+		expect(screen.getByText('/levels/b.fizz')).toBeInTheDocument();
+	});
+
+	it('is operable from the keyboard', async () => {
+		const user = userEvent.setup();
+		setup({ recovery: recoveryWith() });
+		const restore = await screen.findByRole('button', { name: 'Restore a.fizz' });
+		restore.focus();
+		await user.tab();
+		expect(screen.getByRole('button', { name: 'Discard a.fizz' })).toHaveFocus();
+		await user.keyboard('{Enter}');
+		await waitFor(() => expect(screen.queryByText('/levels/a.fizz')).toBeNull());
+		screen.getByRole('button', { name: 'Restore b.fizz' }).focus();
+		await user.keyboard(' ');
+		await screen.findByRole('group', { name: 'Level editor' });
 	});
 });

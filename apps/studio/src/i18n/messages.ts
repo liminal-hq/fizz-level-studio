@@ -175,6 +175,26 @@ export const enMessages = {
 	// translator: A banner explaining that the level’s file changed outside the studio on the same lines as unsaved changes.
 	'main.conflict':
 		'The file changed outside the studio on lines you also changed. The text below marks where.',
+	// translator: Heading of the start-screen section that offers levels whose unsaved changes survived a crash.
+	'main.recovered': 'Recovered changes',
+	// translator: Explains the recovered-changes section.
+	'main.recoveredHint': 'These levels had unsaved changes when the studio last closed.',
+	// translator: When a recovery copy was kept. {time} is a date and time, already formatted.
+	'main.recoveredKept': 'Kept {time}',
+	// translator: Verb. Button that opens a level with its recovered unsaved changes. {name} is the level’s file name.
+	'main.restoreNamed': 'Restore {name}',
+	// translator: Verb. Button that opens a level with its recovered unsaved changes.
+	'main.restore': 'Restore',
+	// translator: Verb. Button that throws away one recovery copy. {name} is the level’s file name.
+	'main.discardNamed': 'Discard {name}',
+	// translator: Verb. Button that throws away every recovery copy.
+	'main.discardAll': 'Discard all',
+	// translator: A notice shown after a level is opened from a recovery copy.
+	'main.recoveredNotice': 'Recovered unsaved changes from your last session.',
+	// translator: Error banner. {path} is a file path.
+	'main.restoreFailed': 'Could not restore {path}.',
+	// translator: Error banner. {path} is a file path.
+	'main.discardFailed': 'Could not discard the recovery copy of {path}.',
 	// translator: Accessible name of the box holding the text with conflict markers.
 	'main.conflictText': 'Text with conflict markers',
 } as const;

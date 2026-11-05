@@ -10,6 +10,7 @@ import { launchClient, type LaunchClient } from '../services/launchClient';
 import { pickLevelFile, type PickLevelFile } from '../services/filePicker';
 import { recentClient, type RecentClient } from '../services/recentClient';
 import type { LevelClient } from '../worlds/levelClient';
+import { recoveryClient, type RecoveryClient, type RecoveryEntry } from '../worlds/recoveryClient';
 import {
 	isDirty,
 	TauriLevelClient,
@@ -20,6 +21,7 @@ import { AppWindow } from './AppWindow';
 import { CloseLevelDialog } from './CloseLevelDialog';
 import { EditorScreen } from './EditorScreen';
 import styles from './MainScreen.module.css';
+import { RecoverySection } from './RecoverySection';
 import { newerSnapshot } from './snapshotRule';
 
 export interface MainScreenProps {
@@ -31,6 +33,8 @@ export interface MainScreenProps {
 	launch?: LaunchClient;
 	/** Asks for a level file; defaults to the native dialog. */
 	pickFile?: PickLevelFile;
+	/** The crash-recovery copies; defaults to the worlds plugin. */
+	recovery?: RecoveryClient;
 }
 
 // One client for the app: it remembers each level's latest snapshot between calls.
@@ -66,6 +70,7 @@ export function MainScreen({
 	recents = recentClient,
 	launch = launchClient,
 	pickFile = pickLevelFile,
+	recovery = recoveryClient,
 }: MainScreenProps) {
 	/** The snapshot the level was opened from; the editor takes later ones from `level`. */
 	const [level, setLevel] = useState<LevelSnapshot | null>(null);
@@ -73,6 +78,8 @@ export function MainScreen({
 	const [recent, setRecent] = useState<string[]>([]);
 	const [failed, setFailed] = useState<Set<string>>(new Set());
 	const [banner, setBanner] = useState<{ id: MessageId; path?: string } | null>(null);
+	const [recoverable, setRecoverable] = useState<RecoveryEntry[]>([]);
+	const [notice, setNotice] = useState(false);
 	const [conflict, setConflict] = useState<LevelConflict | null>(null);
 	const [asking, setAsking] = useState(false);
 	const [busy, setBusy] = useState(false);
@@ -97,6 +104,18 @@ export function MainScreen({
 		};
 	}, [recents]);
 
+	const refreshRecovery = useCallback(async () => {
+		try {
+			setRecoverable(await recovery.list());
+		} catch {
+			// A recovery list that cannot be read is the same as nothing to offer.
+		}
+	}, [recovery]);
+
+	useEffect(() => {
+		void refreshRecovery();
+	}, [refreshRecovery]);
+
 	useEffect(
 		() =>
 			client.onConflict((incoming) => {
@@ -109,32 +128,41 @@ export function MainScreen({
 		levelRef.current = null;
 		setLevel(null);
 		setConflict(null);
+		setNotice(false);
 	}, []);
+
+	/** Shows an opened level: closes the one it replaces and moves `path` to the top of the recents. */
+	const adopt = useCallback(
+		async (snapshot: LevelSnapshot, path: string) => {
+			const previous = levelRef.current;
+			if (previous && previous.id !== snapshot.id) {
+				await client.close(previous.id).catch(() => {});
+			}
+			setConflict(null);
+			setNotice(false);
+			levelRef.current = snapshot;
+			setLevel(snapshot);
+			setFailed((was) => {
+				if (!was.has(path)) return was;
+				const next = new Set(was);
+				next.delete(path);
+				return next;
+			});
+			try {
+				setRecent(await recents.touch(path));
+			} catch {
+				// The level is open; a recent list that cannot be saved is not worth interrupting for.
+			}
+		},
+		[client, recents],
+	);
 
 	const open = useCallback(
 		async (path: string) => {
 			setBusy(true);
 			setBanner(null);
 			try {
-				const snapshot = await client.open(path);
-				const previous = levelRef.current;
-				if (previous && previous.id !== snapshot.id) {
-					await client.close(previous.id).catch(() => {});
-				}
-				setConflict(null);
-				levelRef.current = snapshot;
-				setLevel(snapshot);
-				setFailed((was) => {
-					if (!was.has(path)) return was;
-					const next = new Set(was);
-					next.delete(path);
-					return next;
-				});
-				try {
-					setRecent(await recents.touch(path));
-				} catch {
-					// The level is open; a recent list that cannot be saved is not worth interrupting for.
-				}
+				await adopt(await client.open(path), path);
 			} catch {
 				setFailed((was) => new Set(was).add(path));
 				setBanner({ id: 'main.openFailed', path });
@@ -142,8 +170,51 @@ export function MainScreen({
 				setBusy(false);
 			}
 		},
-		[client, recents],
+		[adopt, client],
 	);
+
+	const restore = useCallback(
+		async (entry: RecoveryEntry) => {
+			setBusy(true);
+			setBanner(null);
+			try {
+				const snapshot = await recovery.restore(entry.id);
+				await adopt(snapshot, entry.path);
+				setNotice(true);
+			} catch {
+				setBanner({ id: 'main.restoreFailed', path: entry.path });
+			} finally {
+				setBusy(false);
+				void refreshRecovery();
+			}
+		},
+		[adopt, recovery, refreshRecovery],
+	);
+
+	const discardOne = useCallback(
+		async (entry: RecoveryEntry) => {
+			setBanner(null);
+			try {
+				await recovery.discard(entry.id);
+			} catch {
+				setBanner({ id: 'main.discardFailed', path: entry.path });
+			}
+			await refreshRecovery();
+		},
+		[recovery, refreshRecovery],
+	);
+
+	const discardAll = useCallback(async () => {
+		setBanner(null);
+		for (const entry of recoverable) {
+			try {
+				await recovery.discard(entry.id);
+			} catch {
+				setBanner({ id: 'main.discardFailed', path: entry.path });
+			}
+		}
+		await refreshRecovery();
+	}, [recoverable, recovery, refreshRecovery]);
 
 	/**
 	 * Paths handed to the window. The first opens, unless the open level has unsaved changes, which
@@ -257,6 +328,13 @@ export function MainScreen({
 					>
 						{t('main.openLevel')}
 					</button>
+					<RecoverySection
+						entries={recoverable}
+						busy={busy}
+						onRestore={(entry) => void restore(entry)}
+						onDiscard={(entry) => void discardOne(entry)}
+						onDiscardAll={() => void discardAll()}
+					/>
 					<section className={styles.recent} aria-labelledby="recent-heading">
 						<h2 id="recent-heading" className={styles.heading}>
 							{t('main.recent')}
@@ -313,6 +391,14 @@ export function MainScreen({
 					</button>
 				</div>
 				{bannerView}
+				{notice && (
+					<p className={styles.notice} role="status">
+						<span>{t('main.recoveredNotice')}</span>
+						<button type="button" className={styles.button} onClick={() => setNotice(false)}>
+							{t('main.dismiss')}
+						</button>
+					</p>
+				)}
 				{conflict && (
 					<section className={styles.conflict}>
 						<p className={styles.warning} role="alert">
