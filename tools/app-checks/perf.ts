@@ -17,7 +17,7 @@
 import { copyFileSync, existsSync, rmSync } from 'node:fs';
 import { cpus } from 'node:os';
 import { join } from 'node:path';
-import { App, Bridge, binary, makeProfile, requireFreeBridgePort, root, within } from './driver';
+import { App, Bridge, binary, makeProfile, chooseBridgePort, root, within } from './driver';
 
 const STROKES = Number(process.env.STROKES ?? 220);
 const WARM_UP = 20;
@@ -78,7 +78,7 @@ async function main(): Promise<void> {
 		console.error(`No debug build at ${binary}. Run \`bun run app:build\` first.`);
 		process.exit(2);
 	}
-	await requireFreeBridgePort();
+	await chooseBridgePort();
 	const profile = makeProfile();
 	const path = join(profile.dir, 'marshmallow-meadows.fizz');
 	copyFileSync(join(root, 'levels/real/marshmallow-meadows.fizz'), path);
