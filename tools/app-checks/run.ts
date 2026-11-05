@@ -863,6 +863,54 @@ async function checkPanelWindows(
 	check('docking back after the restart', await dockBackWindow(bridge, 'objects'));
 	const finalBack = await within(5000, () => clickLabelOnly(bridge, tearOffLabel('Objects')));
 	check('the Objects panel is docked again at the end', finalBack !== null);
+
+	// A panel torn off from floating leaves nothing floating over the level: it is an away tab in
+	// its home dock, and Dock back floats it again at the same rectangle.
+	const floatRect = () =>
+		bridge.js<{ x: number; y: number; w: number; h: number } | null>(
+			`const e = document.querySelector('section[data-panel="objects"]'); if (!e) return null; const r = e.getBoundingClientRect(); return { x: r.left, y: r.top, w: r.width, h: r.height };`,
+		);
+	await clickTab(bridge, 'Objects');
+	check('floating: Objects floats', await clickLabel('Float Objects'));
+	const floated = await within(3000, async () => (await floatRect()) !== null);
+	const before = await floatRect();
+	check('floating: the floating Objects panel is drawn', floated !== null && before !== null);
+	check('floating: it offers Tear off', await clickLabel(tearOffLabel('Objects')));
+	const away = await within(10_000, async () =>
+		(await bridge.windows()).includes('panel-objects-1'),
+	);
+	check('floating: tearing it off opens its window', away !== null);
+	const covered = await within(3000, async () => (await floatRect()) === null);
+	check('floating: no floating panel is left over the level', covered !== null);
+	const tab = await within(3000, () =>
+		bridge.js<boolean>(
+			`const dock = document.querySelector('section[aria-label="Right dock"]'); return !!dock && [...dock.querySelectorAll('[role=tab]')].some((t) => t.textContent.trim() === 'Objects (own window)');`,
+		),
+	);
+	check('floating: the away tab is in its home dock', tab !== null);
+	await bridge.ready('panel-objects-1');
+	const dockBack = await within(3000, () =>
+		bridge.js<boolean>(
+			`const b = [...document.querySelectorAll('section[aria-label="Right dock"] button')].find((x) => x.textContent === 'Dock back'); if (!b) return false; b.click(); return true;`,
+		),
+	);
+	check('floating: the notice offers Dock back', dockBack !== null);
+	const goneWindow = await within(
+		10_000,
+		async () => !(await bridge.windows()).includes('panel-objects-1'),
+	);
+	check('floating: Dock back closes the window', goneWindow !== null);
+	await bridge.stop();
+	await bridge.start();
+	const after = await within(5000, async () => (await floatRect()) !== null).then(floatRect);
+	check(
+		'floating: it floats again at the same rectangle',
+		!!before &&
+			!!after &&
+			(['x', 'y', 'w', 'h'] as const).every((k) => Math.abs(before[k] - after[k]) <= 1),
+		JSON.stringify({ before, after }),
+	);
+	check('floating: Objects docks right again', await clickLabel('Dock Objects right'));
 }
 
 /** Whether a button with this accessible name exists in the main window. */
