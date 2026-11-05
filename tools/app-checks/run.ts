@@ -165,7 +165,13 @@ async function main(): Promise<void> {
 		const recoveryRoot = join(profile.data, 'ca.liminalhq.fizzstudio', 'recovery');
 		const kept = await within(
 			20_000,
-			() => existsSync(recoveryRoot) && readdirSync(recoveryRoot).length > 0,
+			// A copy is built in a dot-folder and renamed into place, so an entry in the folder does not
+			// mean a copy is finished. Killing the app mid-build left nothing to offer.
+			() =>
+				existsSync(recoveryRoot) &&
+				readdirSync(recoveryRoot).some(
+					(id) => !id.startsWith('.') && existsSync(join(recoveryRoot, id, 'note.txt')),
+				),
 		);
 		check('autosave keeps a recovery copy of unsaved changes', kept !== null);
 		await bridge.stop();
