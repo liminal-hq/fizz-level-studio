@@ -47,7 +47,10 @@ pub fn run() {
     // crate (see `Cargo.toml`), and never in a release build.
     #[cfg(all(debug_assertions, not(windows)))]
     {
-        builder = builder.plugin(tauri_plugin_mcp_bridge::init());
+        // Localhost only: the default binds every network interface, and nothing remote needs it.
+        builder = builder.plugin(tauri_plugin_mcp_bridge::init_with_config(
+            tauri_plugin_mcp_bridge::Config::localhost_only(),
+        ));
     }
 
     builder
