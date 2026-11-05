@@ -276,6 +276,31 @@ export function maximisePanel(session: DockSession, workspace: Workspace, id: st
 	return { ...session, maximised: id, peeking: null };
 }
 
+/**
+ * Maximises a panel wherever it is shown or reachable. A docked panel is made the showing tab and
+ * its zone is unfolded first, so a panel in a folded dock (or peeking from its rail) can fill the
+ * workspace; the dock is left open when it is restored. A panel in a window, an unknown one and a
+ * hidden floating one are refused, and the input is returned unchanged.
+ */
+export function maximiseDocked(
+	workspace: Workspace,
+	session: DockSession,
+	id: string,
+): { workspace: Workspace; session: DockSession } {
+	const entry = entryOf(workspace, id);
+	if (!entry || entry.place === 'window') return { workspace, session };
+	if (entry.place === 'floating' && !entry.float.visible) return { workspace, session };
+	const zone = zoneOf(workspace, id);
+	// Nothing is rewritten when the panel already shows in an open dock, so no save follows.
+	const showing =
+		zone !== null &&
+		!workspace.zones[zone].collapsed &&
+		workspace.zones[zone].groups.some((g) => g.tabs.includes(id) && g.active === id);
+	const ready =
+		zone && !showing ? setZoneCollapsed(activateTab(workspace, id), zone, false) : workspace;
+	return { workspace: ready, session: maximisePanel(session, ready, id) };
+}
+
 export function restorePanel(session: DockSession): DockSession {
 	return session.maximised === null ? session : { ...session, maximised: null };
 }

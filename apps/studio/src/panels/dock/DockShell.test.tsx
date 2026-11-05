@@ -3,7 +3,7 @@
 // (c) Copyright 2026 Liminal HQ, Scott Morris
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
-import { act, fireEvent, render, screen, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { useState } from 'react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
@@ -176,6 +176,31 @@ describe('folded docks', () => {
 		expect(a.pin).toHaveBeenCalledWith('history');
 		await user.click(within(rail).getByRole('button', { name: 'History' }));
 		expect(a.closePeek).toHaveBeenCalled();
+	});
+
+	it('offers Maximise in the peek header for an expandable panel only', async () => {
+		const user = userEvent.setup();
+		const a = mount(folded(), actions(), { ...INITIAL_SESSION, peeking: 'history' });
+		const peek = screen.getByRole('region', { name: 'History, peeking' });
+		expect(within(peek).queryByRole('button', { name: /^Maximise/ })).toBeNull();
+		cleanup();
+		const b = actions();
+		render(
+			<DockShell
+				view={folded()}
+				window={{ w: 1440, h: 900 }}
+				session={{ ...INITIAL_SESSION, peeking: 'history' }}
+				titleOf={(id) => titles[id]!}
+				renderPanel={(id) => <p>{`content of ${id}`}</p>}
+				expandable={(id) => id === 'history'}
+				actions={b}
+			>
+				<div data-testid="level" />
+			</DockShell>,
+		);
+		await user.click(screen.getByRole('button', { name: 'Maximise History' }));
+		expect(b.maximise).toHaveBeenCalledWith('history');
+		expect(a.maximise).not.toHaveBeenCalled();
 	});
 
 	it('closes a peek on Escape and returns focus to its rail button', async () => {

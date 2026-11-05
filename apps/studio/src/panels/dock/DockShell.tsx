@@ -226,6 +226,7 @@ export function DockShell({
 					title={titleOf(peeking)}
 					size={clampZoneSize(peekZone, view.zones[peekZone].size, window)}
 					onPin={() => actions.pin(peeking)}
+					onMaximise={expandable?.(peeking) ? () => actions.maximise(peeking) : undefined}
 				>
 					{renderPanel(peeking)}
 				</PeekPanel>

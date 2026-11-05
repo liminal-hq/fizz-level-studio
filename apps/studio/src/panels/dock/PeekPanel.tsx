@@ -7,6 +7,7 @@ import type { ZoneId } from '@liminal-hq/fizz-studio-protocol/generated/ZoneId';
 import { PinIcon } from '@liminal-hq/fizz-studio-chrome/icons/icons';
 import { useEffect, useRef, type CSSProperties, type ReactNode } from 'react';
 import { t } from '../../i18n/messages';
+import { PanelExpandButton } from './PanelExpandButton';
 import { PANEL_ICONS } from './panelIcons';
 import type { PanelId } from '../float/panelSpecs';
 import styles from './PeekPanel.module.css';
@@ -18,6 +19,8 @@ export interface PeekPanelProps {
 	/** How much room it takes along the width (side docks) or height (bottom dock). */
 	size: number;
 	onPin: () => void;
+	/** Present when the panel can fill the workspace: the header then offers Maximise. */
+	onMaximise?: () => void;
 	children: ReactNode;
 }
 
@@ -26,7 +29,7 @@ export interface PeekPanelProps {
  * so the keyboard can reach its content and its pin; the shell closes it on Escape, on a click
  * elsewhere, or when another rail button is chosen.
  */
-export function PeekPanel({ zone, id, title, size, onPin, children }: PeekPanelProps) {
+export function PeekPanel({ zone, id, title, size, onPin, onMaximise, children }: PeekPanelProps) {
 	const region = useRef<HTMLElement>(null);
 	useEffect(() => {
 		region.current?.focus({ preventScroll: true });
@@ -45,6 +48,7 @@ export function PeekPanel({ zone, id, title, size, onPin, children }: PeekPanelP
 				{Icon && <Icon size={14} />}
 				<h2 className={styles.title}>{title}</h2>
 				<span className={styles.spacer} />
+				{onMaximise && <PanelExpandButton title={title} expanded={false} onToggle={onMaximise} />}
 				<button
 					type="button"
 					className={styles.pin}

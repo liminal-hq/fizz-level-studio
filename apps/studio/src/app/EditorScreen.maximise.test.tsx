@@ -10,14 +10,15 @@ import { CommandBridgeContext, createCommandBridge } from '../commands/commandBr
 import { appMenuItems } from '../commands/appMenuModel';
 import { paletteEntries } from '../commands/paletteModel';
 import { runCommand } from '../commands/registry';
+import { setZoneCollapsed } from '../panels/dock/dockLayout';
 import { fakeDockClient, openDock } from '../test/dockFixtures';
 import { levelSnapshot } from '../test/levelFixtures';
 import { FakeLevelClient } from '../worlds/fakeLevelClient';
 import { EditorScreen } from './EditorScreen';
 
-async function mount() {
+async function mount(dock = openDock()) {
 	const snapshot = levelSnapshot();
-	const docks = fakeDockClient(openDock());
+	const docks = fakeDockClient(dock);
 	const bridge = createCommandBridge();
 	render(
 		<CommandBridgeContext.Provider value={bridge}>
@@ -149,5 +150,61 @@ describe('maximising a panel', () => {
 		});
 		expect(runCommand('view.restore.script', bridge.getSnapshot())).toBe(true);
 		await waitFor(() => expect(maximised()).toBeNull());
+	});
+});
+
+describe('maximising from a folded dock', () => {
+	function foldedBottom() {
+		const dock = openDock();
+		dock.workspaces[dock.active] = setZoneCollapsed(dock.workspaces[dock.active]!, 'bottom', true);
+		return dock;
+	}
+
+	it('unfolds the dock on Ctrl+Shift+M, fills the workspace and leaves the dock open on restore', async () => {
+		const user = userEvent.setup();
+		await mount(foldedBottom());
+		expect(screen.queryByRole('region', { name: 'Bottom dock' })).toBeNull();
+		await user.keyboard('{Control>}{Shift>}m{/Shift}{/Control}');
+		await waitFor(() => expect(maximised()).toHaveAttribute('data-panel-id', 'script'));
+		expect(screen.getByRole('textbox', { name: 'Script text' })).toBeInTheDocument();
+		await user.click(screen.getByRole('button', { name: 'Restore Script' }));
+		expect(maximised()).toBeNull();
+		expect(screen.getByRole('region', { name: 'Bottom dock' })).toBeInTheDocument();
+	});
+
+	it('mounts the Script editor once and keeps the same node through maximise and restore', async () => {
+		const user = userEvent.setup();
+		await mount(foldedBottom());
+		await user.keyboard('{Control>}{Shift>}m{/Shift}{/Control}');
+		const editor = await screen.findByRole('textbox', { name: 'Script text' });
+		await user.click(screen.getByRole('button', { name: 'Restore Script' }));
+		expect(screen.getByRole('textbox', { name: 'Script text' })).toBe(editor);
+	});
+
+	it('runs the Maximise command on a folded dock', async () => {
+		const { bridge } = await mount(foldedBottom());
+		expect(runCommand('view.maximise.script', bridge.getSnapshot())).toBe(true);
+		await waitFor(() => expect(maximised()).toBeInTheDocument());
+		expect(screen.getByRole('region', { name: 'Bottom dock' })).toBeInTheDocument();
+	});
+
+	it('maximises a peeking Script straight from the rail, pinning the dock', async () => {
+		const user = userEvent.setup();
+		await mount(foldedBottom());
+		await user.click(screen.getByRole('button', { name: 'Script' }));
+		const peek = await screen.findByRole('region', { name: 'Script, peeking' });
+		await user.click(within(peek).getByRole('button', { name: 'Maximise Script' }));
+		await waitFor(() => expect(maximised()).toHaveAttribute('data-panel-id', 'script'));
+		expect(screen.queryByRole('region', { name: 'Script, peeking' })).toBeNull();
+	});
+
+	it('does not offer Maximise on the Palette, even peeking', async () => {
+		const user = userEvent.setup();
+		const dock = openDock();
+		dock.workspaces[dock.active] = setZoneCollapsed(dock.workspaces[dock.active]!, 'left', true);
+		await mount(dock);
+		await user.click(screen.getByRole('button', { name: 'Palette' }));
+		const peek = await screen.findByRole('region', { name: 'Palette, peeking' });
+		expect(within(peek).queryByRole('button', { name: /^Maximise/ })).toBeNull();
 	});
 });

@@ -759,6 +759,45 @@ async function dragAndMaximiseChecks(bridge: Bridge): Promise<void> {
 	);
 	check('maximise: Ctrl+Shift+M maximises and Escape restores', keyed && escaped);
 
+	// A folded dock: Ctrl+Shift+M unfolds it and maximises the Script, which mounts once.
+	check('maximise: the bottom dock folds', await clickLabelled(bridge, 'Fold the bottom dock'));
+	await sleep(300);
+	const foldedAway = await bridge.js<boolean>(
+		`return !document.querySelector('.cm-content') && !document.querySelector('[aria-label="Bottom dock"]');`,
+	);
+	check('maximise: a folded dock draws no Script editor', foldedAway);
+	await bridge.js(
+		`window.dispatchEvent(new KeyboardEvent('keydown', { key: 'M', ctrlKey: true, shiftKey: true, bubbles: true, cancelable: true }));`,
+	);
+	await sleep(500);
+	const foldedFull = await bridge.js<{ fill: Box | null; area: Box | null; editor: boolean }>(
+		`const box = (e) => { if (!e) return null; const r = e.getBoundingClientRect(); return { x: r.left, y: r.top, w: r.width, h: r.height }; };
+		 const f = document.querySelector('[data-panel-maximised]');
+		 const content = document.querySelector('.cm-content');
+		 window.__foldedNode = content;
+		 return { fill: box(f), area: box(f && f.closest('[data-has-maximised]') && f.closest('[data-has-maximised]').parentElement), editor: !!content && f.contains(content) };`,
+	);
+	check(
+		'maximise: from a folded dock the Script fills the workspace',
+		!!foldedFull.fill &&
+			!!foldedFull.area &&
+			sameBox(foldedFull.fill, foldedFull.area) &&
+			foldedFull.fill.w > normal.window.w * 0.6 &&
+			foldedFull.fill.h > 300 &&
+			foldedFull.editor,
+		JSON.stringify(foldedFull),
+	);
+	check('maximise: Restore after a folded start', await clickLabelled(bridge, 'Restore Script'));
+	await sleep(400);
+	const foldedBack = await bridge.js<{ open: boolean; same: boolean; rail: boolean }>(
+		`return { open: !!document.querySelector('[aria-label="Bottom dock"]'), same: document.querySelector('.cm-content') === window.__foldedNode, rail: !!document.querySelector('button[aria-label="Unfold the bottom dock"]') };`,
+	);
+	check(
+		'maximise: the dock is left open after Restore and the Script editor node survived',
+		foldedBack.open && foldedBack.same && !foldedBack.rail,
+		JSON.stringify(foldedBack),
+	);
+
 	// Proposals can be maximised; the Palette cannot.
 	check('maximise: the Proposals tab shows', await clickTab(bridge, 'Proposals'));
 	await sleep(200);
