@@ -391,8 +391,6 @@ export const enMessages = {
 	'appMenu.window': 'Window',
 	// translator: Verb on a File menu item. Closes the whole app.
 	'appMenu.quit': 'Quit',
-	// translator: The tooltip of the disabled Quit menu item: it explains why the item cannot be chosen yet.
-	'appMenu.quitUnavailable': 'Quit is not available yet. Close the window instead.',
 	// translator: Menu item that opens the Preferences window. The dots mean it opens a window.
 	'appMenu.preferences': 'Preferences…',
 	// translator: Menu item that opens the About window, which names the app and its version.

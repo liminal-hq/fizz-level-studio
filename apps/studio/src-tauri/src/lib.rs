@@ -5,6 +5,8 @@
 
 pub mod launch;
 pub mod logging;
+pub mod quit;
+pub mod quit_round;
 pub mod windows;
 
 use std::sync::Arc;
@@ -85,16 +87,20 @@ pub fn run() {
             windows::open_window,
             windows::open_panels,
             windows::close_panel,
-            launch::app_launch_paths
+            launch::app_launch_paths,
+            quit::app_quit,
+            quit::app_quit_answer
         ])
         // A panel window closing, by its own close button or by docking, is announced to every
         // window, so the main window can show the panel in its place again.
         .on_window_event(|window, event| {
             if matches!(event, tauri::WindowEvent::Destroyed) {
                 windows::announce_panel_closed(window.app_handle(), window.label());
+                quit::window_gone(window.app_handle(), window.label());
             }
         })
         .setup(|app| {
+            app.manage(quit::QuitState::default());
             launch::queue_startup_paths(app.handle());
             windows::open_or_focus(app.handle(), &WindowId::Main { n: 1 })?;
             Ok(())

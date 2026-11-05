@@ -89,11 +89,11 @@ describe('the registry', () => {
 		expect(redo).toMatchObject({ label: 'Redo', disabled: true });
 	});
 
-	it('never enables Quit, and says why', () => {
-		const items = appMenuItems(snapshot({ hasLevel: true }, { 'file.quit': () => {} }));
+	it('always enables Quit, with its shortcut', () => {
+		const items = appMenuItems(snapshot({}, {}));
 		const quit = rowsOf(items, 'menu:file').find((item) => item.id === 'file.quit');
-		expect(quit).toMatchObject({ disabled: true, title: expect.stringContaining('not available') });
-		expect(runCommand('file.quit', snapshot({}, { 'file.quit': () => {} }))).toBe(false);
+		expect(quit).toMatchObject({ label: 'Quit', shortcut: 'Ctrl+Q' });
+		expect(quit).not.toHaveProperty('disabled');
 	});
 
 	it('checks the panel rows from the panels shown', () => {
@@ -239,7 +239,7 @@ describe('the palette additions', () => {
 		const save = entries.find((entry) => entry.id === 'file.save')!;
 		expect(save).toMatchObject({ enabled: false, reason: 'Open a level first' });
 		const quit = entries.find((entry) => entry.id === 'file.quit')!;
-		expect(quit.reason).toContain('not available');
+		expect(quit).toMatchObject({ enabled: true, shortcut: 'Ctrl+Q' });
 		expect(entries.find((entry) => entry.id === 'window.about')?.enabled).toBe(true);
 	});
 });

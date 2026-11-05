@@ -695,6 +695,14 @@ async function main(): Promise<void> {
 		check('the restored level shows as unsaved changes', restored.revision > restored.saved);
 		await levelCall(bridge, 'level_save', { id: restored.revision >= 0 ? 'level-1' : '' });
 		await sleep(200);
+
+		// Last, because it ends the app: Ctrl+Q asks the main window, which has nothing unsaved
+		// (the page never adopted the restored level), so it answers and the app exits by itself.
+		await bridge.js<boolean>(
+			`document.dispatchEvent(new KeyboardEvent('keydown', { key: 'q', ctrlKey: true, bubbles: true })); return true;`,
+		);
+		const exited = await within(8000, () => !app!.alive);
+		check('Ctrl+Q quits a clean app without a kill', exited !== null && app.child.exitCode === 0);
 	} finally {
 		await bridge.close();
 		await app?.quit();

@@ -14,6 +14,7 @@ import {
 import { CommandPalette, isCommandPaletteShortcut } from '../commands/CommandPalette';
 import { t, type MessageId } from '../i18n/messages';
 import { launchClient, type LaunchClient } from '../services/launchClient';
+import { quitClient, type QuitClient } from '../services/quitClient';
 import { pickLevelFile, type PickLevelFile } from '../services/filePicker';
 import { openWindow } from '../services/windowsClient';
 import { recentClient, type RecentClient } from '../services/recentClient';
@@ -48,6 +49,8 @@ export interface MainScreenProps {
 	recovery?: RecoveryClient;
 	/** Where the editor's dock layout is read and saved. Defaults to the settings plugin. */
 	docks?: DockClient;
+	/** Quitting the app; defaults to the app's commands. */
+	quit?: QuitClient;
 }
 
 // One client for the app: it remembers each level's latest snapshot between calls.
@@ -83,6 +86,11 @@ function isPreferencesShortcut(event: KeyboardEvent): boolean {
 	return (event.ctrlKey || event.metaKey) && !event.altKey && event.key === ',';
 }
 
+/** True for the keys that mean Quit: Ctrl+Q. */
+function isQuitShortcut(event: KeyboardEvent): boolean {
+	return event.ctrlKey && !event.metaKey && !event.altKey && event.key.toLowerCase() === 'q';
+}
+
 /** The main window: provides the command bridge the application menu reads, then the screen. */
 export function MainScreen(props: MainScreenProps) {
 	const [bridge] = useState(createCommandBridge);
@@ -101,6 +109,7 @@ function MainScreenBody({
 	pickFile = pickLevelFile,
 	recovery = recoveryClient,
 	docks,
+	quit = quitClient,
 }: MainScreenProps & { bridge: CommandBridge }) {
 	/** The snapshot the level was opened from; the editor takes later ones from `level`. */
 	const [level, setLevel] = useState<LevelSnapshot | null>(null);
@@ -112,6 +121,8 @@ function MainScreenBody({
 	const [notice, setNotice] = useState(false);
 	const [conflict, setConflict] = useState<LevelConflict | null>(null);
 	const [asking, setAsking] = useState(false);
+	/** The quit round that is waiting on this window's Save, Discard or Cancel. */
+	const [quitRound, setQuitRound] = useState<number | null>(null);
 	const [busy, setBusy] = useState(false);
 	const launched = useRef(false);
 	const [paletteOpen, setPaletteOpen] = useState(false);
@@ -325,6 +336,58 @@ function MainScreenBody({
 		await closeNow();
 	};
 
+	// The app asks each main window in turn before it quits. A window with nothing unsaved is ready
+	// at once; one with unsaved changes asks the same question as closing the level does. A newer
+	// request replaces an older one, so the answer always names the round that is current.
+	useEffect(
+		() =>
+			quit.onRequested((round) => {
+				const current = levelRef.current;
+				if (current && isDirty(current)) {
+					setAsking(false);
+					setQuitRound(round);
+				} else {
+					setQuitRound(null);
+					void quit.answer(round, 'proceed').catch(() => {});
+				}
+			}),
+		[quit],
+	);
+
+	const answerQuit = async (answer: 'proceed' | 'cancel') => {
+		const round = quitRound;
+		setQuitRound(null);
+		if (round !== null) await quit.answer(round, answer).catch(() => {});
+	};
+
+	const saveAndQuit = async () => {
+		await answerQuit((await save()) ? 'proceed' : 'cancel');
+	};
+
+	const discardAndQuit = async () => {
+		const current = levelRef.current;
+		if (!current) return answerQuit('proceed');
+		try {
+			// Closing the level drops its recovery copy, so the discarded work is not offered back.
+			await client.close(current.id);
+			dropLevel();
+			await answerQuit('proceed');
+		} catch {
+			setBanner({ id: 'main.closeFailed' });
+			await answerQuit('cancel');
+		}
+	};
+
+	useEffect(() => {
+		const onKey = (event: KeyboardEvent) => {
+			if (!isQuitShortcut(event)) return;
+			event.preventDefault();
+			void quit.request().catch(() => {});
+		};
+		document.addEventListener('keydown', onKey);
+		return () => document.removeEventListener('keydown', onKey);
+	}, [quit]);
+
 	useEffect(() => {
 		if (!level) return;
 		const onKey = (event: KeyboardEvent) => {
@@ -528,6 +591,13 @@ function MainScreenBody({
 				onSave={() => void saveAndClose()}
 				onDiscard={() => void discardAndClose()}
 				onCancel={() => setAsking(false)}
+			/>
+			<CloseLevelDialog
+				open={quitRound !== null}
+				name={name}
+				onSave={() => void saveAndQuit()}
+				onDiscard={() => void discardAndQuit()}
+				onCancel={() => void answerQuit('cancel')}
 			/>
 		</AppWindow>
 	);

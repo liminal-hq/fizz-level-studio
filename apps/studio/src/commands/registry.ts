@@ -5,6 +5,7 @@
 
 import { PANEL_SPECS, type PanelId } from '../panels/float/panelSpecs';
 import type { MessageId } from '../i18n/messages';
+import { quitClient } from '../services/quitClient';
 import { openWindow } from '../services/windowsClient';
 import { t } from '../i18n/messages';
 import { TOOL_KEYS } from '../tools/shortcuts';
@@ -83,6 +84,9 @@ export function paletteGroupOf(def: CommandDef): PaletteGroup {
 /** The keys that open the command palette, as shown on its View row. */
 export const COMMAND_PALETTE_KEYS = 'Ctrl+Shift+P';
 
+/** The keys that quit the app, as shown on its File row; the main window handles the keys. */
+export const QUIT_KEYS = 'Ctrl+Q';
+
 const always = () => true;
 const hasLevel = (facts: CommandFacts) => facts.hasLevel;
 
@@ -114,8 +118,9 @@ export const COMMANDS: readonly CommandDef[] = [
 		menu: 'file',
 		section: 2,
 		label: 'appMenu.quit',
-		enabled: () => false,
-		unavailable: 'appMenu.quitUnavailable',
+		shortcut: QUIT_KEYS,
+		enabled: always,
+		run: () => void quitClient.request().catch(() => {}),
 	},
 	{
 		id: 'edit.undo',

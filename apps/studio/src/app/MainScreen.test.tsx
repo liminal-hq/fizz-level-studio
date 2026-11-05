@@ -10,6 +10,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { resetActiveLocale } from '../i18n/active';
 import { activateLocale } from '../i18n/loadCatalogue';
 import type { LaunchClient } from '../services/launchClient';
+import type { QuitAnswer, QuitClient } from '../services/quitClient';
 import type { RecentClient } from '../services/recentClient';
 import { fakeDockClient, floatingDock } from '../test/dockFixtures';
 import { levelSnapshot, levelView } from '../test/levelFixtures';
@@ -102,6 +103,28 @@ class FakeRecents implements RecentClient {
 	}
 }
 
+/** A quit backend: the test plays Rust by calling `ask`, and reads the answers back. */
+class FakeQuit implements QuitClient {
+	requests = 0;
+	answers: { round: number; answer: QuitAnswer }[] = [];
+	listener: ((round: number) => void) | null = null;
+	async request() {
+		this.requests += 1;
+	}
+	onRequested(listener: (round: number) => void) {
+		this.listener = listener;
+		return () => {
+			this.listener = null;
+		};
+	}
+	async answer(round: number, answer: QuitAnswer) {
+		this.answers.push({ round, answer });
+	}
+	ask(round: number) {
+		act(() => this.listener?.(round));
+	}
+}
+
 function setup(
 	options: {
 		recent?: string[];
@@ -125,6 +148,7 @@ function setup(
 		options.pick === undefined ? '/levels/a.fizz' : options.pick,
 	);
 	const recovery = options.recovery ?? new FakeRecoveryClient();
+	const quit = new FakeQuit();
 	render(
 		<MainScreen
 			client={client}
@@ -133,10 +157,12 @@ function setup(
 			pickFile={pickFile}
 			recovery={recovery}
 			docks={fakeDockClient(floatingDock())}
+			quit={quit}
 		/>,
 	);
 	return {
 		client,
+		quit,
 		recents,
 		pickFile,
 		recovery,
@@ -659,5 +685,99 @@ describe('the command palette', () => {
 		pressShortcut();
 		await user.type(screen.getByRole('combobox'), 'erase');
 		expect(screen.getByRole('option', { name: /Erase/ })).toHaveAttribute('aria-disabled', 'true');
+	});
+});
+
+describe('quitting the app', () => {
+	it('is ready at once on the start screen', () => {
+		const { quit } = setup();
+		quit.ask(1);
+		expect(quit.answers).toEqual([{ round: 1, answer: 'proceed' }]);
+		expect(screen.queryByRole('dialog')).toBeNull();
+	});
+
+	it('is ready at once with a level that has no unsaved changes, and leaves it open', async () => {
+		const user = userEvent.setup();
+		const { quit, client } = setup();
+		await openFromDialog(user);
+		quit.ask(2);
+		expect(quit.answers).toEqual([{ round: 2, answer: 'proceed' }]);
+		expect(screen.queryByRole('dialog')).toBeNull();
+		expect(client.closed).toEqual([]);
+	});
+
+	it('asks the close question when there are unsaved changes, and Cancel stops the quit', async () => {
+		const user = userEvent.setup();
+		const { quit, client } = setup();
+		client.dirty = true;
+		await openFromDialog(user);
+		quit.ask(3);
+		const dialog = await screen.findByRole('dialog', { name: 'Save changes to Crater Fields?' });
+		expect(quit.answers).toEqual([]);
+		await user.click(within(dialog).getByRole('button', { name: 'Cancel' }));
+		expect(quit.answers).toEqual([{ round: 3, answer: 'cancel' }]);
+		expect(screen.queryByRole('dialog')).toBeNull();
+		expect(client.saves).toBe(0);
+		expect(client.closed).toEqual([]);
+		expect(screen.getByRole('group', { name: 'Level editor' })).toBeInTheDocument();
+	});
+
+	it('Save writes the level, then says it is ready', async () => {
+		const user = userEvent.setup();
+		const { quit, client } = setup();
+		client.dirty = true;
+		await openFromDialog(user);
+		quit.ask(4);
+		const dialog = await screen.findByRole('dialog');
+		await user.click(within(dialog).getByRole('button', { name: 'Save' }));
+		await waitFor(() => expect(quit.answers).toEqual([{ round: 4, answer: 'proceed' }]));
+		expect(client.saves).toBe(1);
+	});
+
+	it('cancels the quit when the save fails, leaving the level open', async () => {
+		const user = userEvent.setup();
+		const { quit, client } = setup();
+		client.dirty = true;
+		client.failSave = true;
+		await openFromDialog(user);
+		quit.ask(5);
+		const dialog = await screen.findByRole('dialog');
+		await user.click(within(dialog).getByRole('button', { name: 'Save' }));
+		await waitFor(() => expect(quit.answers).toEqual([{ round: 5, answer: 'cancel' }]));
+		expect(await screen.findByText('The level could not be saved.')).toBeInTheDocument();
+	});
+
+	it('Discard closes the level without saving, then says it is ready', async () => {
+		const user = userEvent.setup();
+		const { quit, client } = setup();
+		client.dirty = true;
+		await openFromDialog(user);
+		quit.ask(6);
+		const dialog = await screen.findByRole('dialog');
+		await user.click(within(dialog).getByRole('button', { name: 'Discard' }));
+		await waitFor(() => expect(quit.answers).toEqual([{ round: 6, answer: 'proceed' }]));
+		expect(client.saves).toBe(0);
+		expect(client.closed).toEqual(['level-1']);
+	});
+
+	it('answers a newer request with its own round', async () => {
+		const user = userEvent.setup();
+		const { quit, client } = setup();
+		client.dirty = true;
+		await openFromDialog(user);
+		quit.ask(7);
+		await screen.findByRole('dialog');
+		quit.ask(8);
+		await user.click(
+			within(await screen.findByRole('dialog')).getByRole('button', { name: 'Cancel' }),
+		);
+		expect(quit.answers).toEqual([{ round: 8, answer: 'cancel' }]);
+	});
+
+	it('asks the app to quit with Ctrl+Q', async () => {
+		const user = userEvent.setup();
+		const { quit } = setup();
+		await user.keyboard('{Control>}q{/Control}');
+		expect(quit.requests).toBe(1);
 	});
 });
