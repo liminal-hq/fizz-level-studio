@@ -8,6 +8,7 @@
 
 pub mod args;
 pub mod ast;
+pub mod docs;
 pub mod edits;
 pub mod errors;
 pub mod js;

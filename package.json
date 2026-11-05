@@ -11,6 +11,8 @@
 		"check:fizz1": "bun tools/gen-fizz1-fixtures.ts --check",
 		"gen:raster": "bun tools/gen-fizz1-raster.ts",
 		"check:raster": "bun tools/gen-fizz1-raster.ts --check",
+		"gen:docs": "bun tools/gen-fizz1-docs.ts",
+		"check:docs": "bun tools/gen-fizz1-docs.ts --check",
 		"prove": "bash scripts/prove-crater.sh",
 		"prove:all": "bash scripts/prove-all.sh",
 		"check:links": "bun tools/check-links.ts",
