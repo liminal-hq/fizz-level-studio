@@ -25,33 +25,48 @@ vi.mock('@tauri-apps/api/window', () => {
 	return { getCurrentWindow: () => win };
 });
 
+// The main screen has its own tests; here it only has to be chosen.
+vi.mock('./MainScreen', () => ({ MainScreen: () => <p data-testid="main-screen" /> }));
+
 import { App } from './App';
 
 describe('App', () => {
-	it('names the window it is running in', () => {
+	it('shows the main screen in a main window', () => {
 		render(<App windowLabel="main-1" />);
-		expect(screen.getByRole('heading', { name: 'Fizz Level Studio' })).toBeInTheDocument();
-		expect(screen.getByTestId('window-label')).toHaveTextContent('main-1');
+		expect(screen.getByTestId('main-screen')).toBeInTheDocument();
 	});
 
-	it('draws the window controls in the title bar', () => {
-		render(<App windowLabel="main-1" />);
+	it.each([
+		['about', 'About Fizz Level Studio', 'About is coming.'],
+		['preferences', 'Preferences', 'Preferences are coming.'],
+		['new-world', 'New level', 'New level is coming.'],
+	])('shows a placeholder in the %s window', (label, title, message) => {
+		render(<App windowLabel={label} />);
+		expect(screen.getByText(title)).toBeInTheDocument();
+		expect(screen.getByText(message)).toBeInTheDocument();
 		expect(screen.getByRole('button', { name: 'Close' })).toBeInTheDocument();
+		expect(screen.queryByTestId('main-screen')).toBeNull();
 	});
+
+	it.each(['mystery', 'main-0', 'panel-script-1', 'tear-ghost'])(
+		'shows nothing for %s',
+		(label) => {
+			const { container } = render(<App windowLabel={label} />);
+			expect(container).toBeEmptyDOMElement();
+		},
+	);
 
 	describe('under the pseudo-locale', () => {
 		afterEach(() => {
 			resetActiveLocale();
 		});
 
-		it('marks the heading, the title bar title and the window controls', async () => {
+		it('marks the title bar title, the message and the window controls', async () => {
 			await activateLocale({ requested: 'en-XA', developer: true });
-			render(<App windowLabel="main-1" />);
-			expect(screen.getByRole('heading')).toHaveTextContent(/^\[Ƒîžž.*\]$/);
-			expect(screen.getAllByText(/^\[Ƒîžž.*\]$/)).toHaveLength(2);
-			expect(screen.queryByText('Fizz Level Studio')).toBeNull();
+			render(<App windowLabel="preferences" />);
+			expect(screen.getAllByText(/^\[.+\]$/)).toHaveLength(2);
+			expect(screen.queryByText('Preferences are coming.')).toBeNull();
 			expect(screen.getByRole('button', { name: /^\[Çĺöšé.*\]$/ })).toBeInTheDocument();
-			expect(screen.getByRole('button', { name: /^\[Ḿîñîḿîšé.*\]$/ })).toBeInTheDocument();
 			expect(screen.getByRole('group', { name: /^\[Ŵîñďöŵ/ })).toBeInTheDocument();
 		});
 	});

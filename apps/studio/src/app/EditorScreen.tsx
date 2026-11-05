@@ -7,7 +7,7 @@ import type { LevelEdit } from '@liminal-hq/fizz-studio-protocol/generated/Level
 import type { LevelSnapshot } from '@liminal-hq/fizz-studio-protocol/generated/LevelSnapshot';
 import { useCallback, useEffect, useRef, useState, type KeyboardEvent } from 'react';
 import { LevelCanvas } from '../canvas/LevelCanvas';
-import { t, type MessageId } from '../i18n/messages';
+import { enMessages, t, type MessageId } from '../i18n/messages';
 import { HistoryPanel, historyShortcut } from '../panels/HistoryPanel';
 import { ScriptPanel } from '../panels/ScriptPanel';
 import { toolForKey } from '../tools/shortcuts';
@@ -22,6 +22,8 @@ export interface EditorScreenProps {
 	/** The level as it was when the screen opened; newer snapshots arrive through the client. */
 	snapshot: LevelSnapshot;
 	client: LevelClient;
+	/** Called with every snapshot the screen takes up, so a parent can follow the level. */
+	onSnapshot?: (snapshot: LevelSnapshot) => void;
 }
 
 /** Keys typed into these belong to the control, not to the editor's shortcuts. */
@@ -35,7 +37,7 @@ function isTyping(target: EventTarget | null): boolean {
  * backend owns the document, so every change goes out through `client` and comes back as a new
  * snapshot. Commands run one at a time, each based on the revision the one before returned.
  */
-export function EditorScreen({ snapshot: initial, client }: EditorScreenProps) {
+export function EditorScreen({ snapshot: initial, client, onSnapshot }: EditorScreenProps) {
 	const [snapshot, setSnapshot] = useState(initial);
 	const held = useRef(initial);
 	const queue = useRef<Promise<void>>(Promise.resolve());
@@ -45,11 +47,15 @@ export function EditorScreen({ snapshot: initial, client }: EditorScreenProps) {
 	const [problem, setProblem] = useState<MessageId | null>(null);
 	const tool = useTool(snapshot.view);
 
+	const follow = useRef(onSnapshot);
+	follow.current = onSnapshot;
+
 	const accept = useCallback((incoming: LevelSnapshot) => {
 		const kept = newerSnapshot(held.current, incoming);
 		if (kept === held.current) return;
 		held.current = kept;
 		setSnapshot(kept);
+		follow.current?.(kept);
 	}, []);
 
 	useEffect(() => {
@@ -133,6 +139,10 @@ export function EditorScreen({ snapshot: initial, client }: EditorScreenProps) {
 		}
 	};
 
+	// A banner key the catalogue does not hold shows nothing.
+	const noteText =
+		snapshot.banner && snapshot.banner in enMessages ? t(snapshot.banner as MessageId) : null;
+
 	return (
 		<div
 			className={styles.screen}
@@ -143,6 +153,11 @@ export function EditorScreen({ snapshot: initial, client }: EditorScreenProps) {
 			{snapshot.edited_outside && (
 				<p className={styles.banner} role="status">
 					{t('editor.editedOutside')}
+				</p>
+			)}
+			{noteText && (
+				<p className={styles.banner} role="note">
+					{noteText}
 				</p>
 			)}
 			{problem && (

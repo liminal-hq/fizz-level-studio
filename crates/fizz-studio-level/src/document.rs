@@ -54,7 +54,7 @@ pub fn step_name(edit: &LevelEdit) -> String {
     }
 }
 
-fn refuse(message: impl Into<String>) -> DocumentError {
+pub(crate) fn refuse(message: impl Into<String>) -> DocumentError {
     DocumentError::Refused(message.into())
 }
 
@@ -85,7 +85,7 @@ fn ranges(axis: &str, given: &[CellRange], limit: usize) -> Result<Vec<Range>, D
 }
 
 /// The smallest single change from `old` to `new`, found by trimming what they share at both ends.
-fn minimal_edit(old: &str, new: &str) -> Option<Edit> {
+pub(crate) fn minimal_edit(old: &str, new: &str) -> Option<Edit> {
     if old == new {
         return None;
     }

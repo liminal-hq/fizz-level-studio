@@ -1083,6 +1083,7 @@ dependencies = [
  "tauri-plugin-os",
  "tauri-plugin-prevent-default",
  "tauri-plugin-single-instance",
+ "tempfile",
 ]
 
 [[package]]
@@ -1155,7 +1156,9 @@ dependencies = [
 name = "fizz-studio-level"
 version = "0.1.0"
 dependencies = [
+ "fizz-studio-dialect",
  "fizz-studio-language",
+ "fizz-studio-profile",
  "fizz-studio-protocol",
  "fizz-studio-session",
  "serde_json",

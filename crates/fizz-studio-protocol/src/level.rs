@@ -90,6 +90,15 @@ pub enum LevelEdit {
     },
 }
 
+/// Which game's language a level is written in.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "snake_case")]
+#[ts(export, export_to = "../../../packages/protocol/src/generated/")]
+pub enum LevelTarget {
+    Fizz1,
+    Fizz2,
+}
+
 /// An open level: its text, its view, and where it is in its history.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS)]
 #[ts(export, export_to = "../../../packages/protocol/src/generated/")]
@@ -111,6 +120,10 @@ pub struct LevelSnapshot {
     pub author: String,
     /// True when the last change came from outside the studio and has not been saved.
     pub edited_outside: bool,
+    /// Which game's language the level is written in.
+    pub target: LevelTarget,
+    /// A message key the canvas shows above the grid, such as `level.flatFallback`.
+    pub banner: Option<String>,
 }
 
 /// What kind of project a folder is.
@@ -145,4 +158,19 @@ pub enum LevelError {
     Invalid { message: String },
     /// The file could not be read or written.
     Io { message: String },
+}
+
+/// A recovery copy left by a session that did not close cleanly: an unsaved level and when the
+/// studio last kept it.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[ts(export, export_to = "../../../packages/protocol/src/generated/")]
+pub struct RecoveryEntry {
+    /// The key `recovery_restore` and `recovery_discard` take.
+    pub id: String,
+    /// The level file the copy is of.
+    pub path: String,
+    /// The file's name, for the start screen.
+    pub name: String,
+    /// When the copy was kept, in milliseconds since the Unix epoch.
+    pub saved_at_ms: u64,
 }

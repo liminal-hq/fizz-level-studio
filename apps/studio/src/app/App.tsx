@@ -1,31 +1,45 @@
-// The root of every window: the window frame, the title bar, and the window's content
+// The root of every window: it picks the screen the window's label names
 //
 // (c) Copyright 2026 Liminal HQ, Scott Morris
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
-import { WindowFrame } from '@liminal-hq/fizz-studio-chrome/WindowFrame';
+import type { MessageId } from '../i18n/messages';
 import { t } from '../i18n/messages';
 import styles from './App.module.css';
-import { AppTitleBar } from './AppTitleBar';
-import { AppWindowChrome } from './AppWindowChrome';
+import { AppWindow } from './AppWindow';
+import { MainScreen } from './MainScreen';
+import { windowKindFromLabel } from './windowKind';
 
 interface AppProps {
 	/** The label Rust gave this window, such as `main-1`. */
 	windowLabel: string;
 }
 
-export function App({ windowLabel }: AppProps) {
+/** A window whose screen is not built yet: the frame, its title, and one line. */
+function PlaceholderScreen({ titleId, messageId }: { titleId: MessageId; messageId: MessageId }) {
 	return (
-		<AppWindowChrome>
-			<WindowFrame className={styles.surface}>
-				<AppTitleBar />
-				<main className={styles.app}>
-					<h1 className={styles.title}>{t('app.name')}</h1>
-					<p className={styles.label} data-testid="window-label">
-						{windowLabel}
-					</p>
-				</main>
-			</WindowFrame>
-		</AppWindowChrome>
+		<AppWindow titleId={titleId}>
+			<main className={styles.app}>
+				<p className={styles.message}>{t(messageId)}</p>
+			</main>
+		</AppWindow>
 	);
+}
+
+export function App({ windowLabel }: AppProps) {
+	switch (windowKindFromLabel(windowLabel)) {
+		case 'main':
+			return <MainScreen />;
+		case 'about':
+			return <PlaceholderScreen titleId="window.about.title" messageId="placeholder.about" />;
+		case 'preferences':
+			return (
+				<PlaceholderScreen titleId="window.preferences.title" messageId="placeholder.preferences" />
+			);
+		case 'new-world':
+			return <PlaceholderScreen titleId="window.newWorld.title" messageId="placeholder.newWorld" />;
+		default:
+			// Panels and the tear ghost have no screen yet, and an unknown label shows nothing.
+			return null;
+	}
 }

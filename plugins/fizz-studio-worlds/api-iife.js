@@ -50,6 +50,21 @@ var __TAURI_PLUGIN_FIZZ_STUDIO_WORLDS__ = (function (exports, core, event) {
     function closeLevel(id) {
         return cmd('level_close', { id });
     }
+    /** The recovery copies a session that did not close cleanly left behind, for levels not open now. */
+    function listRecovery() {
+        return cmd('recovery_list');
+    }
+    /**
+     * Opens the level a recovery copy is of with the recovered text as unsaved changes (author
+     * `recovered`). The copy is kept until the level is saved or closed.
+     */
+    function restoreRecovery(id) {
+        return cmd('recovery_restore', { id });
+    }
+    /** Deletes a recovery copy. */
+    function discardRecovery(id) {
+        return cmd('recovery_discard', { id });
+    }
     /**
      * Wraps `listener` so it hears only snapshots newer than what it has applied for that level.
      * Events can arrive out of order or twice (a window's own edit comes back as an event), and a
@@ -83,13 +98,16 @@ var __TAURI_PLUGIN_FIZZ_STUDIO_WORLDS__ = (function (exports, core, event) {
     exports.LEVEL_CONFLICT_EVENT = LEVEL_CONFLICT_EVENT;
     exports.applyEdit = applyEdit;
     exports.closeLevel = closeLevel;
+    exports.discardRecovery = discardRecovery;
     exports.endStep = endStep;
+    exports.listRecovery = listRecovery;
     exports.newerOnly = newerOnly;
     exports.onLevelChanged = onLevelChanged;
     exports.onLevelConflict = onLevelConflict;
     exports.openLevel = openLevel;
     exports.openProject = openProject;
     exports.redo = redo;
+    exports.restoreRecovery = restoreRecovery;
     exports.saveLevel = saveLevel;
     exports.undo = undo;
 

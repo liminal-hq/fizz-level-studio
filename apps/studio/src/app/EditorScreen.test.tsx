@@ -192,6 +192,24 @@ describe('EditorScreen', () => {
 		expect(screen.getByText('fresh text')).toBeInTheDocument();
 	});
 
+	it('shows the flat-view note for a Fizz 2 level and not for a Fizz 1 one', () => {
+		const two = levelSnapshot({ target: 'fizz2', banner: 'level.flatFallback' });
+		const { unmount } = render(<EditorScreen snapshot={two} client={new FakeLevelClient(two)} />);
+		expect(screen.getByRole('note')).toHaveTextContent(
+			'The game’s own drawing of this level is not available yet, so this is the flat view.',
+		);
+		unmount();
+		const one = levelSnapshot();
+		render(<EditorScreen snapshot={one} client={new FakeLevelClient(one)} />);
+		expect(screen.queryByRole('note')).toBeNull();
+	});
+
+	it('shows nothing for a banner key the catalogue lacks', () => {
+		const odd = levelSnapshot({ banner: 'level.nonsense' });
+		render(<EditorScreen snapshot={odd} client={new FakeLevelClient(odd)} />);
+		expect(screen.queryByRole('note')).toBeNull();
+	});
+
 	it('shows no banner for a level nobody edited outside', () => {
 		mount();
 		expect(

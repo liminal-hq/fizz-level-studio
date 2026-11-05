@@ -10,6 +10,8 @@ repository.workspace = true
 publish = false
 
 [dependencies]
+fizz-studio-dialect = { path = "../fizz-studio-dialect" }
+fizz-studio-profile = { path = "../fizz-studio-profile" }
 fizz-studio-language = { path = "../fizz-studio-language" }
 fizz-studio-protocol = { path = "../fizz-studio-protocol" }
 fizz-studio-session = { path = "../fizz-studio-session" }
