@@ -118,6 +118,8 @@ For the studio:
 
 Windows are **created in Rust**, never declared in `tauri.conf.json` (`"windows": []`; Folio's D-13, `apps/folio/src-tauri/src/windows.rs`; Waypoint's `WindowFactory`). They are frameless and transparent with the chrome's title bar, and on Linux the chrome draws the shadow in a transparent margin (`folio/AGENTS.md`). State is never assumed to be shared between webviews: it goes through Rust.
 
+**Closing a window has one path, shared with Quit (D64).** A close request arrives in Rust as `WindowEvent::CloseRequested` from either origin: our own title bar (the frameless window's X, its window menu's Close row and the title bar actions all call the plain window close) or the shell (window manager, compositor, taskbar, Alt+F4, a compositor's window menu). Rust prevents it and routes by the window's kind: the last main window runs the whole-app quit round, one of several runs a round with only that window and then closes it and its torn-off panels, the panel, Preferences, About and ghost windows close at once, and the New level window asks its page, which prompts only when the form has input. An exit that no finished round asked for is held back and put through the round, except a non-zero code (restart, failure); a session end is not prompted, and the recovery copy carries unsaved work. The commit also flushes settings writes waiting on a pause.
+
 The Ultimate layout's floating windows live inside the main window as panels; **popping a panel out is tear-off** (Waypoint's `window-tearoff`: a drag past a threshold, a ghost window, drop regions, docking back), so the script's "Display 2" pop-out, a torn-off Game view and a torn-off Rules window are real windows. **Proposed** labels:
 
 | Label | Window | Capabilities (by concern) |
