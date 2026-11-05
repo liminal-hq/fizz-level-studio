@@ -17,7 +17,7 @@ import {
 	writeFileSync,
 } from 'node:fs';
 import { join } from 'node:path';
-import { App, Bridge, binary, makeProfile, root, sleep, within } from './driver';
+import { App, Bridge, binary, makeProfile, root, sleep, within, type Profile } from './driver';
 
 const failures: string[] = [];
 
@@ -582,6 +582,275 @@ async function dragAndMaximiseChecks(bridge: Bridge): Promise<void> {
 	);
 }
 
+/** The panels, with the title of their tab, the label of their window and a probe of their content. */
+const PANEL_WINDOWS = [
+	{
+		id: 'palette',
+		title: 'Palette',
+		probe: `return [...document.querySelectorAll('[role=tab]')].some((t) => t.textContent.trim() === 'Tiles');`,
+	},
+	{
+		id: 'objects',
+		title: 'Objects',
+		probe: `return [...document.querySelectorAll('button')].some((b) => b.textContent.startsWith('Item '));`,
+	},
+	{
+		id: 'history',
+		title: 'History',
+		probe: `return [...document.querySelectorAll('button')].some((b) => b.textContent.startsWith('Undo'));`,
+	},
+	{
+		id: 'proposals',
+		title: 'Proposals',
+		probe: `return !!document.querySelector('[role=switch]');`,
+	},
+	{
+		id: 'script',
+		title: 'Script',
+		probe: `return !!document.querySelector('[aria-label="Script text"]');`,
+	},
+] as const;
+
+const tearOffLabel = (title: string) => `Tear off ${title} into its own window`;
+
+/** The width and height a `manage_window` info answer holds, wherever it nests them. */
+function sizeIn(value: unknown): { w: number; h: number } | null {
+	if (typeof value !== 'object' || value === null) return null;
+	const v = value as Record<string, unknown>;
+	if (typeof v.width === 'number' && typeof v.height === 'number') {
+		return { w: v.width, h: v.height };
+	}
+	for (const inner of Object.values(v)) {
+		const found = sizeIn(inner);
+		if (found) return found;
+	}
+	return null;
+}
+
+async function windowSize(bridge: Bridge, label: string): Promise<{ w: number; h: number } | null> {
+	const text = await bridge.call('manage_window', { action: 'info', windowId: label });
+	try {
+		return sizeIn(JSON.parse(text));
+	} catch {
+		const w = /"?(?:inner)?[Ww]idth"?\D+(\d+)/.exec(text);
+		const h = /"?(?:inner)?[Hh]eight"?\D+(\d+)/.exec(text);
+		return w && h ? { w: Number(w[1]), h: Number(h[1]) } : null;
+	}
+}
+
+/** The saved dock record for a panel's window in the active workspace. */
+function savedPlace(bridge: Bridge, panel: string) {
+	return bridge.js<{
+		place: string;
+		window: { x: number; y: number; w: number; h: number } | null;
+	}>(
+		`const s = await window.__TAURI_INTERNALS__.invoke('plugin:fizz-studio-settings|settings_get');
+		 const ws = s.settings.dock.workspaces[s.settings.dock.active];
+		 return { place: ws.panels[${JSON.stringify(panel)}].place, window: ws.panels[${JSON.stringify(panel)}].window };`,
+	);
+}
+
+/** Docks a panel's window back the way its Dock back button does, and waits for it to go. */
+async function dockBackWindow(bridge: Bridge, panel: string): Promise<boolean> {
+	const label = `panel-${panel}-1`;
+	const clicked = await within(15_000, async () => {
+		try {
+			return await bridge.js<boolean>(
+				`const b = [...document.querySelectorAll('button')].find((x) => x.textContent === 'Dock back'); if (!b) return false; b.click(); return true;`,
+				label,
+			);
+		} catch {
+			return false;
+		}
+	});
+	if (clicked === null && process.env.CI) {
+		await bridge
+			.invoke('close_panel', { id: { kind: 'panel', panel, n: 1 } })
+			.catch(() => undefined);
+	}
+	const gone = await within(10_000, async () => !(await bridge.windows()).includes(label));
+	// The bridge's session can end with the closed window's page; start it again.
+	await bridge.stop();
+	await bridge.start();
+	return gone !== null;
+}
+
+async function checkPanelWindows(
+	bridge: Bridge,
+	profile: Profile,
+	levelPath: string,
+	currentApp: () => App,
+	replaceApp: (app: App) => void,
+): Promise<void> {
+	const clickLabel = (label: string, windowId = 'main-1') =>
+		bridge.js<boolean>(
+			`const b = document.querySelector('button[aria-label=' + JSON.stringify(${JSON.stringify(label)}) + ']'); if (!b) return false; b.click(); return true;`,
+			windowId,
+		);
+	const mainHas = (text: string) =>
+		within(5000, () =>
+			bridge.js<boolean>(`return document.body.innerText.includes(${JSON.stringify(text)});`),
+		);
+
+	for (const panel of PANEL_WINDOWS) {
+		const label = `panel-${panel.id}-1`;
+		await clickTab(bridge, panel.title);
+		check(`the ${panel.title} panel offers Tear off`, await clickLabel(tearOffLabel(panel.title)));
+		const opened = await within(10_000, async () => (await bridge.windows()).includes(label));
+		check(`tearing off ${panel.title} opens ${label}`, opened !== null);
+		await bridge.ready(label);
+		const real = await within(20_000, async () => {
+			try {
+				return await bridge.js<boolean>(panel.probe, label);
+			} catch {
+				return false;
+			}
+		});
+		check(`the ${label} window shows the real ${panel.title} panel`, real !== null);
+		check(
+			`the main window shows the ${panel.title} panel is away`,
+			(await mainHas(`The ${panel.title} panel is open in its own window.`)) !== null,
+		);
+		check(
+			`the away ${panel.title} tab says so and offers no Maximise`,
+			await bridge.js<boolean>(
+				`return [...document.querySelectorAll('[role=tab]')].some((t) => t.textContent.trim() === ${JSON.stringify(`${panel.title} (own window)`)}) && !document.querySelector('button[aria-label=' + JSON.stringify(${JSON.stringify(`Maximise ${panel.title}`)}) + ']');`,
+			),
+		);
+		check(`docking ${panel.title} back closes ${label}`, await dockBackWindow(bridge, panel.id));
+		const back = await within(5000, () => clickLabelOnly(bridge, tearOffLabel(panel.title)));
+		check(`the ${panel.title} panel is back in the main window`, back !== null);
+	}
+
+	// An action in a torn-off window reaches the main window: a brush chosen in the Palette window.
+	await clickTab(bridge, 'Palette');
+	await clickLabel(tearOffLabel('Palette'));
+	await bridge.ready('panel-palette-1');
+	await within(20_000, async () =>
+		bridge.js<boolean>(PANEL_WINDOWS[0].probe, 'panel-palette-1').catch(() => false),
+	);
+	let kind: string | null = null;
+	const chosen = await within(10_000, async () => {
+		try {
+			const clicked = await bridge.js<{ name: string | null }>(
+				`const b = document.querySelector('ul button[aria-pressed=false]'); if (!b) return { name: null }; const name = b.querySelector('span:last-child').textContent; b.click(); return { name };`,
+				'panel-palette-1',
+			);
+			kind = clicked.name;
+			return kind !== null;
+		} catch {
+			return false;
+		}
+	});
+	check('a brush is chosen in the torn-off Palette window', chosen !== null, String(kind));
+	const chip = await within(5000, () =>
+		bridge.js<boolean>(
+			`return [...document.querySelectorAll('[role=status]')].some((e) => e.textContent.includes('Brush: ' + ${JSON.stringify(kind)}));`,
+		),
+	);
+	check("the main window's brush chip follows the torn-off Palette", chip !== null, String(kind));
+	check('docking the Palette back', await dockBackWindow(bridge, 'palette'));
+
+	// An object chosen in the Objects window reveals its cell and script line in the main window.
+	await clickTab(bridge, 'Objects');
+	await clickLabel(tearOffLabel('Objects'));
+	await bridge.ready('panel-objects-1');
+	const picked = await within(20_000, async () => {
+		try {
+			return await bridge.js<boolean>(
+				`const b = [...document.querySelectorAll('button')].find((x) => x.textContent.startsWith('Item soda')); if (!b) return false; b.click(); return true;`,
+				'panel-objects-1',
+			);
+		} catch {
+			return false;
+		}
+	});
+	check('an object is chosen in the torn-off Objects window', picked !== null);
+	const revealed = await within(5000, () =>
+		bridge.js<boolean>(
+			`return [...document.querySelectorAll('.cm-revealedLine')].some((e) => e.textContent.includes('soda')) && document.body.innerText.includes('Cell 36, 5');`,
+		),
+	);
+	check('the main window reveals the chosen cell and its script line', revealed !== null);
+
+	// The window's place is remembered per workspace: resize it, close it, tear it off again.
+	await bridge.call('manage_window', {
+		action: 'resize',
+		windowId: 'panel-objects-1',
+		width: 777,
+		height: 555,
+		logical: false,
+	});
+	const recorded = await within(10_000, async () => {
+		const saved = await savedPlace(bridge, 'objects');
+		return (
+			Math.abs((saved.window?.w ?? 0) - 777) <= 2 && Math.abs((saved.window?.h ?? 0) - 555) <= 2
+		);
+	});
+	const saved = await savedPlace(bridge, 'objects');
+	check(
+		"the resized window's size is saved in the workspace",
+		recorded !== null,
+		JSON.stringify(saved),
+	);
+	check('docking the Objects panel back', await dockBackWindow(bridge, 'objects'));
+	await clickTab(bridge, 'Objects');
+	await clickLabel(tearOffLabel('Objects'));
+	await bridge.ready('panel-objects-1');
+	const again = await within(10_000, async () => {
+		const size = await windowSize(bridge, 'panel-objects-1');
+		return size !== null && Math.abs(size.w - 777) <= 2 && Math.abs(size.h - 555) <= 2;
+	});
+	const size = await windowSize(bridge, 'panel-objects-1');
+	check(
+		'the window opens again at the size it was left at',
+		again !== null,
+		JSON.stringify({ size, saved: saved.window }),
+	);
+
+	// Quit with the panel torn off: the next start opens it again, still at its place.
+	await bridge.js<boolean>(
+		`document.dispatchEvent(new KeyboardEvent('keydown', { key: 'q', ctrlKey: true, bubbles: true })); return true;`,
+	);
+	const exited = await within(10_000, () => !currentApp().alive);
+	check('quitting with a panel torn off exits the app', exited !== null);
+	await bridge.stop();
+	const restarted = new App(profile, [levelPath]);
+	replaceApp(restarted);
+	await bridge.start();
+	check('the app restarts', await bridge.ready());
+	const restored = await within(20_000, async () =>
+		(await bridge.windows()).includes('panel-objects-1'),
+	);
+	check('a panel saved in its own window opens again at the next start', restored !== null);
+	await bridge.ready('panel-objects-1');
+	const afterStart = await savedPlace(bridge, 'objects');
+	check(
+		'the saved place is still a window',
+		afterStart.place === 'window',
+		JSON.stringify(afterStart),
+	);
+	const sizeAfter = await within(10_000, async () => {
+		const s = await windowSize(bridge, 'panel-objects-1');
+		return s !== null && Math.abs(s.w - 777) <= 2 && Math.abs(s.h - 555) <= 2;
+	});
+	check(
+		'the restored window has the remembered size',
+		sizeAfter !== null,
+		JSON.stringify(await windowSize(bridge, 'panel-objects-1')),
+	);
+	check('docking back after the restart', await dockBackWindow(bridge, 'objects'));
+	const finalBack = await within(5000, () => clickLabelOnly(bridge, tearOffLabel('Objects')));
+	check('the Objects panel is docked again at the end', finalBack !== null);
+}
+
+/** Whether a button with this accessible name exists in the main window. */
+function clickLabelOnly(bridge: Bridge, label: string): Promise<boolean> {
+	return bridge.js<boolean>(
+		`return !!document.querySelector('button[aria-label=' + JSON.stringify(${JSON.stringify(label)}) + ']');`,
+	);
+}
+
 async function main(): Promise<void> {
 	if (!existsSync(binary)) {
 		console.error(`No debug build at ${binary}. Run \`bun run app:build\` first.`);
@@ -962,6 +1231,17 @@ async function main(): Promise<void> {
 			),
 		);
 		check('the Script panel is back in the main window', back !== null);
+
+		// 5c. Every panel tears off into its own window with its real content, an action in the
+		// window reaches the main window, closing the window docks the panel back, and the window's
+		// place is remembered per workspace.
+		await checkPanelWindows(
+			bridge,
+			profile,
+			path,
+			() => app!,
+			(next) => (app = next),
+		);
 
 		// 6. A crash with unsaved changes leaves a recovery copy, and the next launch offers it back.
 		const unsaved = await levelCall(bridge, 'level_apply', {
