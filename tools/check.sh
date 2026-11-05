@@ -99,6 +99,8 @@ fi
 if group app; then
   step "app: generated bindings"; bun run check:bindings
   step "app: plugin bundles"; bun run check:bundles
+  # The running-app checks need a built debug app and a display, so `bun run check:app` is run on its own
+  # (and as its own CI job), not as part of the whole gate.
 fi
 if group supply; then
   step "supply: licences and sources"; bun run check:licences
