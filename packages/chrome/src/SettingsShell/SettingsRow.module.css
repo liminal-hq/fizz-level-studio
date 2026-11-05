@@ -69,7 +69,6 @@
 .field:focus-visible,
 .switch:focus-visible,
 .segment:focus-visible,
-.button:focus-visible,
 .linkRow:focus-visible {
 	outline: 2px solid var(--fls-focus-ring);
 	outline-offset: 2px;
@@ -167,23 +166,16 @@
 }
 
 .button {
-	box-sizing: border-box;
-	min-block-size: var(--fls-control-height);
+	composes: keycap from '../Keycap/keycap.module.css';
 	padding: 0 14px;
-	color: var(--fls-text-primary);
-	background: var(--fls-control-bg);
-	border: 1px solid transparent;
-	border-radius: 6px;
-	font: inherit;
-	cursor: default;
+	font-size: inherit;
 }
 
-.button:hover:not(:disabled) {
-	background: var(--fls-control-bg-hover);
-}
-
-.buttonDanger {
+/* A plain key with a danger label and edge, never a bright fill. */
+.button.buttonDanger {
 	color: var(--fls-danger);
+	border-color: color-mix(in srgb, var(--fls-danger) 45%, var(--fls-key-border));
+	border-bottom-color: color-mix(in srgb, var(--fls-danger) 55%, var(--fls-key-border-bottom));
 }
 
 .linkRow {
