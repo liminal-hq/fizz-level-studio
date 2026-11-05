@@ -130,8 +130,54 @@ export const enMessages = {
 	// translator: The title of the About window, shown in its title bar.
 	'window.about.title': 'About Fizz Level Studio',
 
-	// translator: A line shown in the New level window until it is built.
-	'placeholder.newWorld': 'New level is coming.',
+	// translator: Label of the text field for the new level’s name, the one the person sees.
+	'newLevel.name': 'Name',
+	// translator: Label of the field for the new level’s id, a short lowercase name used for its file or folder.
+	'newLevel.id': 'Id',
+	// translator: A hint under the id field: it becomes the file or folder name.
+	'newLevel.idHint': 'Lowercase letters, digits, and hyphens. It names the file or folder.',
+	// translator: Label of the field for the level’s width, in cells (tiles).
+	'newLevel.width': 'Width',
+	// translator: Label of the field for the level’s height, in cells (tiles).
+	'newLevel.height': 'Height',
+	// translator: Caption of the two choices for which game the new level is for.
+	'newLevel.target': 'Target',
+	// translator: A choice: a single level for the first game, Lieutenant Fizz 1.
+	'newLevel.targetFizz1': 'Fizz 1 level',
+	// translator: A choice: a world folder for the second game, Lieutenant Fizz 2.
+	'newLevel.targetFizz2': 'Fizz 2 world',
+	// translator: A one-line warning beside the target choice: it cannot be changed after the level is made.
+	'newLevel.targetFixed': 'This cannot be changed after the level is created.',
+	// translator: Label of the chooser for the look of a Fizz 1 level; “theme” is the game’s own word.
+	'newLevel.theme': 'Theme',
+	// translator: The choice meaning no theme is set for the level.
+	'newLevel.themeNone': 'None',
+	// translator: Label of the read-only field showing the folder the level will be made in.
+	'newLevel.folder': 'Folder',
+	// translator: Shown in the folder field before a folder is chosen.
+	'newLevel.folderNone': 'No folder chosen',
+	// translator: Verb phrase on a button. Opens a dialog to choose the folder.
+	'newLevel.chooseFolder': 'Choose…',
+	// translator: The title of the native dialog for choosing the folder.
+	'newLevel.folderDialogTitle': 'Choose a folder for the new level',
+	// translator: Verb. A button that makes the new level.
+	'newLevel.create': 'Create',
+	// translator: Verb. A button that closes the window without making a level.
+	'newLevel.cancel': 'Cancel',
+	// translator: An error shown beside the name field when it is empty.
+	'newLevel.error.nameEmpty': 'Enter a name.',
+	// translator: An error shown beside the name field: it may not hold quotation marks or line breaks.
+	'newLevel.error.nameChars': 'The name must be one line without quotation marks.',
+	// translator: An error shown beside the id field.
+	'newLevel.error.id': 'Use lowercase letters, digits, and single hyphens.',
+	// translator: An error shown beside the width field.
+	'newLevel.error.width': 'The width must be a whole number from 8 to 1024.',
+	// translator: An error shown beside the height field.
+	'newLevel.error.height': 'The height must be a whole number from 8 to 128.',
+	// translator: An error shown beside the folder field when none is chosen.
+	'newLevel.error.folder': 'Choose a folder.',
+	// translator: An error line shown when the level could not be made. {message} says why, in English.
+	'newLevel.createFailed': 'The level could not be created: {message}',
 	// translator: A line shown in the Preferences window until it is built.
 	'placeholder.preferences': 'Preferences are coming.',
 	// translator: A line shown in the About window until it is built.
@@ -139,6 +185,8 @@ export const enMessages = {
 
 	// translator: A short description of the app, shown on the start screen under its name.
 	'main.tagline': 'A level editor for Lieutenant Fizz.',
+	// translator: Verb phrase on a button. Opens the New level window.
+	'main.newLevel': 'New level…',
 	// translator: Verb phrase on a button. Opens a file dialog to choose a level file.
 	'main.openLevel': 'Open level…',
 	// translator: The title of the native file dialog for choosing a level file.

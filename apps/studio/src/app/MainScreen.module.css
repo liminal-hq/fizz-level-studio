@@ -193,3 +193,8 @@
 	background: var(--fls-bg-raised);
 	border-bottom: 1px solid var(--fls-border-subtle);
 }
+
+.starts {
+	display: flex;
+	gap: 0.75rem;
+}

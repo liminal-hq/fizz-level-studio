@@ -8,6 +8,7 @@ import { t } from '../i18n/messages';
 import styles from './App.module.css';
 import { AppWindow } from './AppWindow';
 import { MainScreen } from './MainScreen';
+import { NewLevelScreen } from './NewLevelScreen';
 import { windowKindFromLabel } from './windowKind';
 
 interface AppProps {
@@ -37,7 +38,7 @@ export function App({ windowLabel }: AppProps) {
 				<PlaceholderScreen titleId="window.preferences.title" messageId="placeholder.preferences" />
 			);
 		case 'new-world':
-			return <PlaceholderScreen titleId="window.newWorld.title" messageId="placeholder.newWorld" />;
+			return <NewLevelScreen />;
 		default:
 			// Panels and the tear ghost have no screen yet, and an unknown label shows nothing.
 			return null;
