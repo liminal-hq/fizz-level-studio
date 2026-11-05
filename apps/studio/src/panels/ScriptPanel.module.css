@@ -18,46 +18,11 @@
 	margin-top: 0.75rem;
 }
 
-.text {
-	margin: 0;
-	padding: 0;
-	overflow: auto;
-	list-style: none;
-	font-family: ui-monospace, monospace;
-	font-size: 0.85rem;
-	user-select: text;
-}
-
-.line {
-	display: grid;
-	grid-template-columns: 3ch 1fr;
-	gap: 1ch;
-	padding: 0 0.25rem;
-	border-radius: 3px;
-}
-
-.line:focus-visible {
-	outline: 2px solid var(--fls-focus-ring);
-}
-
-.number {
-	color: var(--fls-text-muted);
-	text-align: right;
-	font-variant-numeric: tabular-nums;
-}
-
-.code {
-	font: inherit;
-	white-space: pre-wrap;
-	overflow-wrap: anywhere;
-}
-
-.problem {
-	background: color-mix(in srgb, var(--fls-danger) 14%, transparent);
-}
-
-.active {
-	background: var(--fls-bg-selected);
+.editor {
+	min-width: 0;
+	border: 1px solid var(--fls-border-subtle);
+	border-radius: 4px;
+	overflow: hidden;
 }
 
 .none {

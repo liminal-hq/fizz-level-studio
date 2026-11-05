@@ -64,11 +64,11 @@ describe('tearing the Script panel off', () => {
 		await user.click(screen.getByRole('button', { name: 'Tear off' }));
 		expect(fake.client.tearOff).toHaveBeenCalledWith('script');
 		expect(await screen.findByText('The Script panel is open in its own window.')).toBeVisible();
-		expect(screen.queryByRole('list', { name: 'Script text' })).toBeNull();
+		expect(screen.queryByRole('textbox', { name: 'Script text' })).toBeNull();
 
 		await user.click(screen.getByRole('button', { name: 'Dock back' }));
 		expect(fake.client.dockBack).toHaveBeenCalledWith('script');
-		expect(await screen.findByRole('list', { name: 'Script text' })).toBeVisible();
+		expect(await screen.findByRole('textbox', { name: 'Script text' })).toBeVisible();
 	});
 
 	it('docks back by itself when the panel window closes some other way', async () => {
@@ -77,7 +77,7 @@ describe('tearing the Script panel off', () => {
 		expect(await screen.findByText('The Script panel is open in its own window.')).toBeVisible();
 
 		act(() => fake.close('panel-script-1'));
-		await waitFor(() => expect(screen.getByRole('list', { name: 'Script text' })).toBeVisible());
+		await waitFor(() => expect(screen.getByRole('textbox', { name: 'Script text' })).toBeVisible());
 	});
 
 	it('ignores another panel closing, and a window that fails to open', async () => {
@@ -89,7 +89,7 @@ describe('tearing the Script panel off', () => {
 		render(<Harness client={fake.client} />);
 		await user.click(screen.getByRole('button', { name: 'Tear off' }));
 		act(() => fake.close('panel-game-view-1'));
-		expect(screen.getByRole('list', { name: 'Script text' })).toBeVisible();
+		expect(screen.getByRole('textbox', { name: 'Script text' })).toBeVisible();
 	});
 });
 

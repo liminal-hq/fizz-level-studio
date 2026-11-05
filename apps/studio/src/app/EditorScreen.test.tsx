@@ -50,13 +50,16 @@ describe('newerSnapshot', () => {
 	});
 });
 
+/** The script editor's content, whose words are split into coloured spans. */
+const script = () => screen.getByRole('textbox', { name: 'Script text' });
+
 describe('EditorScreen', () => {
 	it('composes the canvas, tools and panels', () => {
 		mount();
 		expect(screen.getByRole('group', { name: 'Level editor' })).toBeInTheDocument();
 		expect(screen.getByRole('application')).toBeInTheDocument();
 		expect(screen.getByRole('group', { name: 'Tools' })).toBeInTheDocument();
-		expect(screen.getByRole('list', { name: 'Script text' })).toBeInTheDocument();
+		expect(screen.getByRole('textbox', { name: 'Script text' })).toBeInTheDocument();
 		expect(screen.getByRole('button', { name: 'Undo' })).toBeDisabled();
 	});
 
@@ -167,20 +170,20 @@ describe('EditorScreen', () => {
 		const { client } = mount();
 		const stale = levelSnapshot({ revision: 1n, text: 'stale text\n' });
 		act(() => client.emit(stale));
-		expect(screen.queryByText('stale text')).not.toBeInTheDocument();
+		expect(script()).not.toHaveTextContent('stale text');
 
 		const older = levelSnapshot({ revision: 0n, text: 'older text\n' });
 		act(() => client.emit(older));
-		expect(screen.queryByText('older text')).not.toBeInTheDocument();
+		expect(script()).not.toHaveTextContent('older text');
 
 		const fresh = levelSnapshot({ revision: 2n, text: 'fresh text\n', edited_outside: true });
 		act(() => client.emit(fresh));
-		expect(screen.getByText('fresh text')).toBeInTheDocument();
+		expect(script()).toHaveTextContent('fresh text');
 		expect(screen.getByText('This level was changed outside the studio.')).toBeInTheDocument();
 
 		act(() => client.emit(levelSnapshot({ revision: 2n, text: 'same revision\n' })));
-		expect(screen.queryByText('same revision')).not.toBeInTheDocument();
-		expect(screen.getByText('fresh text')).toBeInTheDocument();
+		expect(script()).not.toHaveTextContent('same revision');
+		expect(script()).toHaveTextContent('fresh text');
 	});
 
 	it('shows the flat-view note for a Fizz 2 level and not for a Fizz 1 one', () => {
@@ -216,6 +219,46 @@ describe('EditorScreen', () => {
 		expect(await screen.findByRole('alert')).toHaveTextContent(
 			'The level changed first, so that edit was not applied. Try it again.',
 		);
+	});
+
+	it('reveals the script line that set an object when it is chosen in the list', async () => {
+		const text = 'line one\nline two\nline three\n';
+		const view = levelView(12, 8, { items: [{ kind: 'soda', x: 3, y: 2 }] });
+		const snapshot = levelSnapshot({ text }, view);
+		const client = new FakeLevelClient(snapshot);
+		client.cellLines.set('3,2', 3);
+		render(<EditorScreen snapshot={snapshot} client={client} />);
+		await userEvent.click(screen.getByRole('button', { name: 'Item soda at 3, 2' }));
+		await waitFor(() =>
+			expect(document.querySelector('.cm-revealedLine')).toHaveTextContent('line three'),
+		);
+	});
+
+	it('reveals the line behind a cell only with Pick or Select, not while painting', async () => {
+		const text = 'line one\nline two\nline three\n';
+		const snapshot = levelSnapshot({ text });
+		const client = new FakeLevelClient(snapshot);
+		client.cellLines.set('4,4', 2);
+		render(<EditorScreen snapshot={snapshot} client={client} />);
+		const canvas = screen.getByRole('application');
+		fireEvent.pointerDown(canvas, { button: 0, ...at(4, 4) });
+		fireEvent.pointerUp(canvas, at(4, 4));
+		await Promise.resolve();
+		expect(document.querySelector('.cm-revealedLine')).toBeNull();
+		await userEvent.click(screen.getByRole('button', { name: 'Select' }));
+		fireEvent.pointerDown(canvas, { button: 0, ...at(4, 4) });
+		fireEvent.pointerUp(canvas, at(4, 4));
+		await waitFor(() =>
+			expect(document.querySelector('.cm-revealedLine')).toHaveTextContent('line two'),
+		);
+	});
+
+	it('gives the editor the words the client documents', async () => {
+		const snapshot = levelSnapshot();
+		const client = new FakeLevelClient(snapshot);
+		const words = vi.spyOn(client, 'words');
+		render(<EditorScreen snapshot={snapshot} client={client} />);
+		await waitFor(() => expect(words).toHaveBeenCalledTimes(1));
 	});
 });
 

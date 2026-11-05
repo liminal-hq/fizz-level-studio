@@ -29,6 +29,13 @@
 	--fls-warning: #a16207;
 	--fls-focus-ring: #2563eb;
 
+	/* The script editor's syntax colours. */
+	--fls-syntax-keyword: #5b3fc4;
+	--fls-syntax-number: #0e6377;
+	--fls-syntax-string: #15803d;
+	--fls-syntax-field: #9a4a06;
+	--fls-syntax-comment: #6f6a85;
+
 	/* Window chrome (packages/chrome). Derived from the palette so they follow the scheme. */
 	--fls-bg-chrome: var(--fls-bg-raised);
 	--fls-control-bg: color-mix(in srgb, var(--fls-text-primary) 6%, transparent);
@@ -63,6 +70,11 @@
 		--fls-success: #4ade80;
 		--fls-warning: #facc15;
 		--fls-focus-ring: #60a5fa;
+		--fls-syntax-keyword: #c4b5fd;
+		--fls-syntax-number: #67e8f9;
+		--fls-syntax-string: #86efac;
+		--fls-syntax-field: #fdba74;
+		--fls-syntax-comment: #a49fb8;
 	}
 }
 
@@ -88,6 +100,11 @@
 	--fls-success: #4ade80;
 	--fls-warning: #facc15;
 	--fls-focus-ring: #60a5fa;
+	--fls-syntax-keyword: #c4b5fd;
+	--fls-syntax-number: #67e8f9;
+	--fls-syntax-string: #86efac;
+	--fls-syntax-field: #fdba74;
+	--fls-syntax-comment: #a49fb8;
 }
 
 /*

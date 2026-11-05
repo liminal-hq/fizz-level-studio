@@ -95,6 +95,86 @@ export const enMessages = {
 	'script.noProblems': 'No problems',
 	// translator: A link to a script line that has a problem: line number, code and message.
 	'script.problem': 'Line {line}: {code} {message}',
+	// translator: The text of a problem marked in the script: error code, then the message.
+	'script.lint': '{code} {message}',
+	// translator: Label above the way a script word is written, in its documentation popup.
+	'script.docSyntax': 'Syntax',
+	// translator: Label above an example line, in a script word’s documentation popup.
+	'script.docExample': 'Example',
+	// translator: Accessible name of the popup that documents the script word under the cursor.
+	'script.docPopup': 'Documentation',
+	// translator: Short label of what a completion is, shown beside it: a statement word.
+	'script.kind.statement': 'statement',
+	// translator: Short label of what a completion is: a section heading such as “blocks”.
+	'script.kind.section': 'section',
+	// translator: Short label of what a completion is: a piece of terrain.
+	'script.kind.segment': 'terrain',
+	// translator: Short label of what a completion is: a kind of tile.
+	'script.kind.tile': 'tile',
+	// translator: Short label of what a completion is: a collectable item.
+	'script.kind.item': 'item',
+	// translator: Short label of what a completion is: an enemy.
+	'script.kind.enemy': 'enemy',
+	// translator: Short label of what a completion is: a named field of a statement, such as “x”.
+	'script.kind.field': 'field',
+	// translator: The editor’s own wording, “Fold line”: a tooltip on the gutter button that hides a section.
+	'script.cm.foldLine': 'Fold line',
+	// translator: Tooltip on the gutter button that shows a hidden section again.
+	'script.cm.unfoldLine': 'Unfold line',
+	// translator: Announced when lines are hidden by folding.
+	'script.cm.foldedLines': 'Folded lines',
+	// translator: Announced when hidden lines are shown again.
+	'script.cm.unfoldedLines': 'Unfolded lines',
+	// translator: Text standing in for the lines a fold hides.
+	'script.cm.foldedCode': 'folded code',
+	// translator: Tooltip on the marker that shows a folded section again.
+	'script.cm.unfold': 'unfold',
+	// translator: Joins two line numbers in an announcement, such as “1 to 5”.
+	'script.cm.to': 'to',
+	// translator: Heading of the box that jumps to a line number.
+	'script.cm.gotoLine': 'Go to line',
+	// translator: Button that jumps to the typed line number.
+	'script.cm.go': 'go',
+	// translator: Label of the search field.
+	'script.cm.find': 'Find',
+	// translator: Label of the replace field.
+	'script.cm.replaceLabel': 'Replace',
+	// translator: Button that finds the next match.
+	'script.cm.next': 'next',
+	// translator: Button that finds the previous match.
+	'script.cm.previous': 'previous',
+	// translator: Button that selects every match.
+	'script.cm.all': 'all',
+	// translator: Option that makes a search care about capital letters.
+	'script.cm.matchCase': 'match case',
+	// translator: Option that reads the search as a regular expression.
+	'script.cm.regexp': 'regexp',
+	// translator: Option that matches whole words only.
+	'script.cm.byWord': 'by word',
+	// translator: Button that replaces the current match.
+	'script.cm.replace': 'replace',
+	// translator: Button that replaces every match.
+	'script.cm.replaceAll': 'replace all',
+	// translator: Button that closes a search or other small panel.
+	'script.cm.close': 'close',
+	// translator: Announced for the match the search is on.
+	'script.cm.currentMatch': 'current match',
+	// translator: Announced after “match” to say which line it is on, such as “match on line 4”.
+	'script.cm.onLine': 'on line',
+	// translator: Announced after one match is replaced. The $ stands for the line number.
+	'script.cm.replacedMatchOnLine': 'replaced match on line $',
+	// translator: Announced after every match is replaced. The $ stands for how many.
+	'script.cm.replacedMatches': 'replaced $ matches',
+	// translator: Name of the list of problems that the editor can show.
+	'script.cm.diagnostics': 'Diagnostics',
+	// translator: Shown in that list when the script has no problems.
+	'script.cm.noDiagnostics': 'No diagnostics',
+	// translator: Accessible name of the list of suggested words that opens while typing.
+	'script.cm.completions': 'Completions',
+	// translator: Announced when a selection is removed by an editing command.
+	'script.cm.selectionDeleted': 'Selection deleted',
+	// translator: Announced for a control character that the editor shows as a symbol.
+	'script.cm.controlCharacter': 'Control character',
 
 	// translator: Heading of the panel that lists the words the person can paint or place with.
 	'palette.title': 'Palette',

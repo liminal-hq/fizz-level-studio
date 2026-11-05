@@ -40,6 +40,8 @@ export interface LevelCanvasProps {
 	selection?: Rect | null;
 	/** Claude's pending proposals to draw as ghosts; leave out to draw none. */
 	ghosts?: readonly GhostCell[];
+	/** Called when the person chooses a cell: an entry in the objects list, or a click on the grid. */
+	onCellChosen?: (cell: Cell, source: 'grid' | 'list') => void;
 	/** Called when a problem in the objects list is chosen. */
 	onSelectLine?: (line: number) => void;
 }
@@ -58,6 +60,7 @@ export function LevelCanvas({
 	selection = null,
 	ghosts = NO_GHOSTS,
 	onSelectLine,
+	onCellChosen,
 }: LevelCanvasProps) {
 	const canvasRef = useRef<HTMLCanvasElement>(null);
 	const frameRef = useRef<HTMLDivElement>(null);
@@ -164,6 +167,7 @@ export function LevelCanvas({
 		pressed.current = true;
 		const cell = cellAt(event);
 		if (inside(cell)) onCursorChange(cell);
+		if (inside(cell)) onCellChosen?.(cell, 'grid');
 		onToolEvent('down', cell);
 	};
 
@@ -252,7 +256,14 @@ export function LevelCanvas({
 					</div>
 				</div>
 			</div>
-			<ObjectList view={view} onSelectCell={moveTo} onSelectLine={onSelectLine} />
+			<ObjectList
+				view={view}
+				onSelectCell={(cell) => {
+					moveTo(cell);
+					onCellChosen?.(cell, 'list');
+				}}
+				onSelectLine={onSelectLine}
+			/>
 		</div>
 	);
 }

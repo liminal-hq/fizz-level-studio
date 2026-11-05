@@ -58,6 +58,8 @@ export function EditorScreen({
 	const strokes = useRef(0);
 	const [cursor, setCursor] = useState<Cell>(initial.view.start ?? { x: 0, y: 0 });
 	const [focusLine, setFocusLine] = useState<number | null>(null);
+	const [focusSerial, setFocusSerial] = useState(0);
+	const cellRequests = useRef(0);
 	const [problem, setProblem] = useState<MessageId | null>(null);
 	const tool = useTool(snapshot.view);
 	const [words, setWords] = useState<WordDoc[]>([]);
@@ -147,6 +149,27 @@ export function EditorScreen({
 		[client, accept, enqueue],
 	);
 
+	const showLine = useCallback((line: number) => {
+		setFocusLine(line);
+		setFocusSerial((serial) => serial + 1);
+	}, []);
+
+	// Choosing an object in the list, or a cell with Pick or Select, shows the script line that
+	// last set the cell. Paint, Erase and Stamp are for drawing, so they leave the script alone.
+	const onCellChosen = useCallback(
+		(cell: Cell, source: 'grid' | 'list') => {
+			if (source === 'grid' && tool.tool !== 'pick' && tool.tool !== 'select') return;
+			const request = (cellRequests.current += 1);
+			void client
+				.cellLine(held.current.id, Math.floor(cell.x), Math.floor(cell.y))
+				.then((line) => {
+					if (line !== null && request === cellRequests.current) showLine(line);
+				})
+				.catch(() => {});
+		},
+		[client, tool.tool, showLine],
+	);
+
 	const onToolEvent = useCallback(
 		(phase: PointerPhase, cell: Cell) => {
 			const edits = tool.pointer(phase, cell);
@@ -225,7 +248,8 @@ export function EditorScreen({
 					preview={tool.preview}
 					selection={tool.selection}
 					ghosts={ghostCells}
-					onSelectLine={setFocusLine}
+					onSelectLine={showLine}
+					onCellChosen={onCellChosen}
 				/>
 				<div className={styles.side}>
 					<PalettePanel
@@ -256,6 +280,7 @@ export function EditorScreen({
 							text={snapshot.text}
 							diagnostics={snapshot.view.diagnostics}
 							focusLine={focusLine}
+							focusSerial={focusSerial}
 							onTearOff={scriptDock.tearOff}
 						/>
 					)}
