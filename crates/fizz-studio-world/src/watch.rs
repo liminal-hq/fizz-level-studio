@@ -275,11 +275,17 @@ mod tests {
     fn a_burst_of_writes_is_one_notification_with_the_last_text() {
         let dir = tempfile::tempdir().unwrap();
         let path = dir.path().join("a.fizz");
-        let (watcher, _state) = start(dir.path());
+        // A debounce much longer than the burst, so a slow runner cannot spread five tiny writes
+        // across two windows and report an earlier version first.
+        let state = DiskState::new();
+        let watcher = FolderWatcher::start(dir.path(), Duration::from_millis(400), state).unwrap();
         for i in 0..5 {
             std::fs::write(&path, format!("version {i}\n")).unwrap();
         }
-        let change = watcher.changes().recv_timeout(WITHIN_A_SECOND).unwrap();
+        let change = watcher
+            .changes()
+            .recv_timeout(Duration::from_millis(3000))
+            .unwrap();
         assert_eq!(
             change.kind,
             ChangeKind::Changed {
