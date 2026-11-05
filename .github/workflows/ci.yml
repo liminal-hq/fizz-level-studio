@@ -1,4 +1,5 @@
-# Runs the language and MCP tests and lints the Markdown on every pull request and push to main.
+# One job per check, so a pull request's checks list names exactly what passed or failed. The test jobs
+# write JUnit XML; publish-test-results.yml posts it to the pull request.
 #
 # (c) Copyright 2026 Liminal HQ, Scott Morris
 # SPDX-License-Identifier: Apache-2.0 OR MIT
@@ -14,13 +15,144 @@ on:
       - main
   workflow_dispatch:
 
+permissions:
+  contents: read
+  packages: read
+
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  validate:
-    name: Validate
+  format:
+    name: Format
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.10
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Check formatting
+        id: format
+        run: bun run format:check
+
+      - name: Job summary
+        if: always()
+        run: |
+          {
+            echo "## Format"
+            echo "- Result: \`${{ steps.format.outcome }}\`"
+            echo "- Command: \`bun run format:check\`"
+          } >> "${GITHUB_STEP_SUMMARY}"
+
+  markdown-lint:
+    name: Markdown lint
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.10
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Lint Markdown
+        id: lint
+        run: bun run lint:md
+
+      - name: Job summary
+        if: always()
+        run: |
+          {
+            echo "## Markdown lint"
+            echo "- Result: \`${{ steps.lint.outcome }}\`"
+            echo "- Command: \`bun run lint:md\`"
+          } >> "${GITHUB_STEP_SUMMARY}"
+
+  link-check:
+    name: Link check
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.10
+
+      - name: Check relative links and anchors
+        id: links
+        run: bun run check:links
+
+      - name: Job summary
+        if: always()
+        run: |
+          {
+            echo "## Link check"
+            echo "- Result: \`${{ steps.links.outcome }}\`"
+            echo "- Command: \`bun run check:links\`"
+          } >> "${GITHUB_STEP_SUMMARY}"
+
+  language-tests:
+    name: Language tests
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.10
+
+      - name: Run language tests
+        id: tests
+        run: bun run test:ci
+
+      - name: Job summary
+        if: always()
+        run: |
+          {
+            echo "## Language tests"
+            echo "- Result: \`${{ steps.tests.outcome }}\`"
+            echo "- Command: \`bun run test:ci\`"
+            echo
+            bash scripts/junit-summary.sh test-results/language-junit.xml
+          } >> "${GITHUB_STEP_SUMMARY}"
+
+      - name: Upload language test artefacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: language-test-results
+          path: test-results/*.xml
+          if-no-files-found: error
+
+      # Consumed by publish-test-results.yml. The pull_request event's own GITHUB_TOKEN is
+      # read-only for Dependabot and fork PRs, so the results are published from a separate
+      # `workflow_run` workflow, which runs with this repository's own permissions whoever opened
+      # the PR.
+      - name: Upload event file
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: event-file
+          path: ${{ github.event_path }}
+
+  mcp-tests:
+    name: MCP server tests
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout code
@@ -35,11 +167,444 @@ jobs:
         run: bun install --frozen-lockfile
         working-directory: packages/mcp
 
-      - name: Lint Markdown
-        run: bun run lint:md
-
-      - name: Run language tests
-        run: bun run test
-
       - name: Run MCP server tests
-        run: bun run test:mcp
+        id: tests
+        run: bun run test:mcp:ci
+
+      - name: Job summary
+        if: always()
+        run: |
+          {
+            echo "## MCP server tests"
+            echo "- Result: \`${{ steps.tests.outcome }}\`"
+            echo "- Command: \`bun run test:mcp:ci\`"
+            echo
+            bash scripts/junit-summary.sh test-results/mcp-junit.xml
+          } >> "${GITHUB_STEP_SUMMARY}"
+
+      - name: Upload MCP server test artefacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mcp-test-results
+          path: test-results/*.xml
+          if-no-files-found: error
+
+  frontend-tests:
+    name: Frontend tests
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.10
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Type-check
+        id: typecheck
+        run: bun run typecheck
+
+      - name: Run tests
+        id: tests
+        run: bun run test:js:ci
+
+      - name: Build
+        id: build
+        run: bun run build
+
+      - name: Job summary
+        if: always()
+        run: |
+          {
+            echo "## Frontend tests"
+            echo "| Step | Result | Command |"
+            echo "|---|---|---|"
+            echo "| Type-check | \`${{ steps.typecheck.outcome }}\` | \`bun run typecheck\` |"
+            echo "| Tests | \`${{ steps.tests.outcome }}\` | \`bun run test:js:ci\` |"
+            echo "| Build | \`${{ steps.build.outcome }}\` | \`bun run build\` |"
+            echo
+            bash scripts/junit-summary.sh test-results/chrome-junit.xml test-results/settings-plugin-junit.xml test-results/frontend-junit.xml
+          } >> "${GITHUB_STEP_SUMMARY}"
+
+      - name: Upload frontend test artefacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-test-results
+          path: test-results/*.xml
+          if-no-files-found: error
+
+  rust-format:
+    name: Rust format
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install the pinned Rust toolchain
+        run: rustup toolchain install
+
+      - name: Check formatting
+        id: format
+        run: cargo fmt --all -- --check
+
+      - name: Job summary
+        if: always()
+        run: |
+          {
+            echo "## Rust format"
+            echo "- Result: \`${{ steps.format.outcome }}\`"
+            echo "- Command: \`cargo fmt --all -- --check\`"
+          } >> "${GITHUB_STEP_SUMMARY}"
+
+  rust-clippy:
+    name: Rust Clippy
+    runs-on: ubuntu-24.04
+    container:
+      image: ghcr.io/liminal-hq/tauri-ci-desktop:latest
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Trust the GitHub workspace
+        run: git config --global --add safe.directory "${GITHUB_WORKSPACE}"
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.10
+
+      # The Tauri build script needs the built frontend (`frontendDist`).
+      - name: Build the frontend
+        run: |
+          bun install --frozen-lockfile
+          bun run build
+
+      - name: Install the pinned Rust toolchain
+        run: rustup toolchain install
+
+      - name: Cache Rust build output
+        uses: Swatinem/rust-cache@v2
+
+      - name: Lint
+        id: clippy
+        run: cargo clippy --workspace --all-targets -- -D warnings
+
+      - name: Job summary
+        if: always()
+        run: |
+          {
+            echo "## Rust Clippy"
+            echo "- Result: \`${{ steps.clippy.outcome }}\`"
+            echo "- Command: \`cargo clippy --workspace --all-targets -- -D warnings\`"
+          } >> "${GITHUB_STEP_SUMMARY}"
+
+  rust-tests:
+    name: Rust tests
+    runs-on: ubuntu-24.04
+    container:
+      image: ghcr.io/liminal-hq/tauri-ci-desktop:latest
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Trust the GitHub workspace
+        run: git config --global --add safe.directory "${GITHUB_WORKSPACE}"
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.10
+
+      # The Tauri build script needs the built frontend (`frontendDist`).
+      - name: Build the frontend
+        run: |
+          bun install --frozen-lockfile
+          bun run build
+
+      - name: Install the pinned Rust toolchain
+        run: rustup toolchain install
+
+      - name: Cache Rust build output
+        uses: Swatinem/rust-cache@v2
+
+      - name: Install cargo-nextest
+        uses: taiki-e/install-action@nextest
+
+      - name: Run tests
+        id: tests
+        run: cargo nextest run --workspace --profile ci
+
+      - name: Job summary
+        if: always()
+        run: |
+          {
+            echo "## Rust tests"
+            echo "- Result: \`${{ steps.tests.outcome }}\`"
+            echo "- Command: \`cargo nextest run --workspace --profile ci\`"
+            echo
+            bash scripts/junit-summary.sh target/nextest/ci/junit.xml
+          } >> "${GITHUB_STEP_SUMMARY}"
+
+      - name: Upload Rust test artefacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rust-test-results
+          path: target/nextest/ci/junit.xml
+          if-no-files-found: error
+
+  licence-headers:
+    name: Licence headers
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Licence headers
+        id: check
+        run: bash scripts/check-headers.sh
+
+      - name: Job summary
+        if: always()
+        run: |
+          {
+            echo "## Licence headers"
+            echo "- Result: \`${{ steps.check.outcome }}\`"
+            echo "- Command: \`bash scripts/check-headers.sh\`"
+          } >> "${GITHUB_STEP_SUMMARY}"
+
+  case-collisions:
+    name: Case collisions
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Case collisions
+        id: check
+        run: bash scripts/check-case-collisions.sh
+
+      - name: Job summary
+        if: always()
+        run: |
+          {
+            echo "## Case collisions"
+            echo "- Result: \`${{ steps.check.outcome }}\`"
+            echo "- Command: \`bash scripts/check-case-collisions.sh\`"
+          } >> "${GITHUB_STEP_SUMMARY}"
+
+  i18n:
+    name: JSX literals
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.10
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: JSX literals
+        id: check
+        run: bun run check:i18n
+
+      - name: Job summary
+        if: always()
+        run: |
+          {
+            echo "## JSX literals"
+            echo "- Result: \`${{ steps.check.outcome }}\`"
+            echo "- Command: \`bun run check:i18n\`"
+          } >> "${GITHUB_STEP_SUMMARY}"
+
+  browser-storage:
+    name: Browser storage
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Browser storage
+        id: check
+        run: bash scripts/check-browser-storage.sh
+
+      - name: Job summary
+        if: always()
+        run: |
+          {
+            echo "## Browser storage"
+            echo "- Result: \`${{ steps.check.outcome }}\`"
+            echo "- Command: \`bash scripts/check-browser-storage.sh\`"
+          } >> "${GITHUB_STEP_SUMMARY}"
+
+  plugin-boundaries:
+    name: Plugin boundaries
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Plugin boundaries
+        id: check
+        run: bash scripts/check-plugin-boundaries.sh
+
+      - name: Job summary
+        if: always()
+        run: |
+          {
+            echo "## Plugin boundaries"
+            echo "- Result: \`${{ steps.check.outcome }}\`"
+            echo "- Command: \`bash scripts/check-plugin-boundaries.sh\`"
+          } >> "${GITHUB_STEP_SUMMARY}"
+
+  dependency-licences:
+    name: Dependency licences
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install the pinned Rust toolchain
+        run: rustup toolchain install
+
+      - name: Install cargo-deny
+        uses: taiki-e/install-action@cargo-deny
+
+      - name: Dependency licences
+        id: check
+        run: bash scripts/check-licences.sh
+
+      - name: Job summary
+        if: always()
+        run: |
+          {
+            echo "## Dependency licences"
+            echo "- Result: \`${{ steps.check.outcome }}\`"
+            echo "- Command: \`bash scripts/check-licences.sh\`"
+          } >> "${GITHUB_STEP_SUMMARY}"
+
+  bindings-drift:
+    name: Bindings drift
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install the pinned Rust toolchain
+        run: rustup toolchain install
+
+      - name: Cache Rust build output
+        uses: Swatinem/rust-cache@v2
+
+      - name: Check generated bindings for drift
+        id: check
+        run: bash scripts/check-bindings-drift.sh
+
+      - name: Job summary
+        if: always()
+        run: |
+          {
+            echo "## Bindings drift"
+            echo "- Result: \`${{ steps.check.outcome }}\`"
+            echo "- Command: \`bash scripts/check-bindings-drift.sh\`"
+          } >> "${GITHUB_STEP_SUMMARY}"
+
+  corpus-drift:
+    name: Fizz 1 corpus drift
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.10
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Fizz 1 corpus drift
+        id: check
+        run: bun run check:fizz1
+
+      - name: Job summary
+        if: always()
+        run: |
+          {
+            echo "## Fizz 1 corpus drift"
+            echo "- Result: \`${{ steps.check.outcome }}\`"
+            echo "- Command: \`bun run check:fizz1\`"
+          } >> "${GITHUB_STEP_SUMMARY}"
+
+  raster-drift:
+    name: Rasteriser golden drift
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.10
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Rasteriser golden drift
+        id: check
+        run: bun run check:raster
+
+      - name: Job summary
+        if: always()
+        run: |
+          {
+            echo "## Rasteriser golden drift"
+            echo "- Result: \`${{ steps.check.outcome }}\`"
+            echo "- Command: \`bun run check:raster\`"
+          } >> "${GITHUB_STEP_SUMMARY}"
+
+  docs-drift:
+    name: Language docs drift
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.10
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Language docs drift
+        id: check
+        run: bun run check:docs
+
+      - name: Job summary
+        if: always()
+        run: |
+          {
+            echo "## Language docs drift"
+            echo "- Result: \`${{ steps.check.outcome }}\`"
+            echo "- Command: \`bun run check:docs\`"
+          } >> "${GITHUB_STEP_SUMMARY}"

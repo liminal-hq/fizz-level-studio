@@ -1,0 +1,32 @@
+[package]
+name = "tauri-plugin-fizz-studio-host"
+version = "0.1.0"
+description = "The studio's game-host plugin: what the host can draw and run, and a paced frame stream over a raw channel, over the fizz-studio-host crate"
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+repository.workspace = true
+publish = false
+build = "build.rs"
+links = "tauri-plugin-fizz-studio-host"
+
+[package.metadata.platforms.support]
+linux = { level = "full", notes = "Nothing platform-specific; frames cross as raw bytes over a channel" }
+windows = { level = "partial", notes = "Builds and is linted for the Windows target; the mock-runtime tests need the Common Controls manifest the build script embeds" }
+
+[lib]
+name = "tauri_plugin_fizz_studio_host"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[dependencies]
+fizz-studio-host = { path = "../../crates/fizz-studio-host" }
+fizz-studio-protocol = { path = "../../crates/fizz-studio-protocol" }
+log = { workspace = true }
+tauri = { workspace = true }
+
+[build-dependencies]
+tauri-plugin = { workspace = true, features = ["build"] }
+
+[dev-dependencies]
+tauri = { workspace = true, features = ["test"] }

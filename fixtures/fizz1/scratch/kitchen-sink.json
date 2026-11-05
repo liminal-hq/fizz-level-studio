@@ -1,0 +1,530 @@
+{
+	"id": "scratch/kitchen-sink",
+	"from": "scratch/kitchen-sink.fizz",
+	"ast": {
+		"nodes": [
+			{
+				"type": "comment",
+				"line": 1,
+				"raw": "// Every statement once; compiled and run in the scratch crate to check the generated Rust is valid.",
+				"comment": "Every statement once; compiled and run in the scratch crate to check the generated Rust is valid."
+			},
+			{
+				"type": "level",
+				"name": "Kitchen Sink",
+				"w": 80,
+				"h": 40,
+				"ground": 4,
+				"id": "caves",
+				"line": 2,
+				"raw": "level \"Kitchen Sink\" 80x40 ground=4 id=caves",
+				"comment": null
+			},
+			{
+				"type": "theme",
+				"name": "caves",
+				"line": 3,
+				"raw": "theme caves",
+				"comment": null
+			},
+			{
+				"type": "area",
+				"name": "rock-candy-reach",
+				"line": 4,
+				"raw": "area rock-candy-reach",
+				"comment": null
+			},
+			{
+				"type": "start",
+				"x": {
+					"value": 3,
+					"text": "3"
+				},
+				"y": {
+					"value": 4,
+					"text": "4"
+				},
+				"line": 5,
+				"raw": "start 3,4",
+				"comment": null
+			},
+			{
+				"type": "arena",
+				"x": {
+					"lo": 40,
+					"hi": 60
+				},
+				"floor": {
+					"value": 4,
+					"text": "4"
+				},
+				"line": 6,
+				"raw": "arena x=40..60 floor=4",
+				"comment": null
+			},
+			{
+				"type": "section",
+				"name": "terrain",
+				"line": 7,
+				"raw": "terrain",
+				"comment": null
+			},
+			{
+				"type": "liquid",
+				"tile": "furnace",
+				"line": 8,
+				"raw": "  liquid furnace",
+				"comment": null
+			},
+			{
+				"type": "segs",
+				"segs": [
+					{
+						"seg": "flat",
+						"n": 10
+					},
+					{
+						"seg": "belt-r",
+						"n": 2
+					},
+					{
+						"seg": "belt-l",
+						"n": 2
+					},
+					{
+						"seg": "up",
+						"n": 2
+					},
+					{
+						"seg": "flat",
+						"n": 4
+					},
+					{
+						"seg": "down",
+						"n": 2
+					},
+					{
+						"seg": "pool",
+						"n": 3
+					},
+					{
+						"seg": "up22",
+						"n": 2
+					},
+					{
+						"seg": "flat",
+						"n": 4
+					},
+					{
+						"seg": "down22",
+						"n": 2
+					},
+					{
+						"seg": "gap",
+						"n": 2
+					},
+					{
+						"seg": "spikes",
+						"n": 2
+					},
+					{
+						"seg": "flat",
+						"n": 30
+					}
+				],
+				"line": 9,
+				"raw": "  flat 10, belt-r 2, belt-l 2, up 2, flat 4, down 2, pool 3, up22 2, flat 4, down22 2, gap 2, spikes 2, flat 30",
+				"comment": null
+			},
+			{
+				"type": "walls",
+				"line": 10,
+				"raw": "walls",
+				"comment": null
+			},
+			{
+				"type": "section",
+				"name": "blocks",
+				"line": 11,
+				"raw": "blocks",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "fill",
+				"x": {
+					"lo": 1,
+					"hi": 20
+				},
+				"y": {
+					"lo": 20,
+					"hi": 30
+				},
+				"line": 12,
+				"raw": "  fill x=1..20 y=20..30",
+				"comment": null
+			},
+			{
+				"type": "plat",
+				"x": {
+					"lo": 1,
+					"hi": 3
+				},
+				"y": 6,
+				"line": 13,
+				"raw": "  plat x=1..3 y=6",
+				"comment": null
+			},
+			{
+				"type": "hover",
+				"from": [
+					{
+						"value": 2,
+						"text": "2"
+					},
+					{
+						"value": 4.5,
+						"text": "4.5"
+					}
+				],
+				"to": [
+					{
+						"value": 8,
+						"text": "8"
+					},
+					{
+						"value": 4.5,
+						"text": "4.5"
+					}
+				],
+				"speed": {
+					"value": 0.3,
+					"text": "0.3"
+				},
+				"size": null,
+				"dwell": null,
+				"line": 14,
+				"raw": "  hover from=2,4.5 to=8,4.5 speed=0.3",
+				"comment": null
+			},
+			{
+				"type": "rect",
+				"op": "room",
+				"x": {
+					"lo": 1,
+					"hi": 5
+				},
+				"y": {
+					"lo": 22,
+					"hi": 25
+				},
+				"line": 15,
+				"raw": "  room x=1..5 y=22..25",
+				"comment": null
+			},
+			{
+				"type": "rect",
+				"op": "secret-room",
+				"x": {
+					"lo": 6,
+					"hi": 9
+				},
+				"y": {
+					"lo": 22,
+					"hi": 25
+				},
+				"line": 16,
+				"raw": "  secret-room x=6..9 y=22..25",
+				"comment": null
+			},
+			{
+				"type": "rect",
+				"op": "wall-behind",
+				"x": {
+					"lo": 10,
+					"hi": 19
+				},
+				"y": {
+					"lo": 21,
+					"hi": 29
+				},
+				"line": 17,
+				"raw": "  wall-behind x=10..19 y=21..29",
+				"comment": null
+			},
+			{
+				"type": "mural",
+				"x": 2,
+				"y": 8,
+				"line": 18,
+				"raw": "  mural x=2 y=8",
+				"comment": null
+			},
+			{
+				"type": "ladder",
+				"x": 4,
+				"y": {
+					"lo": 4,
+					"hi": 9
+				},
+				"line": 19,
+				"raw": "  ladder x=4 y=4..9",
+				"comment": null
+			},
+			{
+				"type": "stairs",
+				"side": "right",
+				"x": 30,
+				"y": 4,
+				"count": 3,
+				"line": 20,
+				"raw": "  stairs-right x=30 y=4 count=3",
+				"comment": null
+			},
+			{
+				"type": "stairs",
+				"side": "left",
+				"x": 40,
+				"y": 4,
+				"count": 3,
+				"line": 21,
+				"raw": "  stairs-left x=40 y=4 count=3",
+				"comment": null
+			},
+			{
+				"type": "vine-nook",
+				"x": 10,
+				"foot": 21,
+				"shelf": 24,
+				"dir": 1,
+				"depth": 3,
+				"h": 3,
+				"line": 22,
+				"raw": "  vine-nook x=10 foot=21 shelf=24 dir=1 depth=3 h=3",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "gate",
+				"x": {
+					"lo": 3,
+					"hi": 3
+				},
+				"y": {
+					"lo": 1,
+					"hi": 2
+				},
+				"line": 23,
+				"raw": "  gate x=3 y=1..2",
+				"comment": null
+			},
+			{
+				"type": "crystal",
+				"xs": [
+					{
+						"lo": 5,
+						"hi": 5
+					}
+				],
+				"line": 24,
+				"raw": "  crystal x=5",
+				"comment": null
+			},
+			{
+				"type": "section",
+				"name": "treats",
+				"line": 25,
+				"raw": "treats",
+				"comment": null
+			},
+			{
+				"type": "item",
+				"kind": "usb",
+				"xs": [
+					{
+						"lo": 2,
+						"hi": 2
+					}
+				],
+				"y": 2,
+				"line": 26,
+				"raw": "  usb x=2 y=2",
+				"comment": null
+			},
+			{
+				"type": "row",
+				"kind": "key-blue",
+				"x": {
+					"lo": 1,
+					"hi": 5
+				},
+				"y": 3,
+				"by": 2,
+				"line": 27,
+				"raw": "  row key-blue x=1..5 y=3 by=2",
+				"comment": null
+			},
+			{
+				"type": "pogo-cache",
+				"x": {
+					"lo": 8,
+					"hi": 10
+				},
+				"rise": 3,
+				"line": 28,
+				"raw": "  pogo-cache x=8..10 rise=3",
+				"comment": null
+			},
+			{
+				"type": "section",
+				"name": "enemies",
+				"line": 29,
+				"raw": "enemies",
+				"comment": null
+			},
+			{
+				"type": "spawn",
+				"kind": "gloop",
+				"xs": [
+					{
+						"value": 5,
+						"text": "5"
+					}
+				],
+				"y": null,
+				"dir": null,
+				"ride": false,
+				"line": 30,
+				"raw": "  gloop x=5",
+				"comment": null
+			},
+			{
+				"type": "spawn",
+				"kind": "hopper",
+				"xs": [
+					{
+						"value": 9,
+						"text": "9"
+					}
+				],
+				"y": {
+					"value": 5,
+					"text": "5"
+				},
+				"dir": null,
+				"ride": true,
+				"line": 31,
+				"raw": "  hopper x=9 y=5 ride",
+				"comment": null
+			},
+			{
+				"type": "spawn",
+				"kind": "mirror",
+				"xs": [
+					{
+						"value": 11,
+						"text": "11"
+					}
+				],
+				"y": {
+					"value": 6,
+					"text": "6"
+				},
+				"dir": {
+					"value": 1,
+					"text": "1"
+				},
+				"ride": false,
+				"line": 32,
+				"raw": "  mirror x=11 y=6 dir=1",
+				"comment": null
+			},
+			{
+				"type": "section",
+				"name": "edits",
+				"line": 33,
+				"raw": "edits",
+				"comment": null
+			},
+			{
+				"type": "paint",
+				"tile": "one-way",
+				"xs": [
+					{
+						"lo": 26,
+						"hi": 26
+					},
+					{
+						"lo": 28,
+						"hi": 28
+					},
+					{
+						"lo": 30,
+						"hi": 30
+					}
+				],
+				"ys": [
+					{
+						"lo": 9,
+						"hi": 9
+					}
+				],
+				"line": 34,
+				"raw": "  paint one-way x=26,28,30 y=9",
+				"comment": null
+			},
+			{
+				"type": "clear",
+				"xs": [
+					{
+						"lo": 12,
+						"hi": 14
+					}
+				],
+				"ys": [
+					{
+						"lo": 8,
+						"hi": 8
+					}
+				],
+				"line": 35,
+				"raw": "  clear x=12..14 y=8",
+				"comment": null
+			},
+			{
+				"type": "place",
+				"kind": "cheezie",
+				"xs": [
+					{
+						"lo": 26,
+						"hi": 26
+					},
+					{
+						"lo": 28,
+						"hi": 28
+					},
+					{
+						"lo": 30,
+						"hi": 30
+					}
+				],
+				"ys": [
+					{
+						"lo": 10,
+						"hi": 10
+					}
+				],
+				"line": 36,
+				"raw": "  place cheezie x=26,28,30 y=10",
+				"comment": null
+			},
+			{
+				"type": "blank",
+				"line": 37,
+				"raw": "",
+				"comment": null
+			}
+		]
+	},
+	"errors": []
+}

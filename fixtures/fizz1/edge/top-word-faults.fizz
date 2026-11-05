@@ -1,0 +1,18 @@
+level "T" 40x20 ground=4 id=crater
+start 3,4
+theme crater
+theme crater
+theme
+theme volcano
+area crater-fields extra
+area
+start
+start 1
+start 1,2,3
+start a,b
+walls
+walls
+walls now
+arena x=1..2
+arena x=1..2 floor=4
+arena x=1..2 floor=4

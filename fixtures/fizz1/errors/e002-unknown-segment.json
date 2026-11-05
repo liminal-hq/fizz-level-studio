@@ -1,0 +1,61 @@
+{
+	"id": "errors/e002-unknown-segment",
+	"from": "packages/language/test/errors.test.ts: E002 unknown tile, item and segment name the nearest match",
+	"ast": {
+		"nodes": [
+			{
+				"type": "level",
+				"name": "T",
+				"w": 40,
+				"h": 20,
+				"ground": 4,
+				"id": "crater",
+				"line": 1,
+				"raw": "level \"T\" 40x20 ground=4 id=crater",
+				"comment": null
+			},
+			{
+				"type": "start",
+				"x": {
+					"value": 3,
+					"text": "3"
+				},
+				"y": {
+					"value": 4,
+					"text": "4"
+				},
+				"line": 2,
+				"raw": "start 3,4",
+				"comment": null
+			},
+			{
+				"type": "section",
+				"name": "terrain",
+				"line": 3,
+				"raw": "terrain",
+				"comment": null
+			},
+			{
+				"type": "error",
+				"code": "E002",
+				"line": 4,
+				"raw": "  flat 3, ramp 2",
+				"comment": null
+			},
+			{
+				"type": "blank",
+				"line": 5,
+				"raw": "",
+				"comment": null
+			}
+		]
+	},
+	"errors": [
+		{
+			"line": 4,
+			"code": "E002",
+			"message": "unknown terrain segment `ramp`",
+			"fix": "did you mean `gap`?"
+		}
+	]
+}

@@ -1,0 +1,229 @@
+{
+	"id": "edge/top-word-faults",
+	"from": "tools/fizz1-cases.ts: top-level statements that are repeated, malformed or unknown",
+	"ast": {
+		"nodes": [
+			{
+				"type": "level",
+				"name": "T",
+				"w": 40,
+				"h": 20,
+				"ground": 4,
+				"id": "crater",
+				"line": 1,
+				"raw": "level \"T\" 40x20 ground=4 id=crater",
+				"comment": null
+			},
+			{
+				"type": "start",
+				"x": {
+					"value": 3,
+					"text": "3"
+				},
+				"y": {
+					"value": 4,
+					"text": "4"
+				},
+				"line": 2,
+				"raw": "start 3,4",
+				"comment": null
+			},
+			{
+				"type": "theme",
+				"name": "crater",
+				"line": 3,
+				"raw": "theme crater",
+				"comment": null
+			},
+			{
+				"type": "error",
+				"code": "E006",
+				"line": 4,
+				"raw": "theme crater",
+				"comment": null
+			},
+			{
+				"type": "error",
+				"code": "E006",
+				"line": 5,
+				"raw": "theme",
+				"comment": null
+			},
+			{
+				"type": "error",
+				"code": "E006",
+				"line": 6,
+				"raw": "theme volcano",
+				"comment": null
+			},
+			{
+				"type": "error",
+				"code": "E009",
+				"line": 7,
+				"raw": "area crater-fields extra",
+				"comment": null
+			},
+			{
+				"type": "error",
+				"code": "E006",
+				"line": 8,
+				"raw": "area",
+				"comment": null
+			},
+			{
+				"type": "error",
+				"code": "E006",
+				"line": 9,
+				"raw": "start",
+				"comment": null
+			},
+			{
+				"type": "error",
+				"code": "E006",
+				"line": 10,
+				"raw": "start 1",
+				"comment": null
+			},
+			{
+				"type": "error",
+				"code": "E006",
+				"line": 11,
+				"raw": "start 1,2,3",
+				"comment": null
+			},
+			{
+				"type": "error",
+				"code": "E006",
+				"line": 12,
+				"raw": "start a,b",
+				"comment": null
+			},
+			{
+				"type": "walls",
+				"line": 13,
+				"raw": "walls",
+				"comment": null
+			},
+			{
+				"type": "walls",
+				"line": 14,
+				"raw": "walls",
+				"comment": null
+			},
+			{
+				"type": "error",
+				"code": "E009",
+				"line": 15,
+				"raw": "walls now",
+				"comment": null
+			},
+			{
+				"type": "error",
+				"code": "E003",
+				"line": 16,
+				"raw": "arena x=1..2",
+				"comment": null
+			},
+			{
+				"type": "error",
+				"code": "E006",
+				"line": 17,
+				"raw": "arena x=1..2 floor=4",
+				"comment": null
+			},
+			{
+				"type": "error",
+				"code": "E006",
+				"line": 18,
+				"raw": "arena x=1..2 floor=4",
+				"comment": null
+			},
+			{
+				"type": "blank",
+				"line": 19,
+				"raw": "",
+				"comment": null
+			}
+		]
+	},
+	"errors": [
+		{
+			"line": 4,
+			"code": "E006",
+			"message": "a second `theme` line",
+			"fix": "keep one `theme` line"
+		},
+		{
+			"line": 5,
+			"code": "E006",
+			"message": "a second `theme` line",
+			"fix": "keep one `theme` line"
+		},
+		{
+			"line": 6,
+			"code": "E006",
+			"message": "a second `theme` line",
+			"fix": "keep one `theme` line"
+		},
+		{
+			"line": 7,
+			"code": "E009",
+			"message": "unexpected `extra`",
+			"fix": "this statement takes: one area name"
+		},
+		{
+			"line": 8,
+			"code": "E006",
+			"message": "a second `area` line",
+			"fix": "keep one `area` line"
+		},
+		{
+			"line": 9,
+			"code": "E006",
+			"message": "a second `start` line",
+			"fix": "keep one `start` line"
+		},
+		{
+			"line": 10,
+			"code": "E006",
+			"message": "a second `start` line",
+			"fix": "keep one `start` line"
+		},
+		{
+			"line": 11,
+			"code": "E006",
+			"message": "a second `start` line",
+			"fix": "keep one `start` line"
+		},
+		{
+			"line": 12,
+			"code": "E006",
+			"message": "a second `start` line",
+			"fix": "keep one `start` line"
+		},
+		{
+			"line": 15,
+			"code": "E009",
+			"message": "unexpected `now`",
+			"fix": "this statement takes: nothing"
+		},
+		{
+			"line": 16,
+			"code": "E003",
+			"message": "missing field `floor=`",
+			"fix": "add `floor=4`"
+		},
+		{
+			"line": 17,
+			"code": "E006",
+			"message": "a second `arena` line",
+			"fix": "keep one `arena` line"
+		},
+		{
+			"line": 18,
+			"code": "E006",
+			"message": "a second `arena` line",
+			"fix": "keep one `arena` line"
+		}
+	]
+}

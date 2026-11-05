@@ -1,0 +1,12 @@
+level "T" 40x20 ground=4 id=crater
+start 3,4
+terrain
+  flat 40
+enemies
+  gloop x=3.5, 7
+  gloop x=40
+  gloop x=-0.5
+  bat x=3 y=5 dir=-1
+  bat x=3 dir=1
+  bat x=3 y=5 ride ride
+  boss x=

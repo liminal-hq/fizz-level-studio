@@ -1,0 +1,13 @@
+[package]
+name = "fizz-studio-dialect"
+version = "0.1.0"
+description = "The Fizz 2 dialect port for the studio: a lossless document with diagnostics, print, and map-row rewrites, behind a trait that fizz-script will implement"
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+homepage.workspace = true
+repository.workspace = true
+publish = false
+
+[dependencies]
+fizz-studio-profile = { path = "../fizz-studio-profile" }

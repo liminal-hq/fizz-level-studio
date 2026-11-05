@@ -1,0 +1,91 @@
+{
+	"id": "objects/hover-size-and-dwell",
+	"from": "packages/language/test/objects.test.ts: hover with a size and a rest time (exports, and prints back as written)",
+	"ast": {
+		"nodes": [
+			{
+				"type": "level",
+				"name": "T",
+				"w": 40,
+				"h": 20,
+				"ground": 4,
+				"id": "crater",
+				"line": 1,
+				"raw": "level \"T\" 40x20 ground=4 id=crater",
+				"comment": null
+			},
+			{
+				"type": "start",
+				"x": {
+					"value": 3,
+					"text": "3"
+				},
+				"y": {
+					"value": 4,
+					"text": "4"
+				},
+				"line": 2,
+				"raw": "start 3,4",
+				"comment": null
+			},
+			{
+				"type": "section",
+				"name": "blocks",
+				"line": 3,
+				"raw": "blocks",
+				"comment": null
+			},
+			{
+				"type": "hover",
+				"from": [
+					{
+						"value": 18,
+						"text": "18"
+					},
+					{
+						"value": 10.5,
+						"text": "10.5"
+					}
+				],
+				"to": [
+					{
+						"value": 18,
+						"text": "18"
+					},
+					{
+						"value": 16.5,
+						"text": "16.5"
+					}
+				],
+				"speed": {
+					"value": 0.1,
+					"text": "0.1"
+				},
+				"size": [
+					{
+						"value": 3,
+						"text": "3"
+					},
+					{
+						"value": 0.5,
+						"text": "0.5"
+					}
+				],
+				"dwell": {
+					"value": 2,
+					"text": "2"
+				},
+				"line": 4,
+				"raw": "  hover from=18,10.5 to=18,16.5 speed=0.1 size=3x0.5 dwell=2",
+				"comment": null
+			},
+			{
+				"type": "blank",
+				"line": 5,
+				"raw": "",
+				"comment": null
+			}
+		]
+	},
+	"errors": []
+}

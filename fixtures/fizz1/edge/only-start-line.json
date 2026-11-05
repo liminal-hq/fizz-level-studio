@@ -1,0 +1,23 @@
+{
+	"id": "edge/only-start-line",
+	"from": "tools/fizz1-cases.ts: a script of one statement and no level header",
+	"ast": {
+		"nodes": [
+			{
+				"type": "error",
+				"code": "E007",
+				"line": 1,
+				"raw": "start 3,4",
+				"comment": null
+			}
+		]
+	},
+	"errors": [
+		{
+			"line": 1,
+			"code": "E007",
+			"message": "the script has a statement before its `level` header",
+			"fix": "start the script with: level \"Name\" 192x28 ground=4 id=crater"
+		}
+	]
+}

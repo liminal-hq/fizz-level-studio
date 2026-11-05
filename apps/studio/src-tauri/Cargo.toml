@@ -1,0 +1,44 @@
+[package]
+name = "fizz-level-studio"
+version = "0.1.0"
+description = "The level and overworld editor for Lieutenant Fizz"
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+homepage.workspace = true
+repository.workspace = true
+publish = false
+
+[lib]
+name = "fizz_level_studio_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { workspace = true }
+
+[dependencies]
+tauri = { workspace = true }
+log = { workspace = true }
+fizz-studio-protocol = { path = "../../../crates/fizz-studio-protocol" }
+fizz-studio-settings = { path = "../../../crates/fizz-studio-settings" }
+tauri-plugin-fizz-studio-settings = { path = "../../../plugins/fizz-studio-settings" }
+tauri-plugin-fizz-studio-host = { path = "../../../plugins/fizz-studio-host" }
+chrono = { workspace = true }
+tauri-plugin-log = "2"
+tauri-plugin-os = "2"
+tauri-plugin-dialog = "2"
+tauri-plugin-single-instance = "2"
+tauri-plugin-prevent-default = "6"
+serde = { workspace = true }
+
+[dev-dependencies]
+serde_json = { workspace = true }
+tauri = { workspace = true, features = ["test"] }
+
+# Debug-only automation bridge, registered under `#[cfg(all(debug_assertions, not(windows)))]` in
+# `src/lib.rs`. It must be a normal dependency (dev-dependencies are not available to the lib target)
+# even though release builds never activate it. It is left out on Windows: 0.13.0 depends on
+# `webview2-com` 0.38 while Tauri 2.12 uses 0.39, so the two do not compile together there. Drop the
+# `cfg` once a bridge release matches Tauri's `windows` crate.
+[target.'cfg(not(windows))'.dependencies]
+tauri-plugin-mcp-bridge = "0.13"

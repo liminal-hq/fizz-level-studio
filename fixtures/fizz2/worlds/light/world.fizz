@@ -1,0 +1,3 @@
+script fizz2 0
+world "Lighthouse Point" id=light pack=LIGHT target=ep2
+levels   levels/light-1.fizz

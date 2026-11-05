@@ -1,0 +1,101 @@
+{
+	"id": "objects/edits-lift-and-room",
+	"from": "packages/language/test/objects.test.ts: the edits block takes a lift and a room",
+	"ast": {
+		"nodes": [
+			{
+				"type": "level",
+				"name": "T",
+				"w": 40,
+				"h": 20,
+				"ground": 4,
+				"id": "crater",
+				"line": 1,
+				"raw": "level \"T\" 40x20 ground=4 id=crater",
+				"comment": null
+			},
+			{
+				"type": "start",
+				"x": {
+					"value": 3,
+					"text": "3"
+				},
+				"y": {
+					"value": 4,
+					"text": "4"
+				},
+				"line": 2,
+				"raw": "start 3,4",
+				"comment": null
+			},
+			{
+				"type": "section",
+				"name": "blocks",
+				"line": 3,
+				"raw": "blocks",
+				"comment": null
+			},
+			{
+				"type": "section",
+				"name": "edits",
+				"line": 4,
+				"raw": "edits",
+				"comment": null
+			},
+			{
+				"type": "hover",
+				"from": [
+					{
+						"value": 1,
+						"text": "1"
+					},
+					{
+						"value": 5,
+						"text": "5"
+					}
+				],
+				"to": [
+					{
+						"value": 4,
+						"text": "4"
+					},
+					{
+						"value": 5,
+						"text": "5"
+					}
+				],
+				"speed": {
+					"value": 0.3,
+					"text": "0.3"
+				},
+				"size": null,
+				"dwell": null,
+				"line": 5,
+				"raw": "  hover from=1,5 to=4,5 speed=0.3",
+				"comment": null
+			},
+			{
+				"type": "rect",
+				"op": "room",
+				"x": {
+					"lo": 2,
+					"hi": 6
+				},
+				"y": {
+					"lo": 4,
+					"hi": 8
+				},
+				"line": 6,
+				"raw": "  room x=2..6 y=4..8",
+				"comment": null
+			},
+			{
+				"type": "blank",
+				"line": 7,
+				"raw": "",
+				"comment": null
+			}
+		]
+	},
+	"errors": []
+}

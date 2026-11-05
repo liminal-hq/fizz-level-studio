@@ -1,0 +1,82 @@
+{
+	"id": "objects/edits-two-arenas",
+	"from": "packages/language/test/objects.test.ts: the edits block takes the boss arena once",
+	"ast": {
+		"nodes": [
+			{
+				"type": "level",
+				"name": "T",
+				"w": 40,
+				"h": 20,
+				"ground": 4,
+				"id": "crater",
+				"line": 1,
+				"raw": "level \"T\" 40x20 ground=4 id=crater",
+				"comment": null
+			},
+			{
+				"type": "start",
+				"x": {
+					"value": 3,
+					"text": "3"
+				},
+				"y": {
+					"value": 4,
+					"text": "4"
+				},
+				"line": 2,
+				"raw": "start 3,4",
+				"comment": null
+			},
+			{
+				"type": "section",
+				"name": "blocks",
+				"line": 3,
+				"raw": "blocks",
+				"comment": null
+			},
+			{
+				"type": "section",
+				"name": "edits",
+				"line": 4,
+				"raw": "edits",
+				"comment": null
+			},
+			{
+				"type": "arena",
+				"x": {
+					"lo": 10,
+					"hi": 30
+				},
+				"floor": {
+					"value": 4,
+					"text": "4"
+				},
+				"line": 5,
+				"raw": "  arena x=10..30 floor=4",
+				"comment": null
+			},
+			{
+				"type": "error",
+				"code": "E006",
+				"line": 6,
+				"raw": "  arena x=2..9 floor=4",
+				"comment": null
+			},
+			{
+				"type": "blank",
+				"line": 7,
+				"raw": "",
+				"comment": null
+			}
+		]
+	},
+	"errors": [
+		{
+			"line": 6,
+			"code": "E006",
+			"message": "a second `arena` line",
+			"fix": "keep one `arena` line"
+		}
+	]
+}

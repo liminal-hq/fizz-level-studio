@@ -1,0 +1,43 @@
+{
+	"id": "edge/level-header-extra-field",
+	"from": "tools/fizz1-cases.ts: a level header with an unknown field",
+	"ast": {
+		"nodes": [
+			{
+				"type": "error",
+				"code": "E009",
+				"line": 1,
+				"raw": "level \"T\" 40x20 ground=4 id=crater colour=red",
+				"comment": null
+			},
+			{
+				"type": "start",
+				"x": {
+					"value": 3,
+					"text": "3"
+				},
+				"y": {
+					"value": 4,
+					"text": "4"
+				},
+				"line": 2,
+				"raw": "start 3,4",
+				"comment": null
+			},
+			{
+				"type": "blank",
+				"line": 3,
+				"raw": "",
+				"comment": null
+			}
+		]
+	},
+	"errors": [
+		{
+			"line": 1,
+			"code": "E009",
+			"message": "unknown field `colour=`",
+			"fix": "this statement takes: ground=N id=NAME"
+		}
+	]
+}

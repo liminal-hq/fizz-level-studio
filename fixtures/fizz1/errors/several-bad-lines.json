@@ -1,0 +1,93 @@
+{
+	"id": "errors/several-bad-lines",
+	"from": "packages/language/test/errors.test.ts: several bad lines are all reported, in line order",
+	"ast": {
+		"nodes": [
+			{
+				"type": "level",
+				"name": "T",
+				"w": 40,
+				"h": 20,
+				"ground": 4,
+				"id": "crater",
+				"line": 1,
+				"raw": "level \"T\" 40x20 ground=4 id=crater",
+				"comment": null
+			},
+			{
+				"type": "start",
+				"x": {
+					"value": 3,
+					"text": "3"
+				},
+				"y": {
+					"value": 4,
+					"text": "4"
+				},
+				"line": 2,
+				"raw": "start 3,4",
+				"comment": null
+			},
+			{
+				"type": "section",
+				"name": "terrain",
+				"line": 3,
+				"raw": "terrain",
+				"comment": null
+			},
+			{
+				"type": "segs",
+				"segs": [
+					{
+						"seg": "flat",
+						"n": 40
+					}
+				],
+				"line": 4,
+				"raw": "  flat 40",
+				"comment": null
+			},
+			{
+				"type": "section",
+				"name": "blocks",
+				"line": 5,
+				"raw": "blocks",
+				"comment": null
+			},
+			{
+				"type": "error",
+				"code": "E001",
+				"line": 6,
+				"raw": "  blok x=1 y=1",
+				"comment": null
+			},
+			{
+				"type": "error",
+				"code": "E003",
+				"line": 7,
+				"raw": "  block x=1",
+				"comment": null
+			},
+			{
+				"type": "blank",
+				"line": 8,
+				"raw": "",
+				"comment": null
+			}
+		]
+	},
+	"errors": [
+		{
+			"line": 6,
+			"code": "E001",
+			"message": "unknown statement `blok` in `blocks`",
+			"fix": "did you mean `block`?"
+		},
+		{
+			"line": 7,
+			"code": "E003",
+			"message": "missing field `y=`",
+			"fix": "add `y=10`"
+		}
+	]
+}

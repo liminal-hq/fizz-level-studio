@@ -1,0 +1,78 @@
+// Gumdrop Isle: rebuilt from the game's own data by tools/decompile-level.ts.
+level "Gumdrop Isle" 124x40 ground=4 id=gumdrop-isle
+theme open-sky
+area gumdrop-isle
+start 3,4
+
+blocks
+  block x=0 y=0..39
+  fill x=1..9 y=0..3
+  fill x=13..18 y=0..3
+  fill x=27..40 y=0..3
+  fill x=44..49 y=0..6
+  fill x=60..76 y=0..3
+  fill x=80..87 y=0..3
+  fill x=94..122 y=0..3
+  block x=123 y=0..39
+  one-way x=90..91 y=3
+  crystal-tile x=6 y=4
+  crystal-tile x=16 y=4
+  crystal-tile x=30 y=4
+  slope-r45 x=33 y=4
+  fill x=34..40 y=4
+  fill x=60..69 y=4
+  slope-l45 x=70 y=4
+  crystal-tile x=82 y=4
+  crystal-tile x=100 y=4
+  crystal-tile x=116 y=4
+  exit x=120 y=4..5
+  slope-r45 x=34 y=5
+  fill x=35..40 y=5
+  fill x=60..68 y=5
+  slope-l45 x=69 y=5
+  slope-r45 x=35 y=6
+  fill x=36..40 y=6
+  fill x=60..67 y=6
+  slope-l45 x=68 y=6
+  crystal-tile x=46 y=7
+  crystal-tile x=64 y=7
+  hover from=19,3.5 to=24,3.5 speed=0.3
+  hover from=50,6.5 to=54,6.5 speed=0.3
+  hover from=54,6.5 to=58,6.5 speed=0.3
+
+treats
+  row cookie x=60..66 y=8
+  row cookie x=60..66 y=9
+  row cookie x=60..66 y=10
+  row cookie x=100..106 y=5
+  row cookie x=100..106 y=6
+  row cookie x=100..106 y=7
+  row cheezie x=2..8 y=6
+  row choc x=10..12 y=8
+  row cheezie x=14..18 y=6
+  row choc x=19..26 y=8
+  soda x=30 y=6
+  row cheezie x=28..32 y=8
+  row choc x=41..43 y=10
+  row cheezie x=45..49 y=9
+  row choc x=50..59 y=10
+  row cheezie x=72..76 y=6
+  row choc x=77..79 y=7
+  row cheezie x=81..86 y=6
+  row choc x=88..93 y=6
+  row cheezie x=94..98 y=6
+  soda x=98 y=6
+  row choc x=110..115 y=5
+
+enemies
+  gloop x=8 y=4
+  gloop x=74 y=4
+  gloop x=110 y=4
+  hopper x=15 y=4
+  hopper x=38 y=7
+  hopper x=62 y=7
+  hopper x=82 y=4
+  pod x=46 y=7
+  drone x=28.5 y=9.5
+  drone x=48.5 y=12.5
+  drone x=100.5 y=10.5

@@ -1,0 +1,43 @@
+[workspace]
+members = [
+	"apps/studio/src-tauri",
+	"crates/fizz-studio-dialect",
+	"crates/fizz-studio-games",
+	"crates/fizz-studio-host",
+	"crates/fizz-studio-language",
+	"crates/fizz-studio-profile",
+	"crates/fizz-studio-protocol",
+	"crates/fizz-studio-session",
+	"crates/fizz-studio-settings",
+	"plugins/fizz-studio-host",
+	"plugins/fizz-studio-settings",
+	"crates/fizz-studio-world",
+]
+# The proof workspace is a copy of the game's crates and builds on its own.
+exclude = ["scratch/rust"]
+resolver = "2"
+
+[workspace.package]
+edition = "2021"
+authors = ["Liminal HQ, Scott Morris"]
+license = "Apache-2.0 OR MIT"
+rust-version = "1.98.0"
+homepage = "https://github.com/liminal-hq/fizz-level-studio"
+repository = "https://github.com/liminal-hq/fizz-level-studio"
+
+[workspace.dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = { version = "1", features = ["float_roundtrip"] }
+thiserror = "2"
+ts-rs = "12"
+log = "0.4"
+chrono = "0.4"
+tauri = { version = "2" }
+tauri-build = { version = "2" }
+tauri-plugin = { version = "2" }
+tempfile = "3"
+notify = "8"
+diffy = "0.5"
+
+[profile.release]
+strip = true

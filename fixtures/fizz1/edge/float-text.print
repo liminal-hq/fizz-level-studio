@@ -1,0 +1,4 @@
+level "T" 40x20 ground=4 id=crater
+start 3.50,4.0
+blocks
+  hover from=1.10,5.0 to=4.250,5.00 speed=0.30 size=3.0x0.50 dwell=2.0

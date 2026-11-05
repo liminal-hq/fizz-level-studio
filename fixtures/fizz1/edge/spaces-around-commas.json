@@ -1,0 +1,118 @@
+{
+	"id": "edge/spaces-around-commas",
+	"from": "tools/fizz1-cases.ts: whitespace before and after commas in lists and pairs",
+	"ast": {
+		"nodes": [
+			{
+				"type": "level",
+				"name": "T",
+				"w": 40,
+				"h": 20,
+				"ground": 4,
+				"id": "crater",
+				"line": 1,
+				"raw": "level \"T\" 40x20 ground=4 id=crater",
+				"comment": null
+			},
+			{
+				"type": "start",
+				"x": {
+					"value": 3,
+					"text": "3"
+				},
+				"y": {
+					"value": 4,
+					"text": "4"
+				},
+				"line": 2,
+				"raw": "start 3,4",
+				"comment": null
+			},
+			{
+				"type": "section",
+				"name": "terrain",
+				"line": 3,
+				"raw": "terrain",
+				"comment": null
+			},
+			{
+				"type": "segs",
+				"segs": [
+					{
+						"seg": "flat",
+						"n": 40
+					}
+				],
+				"line": 4,
+				"raw": "  flat 40",
+				"comment": null
+			},
+			{
+				"type": "section",
+				"name": "blocks",
+				"line": 5,
+				"raw": "blocks",
+				"comment": null
+			},
+			{
+				"type": "hover",
+				"from": [
+					{
+						"value": 1,
+						"text": "1"
+					},
+					{
+						"value": 5,
+						"text": "5"
+					}
+				],
+				"to": [
+					{
+						"value": 4,
+						"text": "4"
+					},
+					{
+						"value": 5,
+						"text": "5"
+					}
+				],
+				"speed": {
+					"value": 0.3,
+					"text": "0.3"
+				},
+				"size": null,
+				"dwell": null,
+				"line": 6,
+				"raw": "  hover from=1 , 5 to=4 ,5 speed=0.3",
+				"comment": null
+			},
+			{
+				"type": "crystal",
+				"xs": [
+					{
+						"lo": 1,
+						"hi": 1
+					},
+					{
+						"lo": 3,
+						"hi": 3
+					},
+					{
+						"lo": 5,
+						"hi": 6
+					}
+				],
+				"line": 7,
+				"raw": "  crystal x=1 ,\t3 , 5..6",
+				"comment": null
+			},
+			{
+				"type": "blank",
+				"line": 8,
+				"raw": "",
+				"comment": null
+			}
+		]
+	},
+	"errors": []
+}

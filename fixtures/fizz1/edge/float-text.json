@@ -1,0 +1,91 @@
+{
+	"id": "edge/float-text",
+	"from": "tools/fizz1-cases.ts: decimals print as written, trailing zeros included",
+	"ast": {
+		"nodes": [
+			{
+				"type": "level",
+				"name": "T",
+				"w": 40,
+				"h": 20,
+				"ground": 4,
+				"id": "crater",
+				"line": 1,
+				"raw": "level \"T\" 40x20 ground=4 id=crater",
+				"comment": null
+			},
+			{
+				"type": "start",
+				"x": {
+					"value": 3.5,
+					"text": "3.50"
+				},
+				"y": {
+					"value": 4,
+					"text": "4.0"
+				},
+				"line": 2,
+				"raw": "start 3.50,4.0",
+				"comment": null
+			},
+			{
+				"type": "section",
+				"name": "blocks",
+				"line": 3,
+				"raw": "blocks",
+				"comment": null
+			},
+			{
+				"type": "hover",
+				"from": [
+					{
+						"value": 1.1,
+						"text": "1.10"
+					},
+					{
+						"value": 5,
+						"text": "5.0"
+					}
+				],
+				"to": [
+					{
+						"value": 4.25,
+						"text": "4.250"
+					},
+					{
+						"value": 5,
+						"text": "5.00"
+					}
+				],
+				"speed": {
+					"value": 0.3,
+					"text": "0.30"
+				},
+				"size": [
+					{
+						"value": 3,
+						"text": "3.0"
+					},
+					{
+						"value": 0.5,
+						"text": "0.50"
+					}
+				],
+				"dwell": {
+					"value": 2,
+					"text": "2.0"
+				},
+				"line": 4,
+				"raw": "  hover from=1.10,5.0 to=4.250,5.00 speed=0.30 size=3.0x0.50 dwell=2.0",
+				"comment": null
+			},
+			{
+				"type": "blank",
+				"line": 5,
+				"raw": "",
+				"comment": null
+			}
+		]
+	},
+	"errors": []
+}

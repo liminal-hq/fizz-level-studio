@@ -1,0 +1,87 @@
+{
+	"id": "printer/odd-spacing-crlf-no-final-newline",
+	"from": "packages/language/test/printer.test.ts: odd spacing, comments, blank lines, CRLF and no final newline survive",
+	"ast": {
+		"nodes": [
+			{
+				"type": "comment",
+				"line": 1,
+				"raw": "// top\r",
+				"comment": "top"
+			},
+			{
+				"type": "blank",
+				"line": 2,
+				"raw": "\r",
+				"comment": null
+			},
+			{
+				"type": "level",
+				"name": "X",
+				"w": 10,
+				"h": 10,
+				"ground": 2,
+				"id": "crater",
+				"line": 3,
+				"raw": "level   \"X\"  10x10   ground=2 id=crater   // why\r",
+				"comment": "why"
+			},
+			{
+				"type": "start",
+				"x": {
+					"value": 1,
+					"text": "1"
+				},
+				"y": {
+					"value": 2,
+					"text": "2"
+				},
+				"line": 4,
+				"raw": "start  1 , 2\r",
+				"comment": null
+			},
+			{
+				"type": "blank",
+				"line": 5,
+				"raw": "\r",
+				"comment": null
+			},
+			{
+				"type": "blank",
+				"line": 6,
+				"raw": "\r",
+				"comment": null
+			},
+			{
+				"type": "section",
+				"name": "terrain",
+				"line": 7,
+				"raw": "terrain\r",
+				"comment": null
+			},
+			{
+				"type": "segs",
+				"segs": [
+					{
+						"seg": "flat",
+						"n": 3
+					},
+					{
+						"seg": "up",
+						"n": 1
+					}
+				],
+				"line": 8,
+				"raw": "      flat   3,up 1\r",
+				"comment": null
+			},
+			{
+				"type": "comment",
+				"line": 9,
+				"raw": "// last",
+				"comment": "last"
+			}
+		]
+	},
+	"errors": []
+}

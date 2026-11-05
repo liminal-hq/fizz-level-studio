@@ -1,0 +1,77 @@
+// Citadel: rebuilt from the game's own data by tools/decompile-level.ts.
+level "Citadel" 158x26 ground=4 id=citadel
+theme citadel
+area frosting-frontier
+start 3,4
+arena x=118..147 floor=4
+
+blocks
+  block x=0 y=0..25
+  fill x=1..156 y=0
+  block x=157 y=0..3
+  fill x=1..70 y=1..3
+  choc x=71..76 y=1..2
+  fill x=77..156 y=1..3
+  crystal-tile x=10 y=4
+  slope-r22a x=14 y=4
+  slope-r22b x=15 y=4
+  fill x=16..26 y=4
+  slope-l45 x=27 y=4
+  spike x=28..30 y=4
+  slope-r45 x=41 y=4
+  fill x=42..57 y=4
+  slope-l45 x=58 y=4
+  crystal-tile x=64 y=4
+  slope-r22a x=89 y=4
+  slope-r22b x=90 y=4
+  fill x=91..107 y=4
+  slope-l45 x=108 y=4
+  crystal-tile x=110 y=4
+  block x=148..157 y=4..8
+  slope-r22a x=16 y=5
+  slope-r22b x=17 y=5
+  fill x=18..25 y=5
+  slope-l45 x=26 y=5
+  slope-r45 x=42 y=5
+  fill x=43..56 y=5
+  slope-l45 x=57 y=5
+  slope-r22a x=91 y=5
+  slope-r22b x=92 y=5
+  fill x=93..106 y=5
+  slope-l45 x=107 y=5
+  slope-r45 x=43 y=6
+  fill x=44..55 y=6
+  slope-l45 x=56 y=6
+  slope-r45 x=44 y=7
+  fill x=45..54 y=7
+  slope-l45 x=55 y=7
+  block x=117 y=8..17
+  one-way x=124..127 y=8
+  one-way x=137..140 y=8
+  block x=157 y=9..25
+  one-way x=96..99 y=10
+  fill x=1..116 y=15..17
+  fill x=1..156 y=18..25
+
+treats
+  row cookie x=18..24 y=8 by=3
+  row choc x=32..40 y=6 by=2
+  row cheezie x=45..52 y=10
+  soda x=60 y=5
+  row cheezie x=71..76 y=7
+  row choc x=80..86 y=6 by=2
+  row cookie x=96..98 y=11 by=2
+  soda x=104 y=7
+  row cheezie x=109..114 y=6
+
+enemies
+  roller x=50 y=8
+  marsh x=36 y=4
+  sentry x=66 y=8
+  sentry x=101 y=10
+  phantom x=84 y=4
+  phantom x=112 y=4
+  beetle x=95 y=6
+  boss x=138 y=4
+  terminal x=120 y=4
+  cage x=152 y=9

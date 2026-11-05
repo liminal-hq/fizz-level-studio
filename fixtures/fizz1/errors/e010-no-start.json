@@ -1,0 +1,33 @@
+{
+	"id": "errors/e010-no-start",
+	"from": "packages/language/test/errors.test.ts: E010 a script with no start line is reported on the level line",
+	"ast": {
+		"nodes": [
+			{
+				"type": "level",
+				"name": "T",
+				"w": 10,
+				"h": 10,
+				"ground": 2,
+				"id": "crater",
+				"line": 1,
+				"raw": "level \"T\" 10x10 ground=2 id=crater",
+				"comment": null
+			},
+			{
+				"type": "blank",
+				"line": 2,
+				"raw": "",
+				"comment": null
+			}
+		]
+	},
+	"errors": [
+		{
+			"line": 1,
+			"code": "E010",
+			"message": "the script has no `start` line",
+			"fix": "add `start 3,4` (Ben's spawn tile, x then y)"
+		}
+	]
+}

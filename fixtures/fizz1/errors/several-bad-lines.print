@@ -1,0 +1,7 @@
+level "T" 40x20 ground=4 id=crater
+start 3,4
+terrain
+  flat 40
+blocks
+  blok x=1 y=1
+  block x=1

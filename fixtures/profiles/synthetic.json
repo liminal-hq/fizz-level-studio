@@ -1,0 +1,24 @@
+{
+	"id": "synthetic",
+	"name": "Synthetic test profile",
+	"provisional": "A made-up third profile that proves nothing in the editor is hard-coded to Episode 2.",
+	"dialects": [{ "name": "fizz2", "version": 0 }],
+	"legend": [
+		{ "letter": "_", "tile": "AIR", "id": 0, "meaning": "Nothing" },
+		{ "letter": "X", "tile": "ROCK", "id": 1, "meaning": "Solid" },
+		{ "letter": "T", "tile": "SHELF", "id": 3, "meaning": "A one-way shelf" }
+	],
+	"limits": {
+		"rules": 4,
+		"states": 4,
+		"state_values": 2,
+		"strings": 4,
+		"string_bytes": 12,
+		"sprite_min": 1,
+		"sprite_max": 64
+	},
+	"capabilities": {
+		"map-grid": "accepted",
+		"states": "reserved"
+	}
+}

@@ -1,0 +1,40 @@
+{
+	"id": "edge/whitespace-only",
+	"from": "tools/fizz1-cases.ts: a file of whitespace only",
+	"ast": {
+		"nodes": [
+			{
+				"type": "blank",
+				"line": 1,
+				"raw": "  ",
+				"comment": null
+			},
+			{
+				"type": "blank",
+				"line": 2,
+				"raw": "\t",
+				"comment": null
+			},
+			{
+				"type": "blank",
+				"line": 3,
+				"raw": " \r",
+				"comment": null
+			},
+			{
+				"type": "blank",
+				"line": 4,
+				"raw": "",
+				"comment": null
+			}
+		]
+	},
+	"errors": [
+		{
+			"line": 1,
+			"code": "E007",
+			"message": "the script has no `level` header",
+			"fix": "start the script with: level \"Name\" 192x28 ground=4 id=crater"
+		}
+	]
+}

@@ -1,0 +1,8 @@
+level "T" 40x20 ground=4 id=crater
+start 3,4
+terrain
+  flat 40
+blocks
+  block x=-0 y=007
+enemies
+  drone x=1.50 y=-0.0

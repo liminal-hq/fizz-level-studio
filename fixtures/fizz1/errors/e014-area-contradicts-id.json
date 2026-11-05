@@ -1,0 +1,54 @@
+{
+	"id": "errors/e014-area-contradicts-id",
+	"from": "packages/language/test/errors.test.ts: E014 theme or area that contradicts the level id",
+	"ast": {
+		"nodes": [
+			{
+				"type": "level",
+				"name": "T",
+				"w": 40,
+				"h": 20,
+				"ground": 4,
+				"id": "crater",
+				"line": 1,
+				"raw": "level \"T\" 40x20 ground=4 id=crater",
+				"comment": null
+			},
+			{
+				"type": "start",
+				"x": {
+					"value": 3,
+					"text": "3"
+				},
+				"y": {
+					"value": 4,
+					"text": "4"
+				},
+				"line": 2,
+				"raw": "start 3,4",
+				"comment": null
+			},
+			{
+				"type": "error",
+				"code": "E014",
+				"line": 3,
+				"raw": "area gumdrop-isle",
+				"comment": null
+			},
+			{
+				"type": "blank",
+				"line": 4,
+				"raw": "",
+				"comment": null
+			}
+		]
+	},
+	"errors": [
+		{
+			"line": 3,
+			"code": "E014",
+			"message": "area `gumdrop-isle` contradicts id `crater`, whose area in the level table is `crater-fields`",
+			"fix": "write `area crater-fields`, or remove the line (the level table in levels.rs decides area)"
+		}
+	]
+}

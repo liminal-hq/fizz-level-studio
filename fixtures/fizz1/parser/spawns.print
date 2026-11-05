@@ -1,0 +1,9 @@
+level "T" 40x20 ground=4 id=crater
+start 3,4
+terrain
+  flat 30
+enemies
+  gloop x=3, 5
+  drone x=8.5 y=7.5
+  hopper x=9 y=5 ride
+  mirror x=11 y=6 dir=1

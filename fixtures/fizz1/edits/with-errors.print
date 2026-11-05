@@ -1,0 +1,9 @@
+level "T" 40x20 ground=4 id=crater
+start 3,4
+
+terrain
+  flat 40   // all flat
+
+treats
+  soda x=5 y=5
+floop 1

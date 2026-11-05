@@ -1,0 +1,22 @@
+{
+	"id": "printer/empty-script",
+	"from": "packages/language/test/printer.test.ts: the empty script and a lone newline round-trip",
+	"ast": {
+		"nodes": [
+			{
+				"type": "blank",
+				"line": 1,
+				"raw": "",
+				"comment": null
+			}
+		]
+	},
+	"errors": [
+		{
+			"line": 1,
+			"code": "E007",
+			"message": "the script has no `level` header",
+			"fix": "start the script with: level \"Name\" 192x28 ground=4 id=crater"
+		}
+	]
+}

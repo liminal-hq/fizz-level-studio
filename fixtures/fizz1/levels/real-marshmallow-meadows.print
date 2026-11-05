@@ -1,0 +1,114 @@
+// Marshmallow Meadows: rebuilt from the game's own data by tools/decompile-level.ts.
+level "Marshmallow Meadows" 220x32 ground=4 id=marshmallow-meadows
+theme open-sky
+area marshmallow-meadows
+start 3,4
+
+blocks
+  block x=0 y=0..31
+  fill x=1..37 y=0..3
+  fill x=41..80 y=0..3
+  fill x=84..117 y=0..3
+  fill x=121..143 y=0..2
+  fill x=147..174 y=0..2
+  fill x=178..218 y=0..4
+  block x=219 y=0..31
+  fill x=121..136 y=3
+  slope-l45 x=137 y=3
+  crystal-tile x=142 y=3
+  blue-door x=150 y=3..4
+  slope-r45 x=157 y=3
+  fill x=158..174 y=3
+  crystal-tile x=8 y=4
+  slope-r45 x=14 y=4
+  fill x=15..26 y=4
+  slope-l45 x=27 y=4
+  block x=29 y=4..5
+  block x=36 y=4..5
+  crystal-tile x=48 y=4
+  slope-r22a x=53 y=4
+  slope-r22b x=54 y=4
+  fill x=55..68 y=4
+  slope-l22a x=69 y=4
+  slope-l22b x=70 y=4
+  crystal-tile x=74 y=4
+  slope-r45 x=92 y=4
+  fill x=93..117 y=4
+  fill x=121..135 y=4
+  slope-l45 x=136 y=4
+  slope-r45 x=158 y=4
+  fill x=159..174 y=4
+  slope-r45 x=15 y=5
+  fill x=16..25 y=5
+  slope-l45 x=26 y=5
+  slope-r22a x=55 y=5
+  slope-r22b x=56 y=5
+  fill x=57..66 y=5
+  slope-l22a x=67 y=5
+  slope-l22b x=68 y=5
+  slope-r45 x=93 y=5
+  fill x=94..117 y=5
+  fill x=121..134 y=5
+  slope-l45 x=135 y=5
+  block x=150 y=5..31
+  slope-r45 x=159 y=5
+  fill x=160..174 y=5
+  fill x=178..188 y=5
+  slope-l45 x=189 y=5
+  crystal-tile x=205 y=5
+  exit x=215 y=5..6
+  slope-r45 x=16 y=6
+  fill x=17..24 y=6
+  slope-l45 x=25 y=6
+  crystal-tile x=96 y=6
+  block x=100 y=6..7
+  block x=108 y=6..7
+  crystal-tile x=126 y=6
+  slope-r45 x=160 y=6
+  fill x=161..174 y=6
+  fill x=178..187 y=6
+  slope-l45 x=188 y=6
+  crystal-tile x=24 y=7
+  crystal-tile x=164 y=7
+  crystal-tile x=185 y=7
+  one-way x=58..60 y=8
+  one-way x=62..64 y=11
+  one-way x=58..60 y=14
+
+treats
+  key-blue x=59 y=15
+  row cheezie x=6..11 y=6
+  row cheezie x=18..23 y=9
+  row cheezie x=30..35 y=9
+  soda x=33 y=7
+  row choc x=38..40 y=8
+  row cheezie x=44..51 y=6
+  cookie x=63 y=12
+  row cheezie x=70..75 y=6
+  row choc x=81..83 y=8
+  row cheezie x=96..99 y=9
+  row cheezie x=102..106 y=11
+  soda x=104 y=12
+  row cheezie x=118..120 y=9
+  row cheezie x=125..130 y=8
+  cookie x=140 y=6
+  row choc x=144..146 y=7
+  row cheezie x=160..164 y=9
+  row choc x=175..177 y=11
+  soda x=182 y=10
+  row cookie x=196..202 y=8 by=3
+
+enemies
+  marsh x=32 y=4
+  marsh x=104 y=6
+  gloop x=20 y=7
+  gloop x=45 y=4
+  gloop x=74 y=4
+  gloop x=125 y=6
+  gloop x=195 y=5
+  hopper x=60 y=6
+  hopper x=112 y=6
+  hopper x=165 y=7
+  pod x=141 y=3
+  drone x=90.5 y=10.5
+  drone x=170.5 y=12.5

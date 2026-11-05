@@ -1,0 +1,71 @@
+// Whisper Hollow: rebuilt from the game's own data by tools/decompile-level.ts.
+level "Whisper Hollow" 112x40 ground=4 id=whisper-hollow
+theme caves
+area rock-candy-reach
+start 3,3
+
+blocks
+  fill x=0..111 y=0
+  fill x=0..7 y=1..2
+  choc x=8..22 y=1..2
+  fill x=23..48 y=1..2
+  choc x=49..86 y=1..2
+  fill x=87..111 y=1..2
+  fill x=0 y=3..11
+  crystal-tile x=5 y=3
+  vine x=7 y=3..7
+  vine x=23 y=3..7
+  crystal-tile x=27 y=3
+  fill x=34..52 y=3..9
+  fill x=80..111 y=3..21
+  fill x=30 y=6..11
+  vine x=7..23 y=8
+  cracked x=34 y=10..11
+  fill x=39..52 y=10..13
+  fill x=0..30 y=12..25
+  fill x=34 y=12..13
+  vine x=31 y=14..25
+  fill x=34..52 y=14..21
+  vine x=56 y=20..34
+  vine x=60 y=20..34
+  vine x=64 y=20..34
+  vine x=68 y=20..34
+  vine x=72 y=20..34
+  vine x=76 y=20..34
+  crystal-tile x=36 y=22
+  crystal-tile x=84 y=22
+  fill x=90..92 y=22..25
+  fill x=95..97 y=22..29
+  crystal-tile x=98 y=22
+  fill x=100..111 y=22..33
+  fill x=0..48 y=26..34
+  exit x=109 y=34..35
+  fill x=111 y=34..37
+  fill x=0..86 y=35..37
+  fill x=0..111 y=38..39
+
+treats
+  row cheezie x=3..7 y=3
+  soda x=27 y=3
+  row cheezie x=10..22 y=7 by=3
+  cheezie x=32 y=8
+  cookie x=36 y=10
+  cookie x=37 y=12
+  soda x=35 y=12
+  row cheezie x=38..47 y=23 by=3
+  soda x=50 y=22
+  row cheezie x=58..70 y=27 by=4
+  cookie x=66 y=28
+  row choc x=82..84 y=22
+  soda x=91 y=26
+  cookie x=96 y=30
+  cheezie x=101 y=34
+
+enemies
+  gloop x=26 y=3
+  beetle x=42 y=22
+  bat x=62 y=33
+  bat x=74 y=33
+  glyph x=12 y=3 dir=0
+  glyph x=28 y=3 dir=2
+  glyph x=52 y=22 dir=3

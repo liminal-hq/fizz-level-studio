@@ -1,0 +1,94 @@
+// Bonbon Playhouse: rebuilt from the game's own data by tools/decompile-level.ts.
+level "Bonbon Playhouse" 170x30 ground=4 id=bonbon-playhouse
+theme theatre
+area marshmallow-meadows
+start 3,4
+
+blocks
+  block x=0 y=0..29
+  fill x=1..41 y=0..3
+  fill x=45..84 y=0..3
+  fill x=88..127 y=0..3
+  fill x=131..168 y=0..3
+  block x=169 y=0..29
+  crystal-tile x=10 y=4
+  slope-r45 x=16 y=4
+  fill x=17..30 y=4
+  slope-l45 x=31 y=4
+  crystal-tile x=36 y=4
+  slope-r22a x=57 y=4
+  slope-r22b x=58 y=4
+  fill x=59..68 y=4
+  slope-l22a x=69 y=4
+  slope-l22b x=70 y=4
+  facade x=71..84 y=4..9
+  crystal-tile x=90 y=4
+  slope-r45 x=98 y=4
+  fill x=99..116 y=4
+  slope-l45 x=117 y=4
+  crystal-tile x=118 y=4
+  blue-door x=122 y=4..5
+  crystal-tile x=138 y=4
+  crystal-tile x=158 y=4
+  exit x=165 y=4..5
+  slope-r45 x=17 y=5
+  fill x=18..29 y=5
+  slope-l45 x=30 y=5
+  one-way x=42..43 y=5
+  red-door x=60 y=5..6
+  crystal-tile x=64 y=5
+  slope-r45 x=99 y=5
+  fill x=100..115 y=5
+  slope-l45 x=116 y=5
+  facade x=18..29 y=6..11
+  one-way x=92..93 y=6
+  slope-r45 x=100 y=6
+  fill x=101..114 y=6
+  slope-l45 x=115 y=6
+  block x=122 y=6..29
+  one-way x=44 y=7
+  block x=60 y=7..29
+  fill x=45..56 y=9
+  one-way x=95..96 y=9
+  facade x=45..56 y=10..15
+  one-way x=98..99 y=12
+  fill x=101..114 y=13
+  facade x=101..114 y=14..19
+  room x=45..56 y=10..15
+  room x=18..29 y=6..11
+  room x=71..84 y=4..9
+  room x=101..114 y=14..19
+
+treats
+  key-red x=50 y=10
+  cookie x=54 y=10
+  row cheezie x=46..49 y=10
+  row cheezie x=20..25 y=7
+  soda x=27 y=7
+  row choc x=74..80 y=5 by=2
+  key-blue x=108 y=14
+  cookie x=104 y=14
+  row cheezie x=110..113 y=14
+  row cheezie x=6..11 y=6
+  row choc x=34..36 y=7
+  row cheezie x=62..67 y=8
+  soda x=66 y=9
+  row cheezie x=88..92 y=8 by=2
+  row cheezie x=118..121 y=8
+  row choc x=134..140 y=7 by=2
+  row cookie x=148..154 y=7 by=3
+
+enemies
+  hopper x=52 y=10
+  gloop x=24 y=6
+  beetle x=80 y=4
+  bat x=104 y=11.3
+  bat x=110 y=11.3
+  gloop x=10 y=4
+  gloop x=36 y=4
+  gloop x=66 y=5
+  gloop x=92 y=4
+  gloop x=120 y=4
+  gloop x=140 y=4
+  pod x=63 y=5
+  pod x=135 y=4

@@ -1,0 +1,13 @@
+[package]
+name = "fizz-studio-session"
+version = "0.1.0"
+description = "The Rust-owned session of one open document for the studio: intents in, patches out, one writer, a revision on every change, and named undo and redo"
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+homepage.workspace = true
+repository.workspace = true
+publish = false
+
+[dependencies]
+thiserror.workspace = true

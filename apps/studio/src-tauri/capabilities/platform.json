@@ -1,0 +1,7 @@
+{
+	"$schema": "../gen/schemas/desktop-schema.json",
+	"identifier": "platform",
+	"description": "Every window that draws the frame asks which platform it is on.",
+	"windows": ["main-*", "panel-*", "new-world", "preferences", "about"],
+	"permissions": ["os:default"]
+}

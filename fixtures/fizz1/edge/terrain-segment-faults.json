@@ -1,0 +1,165 @@
+{
+	"id": "edge/terrain-segment-faults",
+	"from": "tools/fizz1-cases.ts: every way a terrain segment can be malformed",
+	"ast": {
+		"nodes": [
+			{
+				"type": "level",
+				"name": "T",
+				"w": 40,
+				"h": 20,
+				"ground": 4,
+				"id": "crater",
+				"line": 1,
+				"raw": "level \"T\" 40x20 ground=4 id=crater",
+				"comment": null
+			},
+			{
+				"type": "start",
+				"x": {
+					"value": 3,
+					"text": "3"
+				},
+				"y": {
+					"value": 4,
+					"text": "4"
+				},
+				"line": 2,
+				"raw": "start 3,4",
+				"comment": null
+			},
+			{
+				"type": "section",
+				"name": "terrain",
+				"line": 3,
+				"raw": "terrain",
+				"comment": null
+			},
+			{
+				"type": "error",
+				"code": "E004",
+				"line": 4,
+				"raw": "  flat",
+				"comment": null
+			},
+			{
+				"type": "error",
+				"code": "E004",
+				"line": 5,
+				"raw": "  flat 1 2",
+				"comment": null
+			},
+			{
+				"type": "error",
+				"code": "E004",
+				"line": 6,
+				"raw": "  flat 3,",
+				"comment": null
+			},
+			{
+				"type": "error",
+				"code": "E015",
+				"line": 7,
+				"raw": "  flat -4",
+				"comment": null
+			},
+			{
+				"type": "error",
+				"code": "E004",
+				"line": 8,
+				"raw": "  flat 1.5",
+				"comment": null
+			},
+			{
+				"type": "error",
+				"code": "E001",
+				"line": 9,
+				"raw": "  FLAT 3",
+				"comment": null
+			},
+			{
+				"type": "error",
+				"code": "E003",
+				"line": 10,
+				"raw": "  liquid",
+				"comment": null
+			},
+			{
+				"type": "error",
+				"code": "E002",
+				"line": 11,
+				"raw": "  liquid block",
+				"comment": null
+			},
+			{
+				"type": "error",
+				"code": "E009",
+				"line": 12,
+				"raw": "  liquid choc extra",
+				"comment": null
+			},
+			{
+				"type": "blank",
+				"line": 13,
+				"raw": "",
+				"comment": null
+			}
+		]
+	},
+	"errors": [
+		{
+			"line": 4,
+			"code": "E004",
+			"message": "`flat` is not a terrain segment",
+			"fix": "write each segment as a word and a count, such as `flat 14, up 2`"
+		},
+		{
+			"line": 5,
+			"code": "E004",
+			"message": "`flat 1 2` is not a terrain segment",
+			"fix": "write each segment as a word and a count, such as `flat 14, up 2`"
+		},
+		{
+			"line": 6,
+			"code": "E004",
+			"message": "`` is not a terrain segment",
+			"fix": "write each segment as a word and a count, such as `flat 14, up 2`"
+		},
+		{
+			"line": 7,
+			"code": "E015",
+			"message": "the count after `flat` must be at least 1, found -4",
+			"fix": "use a count of 1 or more, or delete the line"
+		},
+		{
+			"line": 8,
+			"code": "E004",
+			"message": "the count after `flat` must be a whole number, found `1.5`",
+			"fix": "write digits only, such as 14 or -2"
+		},
+		{
+			"line": 9,
+			"code": "E001",
+			"message": "unknown statement `FLAT` in `terrain`",
+			"fix": "`terrain` takes: flat, up, down, up22, down22, gap, pool, spikes, belt-r, belt-l, liquid"
+		},
+		{
+			"line": 10,
+			"code": "E003",
+			"message": "missing liquid tile",
+			"fix": "write `liquid furnace`"
+		},
+		{
+			"line": 11,
+			"code": "E002",
+			"message": "`block` is not a liquid",
+			"fix": "use one of: choc, furnace"
+		},
+		{
+			"line": 12,
+			"code": "E009",
+			"message": "unexpected `extra`",
+			"fix": "this statement takes: one liquid"
+		}
+	]
+}

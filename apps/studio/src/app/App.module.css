@@ -1,0 +1,26 @@
+/* The visible window surface: a column of title bar over content, painted with the window colour. */
+.surface {
+	display: flex;
+	flex-direction: column;
+	background: var(--fls-bg-window);
+}
+
+.app {
+	display: grid;
+	flex: 1;
+	min-height: 0;
+	place-content: center;
+	text-align: center;
+	background: var(--fls-bg-content);
+}
+
+.title {
+	margin: 0;
+	font-size: 1.6rem;
+}
+
+.label {
+	margin: 0.4rem 0 0;
+	color: var(--fls-text-muted);
+	font-variant-numeric: tabular-nums;
+}

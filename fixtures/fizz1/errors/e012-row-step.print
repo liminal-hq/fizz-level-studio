@@ -1,0 +1,6 @@
+level "T" 40x20 ground=4 id=crater
+start 3,4
+terrain
+  flat 40
+treats
+  row choc x=46..53 y=8 by=3

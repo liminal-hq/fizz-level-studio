@@ -1,0 +1,4 @@
+level "T" 40x20
+start 3,4
+terrain
+  flat 40

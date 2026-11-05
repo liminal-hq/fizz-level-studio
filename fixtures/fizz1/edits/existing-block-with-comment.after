@@ -1,0 +1,12 @@
+level "T" 40x20 ground=4 id=crater
+start 3,4
+
+terrain
+  flat 40   // all flat
+
+treats
+  soda x=5 y=5
+
+edits   // painted in the studio
+  paint block x=3..4 y=7   // a ledge
+  paint one-way x=4 y=7

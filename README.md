@@ -17,13 +17,13 @@ A level and overworld editor for Lieutenant Fizz, built so that a person and Cla
 
 Fizz Level Studio is the level and overworld editor for Lieutenant Fizz, where a person and Claude (over MCP) design levels together. This folder holds the work so far: the builder language (a text language that compiles to the Rust `Builder` calls in `episodes/episode-1/game/src/levels.rs`), its Rust exporter and the proofs that it rebuilds every Episode 1 level and the overworld exactly, an MCP server for Claude, a copy of the interactive design prototype, and the spec for the real studio. It is a scratch project, not a git repository, and nothing in it touches the game's repository.
 
-**Planned: the desktop app.** The studio will be a Tauri v2 desktop app whose domain logic is Rust: the session that owns each world, the Fizz 1 dialect ported from the TypeScript package, and both games' crates linked natively for the Game view, rule previews, the behaviour debugger and the playtest bot. Claude connects through a stdio MCP server that relays to the running app. See `docs/DESKTOP.md` and `docs/DECISIONS.md` D54 to D60.
+**Planned: the desktop app.** The studio will be a Tauri v2 desktop app whose domain logic is Rust: the session that owns each world, the Fizz 1 dialect ported from the TypeScript package, and both games' crates linked natively for the Game view, rule previews, the behaviour debugger and the playtest bot. Claude connects through a stdio MCP server that relays to the running app. See `spec/DESKTOP.md` and `docs/DECISIONS.md` D54 to D60.
 
-**Planned: Fizz 2, the more important target.** A Fizz 2 level belongs to a world project that builds into one world pack, and is written in a dialect of the Fizz 1 script (`script fizz2 0`): a `map` grid, exact `at=` positions, objects with ids, named states that doors, lights and panels bind to and rules change (with `lock` as sugar), placed lights, floating words and sounds raised by rules, and custom enemies and items with behaviour scripts compiled to bytecode. A level's target is fixed when it is created; Fizz 1 levels convert up to Fizz 2 and Fizz 2 levels export down with a lossy check. Fizz 2 levels are edited in the game's own oblique look, Fizz 1's art is a retro set, and a pixel editor paints parallax panels and sprites. Episode 3 is planned as another target profile. None of it is built, and much of it waits on Fizz 2 change requests; see `docs/LANGUAGE.md`, `docs/WORLD.md`, `docs/SCRIPTING.md`, `docs/EDITOR.md` sections 13 to 15, `docs/FIZZ2-COVERAGE.md` and `docs/DECISIONS.md`.
+**Planned: Fizz 2, the more important target.** A Fizz 2 level belongs to a world project that builds into one world pack, and is written in a dialect of the Fizz 1 script (`script fizz2 0`): a `map` grid, exact `at=` positions, objects with ids, named states that doors, lights and panels bind to and rules change (with `lock` as sugar), placed lights, floating words and sounds raised by rules, and custom enemies and items with behaviour scripts compiled to bytecode. A level's target is fixed when it is created; Fizz 1 levels convert up to Fizz 2 and Fizz 2 levels export down with a lossy check. Fizz 2 levels are edited in the game's own oblique look, Fizz 1's art is a retro set, and a pixel editor paints parallax panels and sprites. Episode 3 is planned as another target profile. None of it is built, and much of it waits on Fizz 2 change requests; see `spec/LANGUAGE.md`, `spec/WORLD.md`, `spec/SCRIPTING.md`, `spec/EDITOR.md` sections 13 to 15, `docs/FIZZ2-COVERAGE.md` and `docs/DECISIONS.md`.
 
 ## Getting started
 
-You need [Bun](https://bun.sh) and the Node version in `.node-version`. The studio app itself is not built yet: its end goal is a Tauri v2 desktop app to the Liminal HQ standards, like Folio and Waypoint, for Linux and Windows 11 (`docs/DESKTOP.md`). What runs today is the language package, the MCP server and the proofs against the game.
+You need [Bun](https://bun.sh) and the Node version in `.node-version`. The studio app itself is not built yet: its end goal is a Tauri v2 desktop app to the Liminal HQ standards, like Folio and Waypoint, for Linux and Windows 11 (`spec/DESKTOP.md`). What runs today is the language package, the MCP server and the proofs against the game.
 
 Install the MCP server's dependencies once with `cd packages/mcp && bun install`. Then:
 
@@ -79,11 +79,11 @@ The generated level function calls the private `Builder` and `Seg`, so it must l
 - Scripts are flat literal calls, so levels that compute positions in Rust cannot be written as scripts; they are opened by reading their data.
 - The exporter does not register a new level in the `LEVELS` table, and the game's requirement mask has no room for a 16th level. See `docs/ENGINE-CHANGES.md`.
 - The design prototype is a design: Claude's ideas are canned, nothing is saved and the playtest bot is a stand-in.
-- The "What v0 does not cover" list at the end of `docs/LANGUAGE.md` predates the overworld module and the 16-level proof; its "Overworld maps" and "Proof coverage" items are superseded by the overworld section above it.
+- The "What v0 does not cover" list at the end of `spec/LANGUAGE.md` predates the overworld module and the 16-level proof; its "Overworld maps" and "Proof coverage" items are superseded by the overworld section above it.
 
 ## Claude integration (MCP server)
 
-`packages/mcp` is an MCP server that lets Claude read and edit a level file, with the person in control of what lands. See [packages/mcp](#packagesmcp--the-mcp-server) below, and `docs/MCP.md` for the tools still to add.
+`packages/mcp` is an MCP server that lets Claude read and edit a level file, with the person in control of what lands. See [packages/mcp](#packagesmcp--the-mcp-server) below, and `spec/MCP.md` for the tools still to add.
 
 ## packages/mcp — the MCP server
 
@@ -196,13 +196,13 @@ On each surface row, a gap is a run of columns with nothing to stand on at that 
 
 ## Documentation
 
-- [SPEC.md](SPEC.md) — the product spec: goals, non-goals, the product, the language, the architecture, the proofs, the requirements with their status, open questions, risks and milestones.
-- [docs/GOALS.md](docs/GOALS.md) — the goals, ranked, each with a measure of success.
-- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — the packages, the data flow from script to AST to Rust and to the rasteriser, where the game owns the rules, and the WebAssembly plan.
-- [docs/LANGUAGE.md](docs/LANGUAGE.md) — the language reference: grammar, the `Builder` call behind every statement, the edits block, errors, and overworld scripts.
-- [docs/EDITOR.md](docs/EDITOR.md) — the editor's behaviour, screen by screen.
-- [docs/OVERWORLD.md](docs/OVERWORLD.md) — overworlds, unlock rules, the mask limit and the steps to add a level.
-- [docs/MCP.md](docs/MCP.md) — the MCP server as built and the tools still to add.
+- [spec/README.md](spec/README.md) — the product spec: goals, non-goals, the product, the language, the architecture, the proofs and milestones. Its requirements are in [spec/REQUIREMENTS.md](spec/REQUIREMENTS.md), and the open questions and risks in [docs/QUESTIONS.md](docs/QUESTIONS.md) and [docs/RISKS.md](docs/RISKS.md).
+- [spec/GOALS.md](spec/GOALS.md) — the goals, ranked, each with a measure of success.
+- [spec/ARCHITECTURE.md](spec/ARCHITECTURE.md) — the packages, the data flow from script to AST to Rust and to the rasteriser, where the game owns the rules, and the WebAssembly plan.
+- [spec/LANGUAGE.md](spec/LANGUAGE.md) — the language reference: grammar, the `Builder` call behind every statement, the edits block, errors, and overworld scripts.
+- [spec/EDITOR.md](spec/EDITOR.md) — the editor's behaviour, screen by screen.
+- [spec/OVERWORLD.md](spec/OVERWORLD.md) — overworlds, unlock rules, the mask limit and the steps to add a level.
+- [spec/MCP.md](spec/MCP.md) — the MCP server as built and the tools still to add.
 - [docs/ENGINE-CHANGES.md](docs/ENGINE-CHANGES.md) — what the game itself must change.
 - [docs/TESTING.md](docs/TESTING.md) — what is tested, what each test proves, and the gaps.
 - [docs/ROADMAP.md](docs/ROADMAP.md) and [docs/DECISIONS.md](docs/DECISIONS.md) — what comes next, and why things are the way they are.

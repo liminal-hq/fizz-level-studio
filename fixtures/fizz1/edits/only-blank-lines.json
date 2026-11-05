@@ -1,0 +1,34 @@
+{
+	"id": "edits/only-blank-lines",
+	"from": "tools/fizz1-cases.ts: a script of blank lines only",
+	"ast": {
+		"nodes": [
+			{
+				"type": "blank",
+				"line": 1,
+				"raw": "",
+				"comment": null
+			},
+			{
+				"type": "blank",
+				"line": 2,
+				"raw": "",
+				"comment": null
+			},
+			{
+				"type": "blank",
+				"line": 3,
+				"raw": "",
+				"comment": null
+			}
+		]
+	},
+	"errors": [
+		{
+			"line": 1,
+			"code": "E007",
+			"message": "the script has no `level` header",
+			"fix": "start the script with: level \"Name\" 192x28 ground=4 id=crater"
+		}
+	]
+}

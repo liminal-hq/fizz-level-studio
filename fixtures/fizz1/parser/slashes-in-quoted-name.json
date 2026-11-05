@@ -1,0 +1,40 @@
+{
+	"id": "parser/slashes-in-quoted-name",
+	"from": "packages/language/test/parser.test.ts: a // inside a quoted level name is not a comment",
+	"ast": {
+		"nodes": [
+			{
+				"type": "level",
+				"name": "A // B",
+				"w": 10,
+				"h": 10,
+				"ground": 2,
+				"id": "crater",
+				"line": 1,
+				"raw": "level \"A // B\" 10x10 ground=2 id=crater",
+				"comment": null
+			},
+			{
+				"type": "start",
+				"x": {
+					"value": 1,
+					"text": "1"
+				},
+				"y": {
+					"value": 1,
+					"text": "1"
+				},
+				"line": 2,
+				"raw": "start 1,1",
+				"comment": null
+			},
+			{
+				"type": "blank",
+				"line": 3,
+				"raw": "",
+				"comment": null
+			}
+		]
+	},
+	"errors": []
+}

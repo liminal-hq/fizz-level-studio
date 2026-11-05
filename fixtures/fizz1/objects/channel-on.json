@@ -1,0 +1,59 @@
+{
+	"id": "objects/channel-on",
+	"from": "packages/language/test/objects.test.ts: channel turns switch channels on, one call each",
+	"ast": {
+		"nodes": [
+			{
+				"type": "level",
+				"name": "T",
+				"w": 40,
+				"h": 20,
+				"ground": 4,
+				"id": "crater",
+				"line": 1,
+				"raw": "level \"T\" 40x20 ground=4 id=crater",
+				"comment": null
+			},
+			{
+				"type": "start",
+				"x": {
+					"value": 3,
+					"text": "3"
+				},
+				"y": {
+					"value": 4,
+					"text": "4"
+				},
+				"line": 2,
+				"raw": "start 3,4",
+				"comment": null
+			},
+			{
+				"type": "section",
+				"name": "blocks",
+				"line": 3,
+				"raw": "blocks",
+				"comment": null
+			},
+			{
+				"type": "channel",
+				"chs": [
+					1,
+					2,
+					3
+				],
+				"on": true,
+				"line": 4,
+				"raw": "  channel 1,2,3 on",
+				"comment": null
+			},
+			{
+				"type": "blank",
+				"line": 5,
+				"raw": "",
+				"comment": null
+			}
+		]
+	},
+	"errors": []
+}

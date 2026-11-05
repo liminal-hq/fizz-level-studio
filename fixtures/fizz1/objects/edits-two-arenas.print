@@ -1,0 +1,6 @@
+level "T" 40x20 ground=4 id=crater
+start 3,4
+blocks
+edits
+  arena x=10..30 floor=4
+  arena x=2..9 floor=4

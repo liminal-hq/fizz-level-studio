@@ -1,8 +1,8 @@
 # Roadmap
 
-The milestones in order, each with what it delivers, its exit criteria and what it depends on. Requirement ids refer to `SPEC.md` §10; engine change ids (E for Fizz 1, F for the Fizz 2 change requests) to `ENGINE-CHANGES.md`.
+The milestones in order, each with what it delivers, its exit criteria and what it depends on. Requirement ids refer to `spec/REQUIREMENTS.md`; engine change ids (E for Fizz 1, F for the Fizz 2 change requests) to `ENGINE-CHANGES.md`.
 
-**Order.** Fizz 2 is the more important target (D32), so its milestones come first, and making Fizz 1 levels stays a goal (M9 to M12). The milestones were renumbered on 2026-11-04; the old numbers are in the table. The studio is a Tauri v2 desktop app to the Liminal HQ standards ([DESKTOP.md](DESKTOP.md), D54), so there is no WebAssembly bridge milestone: the games are linked natively (D59).
+**Order.** Fizz 2 is the more important target (D32), so its milestones come first, and making Fizz 1 levels stays a goal (M9 to M12). The milestones were renumbered on 2026-11-04; the old numbers are in the table. The studio is a Tauri v2 desktop app to the Liminal HQ standards ([DESKTOP.md](../spec/DESKTOP.md), D54), so there is no WebAssembly bridge milestone: the games are linked natively (D59).
 
 | Milestone | Depends on | Formerly |
 | --- | --- | --- |
@@ -25,7 +25,7 @@ M5 and M6 can run alongside each other, and M9 to M13 can run alongside the Fizz
 
 ## M0 — Spec
 
-**Delivers:** `SPEC.md` and the documents in `docs/`.
+**Delivers:** the spec in `spec/` and the documents in `docs/`.
 
 **Exit criteria:** every requirement has an id and a status; every status is backed by a file, a test or a proof in this folder; the open questions and risks are listed.
 
@@ -37,7 +37,7 @@ The studio as a Liminal HQ Tauri v2 desktop app, meeting the standards from the 
 
 **Delivers:**
 
-- The standard layout and tooling ([DESKTOP.md](DESKTOP.md) sections 2 to 4 and 11): `apps/studio` with a thin `src-tauri`, the Cargo and Bun workspaces, the pinned toolchain, `packages/chrome` copied from Waypoint with the studio's tokens, `packages/protocol` with `ts-rs` and the drift check, `bun run validate`, the CI container jobs, Dependabot, licence headers and third-party notices (R-APP-01 to R-APP-04).
+- The standard layout and tooling ([DESKTOP.md](../spec/DESKTOP.md) sections 2 to 4 and 11): `apps/studio` with a thin `src-tauri`, the Cargo and Bun workspaces, the pinned toolchain, `packages/chrome` copied from Waypoint with the studio's tokens, `packages/protocol` with `ts-rs` and the drift check, `bun run validate`, the CI container jobs, Dependabot, licence headers and third-party notices (R-APP-01 to R-APP-04).
 - Windows created in Rust with the labels and per-concern capabilities of `DESKTOP.md` section 6, tear-off copied from Waypoint, system appearance, the settings plugin and recent worlds with no browser storage, the i18n catalogue, logging, single instance (R-APP-05 to R-APP-08).
 - The session in Rust: intents, patches, revisions, named undo and redo; native files with atomic canonical writes, file watching, autosave and recovery (R-APP-09, R-APP-10).
 - The editor shell on it: the canvas, the Ultimate panels, Paint, Erase, Pick, Select and Stamp, the Palette, the Objects window, History, the Script panel with completion, the Ghosts lens, and New level and New world fixing a level's target (R-WLD-02).
@@ -60,7 +60,7 @@ Nothing here is started, and much of it waits on the Fizz 2 repository: its gram
 
 **Delivers:**
 
-- **World projects** ([WORLD.md](WORLD.md)): `world.fizz`, the folder, shared definitions by name, Build world and Check world through `fizz-bake`, and the Budget window's size meters (R-WLD-01, R-WLD-03, R-WLD-04).
+- **World projects** ([WORLD.md](../spec/WORLD.md)): `world.fizz`, the folder, shared definitions by name, Build world and Check world through `fizz-bake`, and the Budget window's size meters (R-WLD-01, R-WLD-03, R-WLD-04).
 - **Target profiles** as data, generated from each game's tables, with capability states and the Capabilities card (R-TGT-01 to R-TGT-05).
 - **In the Fizz 2 dialect crate, on `fizz-script`:** the `script fizz2 0` header, `start`, `floor`, the `map` block with the profile's legend, `at=` and the printer rule, the `objects` section with ids resolved to indices, `string`, the reserved words, and the dialect's errors and lints (R-F2-01, R-F2-02, R-F2-04, R-F2-09, R-F2-10, R-F2-15).
 - **In the editor:** map painting, the Objects window with ids and indices, snap to floor, the Exit and Head room lenses, the dump view, the Sprites window and objects drawn with their sprites (R-F2-06, R-F2-07, R-F2-14, R-F2-18, R-SPR-01 to R-SPR-04), and the Game view as the canvas once F5 exists, drawn natively by the game host and streamed over a `Channel`, with the flat fallback until then (R-F2-20).
@@ -126,7 +126,7 @@ Nothing here is started, and much of it waits on the Fizz 2 repository: its gram
 
 ## M7 — Behaviour scripting
 
-**Delivers:** custom enemies and items ([SCRIPTING.md](SCRIPTING.md)): the definition language, the compiler's checks and worst-case counts, the Definitions window and behaviour editor with its mode graph, the preview and debugger in the game host, the behaviour budget meters, the built-in roster beside custom kinds (F8), and the MCP tools (R-BHV-01 to R-BHV-08).
+**Delivers:** custom enemies and items ([SCRIPTING.md](../spec/SCRIPTING.md)): the definition language, the compiler's checks and worst-case counts, the Definitions window and behaviour editor with its mode graph, the preview and debugger in the game host, the behaviour budget meters, the built-in roster beside custom kinds (F8), and the MCP tools (R-BHV-01 to R-BHV-08).
 
 **Exit criteria:**
 
@@ -196,7 +196,7 @@ The Fizz 1 overworld, on the shell of M1. Its model is already proven (2,640 til
 
 The Fizz 1 game linked natively in the game host, which replaces the planned WebAssembly bridge, and editing on top of Rust-written levels.
 
-**Delivers:** a level's data from the game (E6), a level built from a script inside the sim (E7), enemy paths (E8) behind the Paths lens and `get_enemy_paths`, and the playtest bot (E9) behind Run playtest bot, the Checks window and `run_playtest`, all as public Rust APIs called on worker threads with progress over `Channel`s; opening hand-written procedural Rust levels from their data (R-RUST-02), with edits kept and exported on top of them (R-RUST-03, `SPEC.md` Q2); the full enemy docs (R-LANG-16).
+**Delivers:** a level's data from the game (E6), a level built from a script inside the sim (E7), enemy paths (E8) behind the Paths lens and `get_enemy_paths`, and the playtest bot (E9) behind Run playtest bot, the Checks window and `run_playtest`, all as public Rust APIs called on worker threads with progress over `Channel`s; opening hand-written procedural Rust levels from their data (R-RUST-02), with edits kept and exported on top of them (R-RUST-03, `docs/QUESTIONS.md` Q2); the full enemy docs (R-LANG-16).
 
 **Exit criteria:**
 

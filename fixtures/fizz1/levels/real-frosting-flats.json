@@ -1,0 +1,1520 @@
+{
+	"id": "levels/real-frosting-flats",
+	"from": "levels/real/frosting-flats.fizz",
+	"ast": {
+		"nodes": [
+			{
+				"type": "comment",
+				"line": 1,
+				"raw": "// Frosting Flats: rebuilt from the game's own data by tools/decompile-level.ts.",
+				"comment": "Frosting Flats: rebuilt from the game's own data by tools/decompile-level.ts."
+			},
+			{
+				"type": "level",
+				"name": "Frosting Flats",
+				"w": 190,
+				"h": 36,
+				"ground": 4,
+				"id": "frosting-flats",
+				"line": 2,
+				"raw": "level \"Frosting Flats\" 190x36 ground=4 id=frosting-flats",
+				"comment": null
+			},
+			{
+				"type": "theme",
+				"name": "open-sky",
+				"line": 3,
+				"raw": "theme open-sky",
+				"comment": null
+			},
+			{
+				"type": "area",
+				"name": "frosting-frontier",
+				"line": 4,
+				"raw": "area frosting-frontier",
+				"comment": null
+			},
+			{
+				"type": "start",
+				"x": {
+					"value": 3,
+					"text": "3"
+				},
+				"y": {
+					"value": 4,
+					"text": "4"
+				},
+				"line": 5,
+				"raw": "start 3,4",
+				"comment": null
+			},
+			{
+				"type": "blank",
+				"line": 6,
+				"raw": "",
+				"comment": null
+			},
+			{
+				"type": "section",
+				"name": "blocks",
+				"line": 7,
+				"raw": "blocks",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "block",
+				"x": {
+					"lo": 0,
+					"hi": 0
+				},
+				"y": {
+					"lo": 0,
+					"hi": 35
+				},
+				"line": 8,
+				"raw": "  block x=0 y=0..35",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "fill",
+				"x": {
+					"lo": 1,
+					"hi": 11
+				},
+				"y": {
+					"lo": 0,
+					"hi": 3
+				},
+				"line": 9,
+				"raw": "  fill x=1..11 y=0..3",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "fill",
+				"x": {
+					"lo": 15,
+					"hi": 31
+				},
+				"y": {
+					"lo": 0,
+					"hi": 3
+				},
+				"line": 10,
+				"raw": "  fill x=15..31 y=0..3",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "fill",
+				"x": {
+					"lo": 40,
+					"hi": 67
+				},
+				"y": {
+					"lo": 0,
+					"hi": 3
+				},
+				"line": 11,
+				"raw": "  fill x=40..67 y=0..3",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "fill",
+				"x": {
+					"lo": 71,
+					"hi": 92
+				},
+				"y": {
+					"lo": 0,
+					"hi": 3
+				},
+				"line": 12,
+				"raw": "  fill x=71..92 y=0..3",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "fill",
+				"x": {
+					"lo": 103,
+					"hi": 120
+				},
+				"y": {
+					"lo": 0,
+					"hi": 5
+				},
+				"line": 13,
+				"raw": "  fill x=103..120 y=0..5",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "fill",
+				"x": {
+					"lo": 124,
+					"hi": 145
+				},
+				"y": {
+					"lo": 0,
+					"hi": 4
+				},
+				"line": 14,
+				"raw": "  fill x=124..145 y=0..4",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "fill",
+				"x": {
+					"lo": 152,
+					"hi": 188
+				},
+				"y": {
+					"lo": 0,
+					"hi": 4
+				},
+				"line": 15,
+				"raw": "  fill x=152..188 y=0..4",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "block",
+				"x": {
+					"lo": 189,
+					"hi": 189
+				},
+				"y": {
+					"lo": 0,
+					"hi": 35
+				},
+				"line": 16,
+				"raw": "  block x=189 y=0..35",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "crystal-tile",
+				"x": {
+					"lo": 8,
+					"hi": 8
+				},
+				"y": {
+					"lo": 4,
+					"hi": 4
+				},
+				"line": 17,
+				"raw": "  crystal-tile x=8 y=4",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "slope-r45",
+				"x": {
+					"lo": 23,
+					"hi": 23
+				},
+				"y": {
+					"lo": 4,
+					"hi": 4
+				},
+				"line": 18,
+				"raw": "  slope-r45 x=23 y=4",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "fill",
+				"x": {
+					"lo": 24,
+					"hi": 31
+				},
+				"y": {
+					"lo": 4,
+					"hi": 4
+				},
+				"line": 19,
+				"raw": "  fill x=24..31 y=4",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "fill",
+				"x": {
+					"lo": 40,
+					"hi": 58
+				},
+				"y": {
+					"lo": 4,
+					"hi": 4
+				},
+				"line": 20,
+				"raw": "  fill x=40..58 y=4",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "slope-l45",
+				"x": {
+					"lo": 59,
+					"hi": 59
+				},
+				"y": {
+					"lo": 4,
+					"hi": 4
+				},
+				"line": 21,
+				"raw": "  slope-l45 x=59 y=4",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "crystal-tile",
+				"x": {
+					"lo": 62,
+					"hi": 62
+				},
+				"y": {
+					"lo": 4,
+					"hi": 4
+				},
+				"line": 22,
+				"raw": "  crystal-tile x=62 y=4",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "crystal-tile",
+				"x": {
+					"lo": 76,
+					"hi": 76
+				},
+				"y": {
+					"lo": 4,
+					"hi": 4
+				},
+				"line": 23,
+				"raw": "  crystal-tile x=76 y=4",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "slope-r22a",
+				"x": {
+					"lo": 81,
+					"hi": 81
+				},
+				"y": {
+					"lo": 4,
+					"hi": 4
+				},
+				"line": 24,
+				"raw": "  slope-r22a x=81 y=4",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "slope-r22b",
+				"x": {
+					"lo": 82,
+					"hi": 82
+				},
+				"y": {
+					"lo": 4,
+					"hi": 4
+				},
+				"line": 25,
+				"raw": "  slope-r22b x=82 y=4",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "fill",
+				"x": {
+					"lo": 83,
+					"hi": 92
+				},
+				"y": {
+					"lo": 4,
+					"hi": 4
+				},
+				"line": 26,
+				"raw": "  fill x=83..92 y=4",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "one-way",
+				"x": {
+					"lo": 148,
+					"hi": 149
+				},
+				"y": {
+					"lo": 4,
+					"hi": 4
+				},
+				"line": 27,
+				"raw": "  one-way x=148..149 y=4",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "slope-r45",
+				"x": {
+					"lo": 24,
+					"hi": 24
+				},
+				"y": {
+					"lo": 5,
+					"hi": 5
+				},
+				"line": 28,
+				"raw": "  slope-r45 x=24 y=5",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "fill",
+				"x": {
+					"lo": 25,
+					"hi": 31
+				},
+				"y": {
+					"lo": 5,
+					"hi": 5
+				},
+				"line": 29,
+				"raw": "  fill x=25..31 y=5",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "fill",
+				"x": {
+					"lo": 40,
+					"hi": 57
+				},
+				"y": {
+					"lo": 5,
+					"hi": 5
+				},
+				"line": 30,
+				"raw": "  fill x=40..57 y=5",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "slope-l45",
+				"x": {
+					"lo": 58,
+					"hi": 58
+				},
+				"y": {
+					"lo": 5,
+					"hi": 5
+				},
+				"line": 31,
+				"raw": "  slope-l45 x=58 y=5",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "slope-r22a",
+				"x": {
+					"lo": 83,
+					"hi": 83
+				},
+				"y": {
+					"lo": 5,
+					"hi": 5
+				},
+				"line": 32,
+				"raw": "  slope-r22a x=83 y=5",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "slope-r22b",
+				"x": {
+					"lo": 84,
+					"hi": 84
+				},
+				"y": {
+					"lo": 5,
+					"hi": 5
+				},
+				"line": 33,
+				"raw": "  slope-r22b x=84 y=5",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "fill",
+				"x": {
+					"lo": 85,
+					"hi": 92
+				},
+				"y": {
+					"lo": 5,
+					"hi": 5
+				},
+				"line": 34,
+				"raw": "  fill x=85..92 y=5",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "fill",
+				"x": {
+					"lo": 124,
+					"hi": 135
+				},
+				"y": {
+					"lo": 5,
+					"hi": 5
+				},
+				"line": 35,
+				"raw": "  fill x=124..135 y=5",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "slope-l22a",
+				"x": {
+					"lo": 136,
+					"hi": 136
+				},
+				"y": {
+					"lo": 5,
+					"hi": 5
+				},
+				"line": 36,
+				"raw": "  slope-l22a x=136 y=5",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "slope-l22b",
+				"x": {
+					"lo": 137,
+					"hi": 137
+				},
+				"y": {
+					"lo": 5,
+					"hi": 5
+				},
+				"line": 37,
+				"raw": "  slope-l22b x=137 y=5",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "crystal-tile",
+				"x": {
+					"lo": 142,
+					"hi": 142
+				},
+				"y": {
+					"lo": 5,
+					"hi": 5
+				},
+				"line": 38,
+				"raw": "  crystal-tile x=142 y=5",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "red-door",
+				"x": {
+					"lo": 160,
+					"hi": 160
+				},
+				"y": {
+					"lo": 5,
+					"hi": 6
+				},
+				"line": 39,
+				"raw": "  red-door x=160 y=5..6",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "crystal-tile",
+				"x": {
+					"lo": 164,
+					"hi": 164
+				},
+				"y": {
+					"lo": 5,
+					"hi": 5
+				},
+				"line": 40,
+				"raw": "  crystal-tile x=164 y=5",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "crystal-tile",
+				"x": {
+					"lo": 178,
+					"hi": 178
+				},
+				"y": {
+					"lo": 5,
+					"hi": 5
+				},
+				"line": 41,
+				"raw": "  crystal-tile x=178 y=5",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "exit",
+				"x": {
+					"lo": 182,
+					"hi": 182
+				},
+				"y": {
+					"lo": 5,
+					"hi": 6
+				},
+				"line": 42,
+				"raw": "  exit x=182 y=5..6",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "slope-r45",
+				"x": {
+					"lo": 25,
+					"hi": 25
+				},
+				"y": {
+					"lo": 6,
+					"hi": 6
+				},
+				"line": 43,
+				"raw": "  slope-r45 x=25 y=6",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "fill",
+				"x": {
+					"lo": 26,
+					"hi": 31
+				},
+				"y": {
+					"lo": 6,
+					"hi": 6
+				},
+				"line": 44,
+				"raw": "  fill x=26..31 y=6",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "fill",
+				"x": {
+					"lo": 40,
+					"hi": 56
+				},
+				"y": {
+					"lo": 6,
+					"hi": 6
+				},
+				"line": 45,
+				"raw": "  fill x=40..56 y=6",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "slope-l45",
+				"x": {
+					"lo": 57,
+					"hi": 57
+				},
+				"y": {
+					"lo": 6,
+					"hi": 6
+				},
+				"line": 46,
+				"raw": "  slope-l45 x=57 y=6",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "crystal-tile",
+				"x": {
+					"lo": 88,
+					"hi": 88
+				},
+				"y": {
+					"lo": 6,
+					"hi": 6
+				},
+				"line": 47,
+				"raw": "  crystal-tile x=88 y=6",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "crystal-tile",
+				"x": {
+					"lo": 108,
+					"hi": 108
+				},
+				"y": {
+					"lo": 6,
+					"hi": 6
+				},
+				"line": 48,
+				"raw": "  crystal-tile x=108 y=6",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "spike",
+				"x": {
+					"lo": 113,
+					"hi": 115
+				},
+				"y": {
+					"lo": 6,
+					"hi": 6
+				},
+				"line": 49,
+				"raw": "  spike x=113..115 y=6",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "crystal-tile",
+				"x": {
+					"lo": 130,
+					"hi": 130
+				},
+				"y": {
+					"lo": 6,
+					"hi": 6
+				},
+				"line": 50,
+				"raw": "  crystal-tile x=130 y=6",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "crystal-tile",
+				"x": {
+					"lo": 28,
+					"hi": 28
+				},
+				"y": {
+					"lo": 7,
+					"hi": 7
+				},
+				"line": 51,
+				"raw": "  crystal-tile x=28 y=7",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "crystal-tile",
+				"x": {
+					"lo": 44,
+					"hi": 44
+				},
+				"y": {
+					"lo": 7,
+					"hi": 7
+				},
+				"line": 52,
+				"raw": "  crystal-tile x=44 y=7",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "spike",
+				"x": {
+					"lo": 48,
+					"hi": 50
+				},
+				"y": {
+					"lo": 7,
+					"hi": 7
+				},
+				"line": 53,
+				"raw": "  spike x=48..50 y=7",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "block",
+				"x": {
+					"lo": 160,
+					"hi": 160
+				},
+				"y": {
+					"lo": 7,
+					"hi": 35
+				},
+				"line": 54,
+				"raw": "  block x=160 y=7..35",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "one-way",
+				"x": {
+					"lo": 126,
+					"hi": 128
+				},
+				"y": {
+					"lo": 8,
+					"hi": 8
+				},
+				"line": 55,
+				"raw": "  one-way x=126..128 y=8",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "one-way",
+				"x": {
+					"lo": 130,
+					"hi": 132
+				},
+				"y": {
+					"lo": 11,
+					"hi": 11
+				},
+				"line": 56,
+				"raw": "  one-way x=130..132 y=11",
+				"comment": null
+			},
+			{
+				"type": "hover",
+				"from": [
+					{
+						"value": 32,
+						"text": "32"
+					},
+					{
+						"value": 6.5,
+						"text": "6.5"
+					}
+				],
+				"to": [
+					{
+						"value": 38,
+						"text": "38"
+					},
+					{
+						"value": 6.5,
+						"text": "6.5"
+					}
+				],
+				"speed": {
+					"value": 0.3,
+					"text": "0.3"
+				},
+				"size": null,
+				"dwell": null,
+				"line": 57,
+				"raw": "  hover from=32,6.5 to=38,6.5 speed=0.3",
+				"comment": null
+			},
+			{
+				"type": "hover",
+				"from": [
+					{
+						"value": 93,
+						"text": "93"
+					},
+					{
+						"value": 5.5,
+						"text": "5.5"
+					}
+				],
+				"to": [
+					{
+						"value": 97,
+						"text": "97"
+					},
+					{
+						"value": 5.5,
+						"text": "5.5"
+					}
+				],
+				"speed": {
+					"value": 0.3,
+					"text": "0.3"
+				},
+				"size": null,
+				"dwell": null,
+				"line": 58,
+				"raw": "  hover from=93,5.5 to=97,5.5 speed=0.3",
+				"comment": null
+			},
+			{
+				"type": "hover",
+				"from": [
+					{
+						"value": 97,
+						"text": "97"
+					},
+					{
+						"value": 5.5,
+						"text": "5.5"
+					}
+				],
+				"to": [
+					{
+						"value": 101,
+						"text": "101"
+					},
+					{
+						"value": 5.5,
+						"text": "5.5"
+					}
+				],
+				"speed": {
+					"value": 0.3,
+					"text": "0.3"
+				},
+				"size": null,
+				"dwell": null,
+				"line": 59,
+				"raw": "  hover from=97,5.5 to=101,5.5 speed=0.3",
+				"comment": null
+			},
+			{
+				"type": "blank",
+				"line": 60,
+				"raw": "",
+				"comment": null
+			},
+			{
+				"type": "section",
+				"name": "treats",
+				"line": 61,
+				"raw": "treats",
+				"comment": null
+			},
+			{
+				"type": "item",
+				"kind": "key-red",
+				"xs": [
+					{
+						"lo": 131,
+						"hi": 131
+					}
+				],
+				"y": 12,
+				"line": 62,
+				"raw": "  key-red x=131 y=12",
+				"comment": null
+			},
+			{
+				"type": "row",
+				"kind": "cheezie",
+				"x": {
+					"lo": 4,
+					"hi": 9
+				},
+				"y": 6,
+				"by": 1,
+				"line": 63,
+				"raw": "  row cheezie x=4..9 y=6",
+				"comment": null
+			},
+			{
+				"type": "row",
+				"kind": "choc",
+				"x": {
+					"lo": 12,
+					"hi": 14
+				},
+				"y": 8,
+				"by": 1,
+				"line": 64,
+				"raw": "  row choc x=12..14 y=8",
+				"comment": null
+			},
+			{
+				"type": "row",
+				"kind": "cheezie",
+				"x": {
+					"lo": 16,
+					"hi": 21
+				},
+				"y": 6,
+				"by": 1,
+				"line": 65,
+				"raw": "  row cheezie x=16..21 y=6",
+				"comment": null
+			},
+			{
+				"type": "row",
+				"kind": "cheezie",
+				"x": {
+					"lo": 26,
+					"hi": 30
+				},
+				"y": 9,
+				"by": 1,
+				"line": 66,
+				"raw": "  row cheezie x=26..30 y=9",
+				"comment": null
+			},
+			{
+				"type": "item",
+				"kind": "soda",
+				"xs": [
+					{
+						"lo": 30,
+						"hi": 30
+					}
+				],
+				"y": 10,
+				"line": 67,
+				"raw": "  soda x=30 y=10",
+				"comment": null
+			},
+			{
+				"type": "row",
+				"kind": "choc",
+				"x": {
+					"lo": 34,
+					"hi": 40
+				},
+				"y": 10,
+				"by": 2,
+				"line": 68,
+				"raw": "  row choc x=34..40 y=10 by=2",
+				"comment": null
+			},
+			{
+				"type": "row",
+				"kind": "cheezie",
+				"x": {
+					"lo": 41,
+					"hi": 46
+				},
+				"y": 9,
+				"by": 1,
+				"line": 69,
+				"raw": "  row cheezie x=41..46 y=9",
+				"comment": null
+			},
+			{
+				"type": "row",
+				"kind": "cheezie",
+				"x": {
+					"lo": 48,
+					"hi": 50
+				},
+				"y": 10,
+				"by": 1,
+				"line": 70,
+				"raw": "  row cheezie x=48..50 y=10",
+				"comment": null
+			},
+			{
+				"type": "row",
+				"kind": "cheezie",
+				"x": {
+					"lo": 61,
+					"hi": 66
+				},
+				"y": 6,
+				"by": 1,
+				"line": 71,
+				"raw": "  row cheezie x=61..66 y=6",
+				"comment": null
+			},
+			{
+				"type": "row",
+				"kind": "choc",
+				"x": {
+					"lo": 68,
+					"hi": 70
+				},
+				"y": 7,
+				"by": 1,
+				"line": 72,
+				"raw": "  row choc x=68..70 y=7",
+				"comment": null
+			},
+			{
+				"type": "item",
+				"kind": "cookie",
+				"xs": [
+					{
+						"lo": 76,
+						"hi": 76
+					}
+				],
+				"y": 7,
+				"line": 73,
+				"raw": "  cookie x=76 y=7",
+				"comment": null
+			},
+			{
+				"type": "row",
+				"kind": "cheezie",
+				"x": {
+					"lo": 86,
+					"hi": 91
+				},
+				"y": 8,
+				"by": 1,
+				"line": 74,
+				"raw": "  row cheezie x=86..91 y=8",
+				"comment": null
+			},
+			{
+				"type": "row",
+				"kind": "choc",
+				"x": {
+					"lo": 94,
+					"hi": 101
+				},
+				"y": 9,
+				"by": 1,
+				"line": 75,
+				"raw": "  row choc x=94..101 y=9",
+				"comment": null
+			},
+			{
+				"type": "row",
+				"kind": "cheezie",
+				"x": {
+					"lo": 104,
+					"hi": 111
+				},
+				"y": 8,
+				"by": 1,
+				"line": 76,
+				"raw": "  row cheezie x=104..111 y=8",
+				"comment": null
+			},
+			{
+				"type": "row",
+				"kind": "cheezie",
+				"x": {
+					"lo": 113,
+					"hi": 115
+				},
+				"y": 9,
+				"by": 1,
+				"line": 77,
+				"raw": "  row cheezie x=113..115 y=9",
+				"comment": null
+			},
+			{
+				"type": "item",
+				"kind": "soda",
+				"xs": [
+					{
+						"lo": 118,
+						"hi": 118
+					}
+				],
+				"y": 8,
+				"line": 78,
+				"raw": "  soda x=118 y=8",
+				"comment": null
+			},
+			{
+				"type": "item",
+				"kind": "cookie",
+				"xs": [
+					{
+						"lo": 127,
+						"hi": 127
+					}
+				],
+				"y": 9,
+				"line": 79,
+				"raw": "  cookie x=127 y=9",
+				"comment": null
+			},
+			{
+				"type": "item",
+				"kind": "cookie",
+				"xs": [
+					{
+						"lo": 131,
+						"hi": 131
+					}
+				],
+				"y": 13,
+				"line": 80,
+				"raw": "  cookie x=131 y=13",
+				"comment": null
+			},
+			{
+				"type": "row",
+				"kind": "cheezie",
+				"x": {
+					"lo": 138,
+					"hi": 143
+				},
+				"y": 7,
+				"by": 1,
+				"line": 81,
+				"raw": "  row cheezie x=138..143 y=7",
+				"comment": null
+			},
+			{
+				"type": "row",
+				"kind": "choc",
+				"x": {
+					"lo": 146,
+					"hi": 151
+				},
+				"y": 6,
+				"by": 1,
+				"line": 82,
+				"raw": "  row choc x=146..151 y=6",
+				"comment": null
+			},
+			{
+				"type": "row",
+				"kind": "cheezie",
+				"x": {
+					"lo": 154,
+					"hi": 158
+				},
+				"y": 7,
+				"by": 1,
+				"line": 83,
+				"raw": "  row cheezie x=154..158 y=7",
+				"comment": null
+			},
+			{
+				"type": "row",
+				"kind": "cookie",
+				"x": {
+					"lo": 168,
+					"hi": 177
+				},
+				"y": 8,
+				"by": 3,
+				"line": 84,
+				"raw": "  row cookie x=168..177 y=8 by=3",
+				"comment": null
+			},
+			{
+				"type": "blank",
+				"line": 85,
+				"raw": "",
+				"comment": null
+			},
+			{
+				"type": "section",
+				"name": "enemies",
+				"line": 86,
+				"raw": "enemies",
+				"comment": null
+			},
+			{
+				"type": "spawn",
+				"kind": "gloop",
+				"xs": [
+					{
+						"value": 25,
+						"text": "25"
+					}
+				],
+				"y": {
+					"value": 6.5,
+					"text": "6.5"
+				},
+				"dir": null,
+				"ride": false,
+				"line": 87,
+				"raw": "  gloop x=25 y=6.5",
+				"comment": null
+			},
+			{
+				"type": "spawn",
+				"kind": "gloop",
+				"xs": [
+					{
+						"value": 88,
+						"text": "88"
+					}
+				],
+				"y": {
+					"value": 6,
+					"text": "6"
+				},
+				"dir": null,
+				"ride": false,
+				"line": 88,
+				"raw": "  gloop x=88 y=6",
+				"comment": null
+			},
+			{
+				"type": "spawn",
+				"kind": "gloop",
+				"xs": [
+					{
+						"value": 118,
+						"text": "118"
+					}
+				],
+				"y": {
+					"value": 6,
+					"text": "6"
+				},
+				"dir": null,
+				"ride": false,
+				"line": 89,
+				"raw": "  gloop x=118 y=6",
+				"comment": null
+			},
+			{
+				"type": "spawn",
+				"kind": "gloop",
+				"xs": [
+					{
+						"value": 172,
+						"text": "172"
+					}
+				],
+				"y": {
+					"value": 5,
+					"text": "5"
+				},
+				"dir": null,
+				"ride": false,
+				"line": 90,
+				"raw": "  gloop x=172 y=5",
+				"comment": null
+			},
+			{
+				"type": "spawn",
+				"kind": "hopper",
+				"xs": [
+					{
+						"value": 18,
+						"text": "18"
+					}
+				],
+				"y": {
+					"value": 4,
+					"text": "4"
+				},
+				"dir": null,
+				"ride": false,
+				"line": 91,
+				"raw": "  hopper x=18 y=4",
+				"comment": null
+			},
+			{
+				"type": "spawn",
+				"kind": "hopper",
+				"xs": [
+					{
+						"value": 64,
+						"text": "64"
+					}
+				],
+				"y": {
+					"value": 4,
+					"text": "4"
+				},
+				"dir": null,
+				"ride": false,
+				"line": 92,
+				"raw": "  hopper x=64 y=4",
+				"comment": null
+			},
+			{
+				"type": "spawn",
+				"kind": "hopper",
+				"xs": [
+					{
+						"value": 106,
+						"text": "106"
+					}
+				],
+				"y": {
+					"value": 6,
+					"text": "6"
+				},
+				"dir": null,
+				"ride": false,
+				"line": 93,
+				"raw": "  hopper x=106 y=6",
+				"comment": null
+			},
+			{
+				"type": "spawn",
+				"kind": "hopper",
+				"xs": [
+					{
+						"value": 130,
+						"text": "130"
+					}
+				],
+				"y": {
+					"value": 6,
+					"text": "6"
+				},
+				"dir": null,
+				"ride": false,
+				"line": 94,
+				"raw": "  hopper x=130 y=6",
+				"comment": null
+			},
+			{
+				"type": "spawn",
+				"kind": "hopper",
+				"xs": [
+					{
+						"value": 165,
+						"text": "165"
+					}
+				],
+				"y": {
+					"value": 5,
+					"text": "5"
+				},
+				"dir": null,
+				"ride": false,
+				"line": 95,
+				"raw": "  hopper x=165 y=5",
+				"comment": null
+			},
+			{
+				"type": "spawn",
+				"kind": "pod",
+				"xs": [
+					{
+						"value": 74,
+						"text": "74"
+					}
+				],
+				"y": {
+					"value": 4,
+					"text": "4"
+				},
+				"dir": null,
+				"ride": false,
+				"line": 96,
+				"raw": "  pod x=74 y=4",
+				"comment": null
+			},
+			{
+				"type": "spawn",
+				"kind": "pod",
+				"xs": [
+					{
+						"value": 141,
+						"text": "141"
+					}
+				],
+				"y": {
+					"value": 5,
+					"text": "5"
+				},
+				"dir": null,
+				"ride": false,
+				"line": 97,
+				"raw": "  pod x=141 y=5",
+				"comment": null
+			},
+			{
+				"type": "spawn",
+				"kind": "drone",
+				"xs": [
+					{
+						"value": 20.5,
+						"text": "20.5"
+					}
+				],
+				"y": {
+					"value": 10.5,
+					"text": "10.5"
+				},
+				"dir": null,
+				"ride": false,
+				"line": 98,
+				"raw": "  drone x=20.5 y=10.5",
+				"comment": null
+			},
+			{
+				"type": "spawn",
+				"kind": "drone",
+				"xs": [
+					{
+						"value": 60.5,
+						"text": "60.5"
+					}
+				],
+				"y": {
+					"value": 10.5,
+					"text": "10.5"
+				},
+				"dir": null,
+				"ride": false,
+				"line": 99,
+				"raw": "  drone x=60.5 y=10.5",
+				"comment": null
+			},
+			{
+				"type": "spawn",
+				"kind": "drone",
+				"xs": [
+					{
+						"value": 108.5,
+						"text": "108.5"
+					}
+				],
+				"y": {
+					"value": 12.5,
+					"text": "12.5"
+				},
+				"dir": null,
+				"ride": false,
+				"line": 100,
+				"raw": "  drone x=108.5 y=12.5",
+				"comment": null
+			},
+			{
+				"type": "spawn",
+				"kind": "drone",
+				"xs": [
+					{
+						"value": 170.5,
+						"text": "170.5"
+					}
+				],
+				"y": {
+					"value": 11.5,
+					"text": "11.5"
+				},
+				"dir": null,
+				"ride": false,
+				"line": 101,
+				"raw": "  drone x=170.5 y=11.5",
+				"comment": null
+			},
+			{
+				"type": "blank",
+				"line": 102,
+				"raw": "",
+				"comment": null
+			}
+		]
+	},
+	"errors": []
+}

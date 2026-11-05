@@ -1,0 +1,46 @@
+{
+	"id": "edge/crlf-blank-line",
+	"from": "tools/fizz1-cases.ts: a line holding only a carriage return is blank",
+	"ast": {
+		"nodes": [
+			{
+				"type": "level",
+				"name": "T",
+				"w": 40,
+				"h": 20,
+				"ground": 4,
+				"id": "crater",
+				"line": 1,
+				"raw": "level \"T\" 40x20 ground=4 id=crater\r",
+				"comment": null
+			},
+			{
+				"type": "blank",
+				"line": 2,
+				"raw": "\r",
+				"comment": null
+			},
+			{
+				"type": "start",
+				"x": {
+					"value": 3,
+					"text": "3"
+				},
+				"y": {
+					"value": 4,
+					"text": "4"
+				},
+				"line": 3,
+				"raw": "start 3,4\r",
+				"comment": null
+			},
+			{
+				"type": "blank",
+				"line": 4,
+				"raw": "",
+				"comment": null
+			}
+		]
+	},
+	"errors": []
+}

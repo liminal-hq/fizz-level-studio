@@ -1,0 +1,80 @@
+{
+	"id": "errors/e012-row-step",
+	"from": "packages/language/test/errors.test.ts: E012 a row range that misses its step suggests both neighbours",
+	"ast": {
+		"nodes": [
+			{
+				"type": "level",
+				"name": "T",
+				"w": 40,
+				"h": 20,
+				"ground": 4,
+				"id": "crater",
+				"line": 1,
+				"raw": "level \"T\" 40x20 ground=4 id=crater",
+				"comment": null
+			},
+			{
+				"type": "start",
+				"x": {
+					"value": 3,
+					"text": "3"
+				},
+				"y": {
+					"value": 4,
+					"text": "4"
+				},
+				"line": 2,
+				"raw": "start 3,4",
+				"comment": null
+			},
+			{
+				"type": "section",
+				"name": "terrain",
+				"line": 3,
+				"raw": "terrain",
+				"comment": null
+			},
+			{
+				"type": "segs",
+				"segs": [
+					{
+						"seg": "flat",
+						"n": 40
+					}
+				],
+				"line": 4,
+				"raw": "  flat 40",
+				"comment": null
+			},
+			{
+				"type": "section",
+				"name": "treats",
+				"line": 5,
+				"raw": "treats",
+				"comment": null
+			},
+			{
+				"type": "error",
+				"code": "E012",
+				"line": 6,
+				"raw": "  row choc x=46..53 y=8 by=3",
+				"comment": null
+			},
+			{
+				"type": "blank",
+				"line": 7,
+				"raw": "",
+				"comment": null
+			}
+		]
+	},
+	"errors": [
+		{
+			"line": 6,
+			"code": "E012",
+			"message": "x=46..53 does not end on a step of 3 from 46",
+			"fix": "write x=46..52 by=3 (3 items) or x=46..55 by=3"
+		}
+	]
+}
