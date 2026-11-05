@@ -94,6 +94,13 @@ describe('the New level screen', () => {
 		expect(screen.getByLabelText('Folder')).toHaveAttribute('readonly');
 	});
 
+	it('says a new Fizz 1 level has an id problem until the game has a registry, and not for Fizz 2', async () => {
+		const { user } = setup('/work');
+		expect(screen.getByRole('note')).toHaveTextContent(/level registry/);
+		await user.click(screen.getByRole('radio', { name: 'Fizz 2 world' }));
+		expect(screen.queryByRole('note')).not.toBeInTheDocument();
+	});
+
 	it('creates a Fizz 1 level, tells the main window, and closes itself', async () => {
 		const { user, client, openInMain, closeWindow } = setup('/work');
 		await user.type(screen.getByLabelText('Name'), 'Sugar Hill');

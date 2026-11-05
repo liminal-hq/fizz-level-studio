@@ -148,6 +148,9 @@ export const enMessages = {
 	'newLevel.targetFizz2': 'Fizz 2 world',
 	// translator: A one-line warning beside the target choice: it cannot be changed after the level is made.
 	'newLevel.targetFixed': 'This cannot be changed after the level is created.',
+	// translator: A note under the Fizz 1 choice: the game knows only its own sixteen levels until it has a level registry, so a new level's id is reported as a problem for now.
+	'newLevel.fizz1Note':
+		'The Fizz 1 game only knows its own 16 level ids until it has a level registry, so a new Fizz 1 level reports a problem with its id for now.',
 	// translator: Label of the chooser for the look of a Fizz 1 level; “theme” is the game’s own word.
 	'newLevel.theme': 'Theme',
 	// translator: The choice meaning no theme is set for the level.

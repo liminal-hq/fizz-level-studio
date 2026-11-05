@@ -177,6 +177,11 @@ export function NewLevelScreen({
 						{t('newLevel.targetFizz2')}
 					</label>
 					<p className={styles.hint}>{t('newLevel.targetFixed')}</p>
+					{form.target === 'fizz1' && (
+						<p className={styles.hint} role="note">
+							{t('newLevel.fizz1Note')}
+						</p>
+					)}
 				</fieldset>
 
 				{form.target === 'fizz1' && (
