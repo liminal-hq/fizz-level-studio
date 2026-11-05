@@ -1,0 +1,18 @@
+[package]
+name = "fizz-studio-level"
+version = "0.1.0"
+description = "The Fizz 1 level document for the studio: intents in, minimal text edits out, and the view the canvas draws, over the language crate and the session"
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+homepage.workspace = true
+repository.workspace = true
+publish = false
+
+[dependencies]
+fizz-studio-language = { path = "../fizz-studio-language" }
+fizz-studio-protocol = { path = "../fizz-studio-protocol" }
+fizz-studio-session = { path = "../fizz-studio-session" }
+
+[dev-dependencies]
+serde_json = { workspace = true }

@@ -23,6 +23,7 @@ fizz-studio-protocol = { path = "../../../crates/fizz-studio-protocol" }
 fizz-studio-settings = { path = "../../../crates/fizz-studio-settings" }
 tauri-plugin-fizz-studio-settings = { path = "../../../plugins/fizz-studio-settings" }
 tauri-plugin-fizz-studio-host = { path = "../../../plugins/fizz-studio-host" }
+tauri-plugin-fizz-studio-worlds = { path = "../../../plugins/fizz-studio-worlds" }
 chrono = { workspace = true }
 tauri-plugin-log = "2"
 tauri-plugin-os = "2"

@@ -38,3 +38,4 @@ plugins/*/permissions/schemas
 
 # Language documentation data written by `bun run gen:docs`
 crates/fizz-studio-language/data
+plugins/*/api-iife.js

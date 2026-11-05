@@ -42,7 +42,7 @@ jobs:
             done
 
       - name: Publish language test results
-        if: always()
+        if: always() && hashFiles('artifacts/language-test-results/**/*.xml') != ''
         uses: EnricoMi/publish-unit-test-result-action@v2
         with:
           check_name: Language tests
@@ -52,7 +52,7 @@ jobs:
           files: artifacts/language-test-results/**/*.xml
 
       - name: Publish MCP server test results
-        if: always()
+        if: always() && hashFiles('artifacts/mcp-test-results/**/*.xml') != ''
         uses: EnricoMi/publish-unit-test-result-action@v2
         with:
           check_name: MCP server tests
@@ -62,7 +62,7 @@ jobs:
           files: artifacts/mcp-test-results/**/*.xml
 
       - name: Publish Rust test results
-        if: always()
+        if: always() && hashFiles('artifacts/rust-test-results/**/*.xml') != ''
         uses: EnricoMi/publish-unit-test-result-action@v2
         with:
           check_name: Rust tests
@@ -72,7 +72,7 @@ jobs:
           files: artifacts/rust-test-results/**/*.xml
 
       - name: Publish frontend test results
-        if: always()
+        if: always() && hashFiles('artifacts/frontend-test-results/**/*.xml') != ''
         uses: EnricoMi/publish-unit-test-result-action@v2
         with:
           check_name: Frontend tests

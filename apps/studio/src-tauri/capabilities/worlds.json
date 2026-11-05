@@ -1,0 +1,7 @@
+{
+	"$schema": "../gen/schemas/desktop-schema.json",
+	"identifier": "worlds",
+	"description": "Lets the main and panel windows open worlds and levels, send edits, step through history and save.",
+	"windows": ["main-*", "panel-*"],
+	"permissions": ["fizz-studio-worlds:default"]
+}

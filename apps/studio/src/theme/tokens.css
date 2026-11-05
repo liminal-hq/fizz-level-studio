@@ -120,3 +120,42 @@ body,
 	color: var(--fls-text-primary);
 	font-family: var(--fls-font);
 }
+
+/*
+ * The level canvas. It is never themed: these colours are the prototype's stand-ins for the game's
+ * palette and do not change with the scheme. Tile words map to a family through
+ * `canvas/tileColours.ts`.
+ */
+:root {
+	--fls-canvas-bg: #1b1d2b;
+	--fls-canvas-grid: rgba(255, 255, 255, 0.14);
+	--fls-canvas-glyph: rgba(255, 255, 255, 0.85);
+	--fls-canvas-glyph-dark: rgba(20, 20, 30, 0.85);
+	--fls-canvas-cursor: #ffe14d;
+	--fls-canvas-selection: #4dd2ff;
+	--fls-canvas-preview: rgba(255, 225, 77, 0.45);
+	--fls-canvas-item: #ffd23f;
+	--fls-canvas-spawn: #ff6b6b;
+	--fls-canvas-start: #7dff8a;
+	--fls-canvas-object-ink: #1b1d2b;
+
+	--fls-tile-solid: #7a6a58;
+	--fls-tile-platform: #b08d57;
+	--fls-tile-hazard: #d9453d;
+	--fls-tile-liquid: #6b3f2a;
+	--fls-tile-slope: #8a7f9e;
+	--fls-tile-door-red: #c0392b;
+	--fls-tile-door-blue: #2e6fd0;
+	--fls-tile-door-green: #2f9e57;
+	--fls-tile-gate: #9b59b6;
+	--fls-tile-nature: #4f9d4a;
+	--fls-tile-water: #3b9ad9;
+	--fls-tile-path: #c9b27c;
+	--fls-tile-building: #c4755a;
+	--fls-tile-climb: #a37a3c;
+	--fls-tile-conveyor: #5d7388;
+	--fls-tile-exit: #f2f2f2;
+	--fls-tile-crystal: #5fe0e0;
+	--fls-tile-backdrop: #34384f;
+	--fls-tile-unknown: #777777;
+}

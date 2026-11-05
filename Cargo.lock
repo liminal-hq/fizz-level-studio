@@ -1077,6 +1077,7 @@ dependencies = [
  "tauri-plugin-dialog",
  "tauri-plugin-fizz-studio-host",
  "tauri-plugin-fizz-studio-settings",
+ "tauri-plugin-fizz-studio-worlds",
  "tauri-plugin-log",
  "tauri-plugin-mcp-bridge",
  "tauri-plugin-os",
@@ -1147,6 +1148,16 @@ name = "fizz-studio-language"
 version = "0.1.0"
 dependencies = [
  "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "fizz-studio-level"
+version = "0.1.0"
+dependencies = [
+ "fizz-studio-language",
+ "fizz-studio-protocol",
+ "fizz-studio-session",
  "serde_json",
 ]
 
@@ -4221,6 +4232,22 @@ dependencies = [
  "serde_json",
  "tauri",
  "tauri-plugin",
+]
+
+[[package]]
+name = "tauri-plugin-fizz-studio-worlds"
+version = "0.1.0"
+dependencies = [
+ "fizz-studio-level",
+ "fizz-studio-protocol",
+ "fizz-studio-session",
+ "fizz-studio-world",
+ "log",
+ "serde",
+ "serde_json",
+ "tauri",
+ "tauri-plugin",
+ "tempfile",
 ]
 
 [[package]]

@@ -24,8 +24,52 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  scope:
+    name: Choose check groups
+    runs-on: ubuntu-24.04
+    outputs:
+      groups: ${{ steps.scope.outputs.groups }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check the scope table
+        run: bash tools/ci-scope.sh --self-test
+
+      # A pull request runs the groups its changed paths can affect (tools/ci-scope.sh); every other
+      # run (main, a manual run) runs them all. `base` is always included.
+      - name: Choose the check groups
+        id: scope
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          set -euo pipefail
+          if [ "$EVENT" = pull_request ]; then
+            groups="$(bash tools/ci-scope.sh --base "origin/$BASE_REF")"
+          else
+            groups=all
+            echo "ci-scope: a $EVENT run always runs every group"
+          fi
+          if [ "$groups" = all ]; then groups="$(bash tools/check.sh --names | paste -sd, -)"; fi
+          echo "groups=,${groups}," >> "$GITHUB_OUTPUT"
+          echo "Check groups: \`${groups}\`" >> "$GITHUB_STEP_SUMMARY"
+
+      # Consumed by publish-test-results.yml. The pull_request event's own GITHUB_TOKEN is read-only
+      # for Dependabot and fork PRs, so the results are published from a separate `workflow_run`
+      # workflow, which runs with this repository's own permissions whoever opened the PR. It is
+      # uploaded here, from the job that always runs, so a skipped test job never loses it.
+      - name: Upload event file
+        uses: actions/upload-artifact@v4
+        with:
+          name: event-file
+          path: ${{ github.event_path }}
   format:
     name: Format
+    needs: scope
+    if: contains(needs.scope.outputs.groups, ',base,')
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout code
@@ -54,6 +98,8 @@ jobs:
 
   markdown-lint:
     name: Markdown lint
+    needs: scope
+    if: contains(needs.scope.outputs.groups, ',docs,')
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout code
@@ -82,6 +128,8 @@ jobs:
 
   link-check:
     name: Link check
+    needs: scope
+    if: contains(needs.scope.outputs.groups, ',docs,')
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout code
@@ -107,6 +155,8 @@ jobs:
 
   language-tests:
     name: Language tests
+    needs: scope
+    if: contains(needs.scope.outputs.groups, ',language,')
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout code
@@ -140,19 +190,10 @@ jobs:
           path: test-results/*.xml
           if-no-files-found: error
 
-      # Consumed by publish-test-results.yml. The pull_request event's own GITHUB_TOKEN is
-      # read-only for Dependabot and fork PRs, so the results are published from a separate
-      # `workflow_run` workflow, which runs with this repository's own permissions whoever opened
-      # the PR.
-      - name: Upload event file
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: event-file
-          path: ${{ github.event_path }}
-
   mcp-tests:
     name: MCP server tests
+    needs: scope
+    if: contains(needs.scope.outputs.groups, ',language,')
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout code
@@ -192,6 +233,8 @@ jobs:
 
   frontend-tests:
     name: Frontend tests
+    needs: scope
+    if: contains(needs.scope.outputs.groups, ',frontend,')
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout code
@@ -241,6 +284,8 @@ jobs:
 
   rust-format:
     name: Rust format
+    needs: scope
+    if: contains(needs.scope.outputs.groups, ',rust,')
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout code
@@ -264,6 +309,8 @@ jobs:
 
   rust-clippy:
     name: Rust Clippy
+    needs: scope
+    if: contains(needs.scope.outputs.groups, ',rust,')
     runs-on: ubuntu-24.04
     container:
       image: ghcr.io/liminal-hq/tauri-ci-desktop:latest
@@ -309,6 +356,8 @@ jobs:
 
   rust-tests:
     name: Rust tests
+    needs: scope
+    if: contains(needs.scope.outputs.groups, ',rust,')
     runs-on: ubuntu-24.04
     container:
       image: ghcr.io/liminal-hq/tauri-ci-desktop:latest
@@ -367,6 +416,8 @@ jobs:
 
   licence-headers:
     name: Licence headers
+    needs: scope
+    if: contains(needs.scope.outputs.groups, ',base,')
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout code
@@ -387,6 +438,8 @@ jobs:
 
   case-collisions:
     name: Case collisions
+    needs: scope
+    if: contains(needs.scope.outputs.groups, ',base,')
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout code
@@ -407,6 +460,8 @@ jobs:
 
   i18n:
     name: JSX literals
+    needs: scope
+    if: contains(needs.scope.outputs.groups, ',frontend,')
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout code
@@ -435,6 +490,8 @@ jobs:
 
   browser-storage:
     name: Browser storage
+    needs: scope
+    if: contains(needs.scope.outputs.groups, ',base,')
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout code
@@ -455,6 +512,8 @@ jobs:
 
   plugin-boundaries:
     name: Plugin boundaries
+    needs: scope
+    if: contains(needs.scope.outputs.groups, ',base,')
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout code
@@ -475,6 +534,8 @@ jobs:
 
   dependency-licences:
     name: Dependency licences
+    needs: scope
+    if: contains(needs.scope.outputs.groups, ',supply,')
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout code
@@ -501,6 +562,8 @@ jobs:
 
   bindings-drift:
     name: Bindings drift
+    needs: scope
+    if: contains(needs.scope.outputs.groups, ',app,')
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout code
@@ -527,6 +590,8 @@ jobs:
 
   corpus-drift:
     name: Fizz 1 corpus drift
+    needs: scope
+    if: contains(needs.scope.outputs.groups, ',language,')
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout code
@@ -555,6 +620,8 @@ jobs:
 
   raster-drift:
     name: Rasteriser golden drift
+    needs: scope
+    if: contains(needs.scope.outputs.groups, ',language,')
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout code
@@ -583,6 +650,8 @@ jobs:
 
   docs-drift:
     name: Language docs drift
+    needs: scope
+    if: contains(needs.scope.outputs.groups, ',language,')
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout code
@@ -607,4 +676,34 @@ jobs:
             echo "## Language docs drift"
             echo "- Result: \`${{ steps.check.outcome }}\`"
             echo "- Command: \`bun run check:docs\`"
+          } >> "${GITHUB_STEP_SUMMARY}"
+
+  plugin-bundles:
+    name: Plugin bundles
+    needs: scope
+    if: contains(needs.scope.outputs.groups, ',app,')
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.10
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Plugin bundles
+        id: check
+        run: bun run check:bundles
+
+      - name: Job summary
+        if: always()
+        run: |
+          {
+            echo "## Plugin bundles"
+            echo "- Result: \`${{ steps.check.outcome }}\`"
+            echo "- Command: \`bun run check:bundles\`"
           } >> "${GITHUB_STEP_SUMMARY}"

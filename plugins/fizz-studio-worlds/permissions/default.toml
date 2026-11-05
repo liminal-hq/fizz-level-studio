@@ -1,0 +1,12 @@
+[default]
+description = "Default permissions for the fizz-studio-worlds plugin"
+permissions = [
+	"allow-project-open",
+	"allow-level-open",
+	"allow-level-apply",
+	"allow-level-end-step",
+	"allow-level-undo",
+	"allow-level-redo",
+	"allow-level-save",
+	"allow-level-close",
+]

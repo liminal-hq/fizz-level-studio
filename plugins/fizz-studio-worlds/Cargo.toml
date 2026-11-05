@@ -1,0 +1,37 @@
+[package]
+name = "tauri-plugin-fizz-studio-worlds"
+version = "0.1.0"
+description = "The studio's worlds plugin: open levels as sessions with one writer, intents in and snapshots out, saved atomically and watched for outside edits"
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+repository.workspace = true
+publish = false
+build = "build.rs"
+links = "tauri-plugin-fizz-studio-worlds"
+
+[package.metadata.platforms.support]
+linux = { level = "full", notes = "Files are watched with inotify and written by atomic rename" }
+windows = { level = "partial", notes = "Builds and is linted for the Windows target; the mock-runtime tests need the Common Controls manifest the build script embeds" }
+
+[lib]
+name = "tauri_plugin_fizz_studio_worlds"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[dependencies]
+fizz-studio-level = { path = "../../crates/fizz-studio-level" }
+fizz-studio-protocol = { path = "../../crates/fizz-studio-protocol" }
+fizz-studio-session = { path = "../../crates/fizz-studio-session" }
+fizz-studio-world = { path = "../../crates/fizz-studio-world" }
+log = { workspace = true }
+serde = { workspace = true }
+tauri = { workspace = true }
+
+[build-dependencies]
+tauri-plugin = { workspace = true, features = ["build"] }
+
+[dev-dependencies]
+serde_json = { workspace = true }
+tauri = { workspace = true, features = ["test"] }
+tempfile = { workspace = true }
