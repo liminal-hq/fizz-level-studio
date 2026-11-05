@@ -18,6 +18,8 @@ export interface ScriptPanelProps {
 	focusLine?: number | null;
 	/** The documented words, from the backend; when given, a field offers completion from them. */
 	words?: readonly WordDoc[];
+	/** Shows a Tear off button that calls this; left out where the panel cannot be torn off. */
+	onTearOff?: () => void;
 }
 
 /** The script's lines. A trailing newline ends the last line rather than starting an empty one. */
@@ -32,7 +34,13 @@ export function scriptLines(text: string): string[] {
  * The script as plain text with line numbers. It highlights nothing it does not parse: the only
  * marks are the lines named by a problem and the line the person chose.
  */
-export function ScriptPanel({ text, diagnostics, focusLine = null, words }: ScriptPanelProps) {
+export function ScriptPanel({
+	text,
+	diagnostics,
+	focusLine = null,
+	words,
+	onTearOff,
+}: ScriptPanelProps) {
 	const lines = scriptLines(text);
 	const [chosen, setChosen] = useState<number | null>(null);
 	const lineRefs = useRef(new Map<number, HTMLLIElement>());
@@ -51,9 +59,16 @@ export function ScriptPanel({ text, diagnostics, focusLine = null, words }: Scri
 
 	return (
 		<section className={styles.panel} aria-labelledby="script-panel-title">
-			<h2 id="script-panel-title" className={styles.title}>
-				{t('script.title')}
-			</h2>
+			<div className={styles.header}>
+				<h2 id="script-panel-title" className={styles.title}>
+					{t('script.title')}
+				</h2>
+				{onTearOff && (
+					<button type="button" className={styles.tearOff} onClick={onTearOff}>
+						{t('panel.tearOff')}
+					</button>
+				)}
+			</div>
 			<ol className={styles.text} aria-label={t('script.text')}>
 				{lines.map((line, index) => {
 					const number = index + 1;

@@ -147,6 +147,17 @@ export const enMessages = {
 	// translator: Note that the proposals can be seen but not yet accepted or rejected here.
 	'ghosts.readOnly': 'You can see proposals here. Accepting and rejecting them comes later.',
 
+	// translator: Verb phrase on a button. Moves the Script panel out of the main window into a window of its own.
+	'panel.tearOff': 'Tear off',
+	// translator: Verb phrase on a button. Closes a panel’s own window and puts the panel back in the main window.
+	'panel.dockBack': 'Dock back',
+	// translator: Shown in the main window in place of the Script panel while the panel is in its own window.
+	'panel.scriptTornOff': 'The Script panel is open in its own window.',
+	// translator: The title of the Script panel’s own window.
+	'window.panelScript.title': 'Script',
+	// translator: A line shown in the Script panel’s own window until it is built.
+	'placeholder.panelScript': 'The script will appear here.',
+
 	// translator: Heading of the panel with the undo and redo buttons.
 	'history.title': 'History',
 	// translator: Verb. Takes back the last step.

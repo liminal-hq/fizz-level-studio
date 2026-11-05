@@ -54,13 +54,19 @@ describe('App', () => {
 		expect(screen.getByTestId('new-level-screen')).toBeInTheDocument();
 	});
 
-	it.each(['mystery', 'main-0', 'panel-script-1', 'tear-ghost'])(
+	it.each(['mystery', 'main-0', 'panel-game-view-1', 'tear-ghost'])(
 		'shows nothing for %s',
 		(label) => {
 			const { container } = render(<App windowLabel={label} />);
 			expect(container).toBeEmptyDOMElement();
 		},
 	);
+
+	it('shows the Script panel with a Dock back button in its own window', () => {
+		render(<App windowLabel="panel-script-1" />);
+		expect(screen.getByText('The script will appear here.')).toBeInTheDocument();
+		expect(screen.getByRole('button', { name: 'Dock back' })).toBeInTheDocument();
+	});
 
 	describe('under the pseudo-locale', () => {
 		afterEach(() => {

@@ -155,6 +155,81 @@ async function main(): Promise<void> {
 		);
 		await levelCall(bridge, 'level_save', { id: 'level-1' });
 
+		// 5b. The appearance and tear-off plugins answer, the theme follows the settings and the
+		// system, and the Script panel tears off into panel-script-1 and docks back.
+		for (const plugin of [
+			'system-appearance',
+			'window-manager',
+			'window-effects',
+			'window-tearoff',
+		]) {
+			const answered = await bridge
+				.js<boolean>(
+					`const s = await window.__TAURI_INTERNALS__.invoke('plugin:${plugin}|get_status'); return typeof s === 'object' && s !== null;`,
+				)
+				.catch(() => false);
+			check(`the ${plugin} status command answers`, answered);
+		}
+		const themeIs = (want: string | null) =>
+			within(3000, () =>
+				bridge.js<boolean>(
+					`return document.documentElement.dataset.flsTheme === ${JSON.stringify(want ?? undefined)};`,
+				),
+			);
+		for (const mode of ['dark', 'light']) {
+			await bridge.js(
+				`const cur = await window.__TAURI_INTERNALS__.invoke('plugin:fizz-studio-settings|settings_get'); await window.__TAURI_INTERNALS__.invoke('plugin:fizz-studio-settings|settings_update', { patch: { colour_mode: '${mode}' }, basedOn: cur.revision });`,
+			);
+			check(`a ${mode} colour mode sets the theme`, (await themeIs(mode)) !== null);
+		}
+		await bridge.js(
+			`const cur = await window.__TAURI_INTERNALS__.invoke('plugin:fizz-studio-settings|settings_get'); await window.__TAURI_INTERNALS__.invoke('plugin:fizz-studio-settings|settings_update', { patch: { colour_mode: 'system' }, basedOn: cur.revision });`,
+		);
+		const { scheme: system } = await bridge.js<{ scheme: string }>(
+			`return { scheme: (await window.__TAURI_INTERNALS__.invoke('plugin:system-appearance|get_appearance')).colourScheme };`,
+		);
+		check(
+			'the system colour mode follows the system scheme',
+			(await themeIs(system === 'noPreference' ? null : system)) !== null,
+			system,
+		);
+
+		const clickByText = (text: string, windowId = 'main-1') =>
+			bridge.js<boolean>(
+				`const b = [...document.querySelectorAll('button')].find((x) => x.textContent === ${JSON.stringify(text)}); if (!b) return false; b.click(); return true;`,
+				windowId,
+			);
+		check('the Script panel offers Tear off', await clickByText('Tear off'));
+		const tornOff = await within(10_000, async () =>
+			(await bridge.windows()).includes('panel-script-1'),
+		);
+		check('tearing off opens panel-script-1', tornOff !== null);
+		const noticed = await within(3000, () =>
+			bridge.js<boolean>(
+				`return document.body.innerText.includes('The Script panel is open in its own window.');`,
+			),
+		);
+		check('the main window shows the panel is away', noticed !== null);
+		await bridge.ready('panel-script-1');
+		const clicked = await within(10_000, () =>
+			clickByText('Dock back', 'panel-script-1').catch(() => false),
+		);
+		check('the panel window offers Dock back', clicked !== null);
+		const docked = await within(
+			10_000,
+			async () => !(await bridge.windows()).includes('panel-script-1'),
+		);
+		check('docking back closes panel-script-1', docked !== null);
+		// The bridge's session can end with the closed window's page; start it again.
+		await bridge.stop();
+		await bridge.start();
+		const back = await within(3000, () =>
+			bridge.js<boolean>(
+				`return [...document.querySelectorAll('button')].some((b) => b.textContent === 'Tear off');`,
+			),
+		);
+		check('the Script panel is back in the main window', back !== null);
+
 		// 6. A crash with unsaved changes leaves a recovery copy, and the next launch offers it back.
 		const unsaved = await levelCall(bridge, 'level_apply', {
 			id: 'level-1',

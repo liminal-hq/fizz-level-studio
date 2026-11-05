@@ -8,6 +8,7 @@ import { t } from '../i18n/messages';
 import styles from './App.module.css';
 import { AppWindow } from './AppWindow';
 import { MainScreen } from './MainScreen';
+import { PanelWindowScreen } from '../panels/PanelWindowScreen';
 import { NewLevelScreen } from './NewLevelScreen';
 import { windowKindFromLabel } from './windowKind';
 
@@ -39,8 +40,10 @@ export function App({ windowLabel }: AppProps) {
 			);
 		case 'new-world':
 			return <NewLevelScreen />;
+		case 'panel':
+			return <PanelWindowScreen windowLabel={windowLabel} />;
 		default:
-			// Panels and the tear ghost have no screen yet, and an unknown label shows nothing.
+			// The tear ghost has no screen yet, and an unknown label shows nothing.
 			return null;
 	}
 }

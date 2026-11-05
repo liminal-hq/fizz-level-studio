@@ -92,3 +92,30 @@
 	outline: 2px solid var(--fls-focus-ring);
 	outline-offset: -2px;
 }
+
+.header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.5rem;
+}
+
+.tearOff {
+	min-height: var(--fls-hit-target);
+	padding: 0 0.7rem;
+	color: var(--fls-text-primary);
+	background: var(--fls-control-bg);
+	border: 1px solid var(--fls-border-subtle);
+	border-radius: 6px;
+	font: inherit;
+	cursor: default;
+}
+
+.tearOff:hover {
+	background: var(--fls-control-bg-hover);
+}
+
+.tearOff:focus-visible {
+	outline: 2px solid var(--fls-focus-ring);
+	outline-offset: 2px;
+}

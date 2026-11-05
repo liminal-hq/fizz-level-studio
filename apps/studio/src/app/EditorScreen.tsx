@@ -14,6 +14,9 @@ import { GhostsPanel } from '../panels/GhostsPanel';
 import { HistoryPanel, historyShortcut } from '../panels/HistoryPanel';
 import { PalettePanel } from '../panels/PalettePanel';
 import { ScriptPanel } from '../panels/ScriptPanel';
+import { TornOffNotice } from '../panels/TornOffNotice';
+import { usePanelDock } from '../panels/usePanelDock';
+import type { PanelWindowClient } from '../services/panelWindowClient';
 import { toolForKey } from '../tools/shortcuts';
 import { ToolPalette } from '../tools/ToolPalette';
 import type { Cell, PointerPhase } from '../tools/tool';
@@ -28,6 +31,8 @@ export interface EditorScreenProps {
 	client: LevelClient;
 	/** Called with every snapshot the screen takes up, so a parent can follow the level. */
 	onSnapshot?: (snapshot: LevelSnapshot) => void;
+	/** Opens and closes panel windows; defaults to the app's commands. */
+	panelWindows?: PanelWindowClient;
 }
 
 /** Keys typed into these belong to the control, not to the editor's shortcuts. */
@@ -41,7 +46,12 @@ function isTyping(target: EventTarget | null): boolean {
  * backend owns the document, so every change goes out through `client` and comes back as a new
  * snapshot. Commands run one at a time, each based on the revision the one before returned.
  */
-export function EditorScreen({ snapshot: initial, client, onSnapshot }: EditorScreenProps) {
+export function EditorScreen({
+	snapshot: initial,
+	client,
+	onSnapshot,
+	panelWindows,
+}: EditorScreenProps) {
 	const [snapshot, setSnapshot] = useState(initial);
 	const held = useRef(initial);
 	const queue = useRef<Promise<void>>(Promise.resolve());
@@ -55,6 +65,7 @@ export function EditorScreen({ snapshot: initial, client, onSnapshot }: EditorSc
 	const [showGhosts, setShowGhosts] = useState(true);
 	const levelId = snapshot.id;
 	const revision = snapshot.revision;
+	const scriptDock = usePanelDock('script', panelWindows);
 
 	const follow = useRef(onSnapshot);
 	follow.current = onSnapshot;
@@ -237,12 +248,17 @@ export function EditorScreen({ snapshot: initial, client, onSnapshot }: EditorSc
 						onToggle={setShowGhosts}
 						onRefresh={() => setReads((n) => n + 1)}
 					/>
-					<ScriptPanel
-						words={words}
-						text={snapshot.text}
-						diagnostics={snapshot.view.diagnostics}
-						focusLine={focusLine}
-					/>
+					{scriptDock.tornOff ? (
+						<TornOffNotice messageId="panel.scriptTornOff" onDockBack={scriptDock.dockBack} />
+					) : (
+						<ScriptPanel
+							words={words}
+							text={snapshot.text}
+							diagnostics={snapshot.view.diagnostics}
+							focusLine={focusLine}
+							onTearOff={scriptDock.tearOff}
+						/>
+					)}
 					<HistoryPanel
 						canUndo={snapshot.can_undo}
 						canRedo={snapshot.can_redo}
