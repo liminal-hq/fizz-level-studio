@@ -1,7 +1,0 @@
-{
-	"$schema": "../gen/schemas/desktop-schema.json",
-	"identifier": "main",
-	"description": "Capabilities of every main window: the core window and event APIs, and the platform name.",
-	"windows": ["main-*"],
-	"permissions": ["core:default", "os:default"]
-}

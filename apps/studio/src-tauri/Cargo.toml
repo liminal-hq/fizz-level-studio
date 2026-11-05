@@ -22,6 +22,11 @@ log = { workspace = true }
 chrono = { workspace = true }
 tauri-plugin-log = "2"
 tauri-plugin-os = "2"
+tauri-plugin-dialog = "2"
+tauri-plugin-single-instance = "2"
+tauri-plugin-prevent-default = "6"
+serde = { workspace = true }
 
 [dev-dependencies]
+serde_json = { workspace = true }
 tauri = { workspace = true, features = ["test"] }

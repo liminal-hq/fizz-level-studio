@@ -1,0 +1,7 @@
+{
+	"$schema": "../gen/schemas/desktop-schema.json",
+	"identifier": "dialogs",
+	"description": "The windows that open and save files may show the native file dialogs.",
+	"windows": ["main-*", "new-world"],
+	"permissions": ["dialog:default"]
+}
