@@ -1,0 +1,22 @@
+/* The window's content below the title bar: it fills the rest of the window and scrolls inside. */
+.screen {
+	display: flex;
+	flex: 1;
+	flex-direction: column;
+	min-height: 0;
+	overflow: hidden;
+	color: var(--fls-text-primary);
+	background: var(--fls-bg-content);
+}
+
+.unavailable {
+	margin: 0;
+	padding: 0.5rem 1rem;
+	color: var(--fls-danger);
+}
+
+.body {
+	display: grid;
+	flex: 1;
+	min-height: 0;
+}

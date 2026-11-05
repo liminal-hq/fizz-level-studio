@@ -10,6 +10,12 @@ export const INK_LIGHT = '#ffffff';
 /** The fallback accents, which `tokens.css` also holds: cyan on dark, an accessible teal on light. */
 export const DEFAULT_ACCENT = { dark: '#00e5ff', light: '#00778c' } as const;
 
+/** The studio's own accents a person can choose instead of the system's. Studio cyan is the default above. */
+export const PRESET_ACCENTS = {
+	afterglowOrange: '#ffaa40',
+	afterglowPurple: '#a78bfa',
+} as const;
+
 /** The flat panel colours accent text is checked against (the lightest tone of each glass panel). */
 export const PANEL_COLOUR = { dark: '#222330', light: '#f2eff4' } as const;
 
@@ -148,6 +154,22 @@ export function deriveAccent(accent: string | null, scheme: Scheme = 'dark'): De
 		litBottom,
 		textOnDark: accentTextOn(base, 'dark'),
 		textOnLight: accentTextOn(base, 'light'),
+	};
+}
+
+/** How a derived accent reads on a lit key, for a preview that explains the result. */
+export interface KeyReport {
+	/** The lowest contrast ratio the label has against either stop of the lit key. */
+	ratio: number;
+	/** The fill was darkened from the accent so the label stays readable. */
+	darkened: boolean;
+}
+
+/** The contrast of the label on the lit key, and whether the fill had to be darkened to get it. */
+export function reportKey(derived: DerivedAccent): KeyReport {
+	return {
+		ratio: worstContrast(derived.ink, [derived.litTop, derived.litBottom]),
+		darkened: derived.litTop !== derived.accent,
 	};
 }
 

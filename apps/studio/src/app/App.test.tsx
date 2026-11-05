@@ -28,6 +28,10 @@ vi.mock('@tauri-apps/api/window', () => {
 // The main screen has its own tests; here it only has to be chosen.
 vi.mock('./MainScreen', () => ({ MainScreen: () => <p data-testid="main-screen" /> }));
 
+vi.mock('../preferences/PreferencesScreen', () => ({
+	PreferencesScreen: () => <p data-testid="preferences-screen" />,
+}));
+
 vi.mock('./NewLevelScreen', () => ({ NewLevelScreen: () => <p data-testid="new-level-screen" /> }));
 
 import { App } from './App';
@@ -38,15 +42,20 @@ describe('App', () => {
 		expect(screen.getByTestId('main-screen')).toBeInTheDocument();
 	});
 
-	it.each([
-		['about', 'About Fizz Level Studio', 'About is coming.'],
-		['preferences', 'Preferences', 'Preferences are coming.'],
-	])('shows a placeholder in the %s window', (label, title, message) => {
-		render(<App windowLabel={label} />);
-		expect(screen.getByText(title)).toBeInTheDocument();
-		expect(screen.getByText(message)).toBeInTheDocument();
-		expect(screen.getByRole('button', { name: 'Close' })).toBeInTheDocument();
-		expect(screen.queryByTestId('main-screen')).toBeNull();
+	it.each([['about', 'About Fizz Level Studio', 'About is coming.']])(
+		'shows a placeholder in the %s window',
+		(label, title, message) => {
+			render(<App windowLabel={label} />);
+			expect(screen.getByText(title)).toBeInTheDocument();
+			expect(screen.getByText(message)).toBeInTheDocument();
+			expect(screen.getByRole('button', { name: 'Close' })).toBeInTheDocument();
+			expect(screen.queryByTestId('main-screen')).toBeNull();
+		},
+	);
+
+	it('shows the Preferences screen in the preferences window', () => {
+		render(<App windowLabel="preferences" />);
+		expect(screen.getByTestId('preferences-screen')).toBeInTheDocument();
 	});
 
 	it('shows the New level screen in the new-world window', () => {
@@ -75,9 +84,9 @@ describe('App', () => {
 
 		it('marks the title bar title, the message and the window controls', async () => {
 			await activateLocale({ requested: 'en-XA', developer: true });
-			render(<App windowLabel="preferences" />);
+			render(<App windowLabel="about" />);
 			expect(screen.getAllByText(/^\[.+\]$/)).toHaveLength(2);
-			expect(screen.queryByText('Preferences are coming.')).toBeNull();
+			expect(screen.queryByText('About is coming.')).toBeNull();
 			expect(screen.getByRole('button', { name: /^\[Çĺöšé.*\]$/ })).toBeInTheDocument();
 			expect(screen.getByRole('group', { name: /^\[Ŵîñďöŵ/ })).toBeInTheDocument();
 		});

@@ -362,8 +362,76 @@ export const enMessages = {
 	'newLevel.error.folder': 'Choose a folder.',
 	// translator: An error line shown when the level could not be made. {message} says why, in English.
 	'newLevel.createFailed': 'The level could not be created: {message}',
-	// translator: A line shown in the Preferences window until it is built.
-	'placeholder.preferences': 'Preferences are coming.',
+	// translator: Accessible name of the list of pages in the Preferences window.
+	'preferences.navigation': 'Preferences pages',
+	// translator: The name of a Preferences page about how the app looks. It is the page’s heading and its entry in the list of pages.
+	'preferences.page.appearance': 'Appearance',
+	// translator: The title of a group of settings about colour.
+	'preferences.group.colours': 'Colours',
+	// translator: The title of a group of settings about visual effects such as blur.
+	'preferences.group.effects': 'Effects',
+	// translator: A choice meaning “use whatever the operating system is set to”. Shown on several settings.
+	'preferences.follow': 'Follow the system',
+	// translator: The name of the setting that picks the light or dark colour scheme.
+	'preferences.mode.label': 'Colour mode',
+	// translator: Explains the Colour mode setting.
+	'preferences.mode.description': 'Light or dark windows, or the same as the system.',
+	// translator: A choice for Colour mode: light windows.
+	'preferences.mode.light': 'Light',
+	// translator: A choice for Colour mode: dark windows.
+	'preferences.mode.dark': 'Dark',
+	// translator: The name of the setting that picks the highlight colour used for the active tool and other lit controls.
+	'preferences.accent.label': 'Accent',
+	// translator: Explains the Accent setting.
+	'preferences.accent.description': 'The colour of the active tool and other lit controls.',
+	// translator: A choice for Accent: the studio’s own cyan (a blue-green).
+	'preferences.accent.studio': 'Studio cyan',
+	// translator: A choice for Accent: a warm orange called Afterglow orange.
+	'preferences.accent.orange': 'Afterglow orange',
+	// translator: A choice for Accent: a soft purple called Afterglow purple.
+	'preferences.accent.purple': 'Afterglow purple',
+	// translator: A choice for Accent: the person picks any colour themselves.
+	'preferences.accent.custom': 'Choose a colour',
+	// translator: The name of a colour picker for the custom accent.
+	'preferences.accentColour.label': 'Custom accent',
+	// translator: Explains the colour picker for the custom accent.
+	'preferences.accentColour.description': 'Pick the accent colour.',
+	// translator: The name of a text field where a colour is typed as a hex code such as #00e5ff.
+	'preferences.accentHex.label': 'Custom accent code',
+	// translator: Explains the hex code field. The format shown is six lowercase hexadecimal digits after a number sign.
+	'preferences.accentHex.description': 'A colour as # followed by six lowercase hex digits.',
+	// translator: An error beside the hex code field when the text is not a colour in that format.
+	'preferences.error.hex': 'Use # followed by six lowercase hex digits, such as #00e5ff.',
+	// translator: An error beside a setting when the change could not be saved.
+	'preferences.error.save': 'The change could not be saved.',
+	// translator: An error shown when the settings could not be read at all.
+	'preferences.unavailable': 'The settings could not be read.',
+	// translator: The name of the setting that turns the frosted-glass look of panels on or off.
+	'preferences.glass.label': 'Glass panels',
+	// translator: Explains Glass panels. “Off” draws panels in a solid colour, which is easier on slower graphics.
+	'preferences.glass.description':
+		'Off draws solid panels, which is easier on slower graphics. Following the system turns glass off when the system asks for less transparency.',
+	// translator: A choice for Glass panels: always frosted glass.
+	'preferences.glass.on': 'On',
+	// translator: A choice for Glass panels: solid panels.
+	'preferences.glass.off': 'Off',
+	// translator: Accessible name of the small live sample of the chosen accent and glass.
+	'preferences.preview.label': 'Preview',
+	// translator: The label on a sample lit key in the preview.
+	'preferences.preview.key': 'Paint',
+	// translator: Text on a sample glass panel in the preview, drawn in the accent colour.
+	'preferences.preview.strip': 'Accent text on a panel',
+	// translator: Says how readable the lit key’s label is. {ink} is the label colour as a hex code; {ratio} is the contrast ratio, such as 8.2.
+	'preferences.preview.contrast': 'Key label {ink}, contrast {ratio} to 1.',
+	// translator: Added after the contrast line when the key’s colour was made darker than the chosen accent so its label stays readable.
+	'preferences.preview.darkened': 'The key was darkened to stay readable.',
+	// translator: The name of the setting row that puts the Appearance page back to its starting choices.
+	'preferences.reset.label': 'Reset this page',
+	// translator: Explains the reset action on the Appearance page.
+	'preferences.reset.description':
+		'Puts colour mode, accent and glass back to following the system.',
+	// translator: Verb phrase on a button. Puts the page’s settings back to their defaults.
+	'preferences.reset.action': 'Reset to defaults',
 	// translator: A line shown in the About window until it is built.
 	'placeholder.about': 'About is coming.',
 

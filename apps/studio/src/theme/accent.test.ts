@@ -8,6 +8,7 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
 	ACCENT_PROPERTIES,
+	reportKey,
 	DEFAULT_ACCENT,
 	INK_DARK,
 	INK_LIGHT,
@@ -156,5 +157,19 @@ describe('applyAccent', () => {
 		expect(root.style.getPropertyValue('--fls-accent')).toBe('#3584e4');
 		applyAccent(null, root);
 		for (const name of ACCENT_PROPERTIES) expect(root.style.getPropertyValue(name), name).toBe('');
+	});
+});
+
+describe('reportKey', () => {
+	it('reports the label contrast and no darkening for a readable accent', () => {
+		const report = reportKey(deriveAccent('#00e5ff'));
+		expect(report.darkened).toBe(false);
+		expect(report.ratio).toBeGreaterThanOrEqual(4.5);
+	});
+
+	it('reports a darkened fill when the accent had to be darkened', () => {
+		const report = reportKey(deriveAccent('#2a8a4a'));
+		expect(report.darkened).toBe(true);
+		expect(report.ratio).toBeGreaterThanOrEqual(4.5);
 	});
 });

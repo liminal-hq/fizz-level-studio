@@ -10,6 +10,7 @@ import { AppWindow } from './AppWindow';
 import { MainScreen } from './MainScreen';
 import { PanelWindowScreen } from '../panels/PanelWindowScreen';
 import { NewLevelScreen } from './NewLevelScreen';
+import { PreferencesScreen } from '../preferences/PreferencesScreen';
 import { windowKindFromLabel } from './windowKind';
 
 interface AppProps {
@@ -35,9 +36,7 @@ export function App({ windowLabel }: AppProps) {
 		case 'about':
 			return <PlaceholderScreen titleId="window.about.title" messageId="placeholder.about" />;
 		case 'preferences':
-			return (
-				<PlaceholderScreen titleId="window.preferences.title" messageId="placeholder.preferences" />
-			);
+			return <PreferencesScreen />;
 		case 'new-world':
 			return <NewLevelScreen />;
 		case 'panel':
