@@ -117,6 +117,47 @@ async function main(): Promise<void> {
 			laidOut.canvas > 300,
 			String(laidOut.canvas),
 		);
+		// The menus sit in a row below the title bar, which holds only the app name, the title and the
+		// window buttons; the canvas keeps its room beneath. Choosing Window, then Preferences opens
+		// the Preferences window.
+		const bars = await bridge.js<{ title: number; bar: number; canvas: number } | null>(
+			`const t = document.querySelector('[data-tauri-drag-region][data-title-align]')?.getBoundingClientRect();
+			 const b = document.querySelector('[role=menubar]')?.getBoundingClientRect();
+			 const c = document.querySelector('canvas')?.getBoundingClientRect();
+			 return t && b && c ? { title: t.bottom, bar: b.top, canvas: c.height } : null;`,
+		);
+		check(
+			'the menu bar sits below the title bar',
+			bars !== null && bars.bar >= bars.title - 0.5,
+			JSON.stringify(bars),
+		);
+		check('the canvas still has room with the menu bar', (bars?.canvas ?? 0) > 300);
+		const pressByRole = (role: string, name: string) =>
+			bridge.js<boolean>(
+				`const el = [...document.querySelectorAll('[role=${role}]')].find((x) => x.textContent.trim().startsWith(${JSON.stringify(name)}));
+				 if (!el) return false;
+				 for (const type of ['pointerdown', 'mousedown', 'pointerup', 'mouseup', 'click']) el.dispatchEvent(new MouseEvent(type, { bubbles: true, cancelable: true }));
+				 return true;`,
+			);
+		check('the menu bar offers Window', await pressByRole('menuitem', 'Window'));
+		const preferencesRow = await within(3000, async () =>
+			(await pressByRole('menuitem', 'Preferences')) ? true : null,
+		);
+		check('the Window menu offers Preferences', preferencesRow !== null);
+		const fromMenu = await bridge.ready('preferences');
+		check('Window, Preferences opens the Preferences window', fromMenu);
+		const menuHeading = await within(10_000, async () => {
+			const box = await bridge.js<{ w: number; h: number } | null>(
+				`const h = [...document.querySelectorAll('h2')].find((x) => x.textContent === 'Appearance'); if (!h) return null; const r = h.getBoundingClientRect(); return { w: r.width, h: r.height };`,
+				'preferences',
+			);
+			return box && box.w > 0 && box.h > 0 ? box : null;
+		});
+		check(
+			'the Preferences window opened from the menu draws Appearance with a size',
+			menuHeading !== null,
+			JSON.stringify(menuHeading),
+		);
 		const opened = await openLevel(bridge, path);
 		check('the open level has its 5,376 cells', opened.cells === 5376, String(opened.cells));
 		check('a fresh level has nothing to undo', !opened.canUndo && opened.revision === 0);

@@ -11,13 +11,16 @@ import { AppWindowChrome } from './AppWindowChrome';
 
 export interface AppWindowProps extends AppTitleBarProps {
 	children: ReactNode;
+	/** A row of menus between the title bar and the content: the Main window's menu bar. */
+	menuBar?: ReactNode;
 }
 
-export function AppWindow({ children, ...title }: AppWindowProps) {
+export function AppWindow({ children, menuBar, ...title }: AppWindowProps) {
 	return (
 		<AppWindowChrome>
 			<WindowFrame className={styles.surface}>
 				<AppTitleBar {...title} />
+				{menuBar}
 				{children}
 			</WindowFrame>
 		</AppWindowChrome>

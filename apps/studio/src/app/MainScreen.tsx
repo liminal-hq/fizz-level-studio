@@ -5,6 +5,11 @@
 
 import type { LevelSnapshot } from '@liminal-hq/fizz-studio-protocol/generated/LevelSnapshot';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import {
+	CommandBridgeContext,
+	createCommandBridge,
+	type CommandBridge,
+} from '../commands/commandBridge';
 import { t, type MessageId } from '../i18n/messages';
 import { launchClient, type LaunchClient } from '../services/launchClient';
 import { pickLevelFile, type PickLevelFile } from '../services/filePicker';
@@ -18,6 +23,8 @@ import {
 	type LevelConflict,
 	type WorldsClient,
 } from '../worlds/tauriLevelClient';
+import { AppMenu } from './AppMenu';
+import { AppMenuBar } from './AppMenuBar';
 import { AppWindow } from './AppWindow';
 import { CloseLevelDialog } from './CloseLevelDialog';
 import { EditorScreen } from './EditorScreen';
@@ -66,13 +73,29 @@ function isSaveShortcut(event: KeyboardEvent): boolean {
 	return (event.ctrlKey || event.metaKey) && !event.altKey && event.key.toLowerCase() === 's';
 }
 
-export function MainScreen({
+/** True for the keys that mean Preferences: Ctrl+, or Cmd+,. */
+function isPreferencesShortcut(event: KeyboardEvent): boolean {
+	return (event.ctrlKey || event.metaKey) && !event.altKey && event.key === ',';
+}
+
+/** The main window: provides the command bridge the application menu reads, then the screen. */
+export function MainScreen(props: MainScreenProps) {
+	const [bridge] = useState(createCommandBridge);
+	return (
+		<CommandBridgeContext.Provider value={bridge}>
+			<MainScreenBody {...props} bridge={bridge} />
+		</CommandBridgeContext.Provider>
+	);
+}
+
+function MainScreenBody({
+	bridge,
 	client = defaultClient(),
 	recents = recentClient,
 	launch = launchClient,
 	pickFile = pickLevelFile,
 	recovery = recoveryClient,
-}: MainScreenProps) {
+}: MainScreenProps & { bridge: CommandBridge }) {
 	/** The snapshot the level was opened from; the editor takes later ones from `level`. */
 	const [level, setLevel] = useState<LevelSnapshot | null>(null);
 	const levelRef = useRef<LevelSnapshot | null>(null);
@@ -305,6 +328,35 @@ export function MainScreen({
 		return () => document.removeEventListener('keydown', onKey);
 	}, [level?.id, save]);
 
+	useEffect(() => {
+		const onKey = (event: KeyboardEvent) => {
+			if (!isPreferencesShortcut(event)) return;
+			event.preventDefault();
+			void openWindow({ kind: 'preferences' });
+		};
+		document.addEventListener('keydown', onKey);
+		return () => document.removeEventListener('keydown', onKey);
+	}, []);
+
+	// The application menu runs these through the bridge; the latest closures are read at call time.
+	const live = useRef({ choose, save, requestClose });
+	live.current = { choose, save, requestClose };
+	useEffect(
+		() =>
+			bridge.setHandlers({
+				'file.new': () => void openWindow({ kind: 'new-world' }),
+				'file.open': () => void live.current.choose(),
+				'file.save': () => void live.current.save(),
+				'file.close': () => live.current.requestClose(),
+			}),
+		[bridge],
+	);
+	const hasLevel = level !== null;
+	useEffect(() => {
+		bridge.setFacts({ hasLevel });
+		return () => bridge.setFacts({ hasLevel: false });
+	}, [bridge, hasLevel]);
+
 	const bannerView = banner && (
 		<p className={styles.error} role="alert">
 			<span>{t(banner.id, { path: banner.path ?? '' })}</span>
@@ -316,7 +368,7 @@ export function MainScreen({
 
 	if (!level) {
 		return (
-			<AppWindow>
+			<AppWindow start={<AppMenu menuBar />} menuBar={<AppMenuBar />}>
 				<main className={styles.start}>
 					{bannerView}
 					<h1 className={styles.name}>{t('app.name')}</h1>
@@ -391,7 +443,12 @@ export function MainScreen({
 
 	const name = levelName(level);
 	return (
-		<AppWindow documentName={name} dirty={isDirty(level)}>
+		<AppWindow
+			documentName={name}
+			dirty={isDirty(level)}
+			start={<AppMenu menuBar />}
+			menuBar={<AppMenuBar />}
+		>
 			<div className={styles.editor}>
 				<div className={styles.actions} role="toolbar" aria-label={t('main.levelActions')}>
 					<button type="button" className={styles.button} onClick={() => void save()}>

@@ -7,13 +7,23 @@ import type { GhostProposal } from '@liminal-hq/fizz-studio-protocol/generated/G
 import type { LevelEdit } from '@liminal-hq/fizz-studio-protocol/generated/LevelEdit';
 import type { LevelSnapshot } from '@liminal-hq/fizz-studio-protocol/generated/LevelSnapshot';
 import type { WordDoc } from '@liminal-hq/fizz-studio-protocol/generated/WordDoc';
-import { useCallback, useMemo, useEffect, useRef, useState, type KeyboardEvent } from 'react';
+import {
+	useCallback,
+	useContext,
+	useMemo,
+	useEffect,
+	useRef,
+	useState,
+	type KeyboardEvent,
+} from 'react';
 import { LevelCanvas } from '../canvas/LevelCanvas';
 import { ObjectList } from '../canvas/ObjectList';
 import { enMessages, t, type MessageId } from '../i18n/messages';
+import { CommandBridgeContext, NO_FACTS } from '../commands/commandBridge';
 import { GhostsPanel } from '../panels/GhostsPanel';
 import { FloatingPanel } from '../panels/float/FloatingPanel';
 import { neighboursOf, usePanelLayout } from '../panels/float/usePanelLayout';
+import { panelCommandId } from '../commands/registry';
 import { PANEL_SPECS, type PanelId } from '../panels/float/panelSpecs';
 import { PanelsMenu } from '../panels/float/PanelsMenu';
 import { SnapGuides } from '../panels/float/SnapGuides';
@@ -230,6 +240,45 @@ export function EditorScreen({
 			}),
 		[client, accept, enqueue],
 	);
+
+	// The application menu's Edit and View rows: facts as they are now, and actions that call the latest.
+	const bridge = useContext(CommandBridgeContext);
+	const live = useRef({ undo, redo, setVisible: floating.setVisible, reset: floating.reset });
+	live.current = { undo, redo, setVisible: floating.setVisible, reset: floating.reset };
+	const panelsShown = visibleOf(floating.panels);
+	const panelsKey = PANEL_SPECS.map((spec) => (panelsShown[spec.id] ? '1' : '0')).join('');
+	useEffect(() => {
+		if (!bridge) return;
+		const handlers: Record<string, () => void> = {
+			'edit.undo': () => live.current.undo(),
+			'edit.redo': () => live.current.redo(),
+			'view.resetLayout': () => live.current.reset(),
+		};
+		for (const spec of PANEL_SPECS) {
+			handlers[panelCommandId(spec.id)] = () =>
+				live.current.setVisible(spec.id, !panelsRef.current[spec.id]);
+		}
+		const remove = bridge.setHandlers(handlers);
+		return () => {
+			remove();
+			bridge.setFacts({
+				editorOpen: false,
+				canUndo: false,
+				canRedo: false,
+				panels: NO_FACTS.panels,
+			});
+		};
+	}, [bridge]);
+	const panelsRef = useRef(panelsShown);
+	panelsRef.current = panelsShown;
+	useEffect(() => {
+		bridge?.setFacts({
+			editorOpen: true,
+			canUndo: snapshot.can_undo,
+			canRedo: snapshot.can_redo,
+			panels: panelsRef.current,
+		});
+	}, [bridge, snapshot.can_undo, snapshot.can_redo, panelsKey]);
 
 	const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
 		if (isTyping(event.target)) return;
