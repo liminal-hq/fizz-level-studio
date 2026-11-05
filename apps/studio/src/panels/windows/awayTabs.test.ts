@@ -6,7 +6,7 @@
 import { describe, expect, it } from 'vitest';
 import { floatPanel, sendToWindow } from '../dock/dockLayout';
 import { defaultWorkspace, dockedIn } from '../dock/dockModel';
-import { awayFloating, awayPanels, withAwayTabs } from './awayTabs';
+import { awayPanels, withAwayTabs } from './awayTabs';
 
 describe('withAwayTabs', () => {
 	it('changes nothing when no panel is away', () => {
@@ -35,10 +35,10 @@ describe('withAwayTabs', () => {
 		expect(dockedIn(withAwayTabs(ws), 'left')).toEqual(['palette']);
 	});
 
-	it('leaves a panel that came from floating to be drawn as a floating notice', () => {
-		const ws = sendToWindow(floatPanel(defaultWorkspace(), 'script'), 'script');
-		expect(awayFloating(ws, 'script')).toBe(true);
-		expect(awayFloating(ws, 'palette')).toBe(false);
-		expect(dockedIn(withAwayTabs(ws), 'bottom')).not.toContain('script');
+	it('shows a panel that came from floating in its home zone and keeps its floating rectangle', () => {
+		const floated = floatPanel(defaultWorkspace(), 'script', { x: 40, y: 50 });
+		const ws = sendToWindow(floated, 'script');
+		expect(dockedIn(withAwayTabs(ws), 'bottom')).toContain('script');
+		expect(ws.panels.script!.float).toMatchObject({ x: 40, y: 50 });
 	});
 });
