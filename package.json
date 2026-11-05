@@ -41,7 +41,8 @@
 		"check": "bash tools/check.sh",
 		"check:scope": "bash tools/ci-scope.sh --self-test",
 		"app:build": "bun run build:plugins && bun run --cwd apps/studio build && bun run --cwd apps/studio tauri build --debug --no-bundle --config src-tauri/tauri.conf.dev.json",
-		"check:app": "bun tools/app-checks/run.ts"
+		"check:app": "bun tools/app-checks/run.ts",
+		"check:perf": "bun tools/app-checks/perf.ts"
 	},
 	"description": "A level and overworld editor for Lieutenant Fizz: a plain-text level language, an MCP server for Claude and proofs against the game",
 	"license": "Apache-2.0 OR MIT",

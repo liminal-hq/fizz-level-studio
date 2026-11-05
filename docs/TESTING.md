@@ -111,7 +111,8 @@ H=$PWD/design/project node tools/design-harness/all.cjs               # for all.
 - **The MCP server has never run inside a real Claude Code session**; only `e2e.test.ts` speaks the protocol to it.
 - **The gap rule is not physics.** The 3/4/5 widths are the stated design rule.
 - **No playtest from the studio.** The game's bot (`playtest.rs`) has routes for 15 levels in its own tests; the Citadel has none.
-- **No performance measurements** of the studio. Parse plus rasterise of the slowest real level (Frosting Spire) averages 0.35 ms, and the overworld 0.71 ms, in Bun 1.3.10 on an AMD Ryzen 7 7700X (20 runs after a warm-up).
+- **Performance is measured in two places only.** Parse plus rasterise of the slowest real level (Frosting Spire) averages 0.35 ms, and the overworld 0.71 ms, in Bun 1.3.10 on an AMD Ryzen 7 7700X (20 runs after a warm-up). In the running app, `bun run check:perf` sends 200 paint strokes to Marshmallow Meadows over the real IPC and times each from the command to the canvas redraw: p50 9 ms, p95 11 ms, max 13 ms on the same machine, in a debug build (so a ceiling), under Wayland, against R-PERF-01's 16 ms. It does not include the pointer event reaching the handler or the compositor showing the frame, and it is not run in CI because a shared runner's timing would make it flaky. Pointer input from the bridge or from `xdotool` did not reach the canvas's React handlers in the automation setup, so the strokes are commands, not mouse movements; fixing that would let the check start at the pointer.
+- **Windows is unmeasured.** The WebView2 frame stream and the paint figure have not been run on Windows 11.
 
 ## 7. Planned: targets, worlds, the Fizz 2 dialect, behaviours and art
 
