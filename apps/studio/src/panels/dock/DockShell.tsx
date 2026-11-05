@@ -30,6 +30,8 @@ export interface DockActions {
 	activate(id: string): void;
 	dockTo(id: string, zone: ZoneId): void;
 	floatPanel(id: string): void;
+	/** Tears a panel off into a window of its own; the dock shows no Tear off button without it. */
+	tearOff?(id: string): void;
 	toggleZone(zone: ZoneId): void;
 	peek(id: string): void;
 	closePeek(): void;
@@ -170,6 +172,7 @@ export function DockShell({
 							onActivate={actions.activate}
 							onDock={actions.dockTo}
 							onFloat={actions.floatPanel}
+							onTearOff={actions.tearOff}
 							onFold={() => actions.toggleZone(id)}
 							onReorder={reorder}
 							onDragStart={drag?.begin}

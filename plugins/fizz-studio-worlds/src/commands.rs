@@ -246,3 +246,10 @@ pub fn level_ghosts(
 ) -> Result<Vec<GhostProposal>, LevelError> {
     worlds.with(&id, |level| Ok(level.ghosts()))
 }
+
+/// The current snapshot of an open level, for a window that did not open it (a panel in a window of
+/// its own reads the level the main window has open). Read-only.
+#[tauri::command]
+pub fn level_snapshot(worlds: State<'_, Worlds>, id: String) -> Result<LevelSnapshot, LevelError> {
+    worlds.with(&id, |level| Ok(level.snapshot()))
+}

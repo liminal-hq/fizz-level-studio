@@ -21,8 +21,10 @@ import {
 	brushCommandId,
 	brushCommands,
 	commandLabel,
+	dockBackCommandId,
 	paletteGroupOf,
 	runCommand,
+	tearOffCommandId,
 	toolCommandId,
 	viewOf,
 } from './registry';
@@ -241,5 +243,36 @@ describe('the palette additions', () => {
 		const quit = entries.find((entry) => entry.id === 'file.quit')!;
 		expect(quit).toMatchObject({ enabled: true, shortcut: 'Ctrl+Q' });
 		expect(entries.find((entry) => entry.id === 'window.about')?.enabled).toBe(true);
+	});
+});
+
+describe('Tear off and Dock back', () => {
+	it('offers Tear off for each panel in the main window and Dock back for each away', () => {
+		const here = allCommands(NO_FACTS);
+		for (const spec of PANEL_SPECS) {
+			expect(here.some((def) => def.id === tearOffCommandId(spec.id))).toBe(true);
+			expect(here.some((def) => def.id === dockBackCommandId(spec.id))).toBe(false);
+		}
+		const away = allCommands({ ...NO_FACTS, away: { ...NO_FACTS.away, script: true } });
+		expect(away.some((def) => def.id === dockBackCommandId('script'))).toBe(true);
+		expect(away.some((def) => def.id === tearOffCommandId('script'))).toBe(false);
+	});
+
+	it('names the panel in the label and lists them under Panels', () => {
+		const def = allCommands(NO_FACTS).find((d) => d.id === tearOffCommandId('objects'))!;
+		expect(commandLabel(def)).toBe('Tear off Objects');
+		expect(paletteGroupOf(def)).toBe('panels');
+		const back = allCommands({ ...NO_FACTS, away: { ...NO_FACTS.away, history: true } }).find(
+			(d) => d.id === dockBackCommandId('history'),
+		)!;
+		expect(commandLabel(back)).toBe('Dock History back');
+	});
+
+	it('runs through the editor’s handler and only while the editor is open', () => {
+		const run = vi.fn();
+		const id = tearOffCommandId('palette');
+		expect(runCommand(id, snapshot({}, { [id]: run }))).toBe(false);
+		expect(runCommand(id, snapshot({ editorOpen: true }, { [id]: run }))).toBe(true);
+		expect(run).toHaveBeenCalledTimes(1);
 	});
 });

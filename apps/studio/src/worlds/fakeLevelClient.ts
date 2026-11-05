@@ -141,6 +141,11 @@ export class FakeLevelClient implements LevelClient {
 		return this.settle(next);
 	}
 
+	async read(id: string): Promise<LevelSnapshot> {
+		this.check(id);
+		return this.snapshot();
+	}
+
 	async cellLine(id: string, x: number, y: number): Promise<number | null> {
 		this.check(id);
 		return this.cellLines.get(`${x},${y}`) ?? null;

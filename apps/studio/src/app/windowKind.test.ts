@@ -4,7 +4,7 @@
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
 import { describe, expect, it } from 'vitest';
-import { panelFromLabel, windowKindFromLabel } from './windowKind';
+import { ownerOfPanel, panelFromLabel, windowKindFromLabel } from './windowKind';
 
 describe('windowKindFromLabel', () => {
 	it('names every kind of window', () => {
@@ -51,5 +51,18 @@ describe('panelFromLabel', () => {
 		expect(panelFromLabel('main-1')).toBeNull();
 		expect(panelFromLabel('panel-script')).toBeNull();
 		expect(panelFromLabel('tear-ghost')).toBeNull();
+	});
+});
+
+describe('ownerOfPanel', () => {
+	it('names the main window a panel window belongs to', () => {
+		expect(ownerOfPanel('panel-script-1')).toBe('main-1');
+		expect(ownerOfPanel('panel-game-view-3')).toBe('main-3');
+	});
+
+	it('names nothing for a window that is not a panel', () => {
+		expect(ownerOfPanel('main-1')).toBeNull();
+		expect(ownerOfPanel('about')).toBeNull();
+		expect(ownerOfPanel('panel-script')).toBeNull();
 	});
 });

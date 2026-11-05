@@ -140,13 +140,17 @@ pub fn open_or_focus<R: Runtime>(
     build_window(app, id)
 }
 
-/// Opens a window, or focuses it when it is already open. Reopening never makes a second.
+/// Opens a window, or focuses it when it is already open. Reopening never makes a second. A panel
+/// window is made for any panel in `PANEL_IDS` and for no other.
 ///
 /// The command is `async` on purpose: a synchronous command runs on the main thread, and on Windows
 /// building a webview from there waits on that same thread, so the new window never leaves
 /// `about:blank`.
 #[tauri::command]
 pub async fn open_window<R: Runtime>(app: AppHandle<R>, id: WindowId) -> Result<(), String> {
+    if !id.is_openable() {
+        return Err(format!("{} is not a window the app opens", id.label()));
+    }
     open_or_focus(&app, &id)
         .map(drop)
         .map_err(|e| e.to_string())
@@ -156,9 +160,18 @@ pub async fn open_window<R: Runtime>(app: AppHandle<R>, id: WindowId) -> Result<
 /// such as `panel-script-1`, so the main window can dock the panel back.
 pub const PANEL_CLOSED_EVENT: &str = "panel://closed";
 
-/// Tells every window that the window `label` is gone, if it was a panel window.
+/// Tells every window that the window `label` is gone, if it was a panel window that closed on its
+/// own (its close button, Dock back). A panel that goes with its main window or with the app is not
+/// announced: it was not docked back, and the saved arrangement keeps it in its window for the next
+/// start.
 pub fn announce_panel_closed<R: Runtime>(app: &AppHandle<R>, label: &str) {
     if matches!(WindowId::parse(label), Some(WindowId::Panel { .. })) {
+        let leaving = app
+            .try_state::<crate::quit::QuitState>()
+            .is_some_and(|state| state.panel_goes_with_owner(label));
+        if leaving {
+            return;
+        }
         if let Err(e) = app.emit(PANEL_CLOSED_EVENT, label) {
             log::warn!("could not announce that {label} closed: {e}");
         }
@@ -205,7 +218,7 @@ mod tests {
                 n: 1,
             },
             WindowId::Panel {
-                panel: "game-view".into(),
+                panel: "history".into(),
                 n: 3,
             },
             WindowId::NewWorld,
@@ -266,6 +279,28 @@ mod tests {
     }
 
     #[test]
+    fn every_editor_panel_opens_a_window_and_an_unknown_panel_is_refused() {
+        let app = tauri::test::mock_app();
+        for panel in fizz_studio_protocol::PANEL_IDS {
+            let id = WindowId::Panel {
+                panel: panel.into(),
+                n: 1,
+            };
+            tauri::async_runtime::block_on(open_window(app.handle().clone(), id.clone()))
+                .expect("opens");
+            assert!(app.get_webview_window(&id.label()).is_some(), "{panel}");
+        }
+        assert_eq!(open_panels(app.handle().clone()).len(), 5);
+        let unknown = WindowId::Panel {
+            panel: "game-view".into(),
+            n: 1,
+        };
+        let refused = tauri::async_runtime::block_on(open_window(app.handle().clone(), unknown));
+        assert!(refused.is_err());
+        assert!(app.get_webview_window("panel-game-view-1").is_none());
+    }
+
+    #[test]
     fn open_panels_lists_only_panel_windows() {
         let app = tauri::test::mock_app();
         assert!(open_panels(app.handle().clone()).is_empty());
@@ -313,6 +348,28 @@ mod tests {
         announce_panel_closed(app.handle(), "main-1");
         announce_panel_closed(app.handle(), "panel-bad");
         assert_eq!(*heard.lock().unwrap(), vec!["\"panel-script-1\""]);
+    }
+
+    #[test]
+    fn a_panel_that_goes_with_its_main_window_is_not_announced() {
+        use std::sync::{Arc, Mutex};
+        let app = tauri::test::mock_app();
+        app.manage(crate::quit::QuitState::default());
+        let heard = Arc::new(Mutex::new(Vec::<String>::new()));
+        let sink = heard.clone();
+        app.listen(PANEL_CLOSED_EVENT, move |event| {
+            sink.lock().unwrap().push(event.payload().to_owned());
+        });
+        app.state::<crate::quit::QuitState>()
+            .mark_leaving("panel-script-1");
+        announce_panel_closed(app.handle(), "panel-script-1");
+        // The same label closing again on its own is the person docking it back.
+        announce_panel_closed(app.handle(), "panel-script-1");
+        announce_panel_closed(app.handle(), "panel-objects-1");
+        assert_eq!(
+            *heard.lock().unwrap(),
+            vec!["\"panel-script-1\"", "\"panel-objects-1\""]
+        );
     }
 
     #[test]

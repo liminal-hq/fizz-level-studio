@@ -32,6 +32,7 @@ const {
 	openProject,
 	languageWords,
 	levelGhosts,
+	levelSnapshot,
 	listRecovery,
 	redo,
 	restoreRecovery,
@@ -163,10 +164,12 @@ describe('words and ghosts', () => {
 		invoke.mockResolvedValue([]);
 		await languageWords();
 		await levelGhosts('a');
+		await levelSnapshot('a');
 		const prefix = 'plugin:fizz-studio-worlds|';
 		expect(invoke.mock.calls).toEqual([
 			[`${prefix}language_words`, undefined],
 			[`${prefix}level_ghosts`, { id: 'a' }],
+			[`${prefix}level_snapshot`, { id: 'a' }],
 		]);
 	});
 });

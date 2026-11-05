@@ -9,6 +9,10 @@
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
+/// Every panel the editor has, in the order the Panels menu lists them. A panel window may be made
+/// for any of these and for nothing else; the settings crate keeps a dock entry for each.
+pub const PANEL_IDS: [&str; 5] = ["palette", "objects", "history", "proposals", "script"];
+
 /// Which window, by what it is: the part of a label that is not decoration.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, TS)]
 #[serde(tag = "kind", rename_all = "kebab-case")]
@@ -63,6 +67,16 @@ impl WindowId {
             WindowId::Preferences => "preferences".to_owned(),
             WindowId::About => "about".to_owned(),
             WindowId::TearGhost => "tear-ghost".to_owned(),
+        }
+    }
+
+    /// Whether the app may open this window. A panel window is made only for a panel in
+    /// [`PANEL_IDS`]: a label can name any panel (the parser is lenient so capabilities and old
+    /// labels read), but a window for an unknown one is refused.
+    pub fn is_openable(&self) -> bool {
+        match self {
+            WindowId::Panel { panel, .. } => PANEL_IDS.contains(&panel.as_str()),
+            _ => true,
         }
     }
 
@@ -162,6 +176,26 @@ mod tests {
         ] {
             assert_eq!(WindowId::parse(label), None, "{label:?}");
         }
+    }
+
+    #[test]
+    fn every_editor_panel_may_have_a_window_and_no_other_may() {
+        for panel in PANEL_IDS {
+            let id = WindowId::Panel {
+                panel: panel.into(),
+                n: 1,
+            };
+            assert!(id.is_openable(), "{panel}");
+            assert_eq!(WindowId::parse(&id.label()), Some(id));
+        }
+        for panel in ["game-view", "scripts", "", "Script"] {
+            let id = WindowId::Panel {
+                panel: panel.into(),
+                n: 1,
+            };
+            assert!(!id.is_openable(), "{panel:?}");
+        }
+        assert!(WindowId::Preferences.is_openable() && WindowId::Main { n: 2 }.is_openable());
     }
 
     #[test]

@@ -29,6 +29,8 @@ export interface DockZoneProps {
 	onActivate: (id: string) => void;
 	onDock: (id: string, zone: ZoneId) => void;
 	onFloat: (id: string) => void;
+	/** Tears a panel off into a window of its own; the button is left out when this is absent. */
+	onTearOff?: (id: string) => void;
 	onFold: () => void;
 	/** Moves a docked panel to a place among its group's tabs (the keyboard's way of reordering). */
 	onReorder?: (id: string, index: number) => void;
@@ -63,6 +65,7 @@ export function DockZone({
 	onActivate,
 	onDock,
 	onFloat,
+	onTearOff,
 	onFold,
 	onReorder,
 	onDragStart,
@@ -85,6 +88,7 @@ export function DockZone({
 					onActivate={onActivate}
 					onDock={onDock}
 					onFloat={onFloat}
+					onTearOff={onTearOff}
 					onFold={onFold}
 					onReorder={onReorder}
 					onDragStart={onDragStart}
@@ -113,6 +117,7 @@ function Group({
 	onActivate,
 	onDock,
 	onFloat,
+	onTearOff,
 	onFold,
 	onReorder,
 	onDragStart,
@@ -222,6 +227,7 @@ function Group({
 							at={zone}
 							onDock={(to) => onDock(active, to)}
 							onFloat={() => onFloat(active)}
+							onTearOff={onTearOff && (() => onTearOff(active))}
 						/>
 						{index === 0 && <FoldButton zone={zone} folded={false} onClick={onFold} />}
 					</>

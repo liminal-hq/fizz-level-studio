@@ -263,9 +263,48 @@ export function brushCommands(brushes: readonly Brush[]): CommandDef[] {
 	}));
 }
 
-/** Every command now: the menu's, the palette's own and a brush for each the level offers. */
+export const tearOffCommandId = (id: PanelId) => `view.panel.${id}.tearOff`;
+export const dockBackCommandId = (id: PanelId) => `view.panel.${id}.dockBack`;
+
+/**
+ * Tear off and Dock back, built for each panel (its name is the command's value): a panel in the
+ * main window offers Tear off, and one in a window of its own offers Dock back. They run through
+ * handlers the editor publishes under `tearOffCommandId` and `dockBackCommandId`.
+ */
+export function panelWindowCommands(facts: CommandFacts): CommandDef[] {
+	return PANEL_SPECS.map((spec): CommandDef => {
+		const panel = t(spec.title);
+		return facts.away[spec.id]
+			? {
+					id: dockBackCommandId(spec.id),
+					group: 'panels',
+					section: 0,
+					label: 'cmdPalette.dockPanelBack',
+					labelValues: { panel },
+					enabled: (now) => now.editorOpen && now.away[spec.id],
+				}
+			: {
+					id: tearOffCommandId(spec.id),
+					group: 'panels',
+					section: 0,
+					label: 'cmdPalette.tearOffPanel',
+					labelValues: { panel },
+					enabled: (now) => now.editorOpen && !now.away[spec.id],
+				};
+	});
+}
+
+/**
+ * Every command now: the menu's, the palette's own, a brush for each the level offers and a Tear
+ * off or Dock back for each panel.
+ */
 export function allCommands(facts: CommandFacts): CommandDef[] {
-	return [...COMMANDS, ...PALETTE_COMMANDS, ...brushCommands(facts.brushes)];
+	return [
+		...COMMANDS,
+		...PALETTE_COMMANDS,
+		...brushCommands(facts.brushes),
+		...panelWindowCommands(facts),
+	];
 }
 
 export const maximiseCommandId = (id: PanelId, restore: boolean) =>
