@@ -3,12 +3,13 @@
 // (c) Copyright 2026 Liminal HQ, Scott Morris
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
-use fizz_studio_level::step_name;
+use fizz_studio_level::{new_level_text, new_world_text, step_name};
 use fizz_studio_protocol::{
-    LevelEdit, LevelError, LevelSnapshot, ProjectInfo, ProjectKind, RecoveryEntry,
+    LevelEdit, LevelError, LevelSnapshot, LevelTarget, NewLevelRequest, ProjectInfo, ProjectKind,
+    RecoveryEntry,
 };
 use fizz_studio_session::{Author, Request};
-use fizz_studio_world::{Project, ProjectKind as FoundKind};
+use fizz_studio_world::{write_atomic, Project, ProjectKind as FoundKind, WORLD_FILE};
 use tauri::{AppHandle, Runtime, State};
 
 use crate::open::{announce, io_error, session_error, Worlds};
@@ -164,4 +165,54 @@ pub fn recovery_restore<R: Runtime>(
 #[tauri::command]
 pub fn recovery_discard(worlds: State<'_, Worlds>, id: String) -> Result<(), LevelError> {
     worlds.recovery_discard(&id)
+}
+
+/// Makes a new level and opens it as `level_open` would. A Fizz 1 level is the file
+/// `<folder>/<id>.fizz`; a Fizz 2 level is a world project `<folder>/<id>/` with a `world.fizz` and
+/// `levels/<id>.fizz`. The target is written into the text here and nothing later changes it
+/// (R-WLD-02). An existing file or folder is never overwritten: the command refuses and writes
+/// nothing.
+#[tauri::command]
+pub fn level_create<R: Runtime>(
+    app: AppHandle<R>,
+    worlds: State<'_, Worlds>,
+    request: NewLevelRequest,
+) -> Result<LevelSnapshot, LevelError> {
+    let invalid = |message: String| LevelError::Invalid { message };
+    let level_text = new_level_text(&request).map_err(invalid)?;
+    let folder = std::path::PathBuf::from(&request.folder);
+    if !folder.is_dir() {
+        return Err(invalid(format!("{} is not a folder", request.folder)));
+    }
+    let path = match request.target {
+        LevelTarget::Fizz1 => {
+            let path = folder.join(format!("{}.fizz", request.id));
+            if path.exists() {
+                return Err(invalid(format!("{} already exists", path.display())));
+            }
+            write_atomic(&path, level_text.as_bytes()).map_err(io_error)?;
+            path
+        }
+        LevelTarget::Fizz2 => {
+            let root = folder.join(&request.id);
+            if root.exists() {
+                return Err(invalid(format!("{} already exists", root.display())));
+            }
+            let path = root.join("levels").join(format!("{}.fizz", request.id));
+            let made = std::fs::create_dir_all(root.join("levels"))
+                .map_err(io_error)
+                .and_then(|()| {
+                    write_atomic(&path, level_text.as_bytes()).map_err(io_error)?;
+                    write_atomic(&root.join(WORLD_FILE), new_world_text(&request).as_bytes())
+                        .map_err(io_error)
+                });
+            if let Err(error) = made {
+                // Leave nothing behind: the folder did not exist before this call.
+                let _ = std::fs::remove_dir_all(&root);
+                return Err(error);
+            }
+            path
+        }
+    };
+    worlds.open(&app, &text(&path))
 }

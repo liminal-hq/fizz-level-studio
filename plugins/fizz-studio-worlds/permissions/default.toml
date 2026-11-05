@@ -9,6 +9,7 @@ permissions = [
 	"allow-level-redo",
 	"allow-level-save",
 	"allow-level-close",
+	"allow-level-create",
 	"allow-recovery-list",
 	"allow-recovery-restore",
 	"allow-recovery-discard",

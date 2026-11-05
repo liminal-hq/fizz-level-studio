@@ -21,6 +21,7 @@ vi.mock('@tauri-apps/api/event', () => ({
 const {
 	applyEdit,
 	closeLevel,
+	createLevel,
 	discardRecovery,
 	endStep,
 	newerOnly,
@@ -138,5 +139,23 @@ describe('commands', () => {
 			[`${prefix}level_save`, { id: 'a' }],
 			[`${prefix}level_close`, { id: 'a' }],
 		]);
+	});
+});
+
+describe('createLevel', () => {
+	it('sends the request to level_create', async () => {
+		invoke.mockResolvedValue(snapshot('a', 1));
+		const request = {
+			name: 'Hill',
+			id: 'hill',
+			width: 40,
+			height: 24,
+			ground: null,
+			theme: null,
+			target: 'fizz2' as const,
+			folder: '/tmp',
+		};
+		await createLevel(request);
+		expect(invoke).toHaveBeenCalledWith('plugin:fizz-studio-worlds|level_create', { request });
 	});
 });
