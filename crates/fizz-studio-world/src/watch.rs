@@ -69,6 +69,8 @@ impl std::fmt::Debug for FolderWatcher {
 }
 
 impl FolderWatcher {
+    /// Watches the files directly in `root` (not its subfolders) and reports each change once its burst
+    /// of writes has settled for `debounce`.
     pub fn start(root: &Path, debounce: Duration, state: DiskState) -> Result<Self, WorldError> {
         let (raw_tx, raw_rx) = channel::<PathBuf>();
         let (out_tx, out_rx) = channel::<Change>();
@@ -82,7 +84,10 @@ impl FolderWatcher {
                 }
             }
         })?;
-        watcher.watch(root, RecursiveMode::Recursive)?;
+        // The folder itself, not its subfolders: a level is one file, and an editor saves it by renaming a
+        // file in the same folder. A recursive watch of someone's Documents would be heavy, and could hear
+        // the app's own logs and data if they lived below it.
+        watcher.watch(root, RecursiveMode::NonRecursive)?;
 
         std::thread::Builder::new()
             .name("fizz-studio-watch".to_string())
@@ -296,6 +301,24 @@ mod tests {
             .changes()
             .recv_timeout(Duration::from_millis(300))
             .is_err());
+    }
+
+    #[test]
+    fn a_change_in_a_subfolder_is_not_news() {
+        let dir = tempfile::tempdir().unwrap();
+        let sub = dir.path().join("logs");
+        std::fs::create_dir(&sub).unwrap();
+        let (watcher, _state) = start(dir.path());
+        for i in 0..5 {
+            std::fs::write(sub.join("app.log"), format!("line {i}\n")).unwrap();
+        }
+        assert!(watcher
+            .changes()
+            .recv_timeout(Duration::from_millis(400))
+            .is_err());
+        // The folder itself is still watched.
+        std::fs::write(dir.path().join("a.fizz"), "x\n").unwrap();
+        assert!(watcher.changes().recv_timeout(WITHIN_A_SECOND).is_ok());
     }
 
     #[test]
