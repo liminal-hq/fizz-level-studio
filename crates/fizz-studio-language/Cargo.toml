@@ -1,0 +1,12 @@
+[package]
+name = "fizz-studio-language"
+version = "0.1.0"
+description = "The Fizz 1 level language for the studio: a lossless parser and printer, edits, and the level rasteriser, ported from the TypeScript package"
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+homepage.workspace = true
+repository.workspace = true
+publish = false
+
+[dependencies]

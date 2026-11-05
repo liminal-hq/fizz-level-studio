@@ -14,3 +14,6 @@ scratch/truth/
 
 # JUnit reports written by `bun run test:ci` and `bun run test:mcp:ci`
 test-results/
+
+# Rust build output
+/target/

@@ -1,5 +1,5 @@
-# One job per check, so a pull request's checks list names exactly what passed or failed. The two
-# test jobs write JUnit XML; publish-test-results.yml posts it to the pull request.
+# One job per check, so a pull request's checks list names exactly what passed or failed. The test jobs
+# write JUnit XML; publish-test-results.yml posts it to the pull request.
 #
 # (c) Copyright 2026 Liminal HQ, Scott Morris
 # SPDX-License-Identifier: Apache-2.0 OR MIT
@@ -156,4 +156,92 @@ jobs:
         with:
           name: mcp-test-results
           path: test-results/*.xml
+          if-no-files-found: error
+
+  rust-format:
+    name: Rust format
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install the pinned Rust toolchain
+        run: rustup toolchain install
+
+      - name: Check formatting
+        id: format
+        run: cargo fmt --all -- --check
+
+      - name: Job summary
+        if: always()
+        run: |
+          {
+            echo "## Rust format"
+            echo "- Result: \`${{ steps.format.outcome }}\`"
+            echo "- Command: \`cargo fmt --all -- --check\`"
+          } >> "${GITHUB_STEP_SUMMARY}"
+
+  rust-clippy:
+    name: Rust Clippy
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install the pinned Rust toolchain
+        run: rustup toolchain install
+
+      - name: Cache Rust build output
+        uses: Swatinem/rust-cache@v2
+
+      - name: Lint
+        id: clippy
+        run: cargo clippy --workspace --all-targets -- -D warnings
+
+      - name: Job summary
+        if: always()
+        run: |
+          {
+            echo "## Rust Clippy"
+            echo "- Result: \`${{ steps.clippy.outcome }}\`"
+            echo "- Command: \`cargo clippy --workspace --all-targets -- -D warnings\`"
+          } >> "${GITHUB_STEP_SUMMARY}"
+
+  rust-tests:
+    name: Rust tests
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install the pinned Rust toolchain
+        run: rustup toolchain install
+
+      - name: Cache Rust build output
+        uses: Swatinem/rust-cache@v2
+
+      - name: Install cargo-nextest
+        uses: taiki-e/install-action@nextest
+
+      - name: Run tests
+        id: tests
+        run: cargo nextest run --workspace --profile ci
+
+      - name: Job summary
+        if: always()
+        run: |
+          {
+            echo "## Rust tests"
+            echo "- Result: \`${{ steps.tests.outcome }}\`"
+            echo "- Command: \`cargo nextest run --workspace --profile ci\`"
+            echo
+            bash scripts/junit-summary.sh target/nextest/ci/junit.xml
+          } >> "${GITHUB_STEP_SUMMARY}"
+
+      - name: Upload Rust test artefacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rust-test-results
+          path: target/nextest/ci/junit.xml
           if-no-files-found: error

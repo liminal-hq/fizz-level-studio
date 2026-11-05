@@ -18,9 +18,11 @@ bun run test:mcp    # the MCP server's tests (run `bun install` in packages/mcp 
 bun run prove       # Crater Fields and the kitchen sink against the game (needs Rust, offline)
 bun run prove:all   # all 16 levels and the overworld against the game
 bun run lint:md     # markdownlint over every Markdown file
+bun run check:links  # every relative Markdown link and anchor resolves
+cargo nextest run --workspace  # the Rust crates' tests (with cargo fmt and clippy)
 ```
 
-Run `bun run test`, `bun run test:mcp` and `bun run lint:md` before every commit; run `bun run prove:all` after touching the parser, printer, exporter or overworld code.
+Run `bun run test`, `bun run test:mcp`, `bun run lint:md` and `bun run check:links` before every commit (and the Rust checks when a crate changed); run `bun run prove:all` after touching the parser, printer, exporter or overworld code.
 
 ## Architecture — the key things to understand
 

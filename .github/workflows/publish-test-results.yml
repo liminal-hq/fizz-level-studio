@@ -60,3 +60,13 @@ jobs:
           event_file: artifacts/event-file/event.json
           event_name: ${{ github.event.workflow_run.event }}
           files: artifacts/mcp-test-results/**/*.xml
+
+      - name: Publish Rust test results
+        if: always()
+        uses: EnricoMi/publish-unit-test-result-action@v2
+        with:
+          check_name: Rust tests
+          commit: ${{ github.event.workflow_run.head_sha }}
+          event_file: artifacts/event-file/event.json
+          event_name: ${{ github.event.workflow_run.event }}
+          files: artifacts/rust-test-results/**/*.xml

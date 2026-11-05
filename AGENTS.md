@@ -92,13 +92,14 @@ The repository's home is GitHub (`liminal-hq/fizz-level-studio`), so use `gh` fo
 
 ## Local Tooling
 
+- **Rust:** the toolchain is pinned in `rust-toolchain.toml` (1.98.0, with `rustfmt` and `clippy`), and the Cargo workspace at the root holds the pure crates under `crates/`. `scratch/rust/` is a separate workspace and is excluded. `cargo fmt --all -- --check`, `cargo clippy --workspace --all-targets -- -D warnings` and `cargo nextest run --workspace` are the checks; the `ci` profile in `.config/nextest.toml` writes the JUnit report.
 - **Runtime and package manager:** **Bun**, with the Node version in `.node-version`. `packages/mcp` has its own `package.json` and `bun.lock`; install there with `bun install`.
 - **Formatting:** `.editorconfig` is authoritative (tabs, LF, UTF-8); `.prettierrc` matches it. The sources are not yet checked wholesale with Prettier, so format only the lines you touch.
 - **Commands:**
   - `bun run test` runs the language package's tests (`bun test packages/language`).
   - `bun run test:mcp` runs the MCP server's tests, including a real stdio round trip.
   - `bun run prove` and `bun run prove:all` rebuild levels from scripts and compare them with the game. They need Rust and the crates in the local Cargo cache (`--offline`), and build only inside `scratch/rust/`.
-  - `bun run lint:md` runs markdownlint over every Markdown file.
+  - `bun run lint:md` runs markdownlint over every Markdown file, and `bun run check:links` checks every relative link and anchor.
 - **Before committing:** run `bun run test`, `bun run test:mcp` and `bun run lint:md`. Run `bun run prove:all` after any change to the parser, printer, exporter or overworld code.
 
 ## The Language
@@ -132,7 +133,7 @@ Planned, not built, and the more important target. Lieutenant Fizz 2 is a separa
 
 ## CI
 
-`.github/workflows/ci.yml` runs one job per check on GitHub Actions (`ubuntu-24.04`) for every pull request and push to `main`: Markdown lint, link check, language tests, and MCP server tests (which installs the server's dependencies with `--frozen-lockfile`). The two test jobs write JUnit XML (`bun run test:ci` and `bun run test:mcp:ci`), and `.github/workflows/publish-test-results.yml` posts the results to the pull request as a comment and a check run; it is a separate `workflow_run` workflow so that it also works for Dependabot and fork pull requests, and it takes effect once it is on `main`. The proofs need Rust and the game's crates, so they run locally, not in CI. `.github/dependabot.yml` is configured with every limit at zero, so it is off until someone raises them.
+`.github/workflows/ci.yml` runs one job per check on GitHub Actions (`ubuntu-24.04`) for every pull request and push to `main`: Markdown lint, link check, language tests, MCP server tests (which installs the server's dependencies with `--frozen-lockfile`), Rust format, Rust Clippy, and Rust tests. The test jobs write JUnit XML (`bun run test:ci`, `bun run test:mcp:ci`, and nextest's `ci` profile), and `.github/workflows/publish-test-results.yml` posts the results to the pull request as a comment and a check run; it is a separate `workflow_run` workflow so that it also works for Dependabot and fork pull requests, and it takes effect once it is on `main`. The proofs need Rust and the game's crates, so they run locally, not in CI. `.github/dependabot.yml` is configured with every limit at zero, so it is off until someone raises them.
 
 ## Frontend Code Conventions
 
