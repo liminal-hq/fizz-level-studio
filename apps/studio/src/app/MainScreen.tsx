@@ -24,6 +24,7 @@ import {
 	type WorldsClient,
 } from '../worlds/tauriLevelClient';
 import { AppMenu } from './AppMenu';
+import { AppMenuBar } from './AppMenuBar';
 import { AppWindow } from './AppWindow';
 import { CloseLevelDialog } from './CloseLevelDialog';
 import { EditorScreen } from './EditorScreen';
@@ -367,7 +368,7 @@ function MainScreenBody({
 
 	if (!level) {
 		return (
-			<AppWindow start={<AppMenu />}>
+			<AppWindow start={<AppMenu menuBar />} menuBar={<AppMenuBar />}>
 				<main className={styles.start}>
 					{bannerView}
 					<h1 className={styles.name}>{t('app.name')}</h1>
@@ -442,7 +443,12 @@ function MainScreenBody({
 
 	const name = levelName(level);
 	return (
-		<AppWindow documentName={name} dirty={isDirty(level)} start={<AppMenu />}>
+		<AppWindow
+			documentName={name}
+			dirty={isDirty(level)}
+			start={<AppMenu menuBar />}
+			menuBar={<AppMenuBar />}
+		>
 			<div className={styles.editor}>
 				<div className={styles.actions} role="toolbar" aria-label={t('main.levelActions')}>
 					<button type="button" className={styles.button} onClick={() => void save()}>

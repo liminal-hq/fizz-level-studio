@@ -497,8 +497,11 @@ describe('recovered changes', () => {
 
 describe('the application menu', () => {
 	const openMenu = async (user: ReturnType<typeof userEvent.setup>, menu: string) => {
-		await user.click(screen.getByRole('button', { name: 'Fizz Level Studio' }));
-		await user.click(screen.getByRole('menuitem', { name: menu }));
+		await user.click(
+			within(screen.getByRole('menubar', { name: 'Application menu' })).getByRole('menuitem', {
+				name: menu,
+			}),
+		);
 	};
 
 	it('opens New level from File and Preferences from Window on the start screen', async () => {
