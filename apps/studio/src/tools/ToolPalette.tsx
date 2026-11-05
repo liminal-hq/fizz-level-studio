@@ -1,18 +1,17 @@
-// The tool buttons, the brush chip and the item spacing control
+// The tool buttons and the brush chip
 //
 // (c) Copyright 2026 Liminal HQ, Scott Morris
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
 import { t, type MessageId } from '../i18n/messages';
-import { MAX_SPACING } from './brush';
-import { SPACING_KEYS, TOOL_KEYS } from './shortcuts';
+import { TOOL_KEYS } from './shortcuts';
 import { brushSwatch } from './swatch';
 import styles from './ToolPalette.module.css';
 import { TOOL_IDS, type ToolId } from './tool';
 import type { ToolHandle } from './useTool';
 
 export interface ToolPaletteProps {
-	handle: Pick<ToolHandle, 'tool' | 'setTool' | 'brush' | 'spacing' | 'setSpacing' | 'clip'>;
+	handle: Pick<ToolHandle, 'tool' | 'setTool' | 'brush' | 'spacing' | 'clip'>;
 }
 
 const TOOL_LABELS: Record<ToolId, MessageId> = {
@@ -69,32 +68,6 @@ export function ToolPalette({ handle }: ToolPaletteProps) {
 					? t('brush.chipSpaced', { kind: brush.kind, spacing: spacingText(spacing) })
 					: t('brush.chip', { kind: brush.kind })}
 			</span>
-			{spaced && (
-				<div className={styles.spacing} role="group" aria-label={t('spacing.group')}>
-					<span>{t('spacing.label')}</span>
-					<button
-						type="button"
-						className={styles.step}
-						aria-label={t('spacing.less')}
-						aria-keyshortcuts={SPACING_KEYS.less}
-						disabled={spacing <= 1}
-						onClick={() => handle.setSpacing(spacing - 1)}
-					>
-						{t('spacing.lessGlyph')}
-					</button>
-					<span className={styles.spacingValue}>{spacingText(spacing)}</span>
-					<button
-						type="button"
-						className={styles.step}
-						aria-label={t('spacing.more')}
-						aria-keyshortcuts={SPACING_KEYS.more}
-						disabled={spacing >= MAX_SPACING}
-						onClick={() => handle.setSpacing(spacing + 1)}
-					>
-						{t('spacing.moreGlyph')}
-					</button>
-				</div>
-			)}
 			{handle.tool === 'stamp' && !handle.clip && (
 				<span className={styles.hint}>{t('tools.stampEmpty')}</span>
 			)}

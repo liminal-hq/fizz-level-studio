@@ -194,18 +194,54 @@ async function dockChecks(bridge: Bridge): Promise<void> {
 
 	// Content must fit the dock it sits in: the Palette's last tab was once cut off by the left dock,
 	// and the Script editor once had no height at all in the bottom dock, which no jsdom test can see.
-	const fit = await bridge.js<{ tabs: number; clipped: number; editorH: number }>(
-		`const tabs = [...document.querySelectorAll('[role=tab]')].filter((t) => ['Tiles', 'Items', 'Enemies'].includes(t.textContent.trim()));
-		 const zone = tabs[0]?.closest('[data-zone]');
+	const fit = await bridge.js<{
+		headings: string[];
+		options: number;
+		clipped: number;
+		scrollW: number;
+		clientW: number;
+		editorH: number;
+	}>(
+		`const hs = [...document.querySelectorAll('section[aria-label="Left dock"] h3')].map((h) => h.textContent.trim());
+		 const opts = [...document.querySelectorAll('section[aria-label="Left dock"] [role=option]')];
+		 const zone = document.querySelector('section[aria-label="Left dock"]');
 		 const edge = zone ? zone.getBoundingClientRect().right : 0;
-		 const clipped = tabs.filter((t) => t.getBoundingClientRect().right > edge + 0.5 || t.scrollWidth > t.clientWidth + 1).length;
+		 const clipped = opts.filter((o) => o.getBoundingClientRect().right > edge + 0.5 || o.scrollWidth > o.clientWidth + 1).length;
+		 const panel = opts[0]?.closest('[role=group]')?.parentElement;
 		 const ed = document.querySelector('[data-zone=bottom] .cm-editor');
-		 return { tabs: tabs.length, clipped, editorH: ed ? ed.getBoundingClientRect().height : 0 };`,
+		 return { headings: hs, options: opts.length, clipped, scrollW: panel ? panel.scrollWidth : -1, clientW: panel ? panel.clientWidth : -1, editorH: ed ? ed.getBoundingClientRect().height : 0 };`,
 	);
 	check(
-		'the Palette tabs all fit inside the left dock',
-		fit.tabs === 3 && fit.clipped === 0,
+		'the Palette shows every section heading in the default window',
+		['Terrain', 'Hazards', 'Treats', 'Enemies'].every((h) => fit.headings.includes(h)),
+		JSON.stringify(fit.headings),
+	);
+	check(
+		'no Palette entry is clipped by the left dock',
+		fit.options > 10 && fit.clipped === 0,
 		JSON.stringify(fit),
+	);
+	check(
+		'the Palette does not scroll sideways',
+		fit.clientW > 0 && fit.scrollW <= fit.clientW,
+		`${fit.scrollW} in ${fit.clientW}`,
+	);
+	const pickedAt = await bridge.js<{ kind: string | null }>(
+		`const o = document.querySelector('section[aria-label="Left dock"] [role=option][data-group=enemy]'); if (!o) return { kind: null }; o.click(); return { kind: o.dataset.kind };`,
+	);
+	const picked = pickedAt.kind;
+	const enemyChip = await within(3000, () =>
+		bridge.js<boolean>(
+			`return [...document.querySelectorAll('[role=status]')].some((e) => e.textContent.includes('Brush: ' + ${JSON.stringify(picked)}));`,
+		),
+	);
+	check(
+		'choosing an entry from a lower section changes the brush chip',
+		picked !== null && enemyChip !== null,
+		String(picked),
+	);
+	await bridge.js<boolean>(
+		`const o = document.querySelector('section[aria-label="Left dock"] [role=option][data-group=tile]'); o?.click(); return true;`,
 	);
 	check(
 		'the Script editor has room in the default bottom dock',
@@ -751,7 +787,7 @@ const PANEL_WINDOWS = [
 	{
 		id: 'palette',
 		title: 'Palette',
-		probe: `return [...document.querySelectorAll('[role=tab]')].some((t) => t.textContent.trim() === 'Tiles');`,
+		probe: `return [...document.querySelectorAll('h3')].some((h) => h.textContent.trim() === 'Terrain');`,
 	},
 	{
 		id: 'objects',
@@ -954,7 +990,7 @@ async function checkPanelWindows(
 	const chosen = await within(10_000, async () => {
 		try {
 			const clicked = await bridge.js<{ name: string | null }>(
-				`const b = document.querySelector('ul button[aria-pressed=false]'); if (!b) return { name: null }; const name = b.querySelector('span:last-child').textContent; b.click(); return { name };`,
+				`const b = document.querySelector('[role=option][aria-selected=false]'); if (!b) return { name: null }; const name = b.querySelector('span:last-child').textContent; b.click(); return { name };`,
 				'panel-palette-1',
 			);
 			kind = clicked.name;

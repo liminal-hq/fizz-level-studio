@@ -18,7 +18,14 @@ function Harness({ palette }: { palette: string[] }) {
 	return (
 		<>
 			<ToolPalette handle={handle} />
-			<PalettePanel tiles={palette} words={[]} brush={handle.brush} onBrush={handle.setBrush} />
+			<PalettePanel
+				tiles={palette}
+				words={[]}
+				brush={handle.brush}
+				onBrush={handle.setBrush}
+				spacing={handle.spacing}
+				onSpacing={handle.setSpacing}
+			/>
 			<p data-testid="state">{`${handle.tool}|${handle.brush.group}:${handle.brush.kind}`}</p>
 		</>
 	);
@@ -68,31 +75,32 @@ describe('ToolPalette', () => {
 		render(<Harness palette={['empty', 'fill', 'grass']} />);
 		expect(screen.queryByRole('combobox')).toBeNull();
 		expect(screen.getByRole('status')).toHaveTextContent('Brush: fill');
-		await user.click(screen.getByRole('button', { name: 'grass' }));
+		await user.click(screen.getByRole('option', { name: 'grass' }));
 		expect(screen.getByRole('status')).toHaveTextContent('Brush: grass');
-		await user.click(screen.getByRole('tab', { name: 'Items' }));
-		await user.click(screen.getByRole('button', { name: 'soda' }));
+		await user.click(screen.getByRole('option', { name: 'soda' }));
 		expect(screen.getByTestId('state')).toHaveTextContent('paint|item:soda');
-		await user.click(screen.getByRole('tab', { name: 'Enemies' }));
-		await user.click(screen.getByRole('button', { name: 'drone' }));
+		await user.click(screen.getByRole('option', { name: 'drone' }));
 		expect(screen.getByTestId('state')).toHaveTextContent('paint|enemy:drone');
-		expect(screen.queryByRole('group', { name: 'Item spacing' })).toBeNull();
 	});
 
 	it('goes back to Paint when a palette entry is chosen from another tool', async () => {
 		const user = userEvent.setup();
 		render(<Harness palette={['empty', 'fill', 'grass']} />);
 		await user.click(screen.getByRole('button', { name: 'Erase' }));
-		await user.click(screen.getByRole('button', { name: 'grass' }));
+		await user.click(screen.getByRole('option', { name: 'grass' }));
 		expect(screen.getByTestId('state')).toHaveTextContent('paint|tile:grass');
 		expect(screen.getByRole('button', { name: 'Paint' })).toHaveAttribute('aria-pressed', 'true');
 	});
 
-	it('shows a keyboard-operable spacing control for item brushes only', async () => {
+	it('keeps a keyboard-operable spacing control with the Treats, live for item brushes only', async () => {
 		const user = userEvent.setup();
 		render(<Harness palette={['empty', 'fill']} />);
-		await user.click(screen.getByRole('tab', { name: 'Items' }));
-		await user.click(screen.getByRole('button', { name: 'cheezie' }));
+		const group0 = screen.getByRole('group', { name: 'Item spacing' });
+		expect(group0).toContainElement(
+			screen.getByRole('button', { name: 'Place items further apart' }),
+		);
+		expect(screen.getByRole('button', { name: 'Place items further apart' })).toBeDisabled();
+		await user.click(screen.getByRole('option', { name: 'cheezie' }));
 		const group = screen.getByRole('group', { name: 'Item spacing' });
 		expect(group).toHaveTextContent('Every cell');
 		expect(screen.getByRole('status')).toHaveTextContent('Brush: cheezie, Every cell');
