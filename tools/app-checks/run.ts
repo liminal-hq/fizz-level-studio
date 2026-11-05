@@ -182,6 +182,27 @@ async function dockChecks(bridge: Bridge): Promise<void> {
 		String(m.canvas?.h),
 	);
 
+	// Content must fit the dock it sits in: the Palette's last tab was once cut off by the left dock,
+	// and the Script editor once had no height at all in the bottom dock, which no jsdom test can see.
+	const fit = await bridge.js<{ tabs: number; clipped: number; editorH: number }>(
+		`const tabs = [...document.querySelectorAll('[role=tab]')].filter((t) => ['Tiles', 'Items', 'Enemies'].includes(t.textContent.trim()));
+		 const zone = tabs[0]?.closest('[data-zone]');
+		 const edge = zone ? zone.getBoundingClientRect().right : 0;
+		 const clipped = tabs.filter((t) => t.getBoundingClientRect().right > edge + 0.5 || t.scrollWidth > t.clientWidth + 1).length;
+		 const ed = document.querySelector('[data-zone=bottom] .cm-editor');
+		 return { tabs: tabs.length, clipped, editorH: ed ? ed.getBoundingClientRect().height : 0 };`,
+	);
+	check(
+		'the Palette tabs all fit inside the left dock',
+		fit.tabs === 3 && fit.clipped === 0,
+		JSON.stringify(fit),
+	);
+	check(
+		'the Script editor has room in the default bottom dock',
+		fit.editorH > 60,
+		String(fit.editorH),
+	);
+
 	// Resizing: the keys step a dock and hold it to its cap (30% of the window).
 	const before = m.left!.w;
 	await pressKey(bridge, '[role=separator][aria-label="Resize the left dock"]', 'ArrowRight', true);
