@@ -239,6 +239,9 @@ pub fn apply_patch(settings: &Settings, patch: &SettingsPatch) -> Result<Setting
     if let Some(larger) = patch.larger_controls {
         next.larger_controls = larger;
     }
+    if let Some(ui) = patch.ui {
+        next.ui = ui;
+    }
     if let Some(locale) = &patch.locale {
         next.locale = locale.clone();
     }

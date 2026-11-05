@@ -16,7 +16,7 @@ import { DEFAULT_ACCENT, isHexColour, type Scheme } from '../theme/accent';
 import { resolveAccentHex, resolveGlass } from '../theme/accentChoice';
 import { resolveColourScheme, type SystemScheme } from '../theme/colourScheme';
 import { AccentPreview } from './AccentPreview';
-import type { AppearanceEditor } from './useAppearanceSettings';
+import type { PreferencesEditor } from './usePreferencesSettings';
 
 /** What the system reports that the page needs to show an honest sample. */
 export interface SystemAppearance {
@@ -26,7 +26,7 @@ export interface SystemAppearance {
 }
 
 export interface AppearancePageProps {
-	editor: AppearanceEditor;
+	editor: PreferencesEditor;
 	system: SystemAppearance;
 }
 
@@ -127,7 +127,7 @@ export function AppearancePage({ editor, system }: AppearancePageProps) {
 					label={t('preferences.reset.label')}
 					description={t('preferences.reset.description')}
 					actionLabel={t('preferences.reset.action')}
-					onAction={() => void reset()}
+					onAction={() => void reset('appearance')}
 				/>
 			</SettingsGroup>
 		</SettingsSection>

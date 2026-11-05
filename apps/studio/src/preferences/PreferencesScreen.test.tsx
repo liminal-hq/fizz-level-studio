@@ -1,4 +1,4 @@
-// Tests for the Preferences window: the Appearance page shows the values, saves changes and reports errors
+// Tests for the Preferences window: the General and Appearance pages show the values, saves changes and reports errors
 //
 // (c) Copyright 2026 Liminal HQ, Scott Morris
 // SPDX-License-Identifier: Apache-2.0 OR MIT
@@ -37,6 +37,7 @@ const BASE: Settings = {
 	locale: 'en-CA',
 	recent_worlds: [],
 	layout: {},
+	ui: { menu_bar: false },
 	dock: { active: '', workspaces: {} },
 };
 
@@ -73,9 +74,63 @@ function setup(over: Partial<Settings> = {}, refuseHex = false) {
 	return client;
 }
 
+/** Opens the Appearance page, which sits beside General (the page the window opens on). */
+async function openAppearance(user: ReturnType<typeof userEvent.setup>) {
+	await user.click(await screen.findByRole('button', { name: 'Appearance' }));
+}
+
 describe('PreferencesScreen', () => {
+	it('opens on the General page, with the menu bar switch off by default', async () => {
+		setup();
+		expect(await screen.findByRole('heading', { name: 'General', level: 2 })).toBeInTheDocument();
+		expect(screen.getByRole('heading', { name: 'Title bar' })).toBeInTheDocument();
+		const toggle = screen.getByRole('switch', { name: 'Show the menu bar' });
+		expect(toggle).toHaveAttribute('aria-checked', 'false');
+		expect(
+			screen.getByText(/The app menu in the title bar then becomes plain text/),
+		).toBeInTheDocument();
+	});
+
+	it('saves the menu bar switch and resets it', async () => {
+		const user = userEvent.setup();
+		const client = setup();
+		await user.click(await screen.findByRole('switch', { name: 'Show the menu bar' }));
+		await waitFor(() => expect(client.update).toHaveBeenCalledWith({ ui: { menu_bar: true } }, 0));
+		await waitFor(() =>
+			expect(screen.getByRole('switch', { name: 'Show the menu bar' })).toHaveAttribute(
+				'aria-checked',
+				'true',
+			),
+		);
+		await user.click(screen.getByRole('button', { name: 'Reset to defaults' }));
+		await waitFor(() =>
+			expect(client.update).toHaveBeenLastCalledWith({ ui: { menu_bar: false } }, 1),
+		);
+		await waitFor(() =>
+			expect(screen.getByRole('switch', { name: 'Show the menu bar' })).toHaveAttribute(
+				'aria-checked',
+				'false',
+			),
+		);
+	});
+
+	it('shows a refused menu bar change beside the switch', async () => {
+		const user = userEvent.setup();
+		const client = setup();
+		vi.mocked(client.update).mockRejectedValueOnce({ kind: 'storage', message: 'full' });
+		await user.click(await screen.findByRole('switch', { name: 'Show the menu bar' }));
+		const message = await screen.findByText('The change could not be saved.');
+		expect(message).toHaveAttribute('role', 'alert');
+		expect(screen.getByRole('switch', { name: 'Show the menu bar' })).toHaveAttribute(
+			'aria-checked',
+			'false',
+		);
+	});
+
 	it('shows the Appearance page with the saved values', async () => {
+		const user = userEvent.setup();
 		setup({ colour_mode: 'dark', glass: 'off', accent: { kind: 'afterglow-orange' } });
+		await openAppearance(user);
 		expect(
 			await screen.findByRole('heading', { name: 'Appearance', level: 2 }),
 		).toBeInTheDocument();
@@ -95,6 +150,7 @@ describe('PreferencesScreen', () => {
 	it('saves a change when a choice is made', async () => {
 		const user = userEvent.setup();
 		const client = setup();
+		await openAppearance(user);
 		await screen.findByRole('heading', { name: 'Appearance', level: 2 });
 		await user.click(screen.getByRole('radio', { name: 'Light' }));
 		await waitFor(() => expect(client.update).toHaveBeenCalledWith({ colour_mode: 'light' }, 0));
@@ -107,6 +163,7 @@ describe('PreferencesScreen', () => {
 	it('shows the hex field for a custom accent and an error for a bad code', async () => {
 		const user = userEvent.setup();
 		setup({ accent: { kind: 'custom', hex: '#123abc' } }, true);
+		await openAppearance(user);
 		const field = await screen.findByRole('textbox', { name: 'Custom accent code' });
 		expect(field).toHaveValue('#123abc');
 		await user.clear(field);
@@ -120,6 +177,7 @@ describe('PreferencesScreen', () => {
 	it('lowercases a typed hex code before saving it', async () => {
 		const user = userEvent.setup();
 		const client = setup({ accent: { kind: 'custom', hex: '#123abc' } });
+		await openAppearance(user);
 		const field = await screen.findByRole('textbox', { name: 'Custom accent code' });
 		await user.clear(field);
 		await user.type(field, ' #ABCDEF {Enter}');
@@ -129,14 +187,18 @@ describe('PreferencesScreen', () => {
 	});
 
 	it('explains the contrast result for the chosen accent', async () => {
+		const user = userEvent.setup();
 		setup({ accent: { kind: 'afterglow-purple' } });
+		await openAppearance(user);
 		await screen.findByRole('group', { name: 'Preview' });
 		expect(screen.getByText(/Key label #[0-9a-f]{6}, contrast \d+\.\d to 1\./)).toBeInTheDocument();
 	});
 
 	it('says when the key was darkened to stay readable', async () => {
 		// A mid-tone green is too light for white and too dark for near-black ink.
+		const user = userEvent.setup();
 		setup({ accent: { kind: 'custom', hex: '#2a8a4a' } });
+		await openAppearance(user);
 		await screen.findByRole('group', { name: 'Preview' });
 		expect(screen.getByText(/The key was darkened to stay readable\./)).toBeInTheDocument();
 	});
@@ -144,6 +206,7 @@ describe('PreferencesScreen', () => {
 	it('puts the page back to its defaults', async () => {
 		const user = userEvent.setup();
 		const client = setup({ colour_mode: 'dark', glass: 'on', accent: { kind: 'studio' } });
+		await openAppearance(user);
 		await screen.findByRole('heading', { name: 'Appearance', level: 2 });
 		await user.click(screen.getByRole('button', { name: 'Reset to defaults' }));
 		await waitFor(() =>

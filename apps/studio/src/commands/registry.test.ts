@@ -108,27 +108,67 @@ describe('the registry', () => {
 		});
 	});
 
-	it('arranges File, Edit, View and Window with rules between sections', () => {
+	it('puts every menu command in exactly one of the five menus', () => {
+		const names = ['file', 'edit', 'view', 'window', 'help'];
+		for (const command of COMMANDS) expect(names, command.id).toContain(command.menu);
+		for (const command of allCommands(NO_FACTS).filter((def) => def.menu)) {
+			expect(names, command.id).toContain(command.menu);
+		}
+		const rows = appMenuItems(snapshot({ editorOpen: true, hasLevel: true })).flatMap((menu) =>
+			menu.type === 'submenu'
+				? menu.items.filter((row) => row.type !== 'separator').map((row) => row.id)
+				: [],
+		);
+		expect(new Set(rows).size).toBe(rows.length);
+	});
+
+	it('arranges File, Edit, View, Window and Help with rules between sections', () => {
 		const items = appMenuItems(snapshot());
 		expect(items.map((item) => (item.type === 'submenu' ? item.label : null))).toEqual([
 			'File',
 			'Edit',
 			'View',
 			'Window',
+			'Help',
 		]);
 		expect(Object.values(APP_MENU_MNEMONICS)).toEqual(items.map((item) => item.id));
-		expect(rowsOf(items, 'menu:file').filter((item) => item.type === 'separator')).toHaveLength(2);
-		const window = rowsOf(items, 'menu:window');
-		expect(window).toMatchObject([
-			{ label: 'Preferences…', shortcut: 'Ctrl+,' },
-			{ label: 'About' },
+		expect(Object.keys(APP_MENU_MNEMONICS)).toEqual(['f', 'e', 'v', 'w', 'h']);
+		const file = rowsOf(items, 'menu:file');
+		expect(file.map((item) => (item.type === 'separator' ? '-' : item.id))).toEqual([
+			'file.new',
+			'file.open',
+			'-',
+			'file.save',
+			'-',
+			'file.preferences',
+			'-',
+			'file.close',
+			'file.quit',
+		]);
+		expect(file.find((item) => item.id === 'file.preferences')).toMatchObject({
+			label: 'Preferences…',
+			shortcut: 'Ctrl+,',
+		});
+		expect(rowsOf(items, 'menu:help')).toMatchObject([
+			{ id: 'help.about', label: 'About Fizz Level Studio' },
 		]);
 	});
 
+	it('lists a Tear off row for each panel in the Window menu, and Dock back for one that is away', () => {
+		const ids = (facts: Partial<BridgeSnapshot['facts']>) =>
+			rowsOf(appMenuItems(snapshot(facts)), 'menu:window').map((row) => row.id);
+		expect(ids({ editorOpen: true })).toEqual(PANEL_SPECS.map((spec) => tearOffCommandId(spec.id)));
+		const away = ids({ editorOpen: true, away: { ...NO_FACTS.away, script: true } });
+		expect(away).toContain(dockBackCommandId('script'));
+		expect(away).not.toContain(tearOffCommandId('script'));
+		const rows = rowsOf(appMenuItems(snapshot()), 'menu:window');
+		expect(rows.every((row) => 'disabled' in row && row.disabled)).toBe(true);
+	});
+
 	it('runs Preferences and About by opening their windows, and others through handlers', () => {
-		expect(runCommand('window.preferences', snapshot())).toBe(true);
+		expect(runCommand('file.preferences', snapshot())).toBe(true);
 		expect(openWindow).toHaveBeenCalledWith({ kind: 'preferences' });
-		expect(runCommand('window.about', snapshot())).toBe(true);
+		expect(runCommand('help.about', snapshot())).toBe(true);
 		expect(openWindow).toHaveBeenCalledWith({ kind: 'about' });
 		const save = vi.fn();
 		expect(runCommand('file.save', snapshot({ hasLevel: true }, { 'file.save': save }))).toBe(true);
@@ -242,7 +282,7 @@ describe('the palette additions', () => {
 		expect(save).toMatchObject({ enabled: false, reason: 'Open a level first' });
 		const quit = entries.find((entry) => entry.id === 'file.quit')!;
 		expect(quit).toMatchObject({ enabled: true, shortcut: 'Ctrl+Q' });
-		expect(entries.find((entry) => entry.id === 'window.about')?.enabled).toBe(true);
+		expect(entries.find((entry) => entry.id === 'help.about')?.enabled).toBe(true);
 	});
 });
 

@@ -29,9 +29,9 @@ function setup() {
 }
 
 describe('the application menu bar', () => {
-	it('lists File, Edit, View and Window', () => {
+	it('lists File, Edit, View, Window and Help', () => {
 		setup();
-		for (const name of ['File', 'Edit', 'View', 'Window']) {
+		for (const name of ['File', 'Edit', 'View', 'Window', 'Help']) {
 			expect(screen.getByRole('menuitem', { name })).toBeInTheDocument();
 		}
 	});
@@ -52,10 +52,10 @@ describe('the application menu bar', () => {
 		expect(save).toHaveBeenCalledOnce();
 	});
 
-	it('opens Preferences from Window and shows its shortcut', async () => {
+	it('opens Preferences from File and shows its shortcut', async () => {
 		const user = userEvent.setup();
 		setup();
-		await user.click(screen.getByRole('menuitem', { name: 'Window' }));
+		await user.click(screen.getByRole('menuitem', { name: 'File' }));
 		const row = screen.getByRole('menuitem', { name: /Preferences/ });
 		expect(row).toHaveTextContent('Ctrl+,');
 		await user.click(row);
@@ -68,5 +68,12 @@ describe('the application menu bar', () => {
 		expect(await screen.findByRole('menuitem', { name: /Undo/ })).toBeInTheDocument();
 		fireEvent.keyDown(screen.getByRole('menuitem', { name: /Undo/ }), { key: 'ArrowRight' });
 		expect(await screen.findByRole('menuitemcheckbox', { name: /Palette/ })).toBeInTheDocument();
+	});
+
+	it('opens Help with Alt+H and runs About', async () => {
+		setup();
+		fireEvent.keyDown(window, { key: 'h', altKey: true });
+		await userEvent.click(await screen.findByRole('menuitem', { name: 'About Fizz Level Studio' }));
+		expect(openWindow).toHaveBeenCalledWith({ kind: 'about' });
 	});
 });

@@ -8,7 +8,7 @@ import { APP_MENU_MNEMONICS } from '../commands/appMenuModel';
 import { t } from '../i18n/messages';
 import { useAppMenu } from './useAppMenu';
 
-/** The same menus, rows and commands the title bar's application menu had before the bar. */
+/** The same menus, rows and commands as the title bar's application menu, laid across a bar; shown only when the menu bar setting is on. */
 export function AppMenuBar() {
 	const { items, onSelect } = useAppMenu();
 	return (

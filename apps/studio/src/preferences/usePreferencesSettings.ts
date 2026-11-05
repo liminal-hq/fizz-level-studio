@@ -1,4 +1,4 @@
-// The Appearance settings editor: reads the settings, saves each change at once and keeps per-field errors
+// The Preferences settings editor (Appearance and General): reads the settings, saves each change at once and keeps per-field errors
 //
 // (c) Copyright 2026 Liminal HQ, Scott Morris
 // SPDX-License-Identifier: Apache-2.0 OR MIT
@@ -11,30 +11,34 @@ import { t } from '../i18n/messages';
 import type { SettingsClient } from '../services/settingsClient';
 
 /** The controls that can show an error. */
-export type AppearanceField = 'colourMode' | 'accent' | 'accentHex' | 'glass';
+export type PreferencesField = 'colourMode' | 'accent' | 'accentHex' | 'glass' | 'menuBar';
 
-export type AppearanceErrors = Partial<Record<AppearanceField, string>>;
+export type PreferencesErrors = Partial<Record<PreferencesField, string>>;
 
-/** The settings this page edits. */
-export type AppearanceValues = Pick<Settings, 'colour_mode' | 'accent' | 'glass'>;
+/** The settings the pages edit. */
+export type PreferencesValues = Pick<Settings, 'colour_mode' | 'accent' | 'glass' | 'ui'>;
 
-export interface AppearanceEditor {
+/** The pages that have a reset to defaults. */
+export type PreferencesPage = 'appearance' | 'general';
+
+export interface PreferencesEditor {
 	/** The values in force, or null until the first read comes back. */
-	values: AppearanceValues | null;
-	errors: AppearanceErrors;
+	values: PreferencesValues | null;
+	errors: PreferencesErrors;
 	/** True when the settings could not be read at all. */
 	unavailable: boolean;
 	/** Saves `patch` now. A refusal is shown against `field` and nothing changes. */
-	change(field: AppearanceField, patch: SettingsPatch): Promise<void>;
-	/** Puts the page's settings back to their defaults. */
-	reset(): Promise<void>;
+	change(field: PreferencesField, patch: SettingsPatch): Promise<void>;
+	/** Puts a page's settings back to their defaults. */
+	reset(page: PreferencesPage): Promise<void>;
 }
 
-/** The defaults of the settings this page edits; the same as `Settings::default()` in Rust. */
-export const APPEARANCE_DEFAULTS: AppearanceValues = {
+/** The defaults of the settings the pages edit; the same as `Settings::default()` in Rust. */
+export const PREFERENCE_DEFAULTS: PreferencesValues = {
 	colour_mode: 'system',
 	accent: { kind: 'system' },
 	glass: 'system',
+	ui: { menu_bar: false },
 };
 
 const FIELD_OF_REFUSAL = { 'accent-hex': 'accentHex' } as const;
@@ -45,7 +49,7 @@ function kindOf(error: unknown): string | null {
 		: null;
 }
 
-function refusalMessage(error: unknown, fallback: AppearanceField): [AppearanceField, string] {
+function refusalMessage(error: unknown, fallback: PreferencesField): [PreferencesField, string] {
 	if (kindOf(error) === 'invalid-field') {
 		const field = (error as { field?: keyof typeof FIELD_OF_REFUSAL }).field;
 		const mapped = field ? FIELD_OF_REFUSAL[field] : undefined;
@@ -59,9 +63,9 @@ function refusalMessage(error: unknown, fallback: AppearanceField): [AppearanceF
  * revision is read again and the change tried once more. The settings plugin's change event keeps
  * the values current when another window changes them.
  */
-export function useAppearanceSettings(client: SettingsClient): AppearanceEditor {
+export function usePreferencesSettings(client: SettingsClient): PreferencesEditor {
 	const [snapshot, setSnapshot] = useState<SettingsSnapshot | null>(null);
-	const [errors, setErrors] = useState<AppearanceErrors>({});
+	const [errors, setErrors] = useState<PreferencesErrors>({});
 	const [unavailable, setUnavailable] = useState(false);
 	const latest = useRef<SettingsSnapshot | null>(null);
 
@@ -91,7 +95,7 @@ export function useAppearanceSettings(client: SettingsClient): AppearanceEditor 
 	}, [client, adopt]);
 
 	const change = useCallback(
-		async (field: AppearanceField, patch: SettingsPatch) => {
+		async (field: PreferencesField, patch: SettingsPatch) => {
 			setErrors((current) => ({ ...current, [field]: undefined }));
 			try {
 				const based = latest.current ?? (await client.get());
@@ -111,20 +115,28 @@ export function useAppearanceSettings(client: SettingsClient): AppearanceEditor 
 		[client, adopt],
 	);
 
-	const reset = useCallback(async () => {
-		setErrors({});
-		await change('colourMode', {
-			colour_mode: APPEARANCE_DEFAULTS.colour_mode,
-			accent: APPEARANCE_DEFAULTS.accent,
-			glass: APPEARANCE_DEFAULTS.glass,
-		});
-	}, [change]);
+	const reset = useCallback(
+		async (page: PreferencesPage) => {
+			setErrors({});
+			if (page === 'general') {
+				await change('menuBar', { ui: PREFERENCE_DEFAULTS.ui });
+				return;
+			}
+			await change('colourMode', {
+				colour_mode: PREFERENCE_DEFAULTS.colour_mode,
+				accent: PREFERENCE_DEFAULTS.accent,
+				glass: PREFERENCE_DEFAULTS.glass,
+			});
+		},
+		[change],
+	);
 
 	const values = snapshot
 		? {
 				colour_mode: snapshot.settings.colour_mode,
 				accent: snapshot.settings.accent,
 				glass: snapshot.settings.glass,
+				ui: snapshot.settings.ui,
 			}
 		: null;
 	return { values, errors, unavailable, change, reset };

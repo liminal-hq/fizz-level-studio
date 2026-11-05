@@ -34,7 +34,23 @@ pub const MIGRATIONS: &[Migration] = &[
         from: 3,
         apply: add_dock,
     },
+    Migration {
+        from: 4,
+        apply: add_ui,
+    },
 ];
+
+/// Version 5 adds the chrome choices (`ui`), the menu bar among them, off. A file that already has
+/// them keeps them.
+fn add_ui(mut settings: Value) -> Result<Value, String> {
+    let object = settings
+        .as_object_mut()
+        .ok_or("settings is not an object")?;
+    object
+        .entry("ui")
+        .or_insert_with(|| json!({ "menu_bar": false }));
+    Ok(settings)
+}
 
 /// Version 4 adds the dock: named workspaces of docked, floating and torn-off panels.
 ///
