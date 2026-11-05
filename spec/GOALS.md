@@ -1,6 +1,6 @@
 # Goals
 
-The goals of Fizz Level Studio, ranked by what matters most when two of them pull against each other. The ids match `SPEC.md` §2. Each goal has a measure that a test, a script or a short manual check can settle.
+The goals of Fizz Level Studio, ranked by what matters most when two of them pull against each other. The ids match `spec/README.md` §2. Each goal has a measure that a test, a script or a short manual check can settle.
 
 When two goals conflict, the higher one wins. Trust comes before speed of editing: a studio that is fast but sometimes writes the wrong Rust is worse than none.
 

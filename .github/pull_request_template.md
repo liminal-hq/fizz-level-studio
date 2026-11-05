@@ -5,7 +5,7 @@
 
 ### Documentation
 
-- Docs updated (`SPEC.md`, `docs/`, `AGENTS.md`), or not needed:
+- Docs updated (`spec/`, `docs/`, `AGENTS.md`), or not needed:
 
 ## Test plan
 

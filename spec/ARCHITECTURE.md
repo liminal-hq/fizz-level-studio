@@ -6,7 +6,7 @@ How Fizz Level Studio is put together: the packages, how a script flows through 
 
 - **The game owns the simulation.** Deterministic rules (physics, collision, enemy behaviour, timing) live in Rust in the game (`crates/sim`, `episodes/episode-1/game`) (which also builds to WebAssembly behind a raw C-ABI export surface for its own web and Android builds). The studio never re-derives a simulation rule: in the desktop app it links the games' crates natively (D59, proposed) and its own logic is Rust too (D55); the webview only draws. This is the game repository's own rule (`CLAUDE.md`, `docs/ENGINE_SPEC.md` §4.1) carried into the studio.
 - **The script is the source.** A level or overworld is a `.fizz` text file. The canvas, Claude's view and the exported Rust are all derived from it.
-- **The `Builder` is the semantics.** The language is a thin skin over the private `Builder` in `episodes/episode-1/game/src/levels.rs`. Where a design idea disagreed with the `Builder`, the `Builder` won (`docs/LANGUAGE.md`, "Changes from the sketch").
+- **The `Builder` is the semantics.** The language is a thin skin over the private `Builder` in `episodes/episode-1/game/src/levels.rs`. Where a design idea disagreed with the `Builder`, the `Builder` won (`spec/LANGUAGE.md`, "Changes from the sketch").
 - **Prove against the game's own data.** Every claim of equality is checked by building the real thing and comparing, not by reading code.
 
 ## 2. Packages
@@ -100,10 +100,10 @@ Today:
 
 ```text
 fizz-level-studio/
-  SPEC.md                    the product spec
+  spec/                      the product spec (README.md, REQUIREMENTS.md) and its companion documents
   README.md                  where to start, commands
   package.json               test, test:mcp, prove, prove:all scripts
-  docs/                      LANGUAGE.md and the spec's companion documents
+  docs/                      decisions, roadmap, engine changes, testing, questions and risks
   packages/
     language/src/            parser, printer, edits, rust, overworld, docs, tables, errors, args, cli
     language/test/           8 test files, 76 tests

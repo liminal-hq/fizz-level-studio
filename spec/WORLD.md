@@ -1,6 +1,6 @@
 # World projects
 
-How the studio organises Fizz 2 work: a **world project** holds one world's levels, overworld, shared definitions, sprites, parallax panels, sounds and strings, and builds into one world pack (`<WORLD>.FAP`). This is the owner's design (decided 2026-11-04). **None of it is built**, in the studio or in the Fizz 2 repository: the Fizz 2 repository today has one slice level written as Rust `const` data, the pack format and its reader (`fizz-pack`), and a plan for `fizz-bake`. Every part of the world project that needs Fizz 2 work is a numbered change request in [ENGINE-CHANGES.md](ENGINE-CHANGES.md#fizz-2-planned) (F1 to F23).
+How the studio organises Fizz 2 work: a **world project** holds one world's levels, overworld, shared definitions, sprites, parallax panels, sounds and strings, and builds into one world pack (`<WORLD>.FAP`). This is the owner's design (decided 2026-11-04). **None of it is built**, in the studio or in the Fizz 2 repository: the Fizz 2 repository today has one slice level written as Rust `const` data, the pack format and its reader (`fizz-pack`), and a plan for `fizz-bake`. Every part of the world project that needs Fizz 2 work is a numbered change request in [ENGINE-CHANGES.md](../docs/ENGINE-CHANGES.md#fizz-2-planned) (F1 to F23).
 
 ## 1. What a world is
 

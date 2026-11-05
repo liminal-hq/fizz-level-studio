@@ -10,6 +10,6 @@ labels: enhancement
 
 ## Relevant docs
 
-Link the section of `SPEC.md` or `docs/` this touches, if any.
+Link the section of `spec/` or `docs/` this touches, if any.
 
 ## Alternatives considered

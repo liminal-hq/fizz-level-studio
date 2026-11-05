@@ -1,6 +1,6 @@
 # The editor
 
-How Fizz Level Studio behaves, screen by screen, for Fizz 1 and, in sections 13 to 15, for Fizz 2, the sprites and the pixel editor. The source is the design prototype (`design/project/Proto.dc.html`) and its walkthrough (`design/project/Guide.dc.html`, twelve steps). Where the real studio must differ from the prototype, this document says so under **Real studio**. Each behaviour's build status is in `SPEC.md` §10.
+How Fizz Level Studio behaves, screen by screen, for Fizz 1 and, in sections 13 to 15, for Fizz 2, the sprites and the pixel editor. The source is the design prototype (`design/project/Proto.dc.html`) and its walkthrough (`design/project/Guide.dc.html`, twelve steps). Where the real studio must differ from the prototype, this document says so under **Real studio**. Each behaviour's build status is in `spec/REQUIREMENTS.md`.
 
 ## 1. The workspace
 
@@ -159,7 +159,7 @@ The same toggles are in the View menu and the app menu's Lenses submenu. The pla
 
 How the prototype builds the edits block: it compares the grid with the hand-written level and writes one line per tile word per row, grouped as `paint WORD x=LIST y=N` (or `place`, `clear`, or the enemy word). This is a picture of the difference, not an append-only log.
 
-**Real studio:** the typed line, the script panel and file loading use `packages/language` (`parse`, `appendEdits`, `print`), so the errors are the language's (E001–E016) and the edits block follows the language's append rule. Whether to offer a person-run "tidy edits" that regroups the block is open (`SPEC.md` Q1). The panel is a real text editor: a person can edit any line, and the studio reparses.
+**Real studio:** the typed line, the script panel and file loading use `packages/language` (`parse`, `appendEdits`, `print`), so the errors are the language's (E001–E016) and the edits block follows the language's append rule. Whether to offer a person-run "tidy edits" that regroups the block is open (`docs/QUESTIONS.md` Q1). The panel is a real text editor: a person can edit any line, and the studio reparses.
 
 ## 8. The overworld designer
 
@@ -221,7 +221,7 @@ The Guide's "Not built" list also says the editor does not show enemy walking pa
 
 ## 13. The Fizz 2 target (planned)
 
-Nothing in this section is built. It says what the editor needs so that one editor builds levels for Fizz 2, for Fizz 1 and for the episodes after them. Fizz 2 is the more important target; making Fizz 1 levels stays a goal. The dialect and the capability matrix are in [LANGUAGE.md](LANGUAGE.md#the-fizz-2-dialect-planned), world projects in [WORLD.md](WORLD.md), behaviour scripting in [SCRIPTING.md](SCRIPTING.md), and [FIZZ2-COVERAGE.md](FIZZ2-COVERAGE.md) maps every Fizz 2 feature to the place it is handled.
+Nothing in this section is built. It says what the editor needs so that one editor builds levels for Fizz 2, for Fizz 1 and for the episodes after them. Fizz 2 is the more important target; making Fizz 1 levels stays a goal. The dialect and the capability matrix are in [LANGUAGE.md](LANGUAGE.md#the-fizz-2-dialect-planned), world projects in [WORLD.md](WORLD.md), behaviour scripting in [SCRIPTING.md](SCRIPTING.md), and [FIZZ2-COVERAGE.md](../docs/FIZZ2-COVERAGE.md) maps every Fizz 2 feature to the place it is handled.
 
 ### A level's target is fixed
 
@@ -328,7 +328,7 @@ The studio never writes a pack. Sprites flow from the world's sprite files throu
 
 ## 15. Art: the pixel editor (planned)
 
-Nothing in this section is built. The pixel editor is the studio's one tool for painting 16-colour art (D52). It is its own milestone in [ROADMAP.md](ROADMAP.md).
+Nothing in this section is built. The pixel editor is the studio's one tool for painting 16-colour art (D52). It is its own milestone in [ROADMAP.md](../docs/ROADMAP.md).
 
 ### What it paints
 

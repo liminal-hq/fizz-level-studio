@@ -157,7 +157,7 @@ The exporter writes a function only. A new level also needs, in `levels.rs`: an 
 
 ## 8. Sprites
 
-Today a level point's look comes from the level table, not from the overworld: `LevelDef::icon` is a `Spr` such as `Spr::OwLmCrater` (`owLmCrater` in `SPRITE_NAMES`), with `Spr::OwCastle` for the Citadel and `Spr::Saucer` for the saucer. The overworld script has no sprite field, and the studio has no sprite picker. The plan (ENGINE-CHANGES E10): the studio reads the sprite names from the game's name table 0, offers the overworld landmark sprites (`OwLm*`, `OwCastle`, `Saucer`) in a picker, and writes the choice where the registry keeps it (the `LEVELS` row, or a new `sprite=` field on the `level` point; open question Q8 in `SPEC.md`). The picker is the one described in `EDITOR.md` section 14 for every target, and it is delivered in `ROADMAP.md` M9.
+Today a level point's look comes from the level table, not from the overworld: `LevelDef::icon` is a `Spr` such as `Spr::OwLmCrater` (`owLmCrater` in `SPRITE_NAMES`), with `Spr::OwCastle` for the Citadel and `Spr::Saucer` for the saucer. The overworld script has no sprite field, and the studio has no sprite picker. The plan (ENGINE-CHANGES E10): the studio reads the sprite names from the game's name table 0, offers the overworld landmark sprites (`OwLm*`, `OwCastle`, `Saucer`) in a picker, and writes the choice where the registry keeps it (the `LEVELS` row, or a new `sprite=` field on the `level` point; open question Q8 in `docs/QUESTIONS.md`). The picker is the one described in `EDITOR.md` section 14 for every target, and it is delivered in `ROADMAP.md` M9.
 
 ## 9. Steps to make adding a level real
 
@@ -173,6 +173,6 @@ Today a level point's look comes from the level table, not from the overworld: `
 ## 10. Fizz 2 and later episodes
 
 - **Fizz 2 has no overworld.** Its repository has no map, points, unlocks or progress mask; the slice is one level. Overworld scripts are therefore absent from the `ep2` profile, and their words are E102 there (`LANGUAGE.md`, the capability matrix).
-- **Nothing here is assumed to carry over.** If Fizz 2 or Episode 3 gains an overworld, its model comes from that game (`SPEC.md` Q22): the point kinds, how a level is unlocked, the progress storage and the look (Fizz 2 draws its ground in an oblique projection, `docs/OBLIQUE.md` in that repository, which Fizz 1's top-down map does not).
+- **Nothing here is assumed to carry over.** If Fizz 2 or Episode 3 gains an overworld, its model comes from that game (`docs/QUESTIONS.md` Q22): the point kinds, how a level is unlocked, the progress storage and the look (Fizz 2 draws its ground in an oblique projection, `docs/OBLIQUE.md` in that repository, which Fizz 1's top-down map does not).
 - **The designer is profile-driven.** When a second game has an overworld, the designer takes its tile words, point kinds, unlock words and sprites from that game's profile, as the level editor does, so the Fizz 1 overworld stays exactly as proven while the other is added as data.
 - **Level sprites on points** use the same Sprites window and picker for every target (`EDITOR.md` section 14), filtered to the sprites the profile marks as landmarks.

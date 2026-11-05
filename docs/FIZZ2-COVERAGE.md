@@ -50,12 +50,12 @@ Not found anywhere in that repository: a `fizz-script` crate, a `fizz-bake` tool
 
 | Feature | Source in Fizz 2 | Studio doc and section | Status | Action taken |
 | --- | --- | --- | --- | --- |
-| No wall-kick | `docs/FIZZ1-DIFFERENCES.md` (owner, 2026-10-30) | `SPEC.md` Q13 | Partial: an open question only | Reversed by the owner: a core Fizz 2 mechanic, always on (D47, F9); W103 now checks Fizz 1 levels (Q26) |
+| No wall-kick | `docs/FIZZ1-DIFFERENCES.md` (owner, 2026-10-30) | `docs/QUESTIONS.md` Q13 | Partial: an open question only | Reversed by the owner: a core Fizz 2 mechanic, always on (D47, F9); W103 now checks Fizz 1 levels (Q26) |
 | Exit entered with a fresh Up press while standing | #145 | `LANGUAGE.md`; `EDITOR.md` Exit lens | Missing | W102, W110, the Exit lens |
 | Ben's body 0.7 by 1.4, 0.8 by 2.0 on the trial | `ben.rs`; `7b948ae` | `EDITOR.md` Head room lens; `LANGUAGE.md` W105 | Missing | Body size as a profile parameter; W105 and a two-size comparison |
 | Ladders, vines, mantle, lifts, conveyors not ported | `docs/PLATFORM.md` "Departures" | Capability matrix | Missing | E102 rows in the matrix |
 | Ammo restarts at five on a respawn | `docs/FIZZ1-DIFFERENCES.md` | Capability matrix | Missing | Noted; no level field |
-| Roadmap says wall-kick "comes first" in M3.5 while the differences page says it is left out | `roadmap.json` `wallkick`; `FIZZ1-DIFFERENCES.md` | `SPEC.md` §11 | Missing | Resolved by D47 (Q16); F9 asks the Fizz 2 repository to change its page and roadmap |
+| Roadmap says wall-kick "comes first" in M3.5 while the differences page says it is left out | `roadmap.json` `wallkick`; `FIZZ1-DIFFERENCES.md` | `docs/QUESTIONS.md` | Missing | Resolved by D47 (Q16); F9 asks the Fizz 2 repository to change its page and roadmap |
 
 ## The look: theme, projection, parallax, night, lights
 
@@ -136,4 +136,4 @@ The owner set the studio's end goal as a Tauri v2 desktop app to the Liminal HQ 
 
 ## What remains open
 
-The questions still open are in `SPEC.md` §11 (Q11, Q14, Q15, Q17 to Q20, Q22 to Q35) and `DECISIONS.md` (the two 2026-11-04 log entries). The ones that need the owner first: what "wall-kick disabled for Fizz 1 levels" means (Q26), the state and rule limits (Q23, Q24), world-scoped states (Q27), the behaviour budgets (Q32), and which Ben ships (Q19).
+The questions still open are in `docs/QUESTIONS.md` (Q11, Q14, Q15, Q17 to Q20, Q22 to Q35) and `DECISIONS.md` (the two 2026-11-04 log entries). The ones that need the owner first: what "wall-kick disabled for Fizz 1 levels" means (Q26), the state and rule limits (Q23, Q24), world-scoped states (Q27), the behaviour budgets (Q32), and which Ben ships (Q19).

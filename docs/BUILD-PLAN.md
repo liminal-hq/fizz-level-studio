@@ -1,6 +1,6 @@
 # Build plan
 
-How the studio gets built, starting with M1 (the desktop walking skeleton): the M1 tasks in order with their acceptance checks, an answer for each open desktop question (Q36 to Q43), how the Fizz 2 dependencies are stubbed so work can start before the Fizz 2 repository delivers them, which proposed decisions (D55 to D60) must be confirmed first, and the critical path to M8. It is a plan, not a record: **nothing in it is built**. The milestones are those of [ROADMAP.md](ROADMAP.md); the standards are those of [DESKTOP.md](DESKTOP.md), taken from `folio/AGENTS.md`.
+How the studio gets built, starting with M1 (the desktop walking skeleton): the M1 tasks in order with their acceptance checks, an answer for each open desktop question (Q36 to Q43), how the Fizz 2 dependencies are stubbed so work can start before the Fizz 2 repository delivers them, which proposed decisions (D55 to D60) must be confirmed first, and the critical path to M8. It is a plan, not a record: **nothing in it is built**. The milestones are those of [ROADMAP.md](ROADMAP.md); the standards are those of [DESKTOP.md](../spec/DESKTOP.md), taken from `folio/AGENTS.md`.
 
 ## 1. Where the documents disagree or are silent
 
