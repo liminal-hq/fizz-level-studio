@@ -1151,6 +1151,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "fizz-studio-level"
+version = "0.1.0"
+dependencies = [
+ "fizz-studio-language",
+ "fizz-studio-protocol",
+ "fizz-studio-session",
+ "serde_json",
+]
+
+[[package]]
 name = "fizz-studio-profile"
 version = "0.1.0"
 dependencies = [

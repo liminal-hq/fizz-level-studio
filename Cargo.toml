@@ -5,6 +5,7 @@ members = [
 	"crates/fizz-studio-games",
 	"crates/fizz-studio-host",
 	"crates/fizz-studio-language",
+	"crates/fizz-studio-level",
 	"crates/fizz-studio-profile",
 	"crates/fizz-studio-protocol",
 	"crates/fizz-studio-session",
