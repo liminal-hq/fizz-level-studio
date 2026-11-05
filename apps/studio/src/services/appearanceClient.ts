@@ -11,6 +11,7 @@ import {
 	type AppearancePreferences,
 	type PluginStatus,
 } from '@liminal-hq/plugin-system-appearance';
+import type { AccentSources } from '../theme/followAccent';
 import type { SchemeSources } from '../theme/followColourScheme';
 
 /** Keeps the plugin's unsubscribe function once its promise settles, even if stopped before then. */
@@ -47,6 +48,32 @@ export const schemeSources: SchemeSources = {
 		);
 	},
 };
+
+/** The accent and the transparency and contrast hints, from the same plugin. */
+export const accentSources: AccentSources = {
+	accentAvailable: async () =>
+		(await getStatus()).appearance.some((entry) => entry.feature === 'accent' && entry.available),
+	hints: async () => toHints(await getAppearance()),
+	onHintsChanged: (listener) => {
+		// Keep only changes newer than the last one heard: the revision only goes up.
+		let latest = 0;
+		return subscribe(() =>
+			onAppearanceChanged((preferences) => {
+				if (preferences.revision <= latest) return;
+				latest = preferences.revision;
+				listener(toHints(preferences));
+			}),
+		);
+	},
+};
+
+function toHints(preferences: AppearancePreferences) {
+	return {
+		accent: preferences.accent,
+		reducedTransparency: preferences.reducedTransparency,
+		contrast: preferences.contrast,
+	};
+}
 
 /** What the system-appearance plugin can read on this desktop; its status command answering. */
 export function appearanceStatus(): Promise<PluginStatus> {
