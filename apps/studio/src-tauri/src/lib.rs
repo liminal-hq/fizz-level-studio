@@ -6,7 +6,23 @@
 pub mod logging;
 pub mod windows;
 
+use std::sync::Arc;
+
+use fizz_studio_settings::{BlobStorage, DiskStorage, MemoryStorage};
+use tauri::Manager;
 use windows::WindowId;
+
+/// Where the settings files live: the app's config directory. If the system will not name one, the
+/// settings are kept for this run only, and the log says so.
+fn settings_storage<R: tauri::Runtime>(app: &tauri::AppHandle<R>) -> Arc<dyn BlobStorage> {
+    match app.path().app_config_dir() {
+        Ok(dir) => Arc::new(DiskStorage::new(dir)),
+        Err(e) => {
+            log::warn!("no config directory for the settings, keeping them in memory: {e}");
+            Arc::new(MemoryStorage::default())
+        }
+    }
+}
 
 /// Starts the app. Every window is created in Rust (`windows.rs`); `tauri.conf.json` lists none.
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -36,6 +52,10 @@ pub fn run() {
                 )
                 .build(),
         )
+        // The settings: one store in Rust for every window, saved in the app's config directory.
+        .plugin(tauri_plugin_fizz_studio_settings::init_with(
+            settings_storage,
+        ))
         .invoke_handler(tauri::generate_handler![windows::open_window])
         .setup(|app| {
             windows::open_or_focus(app.handle(), &WindowId::Main { n: 1 })?;

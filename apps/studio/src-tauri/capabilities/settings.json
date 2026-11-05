@@ -1,0 +1,7 @@
+{
+	"$schema": "../gen/schemas/desktop-schema.json",
+	"identifier": "settings",
+	"description": "Lets the app's own windows read the settings, change them, and keep the recent worlds.",
+	"windows": ["main-*", "new-world", "preferences", "about"],
+	"permissions": ["fizz-studio-settings:default"]
+}

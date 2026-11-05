@@ -12,10 +12,16 @@
 		"typecheck": "tsc --noEmit",
 		"test": "vitest run",
 		"test:watch": "vitest",
+		"predev": "bun run --cwd ../.. build:plugins",
+		"prebuild": "bun run --cwd ../.. build:plugins",
+		"pretypecheck": "bun run --cwd ../.. build:plugins",
+		"pretest": "bun run --cwd ../.. build:plugins",
+		"pretest:ci": "bun run --cwd ../.. build:plugins",
 		"test:ci": "mkdir -p ../../test-results && vitest run --reporter=default --reporter=junit --outputFile.junit=../../test-results/frontend-junit.xml"
 	},
 	"dependencies": {
 		"@liminal-hq/fizz-studio-chrome": "workspace:*",
+		"@liminal-hq/fizz-studio-plugin-settings": "workspace:*",
 		"@tauri-apps/api": "^2.10.1",
 		"@tauri-apps/plugin-log": "^2.8.0",
 		"@tauri-apps/plugin-os": "^2.3.2",
