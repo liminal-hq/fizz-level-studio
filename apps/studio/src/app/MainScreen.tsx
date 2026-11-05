@@ -28,6 +28,7 @@ import {
 import { AppMenu } from './AppMenu';
 import { AppMenuBar } from './AppMenuBar';
 import { AppWindow } from './AppWindow';
+import type { DockClient } from '../services/dockClient';
 import { CloseLevelDialog } from './CloseLevelDialog';
 import { EditorScreen } from './EditorScreen';
 import styles from './MainScreen.module.css';
@@ -45,6 +46,8 @@ export interface MainScreenProps {
 	pickFile?: PickLevelFile;
 	/** The crash-recovery copies; defaults to the worlds plugin. */
 	recovery?: RecoveryClient;
+	/** Where the editor's dock layout is read and saved. Defaults to the settings plugin. */
+	docks?: DockClient;
 }
 
 // One client for the app: it remembers each level's latest snapshot between calls.
@@ -97,6 +100,7 @@ function MainScreenBody({
 	launch = launchClient,
 	pickFile = pickLevelFile,
 	recovery = recoveryClient,
+	docks,
 }: MainScreenProps & { bridge: CommandBridge }) {
 	/** The snapshot the level was opened from; the editor takes later ones from `level`. */
 	const [level, setLevel] = useState<LevelSnapshot | null>(null);
@@ -504,7 +508,13 @@ function MainScreenBody({
 					</section>
 				)}
 				<div className={styles.editorBody}>
-					<EditorScreen key={level.id} snapshot={level} client={client} onSnapshot={follow} />
+					<EditorScreen
+						key={level.id}
+						snapshot={level}
+						client={client}
+						onSnapshot={follow}
+						docks={docks}
+					/>
 				</div>
 			</div>
 			<CommandPalette

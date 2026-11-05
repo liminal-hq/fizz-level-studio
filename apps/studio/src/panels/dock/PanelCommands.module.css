@@ -1,0 +1,14 @@
+.commands {
+	display: inline-flex;
+	flex: none;
+	align-items: center;
+	gap: 0.25rem;
+}
+
+/* A small keycap: the base's height and padding give way to the compact size. */
+.key {
+	composes: keycap from '../../theme/keycap.module.css';
+	width: var(--fls-hit-target);
+	height: var(--fls-hit-target);
+	padding: 0;
+}

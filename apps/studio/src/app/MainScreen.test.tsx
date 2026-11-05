@@ -11,6 +11,7 @@ import { resetActiveLocale } from '../i18n/active';
 import { activateLocale } from '../i18n/loadCatalogue';
 import type { LaunchClient } from '../services/launchClient';
 import type { RecentClient } from '../services/recentClient';
+import { fakeDockClient, floatingDock } from '../test/dockFixtures';
 import { levelSnapshot, levelView } from '../test/levelFixtures';
 import { FakeLevelClient } from '../worlds/fakeLevelClient';
 import { FakeRecoveryClient } from '../worlds/fakeRecoveryClient';
@@ -131,6 +132,7 @@ function setup(
 			launch={launch}
 			pickFile={pickFile}
 			recovery={recovery}
+			docks={fakeDockClient(floatingDock())}
 		/>,
 	);
 	return {

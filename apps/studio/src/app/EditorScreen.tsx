@@ -17,24 +17,22 @@ import {
 	type KeyboardEvent,
 } from 'react';
 import { LevelCanvas } from '../canvas/LevelCanvas';
-import { ObjectList } from '../canvas/ObjectList';
 import { enMessages, t, type MessageId } from '../i18n/messages';
 import { CommandBridgeContext, NO_FACTS } from '../commands/commandBridge';
-import { GhostsPanel } from '../panels/GhostsPanel';
 import { FloatingPanel } from '../panels/float/FloatingPanel';
-import { neighboursOf, usePanelLayout } from '../panels/float/usePanelLayout';
+import { neighboursOf } from '../panels/float/usePanelLayout';
+import { DockShell } from '../panels/dock/DockShell';
+import { PanelCommands } from '../panels/dock/PanelCommands';
+import { useDockLayout } from '../panels/dock/useDockLayout';
 import { brushCommandId, panelCommandId, toolCommandId } from '../commands/registry';
 import { PANEL_SPECS, type PanelId } from '../panels/float/panelSpecs';
 import { PanelsMenu } from '../panels/float/PanelsMenu';
 import { SnapGuides } from '../panels/float/SnapGuides';
 import { useElementSize } from '../panels/float/useElementSize';
 import type { Guide } from '../panels/float/snap';
-import { HistoryPanel, historyShortcut } from '../panels/HistoryPanel';
-import { PalettePanel } from '../panels/PalettePanel';
-import { ScriptPanel } from '../panels/ScriptPanel';
-import { TornOffNotice } from '../panels/TornOffNotice';
+import { historyShortcut } from '../panels/HistoryPanel';
 import { usePanelDock } from '../panels/usePanelDock';
-import { layoutClient as defaultLayoutClient, type LayoutClient } from '../services/layoutClient';
+import { dockClient as defaultDockClient, type DockClient } from '../services/dockClient';
 import type { PanelWindowClient } from '../services/panelWindowClient';
 import { BRUSH_GROUPS, brushWords, type Brush } from '../tools/brush';
 import { pasteRect } from '../tools/clip';
@@ -44,6 +42,7 @@ import { TOOL_IDS, type Cell, type PointerPhase } from '../tools/tool';
 import { useTool } from '../tools/useTool';
 import { isLevelError, type LevelClient } from '../worlds/levelClient';
 import styles from './EditorScreen.module.css';
+import { panelContent } from './panelContent';
 import { newerSnapshot } from './snapshotRule';
 
 export interface EditorScreenProps {
@@ -54,15 +53,8 @@ export interface EditorScreenProps {
 	onSnapshot?: (snapshot: LevelSnapshot) => void;
 	/** Opens and closes panel windows; defaults to the app's commands. */
 	panelWindows?: PanelWindowClient;
-	/** Reads and saves where the floating panels sit; defaults to the settings plugin. */
-	layouts?: LayoutClient;
-}
-
-/** Which panels are shown, as the Panels menu lists them. */
-function visibleOf(panels: Record<PanelId, { visible: boolean }>): Record<PanelId, boolean> {
-	return Object.fromEntries(
-		PANEL_SPECS.map((spec) => [spec.id, panels[spec.id].visible]),
-	) as Record<PanelId, boolean>;
+	/** Reads and saves the dock layout; defaults to the settings document. */
+	docks?: DockClient;
 }
 
 /** Keys typed into these belong to the control, not to the editor's shortcuts. */
@@ -81,7 +73,7 @@ export function EditorScreen({
 	client,
 	onSnapshot,
 	panelWindows,
-	layouts = defaultLayoutClient,
+	docks = defaultDockClient,
 }: EditorScreenProps) {
 	const [snapshot, setSnapshot] = useState(initial);
 	const held = useRef(initial);
@@ -101,7 +93,11 @@ export function EditorScreen({
 	const scriptDock = usePanelDock('script', panelWindows);
 	const areaRef = useRef<HTMLDivElement>(null);
 	const area = useElementSize(areaRef);
-	const floating = usePanelLayout(layouts, area);
+	const windowRef = useRef<HTMLElement>(
+		typeof document === 'undefined' ? null : document.documentElement,
+	);
+	const windowSize = useElementSize(windowRef);
+	const dock = useDockLayout(docks, windowSize, area);
 	const [guides, setGuides] = useState<Guide[]>([]);
 	const [reveal, setReveal] = useState<{ cell: Cell; serial: number } | null>(null);
 
@@ -247,8 +243,8 @@ export function EditorScreen({
 	const live = useRef({
 		undo,
 		redo,
-		setVisible: floating.setVisible,
-		reset: floating.reset,
+		setVisible: dock.setVisible,
+		reset: dock.reset,
 		setTool: tool.setTool,
 		setBrush: tool.setBrush,
 		showLine,
@@ -256,13 +252,13 @@ export function EditorScreen({
 	live.current = {
 		undo,
 		redo,
-		setVisible: floating.setVisible,
-		reset: floating.reset,
+		setVisible: dock.setVisible,
+		reset: dock.reset,
 		setTool: tool.setTool,
 		setBrush: tool.setBrush,
 		showLine,
 	};
-	const panelsShown = visibleOf(floating.panels);
+	const panelsShown = dock.shown;
 	const panelsKey = PANEL_SPECS.map((spec) => (panelsShown[spec.id] ? '1' : '0')).join('');
 	useEffect(() => {
 		if (!bridge) return;
@@ -355,55 +351,27 @@ export function EditorScreen({
 	const noteText =
 		snapshot.banner && snapshot.banner in enMessages ? t(snapshot.banner as MessageId) : null;
 
-	const panelContent = (id: PanelId) => {
-		switch (id) {
-			case 'palette':
-				return (
-					<PalettePanel
-						tiles={snapshot.view.palette}
-						words={words}
-						brush={tool.brush}
-						onBrush={tool.setBrush}
-					/>
-				);
-			case 'objects':
-				return (
-					<ObjectList view={snapshot.view} onSelectCell={onObjectChosen} onSelectLine={showLine} />
-				);
-			case 'history':
-				return (
-					<HistoryPanel
-						canUndo={snapshot.can_undo}
-						canRedo={snapshot.can_redo}
-						undoName={snapshot.undo_name}
-						redoName={snapshot.redo_name}
-						onUndo={undo}
-						onRedo={redo}
-					/>
-				);
-			case 'proposals':
-				return (
-					<GhostsPanel
-						proposals={proposals}
-						shown={showGhosts}
-						onToggle={setShowGhosts}
-						onRefresh={() => setReads((n) => n + 1)}
-					/>
-				);
-			case 'script':
-				return scriptDock.tornOff ? (
-					<TornOffNotice messageId="panel.scriptTornOff" onDockBack={scriptDock.dockBack} />
-				) : (
-					<ScriptPanel
-						words={words}
-						text={snapshot.text}
-						diagnostics={snapshot.view.diagnostics}
-						focusLine={focusLine}
-						focusSerial={focusSerial}
-						onTearOff={scriptDock.tearOff}
-					/>
-				);
-		}
+	const content = (id: PanelId) =>
+		panelContent(id, {
+			snapshot,
+			words,
+			brush: tool.brush,
+			onBrush: tool.setBrush,
+			onObjectChosen,
+			showLine,
+			undo,
+			redo,
+			proposals,
+			showGhosts,
+			onToggleGhosts: setShowGhosts,
+			onRefreshProposals: () => setReads((n) => n + 1),
+			scriptDock,
+			focusLine,
+			focusSerial,
+		});
+	const titleOf = (id: string) => {
+		const spec = PANEL_SPECS.find((candidate) => candidate.id === id);
+		return spec ? t(spec.title) : id;
 	};
 
 	return (
@@ -430,30 +398,34 @@ export function EditorScreen({
 			)}
 			<div className={styles.bar}>
 				<ToolPalette handle={tool} />
-				<PanelsMenu
-					visible={visibleOf(floating.panels)}
-					onToggle={floating.setVisible}
-					onReset={floating.reset}
-				/>
+				<PanelsMenu visible={dock.shown} onToggle={dock.setVisible} onReset={dock.reset} />
 			</div>
 			<div className={styles.body} ref={areaRef}>
-				<div className={styles.canvas}>
-					<LevelCanvas
-						view={snapshot.view}
-						cursor={cursor}
-						onCursorChange={setCursor}
-						onToolEvent={onToolEvent}
-						preview={tool.preview}
-						previewShape={tool.tool === 'paint' && tool.brush.group === 'item' ? 'item' : 'cell'}
-						paste={tool.tool === 'stamp' && tool.clip ? pasteRect(tool.clip, cursor) : null}
-						selection={tool.selection}
-						ghosts={ghostCells}
-						reveal={reveal}
-						onCellChosen={onCellChosen}
-					/>
-				</div>
+				<DockShell
+					view={dock.view}
+					window={dock.window}
+					titleOf={titleOf}
+					renderPanel={(id) => content(id as PanelId)}
+					actions={dock}
+				>
+					<div className={styles.canvas}>
+						<LevelCanvas
+							view={snapshot.view}
+							cursor={cursor}
+							onCursorChange={setCursor}
+							onToolEvent={onToolEvent}
+							preview={tool.preview}
+							previewShape={tool.tool === 'paint' && tool.brush.group === 'item' ? 'item' : 'cell'}
+							paste={tool.tool === 'stamp' && tool.clip ? pasteRect(tool.clip, cursor) : null}
+							selection={tool.selection}
+							ghosts={ghostCells}
+							reveal={reveal}
+							onCellChosen={onCellChosen}
+						/>
+					</div>
+				</DockShell>
 				{PANEL_SPECS.map((spec) => {
-					const view = floating.panels[spec.id];
+					const view = dock.floating[spec.id];
 					if (!view.visible) return null;
 					return (
 						<FloatingPanel
@@ -466,13 +438,21 @@ export function EditorScreen({
 							z={view.z}
 							min={spec.min}
 							area={area}
-							neighbours={neighboursOf(spec.id, floating.panels)}
+							neighbours={neighboursOf(spec.id, dock.floating)}
 							onGuides={setGuides}
-							onChange={(rect) => floating.change(spec.id, rect)}
-							onToggleCollapsed={() => floating.toggleCollapsed(spec.id)}
-							onRaise={() => floating.raise(spec.id)}
+							onChange={(rect) => dock.changeFloat(spec.id, rect)}
+							onToggleCollapsed={() => dock.toggleFloatCollapsed(spec.id)}
+							onRaise={() => dock.raise(spec.id)}
+							actions={
+								<PanelCommands
+									title={t(spec.title)}
+									at="float"
+									onDock={(zone) => dock.dockTo(spec.id, zone)}
+									onFloat={() => {}}
+								/>
+							}
 						>
-							{panelContent(spec.id)}
+							{content(spec.id)}
 						</FloatingPanel>
 					);
 				})}

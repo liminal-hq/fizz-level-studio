@@ -332,6 +332,21 @@ export const enMessages = {
 	// translator: The name of the Escape key, written on a keycap. Keep it short.
 	'cmdPalette.keyEscape': 'Esc',
 
+	// translator: Name of the dock on the left of the level, where panels sit as tabs. Used as a region name.
+	'dock.zone.left': 'Left dock',
+	// translator: Name of the dock on the right of the level, where panels sit as tabs. Used as a region name.
+	'dock.zone.right': 'Right dock',
+	// translator: Name of the dock below the level, where panels sit as tabs. Used as a region name.
+	'dock.zone.bottom': 'Bottom dock',
+	// translator: Verb phrase on an icon button. Moves a panel into the dock on the left of the level. {title} is the panel’s name.
+	'dock.dockLeft': 'Dock {title} left',
+	// translator: Verb phrase on an icon button. Moves a panel into the dock on the right of the level. {title} is the panel’s name.
+	'dock.dockRight': 'Dock {title} right',
+	// translator: Verb phrase on an icon button. Moves a panel into the dock below the level. {title} is the panel’s name.
+	'dock.dockBottom': 'Dock {title} bottom',
+	// translator: Verb phrase on an icon button. Lets a docked panel float over the level. {title} is the panel’s name.
+	'dock.float': 'Float {title}',
+
 	// translator: The name of the File menu in the application menu. Level files are opened, saved and closed from it.
 	'appMenu.file': 'File',
 	// translator: The name of the Edit menu in the application menu. Undo and Redo are in it.

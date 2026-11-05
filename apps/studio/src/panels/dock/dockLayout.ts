@@ -95,6 +95,24 @@ function clamp(n: number, lo: number, hi: number): number {
 	return Math.max(lo, Math.min(n, hi));
 }
 
+/**
+ * Shows or hides a panel without moving it: a hidden docked panel keeps its tab and a hidden
+ * floating one its rectangle. The flag is the panel's `float.visible`, which is kept whatever the
+ * panel's place. Showing a docked panel makes it the showing tab of its group and opens its zone;
+ * showing a floating one brings it to the front.
+ */
+export function setPanelVisible(workspace: Workspace, id: string, visible: boolean): Workspace {
+	const entry = entryOf(workspace, id);
+	if (!entry) return workspace;
+	const zone = zoneOf(workspace, id);
+	if (entry.float.visible === visible && !(visible && zone)) return workspace;
+	let next = structuredClone(workspace);
+	next.panels[id]!.float.visible = visible;
+	if (visible && zone) next = setZoneCollapsed(activateTab(next, id), zone, false);
+	if (visible && entry.place === 'floating') next.panels[id]!.float.z = topZ(next) + 1;
+	return next;
+}
+
 /** Makes a docked panel the showing tab of its group. */
 export function activateTab(workspace: Workspace, id: string): Workspace {
 	const zone = zoneOf(workspace, id);

@@ -20,6 +20,7 @@ import {
 	resizeZone,
 	restorePanel,
 	sendToWindow,
+	setPanelVisible,
 	setZoneCollapsed,
 	settleSession,
 	toggleLevelFirst,
@@ -310,5 +311,44 @@ describe('maximise and level-first', () => {
 		expect(settleSession(full, sendToWindow(ws, 'script')).maximised).toBeNull();
 		const peeking = peekPanel(INITIAL_SESSION, setZoneCollapsed(ws, 'right', true), 'history');
 		expect(settleSession(peeking, ws).peeking).toBeNull();
+	});
+});
+
+describe('setPanelVisible', () => {
+	it('hides a docked panel without taking it out of its tab group', () => {
+		const ws = setPanelVisible(defaultWorkspace(), 'objects', false);
+		expect(ws.panels.objects!.float.visible).toBe(false);
+		expect(dockedIn(ws, 'right')).toEqual(['objects', 'history']);
+		sound(ws);
+	});
+
+	it('shows a hidden docked panel as the showing tab and opens a folded zone', () => {
+		let ws = setPanelVisible(defaultWorkspace(), 'history', false);
+		ws = setZoneCollapsed(ws, 'right', true);
+		ws = setPanelVisible(ws, 'history', true);
+		expect(ws.panels.history!.float.visible).toBe(true);
+		expect(ws.zones.right.collapsed).toBe(false);
+		expect(ws.zones.right.groups[0]!.active).toBe('history');
+	});
+
+	it('shows a panel that is already visible by making it the showing tab', () => {
+		const ws = setPanelVisible(defaultWorkspace(), 'history', true);
+		expect(ws.zones.right.groups[0]!.active).toBe('history');
+	});
+
+	it('brings a shown floating panel to the front', () => {
+		let ws = floatPanel(defaultWorkspace(), 'palette');
+		ws = setPanelVisible(ws, 'palette', false);
+		ws = setPanelVisible(ws, 'palette', true);
+		const z = Math.max(...Object.values(ws.panels).map((e) => e.float.z));
+		expect(ws.panels.palette!.float.z).toBe(z);
+		expect(ws.panels.palette!.float.visible).toBe(true);
+	});
+
+	it('leaves an unknown panel and an unchanged flag alone', () => {
+		const ws = defaultWorkspace();
+		expect(setPanelVisible(ws, 'nope', false)).toBe(ws);
+		const floating = floatPanel(ws, 'palette');
+		expect(setPanelVisible(floating, 'palette', true)).toBe(floating);
 	});
 });
