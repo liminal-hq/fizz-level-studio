@@ -1,24 +1,36 @@
-// Quitting the whole app: asks each main window in turn, then exits
+// Quitting the whole app: asks every main window first, acts only when all agree, then exits
 //
 // (c) Copyright 2026 Liminal HQ, Scott Morris
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 //
-// `app_quit` starts a round (`quit_round.rs`) over the open main windows, and sends
-// `app://quit-requested` to the one being asked, which answers with `app_quit_answer` once any
-// unsaved level in it has been saved or discarded, or the person has cancelled. `AppHandle::exit`
-// then runs the plugins' exit hooks, as a normal close does (the worlds plugin stops its autosave
-// there), and a level that was saved or discarded has already dropped its recovery copy.
+// `app_quit` starts a round (`quit_round.rs`) over the open main windows. Phase 1: it sends
+// `app://quit-requested` to each window in turn, which answers with `app_quit_answer` (ready, save,
+// discard or cancel) and does nothing else. Phase 2, only if nobody cancelled: it sends
+// `app://quit-commit` to each window that chose Save or Discard, one at a time, which carries the
+// decision out and says how it went with `app_quit_confirm`. `AppHandle::exit` runs only after
+// every confirmation, so the plugins' exit hooks run as a normal close does (the worlds plugin
+// stops its autosave there), and a discarded level has dropped its recovery copy by then.
 
 use std::sync::Mutex;
 
 use serde::Serialize;
 use tauri::{AppHandle, Emitter, Manager, Runtime, State, WebviewWindow};
 
-use crate::quit_round::{Answer, QuitRounds, Step};
+use crate::quit_round::{Decision, Outcome, QuitRounds, Step};
 use crate::windows::WindowId;
 
 /// Sent to the main window being asked whether it is ready to quit.
 pub const QUIT_REQUESTED_EVENT: &str = "app://quit-requested";
+
+/// Sent to a main window that must carry out its decision.
+pub const QUIT_COMMIT_EVENT: &str = "app://quit-commit";
+
+/// What `app://quit-commit` carries: the round, and what to do (`save` or `discard`).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct QuitCommit {
+    pub round: u64,
+    pub decision: Decision,
+}
 
 /// What `app://quit-requested` carries: the round the answer must name.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -73,6 +85,21 @@ fn perform<R: Runtime>(app: &AppHandle<R>, state: &QuitState, mut step: Step) {
                 log::warn!("could not ask {label} to quit; treating it as closed");
                 step = state.with(|rounds| rounds.gone(&label));
             }
+            Step::Commit {
+                round,
+                label,
+                decision,
+            } => {
+                let sent = app.get_webview_window(&label).is_some_and(|_| {
+                    app.emit_to(&label, QUIT_COMMIT_EVENT, QuitCommit { round, decision })
+                        .is_ok()
+                });
+                if sent {
+                    return;
+                }
+                log::warn!("could not tell {label} to quit; treating it as closed");
+                step = state.with(|rounds| rounds.gone(&label));
+            }
         }
     }
 }
@@ -85,16 +112,29 @@ pub fn app_quit<R: Runtime>(app: AppHandle<R>, state: State<'_, QuitState>) {
     perform(&app, &state, step);
 }
 
-/// A main window's answer to `app://quit-requested`.
+/// A main window's decision, answering `app://quit-requested`; nothing is carried out yet.
 #[tauri::command]
 pub fn app_quit_answer<R: Runtime>(
     app: AppHandle<R>,
     window: WebviewWindow<R>,
     state: State<'_, QuitState>,
     round: u64,
-    answer: Answer,
+    decision: Decision,
 ) {
-    let step = state.with(|rounds| rounds.answer(round, window.label(), answer));
+    let step = state.with(|rounds| rounds.answer(round, window.label(), decision));
+    perform(&app, &state, step);
+}
+
+/// A main window's report on `app://quit-commit`: it carried the decision out, or it failed.
+#[tauri::command]
+pub fn app_quit_confirm<R: Runtime>(
+    app: AppHandle<R>,
+    window: WebviewWindow<R>,
+    state: State<'_, QuitState>,
+    round: u64,
+    outcome: Outcome,
+) {
+    let step = state.with(|rounds| rounds.confirm(round, window.label(), outcome));
     perform(&app, &state, step);
 }
 

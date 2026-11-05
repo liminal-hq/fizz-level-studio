@@ -336,9 +336,11 @@ function MainScreenBody({
 		await closeNow();
 	};
 
-	// The app asks each main window in turn before it quits. A window with nothing unsaved is ready
-	// at once; one with unsaved changes asks the same question as closing the level does. A newer
-	// request replaces an older one, so the answer always names the round that is current.
+	// The app asks every main window before it quits, and acts only when all agree. Asking only
+	// records a decision: a window with nothing unsaved says ready at once; one with unsaved changes
+	// asks the same question as closing the level does, and its Save or Discard is carried out only
+	// when the app sends the commit. A newer request replaces an older one, so the answer always
+	// names the round that is current.
 	useEffect(
 		() =>
 			quit.onRequested((round) => {
@@ -348,35 +350,45 @@ function MainScreenBody({
 					setQuitRound(round);
 				} else {
 					setQuitRound(null);
-					void quit.answer(round, 'proceed').catch(() => {});
+					void quit.answer(round, 'ready').catch(() => {});
 				}
 			}),
 		[quit],
 	);
 
-	const answerQuit = async (answer: 'proceed' | 'cancel') => {
+	const answerQuit = async (answer: 'save' | 'discard' | 'cancel') => {
 		const round = quitRound;
 		setQuitRound(null);
 		if (round !== null) await quit.answer(round, answer).catch(() => {});
 	};
 
-	const saveAndQuit = async () => {
-		await answerQuit((await save()) ? 'proceed' : 'cancel');
-	};
-
-	const discardAndQuit = async () => {
-		const current = levelRef.current;
-		if (!current) return answerQuit('proceed');
-		try {
-			// Closing the level drops its recovery copy, so the discarded work is not offered back.
-			await client.close(current.id);
-			dropLevel();
-			await answerQuit('proceed');
-		} catch {
-			setBanner({ id: 'main.closeFailed' });
-			await answerQuit('cancel');
-		}
-	};
+	// Everyone agreed: carry the decision out and report. A failed save keeps the app open, with
+	// the usual save-failed error shown in this window; a discard closes the level, which drops
+	// its recovery copy so the discarded work is not offered back.
+	useEffect(
+		() =>
+			quit.onCommit((round, decision) => {
+				const report = (outcome: 'done' | 'failed') =>
+					void quit.confirm(round, outcome).catch(() => {});
+				const current = levelRef.current;
+				if (!current) return report('done');
+				if (decision === 'save') {
+					void save().then((saved) => report(saved ? 'done' : 'failed'));
+					return;
+				}
+				client.close(current.id).then(
+					() => {
+						dropLevel();
+						report('done');
+					},
+					() => {
+						setBanner({ id: 'main.closeFailed' });
+						report('failed');
+					},
+				);
+			}),
+		[quit, client, save, dropLevel],
+	);
 
 	useEffect(() => {
 		const onKey = (event: KeyboardEvent) => {
@@ -595,8 +607,8 @@ function MainScreenBody({
 			<CloseLevelDialog
 				open={quitRound !== null}
 				name={name}
-				onSave={() => void saveAndQuit()}
-				onDiscard={() => void discardAndQuit()}
+				onSave={() => void answerQuit('save')}
+				onDiscard={() => void answerQuit('discard')}
 				onCancel={() => void answerQuit('cancel')}
 			/>
 		</AppWindow>

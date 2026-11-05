@@ -10,7 +10,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { resetActiveLocale } from '../i18n/active';
 import { activateLocale } from '../i18n/loadCatalogue';
 import type { LaunchClient } from '../services/launchClient';
-import type { QuitAnswer, QuitClient } from '../services/quitClient';
+import type {
+	QuitAnswer,
+	QuitClient,
+	QuitCommitDecision,
+	QuitOutcome,
+} from '../services/quitClient';
 import type { RecentClient } from '../services/recentClient';
 import { fakeDockClient, floatingDock } from '../test/dockFixtures';
 import { levelSnapshot, levelView } from '../test/levelFixtures';
@@ -117,11 +122,25 @@ class FakeQuit implements QuitClient {
 			this.listener = null;
 		};
 	}
+	commitListener: ((round: number, decision: QuitCommitDecision) => void) | null = null;
+	confirms: { round: number; outcome: QuitOutcome }[] = [];
+	onCommit(listener: (round: number, decision: QuitCommitDecision) => void) {
+		this.commitListener = listener;
+		return () => {
+			this.commitListener = null;
+		};
+	}
 	async answer(round: number, answer: QuitAnswer) {
 		this.answers.push({ round, answer });
 	}
+	async confirm(round: number, outcome: QuitOutcome) {
+		this.confirms.push({ round, outcome });
+	}
 	ask(round: number) {
 		act(() => this.listener?.(round));
+	}
+	commit(round: number, decision: QuitCommitDecision) {
+		act(() => this.commitListener?.(round, decision));
 	}
 }
 
@@ -689,84 +708,82 @@ describe('the command palette', () => {
 });
 
 describe('quitting the app', () => {
+	async function askDirty() {
+		const user = userEvent.setup();
+		const ctx = setup();
+		ctx.client.dirty = true;
+		await openFromDialog(user);
+		ctx.quit.ask(1);
+		const dialog = await screen.findByRole('dialog', { name: 'Save changes to Crater Fields?' });
+		return { user, dialog, ...ctx };
+	}
+
 	it('is ready at once on the start screen', () => {
 		const { quit } = setup();
 		quit.ask(1);
-		expect(quit.answers).toEqual([{ round: 1, answer: 'proceed' }]);
+		expect(quit.answers).toEqual([{ round: 1, answer: 'ready' }]);
 		expect(screen.queryByRole('dialog')).toBeNull();
 	});
 
-	it('is ready at once with a level that has no unsaved changes, and leaves it open', async () => {
+	it('is ready at once with a level that has no unsaved changes, and does nothing at commit', async () => {
 		const user = userEvent.setup();
 		const { quit, client } = setup();
 		await openFromDialog(user);
 		quit.ask(2);
-		expect(quit.answers).toEqual([{ round: 2, answer: 'proceed' }]);
+		expect(quit.answers).toEqual([{ round: 2, answer: 'ready' }]);
 		expect(screen.queryByRole('dialog')).toBeNull();
 		expect(client.closed).toEqual([]);
+		expect(client.saves).toBe(0);
 	});
 
-	it('asks the close question when there are unsaved changes, and Cancel stops the quit', async () => {
-		const user = userEvent.setup();
-		const { quit, client } = setup();
-		client.dirty = true;
-		await openFromDialog(user);
-		quit.ask(3);
-		const dialog = await screen.findByRole('dialog', { name: 'Save changes to Crater Fields?' });
+	it('Cancel answers cancel and leaves the level untouched', async () => {
+		const { user, dialog, quit, client } = await askDirty();
 		expect(quit.answers).toEqual([]);
 		await user.click(within(dialog).getByRole('button', { name: 'Cancel' }));
-		expect(quit.answers).toEqual([{ round: 3, answer: 'cancel' }]);
+		expect(quit.answers).toEqual([{ round: 1, answer: 'cancel' }]);
 		expect(screen.queryByRole('dialog')).toBeNull();
 		expect(client.saves).toBe(0);
 		expect(client.closed).toEqual([]);
 		expect(screen.getByRole('group', { name: 'Level editor' })).toBeInTheDocument();
 	});
 
-	it('Save writes the level, then says it is ready', async () => {
-		const user = userEvent.setup();
-		const { quit, client } = setup();
-		client.dirty = true;
-		await openFromDialog(user);
-		quit.ask(4);
-		const dialog = await screen.findByRole('dialog');
+	it('Save is only recorded when chosen, and the level is saved at commit', async () => {
+		const { user, dialog, quit, client } = await askDirty();
 		await user.click(within(dialog).getByRole('button', { name: 'Save' }));
-		await waitFor(() => expect(quit.answers).toEqual([{ round: 4, answer: 'proceed' }]));
+		expect(quit.answers).toEqual([{ round: 1, answer: 'save' }]);
+		expect(client.saves).toBe(0);
+		expect(screen.queryByRole('dialog')).toBeNull();
+		quit.commit(1, 'save');
+		await waitFor(() => expect(quit.confirms).toEqual([{ round: 1, outcome: 'done' }]));
 		expect(client.saves).toBe(1);
+		expect(client.closed).toEqual([]);
 	});
 
-	it('cancels the quit when the save fails, leaving the level open', async () => {
-		const user = userEvent.setup();
-		const { quit, client } = setup();
-		client.dirty = true;
+	it('a failed save at commit reports failed, shows the error and leaves the level open', async () => {
+		const { user, dialog, quit, client } = await askDirty();
 		client.failSave = true;
-		await openFromDialog(user);
-		quit.ask(5);
-		const dialog = await screen.findByRole('dialog');
 		await user.click(within(dialog).getByRole('button', { name: 'Save' }));
-		await waitFor(() => expect(quit.answers).toEqual([{ round: 5, answer: 'cancel' }]));
+		expect(client.saves).toBe(0);
+		quit.commit(1, 'save');
+		await waitFor(() => expect(quit.confirms).toEqual([{ round: 1, outcome: 'failed' }]));
 		expect(await screen.findByText('The level could not be saved.')).toBeInTheDocument();
+		expect(screen.getByRole('group', { name: 'Level editor' })).toBeInTheDocument();
 	});
 
-	it('Discard closes the level without saving, then says it is ready', async () => {
-		const user = userEvent.setup();
-		const { quit, client } = setup();
-		client.dirty = true;
-		await openFromDialog(user);
-		quit.ask(6);
-		const dialog = await screen.findByRole('dialog');
+	it('Discard is only recorded when chosen, and the level is closed at commit', async () => {
+		const { user, dialog, quit, client } = await askDirty();
 		await user.click(within(dialog).getByRole('button', { name: 'Discard' }));
-		await waitFor(() => expect(quit.answers).toEqual([{ round: 6, answer: 'proceed' }]));
+		expect(quit.answers).toEqual([{ round: 1, answer: 'discard' }]);
+		expect(client.closed).toEqual([]);
+		expect(screen.getByRole('group', { name: 'Level editor' })).toBeInTheDocument();
+		quit.commit(1, 'discard');
+		await waitFor(() => expect(quit.confirms).toEqual([{ round: 1, outcome: 'done' }]));
 		expect(client.saves).toBe(0);
 		expect(client.closed).toEqual(['level-1']);
 	});
 
 	it('answers a newer request with its own round', async () => {
-		const user = userEvent.setup();
-		const { quit, client } = setup();
-		client.dirty = true;
-		await openFromDialog(user);
-		quit.ask(7);
-		await screen.findByRole('dialog');
+		const { user, quit } = await askDirty();
 		quit.ask(8);
 		await user.click(
 			within(await screen.findByRole('dialog')).getByRole('button', { name: 'Cancel' }),

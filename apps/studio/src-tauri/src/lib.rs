@@ -89,7 +89,8 @@ pub fn run() {
             windows::close_panel,
             launch::app_launch_paths,
             quit::app_quit,
-            quit::app_quit_answer
+            quit::app_quit_answer,
+            quit::app_quit_confirm
         ])
         // A panel window closing, by its own close button or by docking, is announced to every
         // window, so the main window can show the panel in its place again.
