@@ -19,8 +19,8 @@ export const enMessages = {
 	// translator: The product name, “Fizz Level Studio”. “Fizz” is the game’s hero and is not translated.
 	'app.name': 'Fizz Level Studio',
 
-	// translator: The title of the main editor window, shown in its title bar.
-	'window.main.title': 'Fizz Level Studio',
+	// translator: The title of the main window while no level is open, shown in its title bar and in the taskbar. It names the start screen, not the app.
+	'window.main.start': 'Start',
 
 	// translator: Verb. Puts a maximised window back to its earlier size. Appears on a window button.
 	'chrome.restore': 'Restore',
@@ -456,10 +456,10 @@ export const enMessages = {
 	// translator: Accessible name of the editor’s main area, which holds the canvas, tools and panels.
 	'editor.region': 'Level editor',
 
-	// translator: Title bar text for a window showing a level. {name} is the level’s name.
-	'window.main.titled': '{name} — Fizz Level Studio',
-	// translator: Title bar text for a level with unsaved changes; the “•” marks them. {name} is the level’s name.
-	'window.main.titledDirty': '• {name} — Fizz Level Studio',
+	// translator: Title bar text and taskbar title for a window showing a level. {name} is the level’s name, and nothing else is added.
+	'window.main.titled': '{name}',
+	// translator: Title bar text and taskbar title for a level with unsaved changes; the “•” after the name marks them. {name} is the level’s name.
+	'window.main.titledDirty': '{name} •',
 	// translator: The title of the New level window, shown in its title bar.
 	'window.newWorld.title': 'New level',
 	// translator: The title of the Preferences window, shown in its title bar.

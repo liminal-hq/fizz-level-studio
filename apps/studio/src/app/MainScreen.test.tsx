@@ -47,6 +47,9 @@ vi.mock('@tauri-apps/api/window', () => {
 const openWindow = vi.hoisted(() => vi.fn(async () => {}));
 vi.mock('../services/windowsClient', () => ({ openWindow }));
 
+const setWindowTitle = vi.hoisted(() => vi.fn(async (_title: string) => {}));
+vi.mock('../services/windowTitleClient', () => ({ setWindowTitle }));
+
 import { MainScreen } from './MainScreen';
 
 /** A level backend over `FakeLevelClient` that opens a canned level for any path. */
@@ -239,6 +242,13 @@ function setup(
 	};
 }
 
+/** The title bar's text, the page's title and the native title all read exactly `title`. */
+function expectTitle(title: string) {
+	expect(screen.getByText(title, { selector: '[class*="title" i]' })).toBeInTheDocument();
+	expect(document.title).toBe(title);
+	expect(setWindowTitle).toHaveBeenLastCalledWith(title);
+}
+
 async function openFromDialog(user: ReturnType<typeof userEvent.setup>) {
 	await user.click(screen.getByRole('button', { name: 'Open level…' }));
 	await screen.findByRole('group', { name: 'Level editor' });
@@ -254,6 +264,11 @@ describe('the start screen', () => {
 		setup();
 		await user.click(screen.getByRole('button', { name: 'New level…' }));
 		expect(openWindow).toHaveBeenCalledWith({ kind: 'new-world' });
+	});
+
+	it('is titled Start, without the app name, in the title bar and the native title', () => {
+		setup();
+		expectTitle('Start');
 	});
 
 	it('shows the product name, Open level and an empty recent list', async () => {
@@ -288,7 +303,7 @@ describe('opening', () => {
 		expect(pickFile).toHaveBeenCalledWith({ title: 'Open a level', filterName: 'Fizz level' });
 		expect(client.opened).toEqual(['/levels/a.fizz']);
 		expect(recents.paths).toEqual(['/levels/a.fizz']);
-		expect(screen.getByText('Crater Fields — Fizz Level Studio')).toBeInTheDocument();
+		expectTitle('Crater Fields');
 	});
 
 	it('does nothing when the file dialog is cancelled', async () => {
@@ -366,9 +381,9 @@ describe('the dirty marker, saving and closing', () => {
 		const { client } = setup();
 		client.dirty = true;
 		await openFromDialog(user);
-		expect(screen.getByText('• Crater Fields — Fizz Level Studio')).toBeInTheDocument();
+		expectTitle('Crater Fields •');
 		await user.click(screen.getByRole('button', { name: 'Save' }));
-		expect(await screen.findByText('Crater Fields — Fizz Level Studio')).toBeInTheDocument();
+		await waitFor(() => expectTitle('Crater Fields'));
 		expect(client.saves).toBe(1);
 	});
 
@@ -523,7 +538,7 @@ describe('recovered changes', () => {
 		expect(recovery.restored).toEqual(['r1']);
 		expect(client.opened).toEqual([]);
 		expect(recents.paths).toEqual(['/levels/a.fizz']);
-		expect(screen.getByText('• Crater Fields — Fizz Level Studio')).toBeInTheDocument();
+		expectTitle('Crater Fields •');
 		expect(screen.getByText('Recovered unsaved changes from your last session.')).toBeVisible();
 		await user.click(screen.getByRole('button', { name: 'Dismiss' }));
 		expect(screen.queryByText('Recovered unsaved changes from your last session.')).toBeNull();
