@@ -3,7 +3,7 @@
 // (c) Copyright 2026 Liminal HQ, Scott Morris
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
-use fizz_studio_host::stream::FrameEncoder;
+use fizz_studio_host::stream::{FrameEncoder, StreamMessage, WireError};
 use fizz_studio_host::stub::{FlatFallbackHost, SyntheticFrames};
 use fizz_studio_host::{DrawRequest, GameHost, HostAnswer};
 
@@ -70,4 +70,43 @@ fn the_encoder_skips_a_frame_that_has_not_changed() {
     let mut encoder = FrameEncoder::new();
     assert!(encoder.encode(1, &frame).is_some());
     assert!(encoder.encode(2, &frame).is_none());
+}
+
+#[test]
+fn a_message_round_trips_through_its_bytes_with_and_without_a_palette() {
+    let mut frames = SyntheticFrames::new(320, 200, 2);
+    let mut encoder = FrameEncoder::new();
+    for revision in 0..4 {
+        let message = encoder.encode(revision, &frames.next().unwrap()).unwrap();
+        let bytes = message.to_bytes().unwrap();
+        let header = 13;
+        assert_eq!(bytes.len(), header + message.byte_len());
+        assert_eq!(StreamMessage::from_bytes(&bytes).unwrap(), message);
+    }
+}
+
+#[test]
+fn bytes_that_are_not_a_message_are_refused_not_misread() {
+    let frame = SyntheticFrames::new(4, 4, 0).next().unwrap();
+    let message = FrameEncoder::new().encode(9, &frame).unwrap();
+    let bytes = message.to_bytes().unwrap();
+    assert_eq!(
+        StreamMessage::from_bytes(&bytes[..5]),
+        Err(WireError::Truncated)
+    );
+    assert_eq!(
+        StreamMessage::from_bytes(&bytes[..bytes.len() - 1]),
+        Err(WireError::Truncated)
+    );
+    let mut flagged = bytes.clone();
+    flagged[12] |= 0x80;
+    assert!(matches!(
+        StreamMessage::from_bytes(&flagged),
+        Err(WireError::UnknownFlags(_))
+    ));
+    let short_palette = StreamMessage {
+        palette: Some(vec![[0, 0, 0]; 3]),
+        ..message
+    };
+    assert_eq!(short_palette.to_bytes(), Err(WireError::BadPalette));
 }
