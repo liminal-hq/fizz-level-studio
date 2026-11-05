@@ -1,6 +1,6 @@
 /* The chip that follows the pointer: a keycap with the panel's title, set a little below and right. */
 .ghost {
-	composes: keycap from '../../theme/keycap.module.css';
+	composes: keycap from '@liminal-hq/fizz-studio-chrome/Keycap/keycap.module.css';
 	position: fixed;
 	z-index: 1000;
 	top: 0;

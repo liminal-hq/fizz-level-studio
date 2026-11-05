@@ -5,48 +5,21 @@
 	gap: 8px;
 }
 
+/* A dialog button is a keycap (`secondary` adds nothing: a plain key); the keycap supplies the look, the focus ring and the disabled state. */
 .button {
-	box-sizing: border-box;
-	min-block-size: var(--fls-control-height);
+	composes: keycap from '../Keycap/keycap.module.css';
 	padding: 0 14px;
-	color: var(--fls-text-primary);
-	background: var(--fls-control-bg);
-	border: 1px solid transparent;
-	border-radius: 6px;
-	font: inherit;
 	font-size: 13px;
-	cursor: default;
 }
 
-.button:hover:not(:disabled) {
-	background: var(--fls-control-bg-hover);
-}
-
-.button:focus-visible {
-	outline: 2px solid var(--fls-focus-ring);
-	outline-offset: 2px;
-}
-
-.button:disabled {
-	opacity: 0.45;
-}
-
+/* The suggested answer is the lit key, so the safe default stands out. */
 .primary {
-	color: var(--fls-accent-contrast);
-	background: var(--fls-accent);
+	composes: lit from '../Keycap/keycap.module.css';
 }
 
-.primary:hover:not(:disabled) {
-	background: var(--fls-accent);
-	filter: brightness(1.1);
-}
-
-.danger {
-	color: var(--fls-danger-fg);
-	background: var(--fls-danger);
-}
-
-.danger:hover:not(:disabled) {
-	background: var(--fls-danger);
-	filter: brightness(1.1);
+/* A plain key with a danger label and edge, never a bright fill. */
+.button.danger {
+	color: var(--fls-danger);
+	border-color: color-mix(in srgb, var(--fls-danger) 45%, var(--fls-key-border));
+	border-bottom-color: color-mix(in srgb, var(--fls-danger) 55%, var(--fls-key-border-bottom));
 }

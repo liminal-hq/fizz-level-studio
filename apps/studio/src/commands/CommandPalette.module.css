@@ -128,7 +128,7 @@
 }
 
 .key {
-	composes: keycap static from '../theme/keycap.module.css';
+	composes: keycap static from '@liminal-hq/fizz-studio-chrome/Keycap/keycap.module.css';
 	height: 20px;
 	padding: 0 6px;
 	font-family: var(--fls-font-mono);

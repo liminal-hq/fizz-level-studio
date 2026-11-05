@@ -67,7 +67,7 @@
 }
 
 .button {
-	composes: keycap from '../theme/keycap.module.css';
+	composes: keycap from '@liminal-hq/fizz-studio-chrome/Keycap/keycap.module.css';
 }
 
 .input:focus-visible,
@@ -77,7 +77,7 @@
 }
 
 .primary {
-	composes: keycap lit from '../theme/keycap.module.css';
+	composes: keycap lit from '@liminal-hq/fizz-studio-chrome/Keycap/keycap.module.css';
 }
 
 .hint {

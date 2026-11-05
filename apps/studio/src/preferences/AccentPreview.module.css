@@ -17,7 +17,7 @@
 }
 
 .key {
-	composes: keycap lit from '../theme/keycap.module.css';
+	composes: keycap lit from '@liminal-hq/fizz-studio-chrome/Keycap/keycap.module.css';
 }
 
 .strip {

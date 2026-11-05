@@ -37,7 +37,7 @@
 }
 
 .item {
-	composes: keycap from '../../theme/keycap.module.css';
+	composes: keycap from '@liminal-hq/fizz-studio-chrome/Keycap/keycap.module.css';
 	flex: none;
 	gap: 0.4rem;
 	padding: 0 0.6rem;

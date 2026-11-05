@@ -68,6 +68,24 @@
 	--fls-switch-off: rgb(255 255 255 / 25%);
 	--fls-switch-thumb: #ffffff;
 
+	/* Keycaps: the raised key every pressable control is drawn as, and the lit key (a host's own values win) */
+	--fls-key-top: #2e3044;
+	--fls-key-bottom: #212232;
+	--fls-key-hover-top: #383b54;
+	--fls-key-hover-bottom: #292b3e;
+	--fls-key-border: rgb(255 255 255 / 12%);
+	--fls-key-border-bottom: #12131c;
+	--fls-key-ink: #e6e8f2;
+	--fls-key-shadow: 0 2px 4px rgb(0 0 0 / 35%);
+	--fls-key-travel: 2px;
+	--fls-key-height: max(36px, var(--fls-control-height));
+	--fls-lit-key-top: var(--fls-accent);
+	--fls-lit-key-bottom: color-mix(in srgb, var(--fls-accent) 70%, black);
+	--fls-lit-key-edge: color-mix(in srgb, var(--fls-accent) 60%, white);
+	--fls-lit-key-ink: var(--fls-accent-contrast);
+	--fls-lit-key-glow: 0 0 14px color-mix(in srgb, var(--fls-accent) 45%, transparent);
+	--fls-focus-inner: #090c14;
+
 	/* Settings shell */
 	--fls-settings-nav-width: 220px;
 	--fls-settings-row-padding: 10px;
@@ -89,6 +107,15 @@
 		--fls-shadow-dialog: 0 16px 48px rgb(0 0 0 / 25%);
 		--fls-field-bg: rgb(0 0 0 / 5%);
 		--fls-switch-off: rgb(0 0 0 / 28%);
+		--fls-key-top: #ffffff;
+		--fls-key-bottom: #e6e0eb;
+		--fls-key-hover-top: #ffffff;
+		--fls-key-hover-bottom: #f1edf5;
+		--fls-key-border: rgb(28 27 32 / 16%);
+		--fls-key-border-bottom: #c9c5d0;
+		--fls-key-ink: #2b2a33;
+		--fls-key-shadow: 0 2px 4px rgb(28 27 32 / 20%);
+		--fls-focus-inner: #ffffff;
 	}
 }
 
@@ -108,4 +135,13 @@
 	--fls-shadow-dialog: 0 16px 48px rgb(0 0 0 / 25%);
 	--fls-field-bg: rgb(0 0 0 / 5%);
 	--fls-switch-off: rgb(0 0 0 / 28%);
+	--fls-key-top: #ffffff;
+	--fls-key-bottom: #e6e0eb;
+	--fls-key-hover-top: #ffffff;
+	--fls-key-hover-bottom: #f1edf5;
+	--fls-key-border: rgb(28 27 32 / 16%);
+	--fls-key-border-bottom: #c9c5d0;
+	--fls-key-ink: #2b2a33;
+	--fls-key-shadow: 0 2px 4px rgb(28 27 32 / 20%);
+	--fls-focus-inner: #ffffff;
 }

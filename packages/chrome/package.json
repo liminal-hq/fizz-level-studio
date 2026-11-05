@@ -39,6 +39,7 @@
 		"!src/test"
 	],
 	"exports": {
+		"./Keycap/keycap.module.css": "./src/Keycap/keycap.module.css",
 		"./Dialog/ConfirmDialog": "./src/Dialog/ConfirmDialog.tsx",
 		"./Dialog/Dialog": "./src/Dialog/Dialog.tsx",
 		"./Dialog/DialogActions": "./src/Dialog/DialogActions.tsx",
