@@ -453,6 +453,139 @@ async function dragAndMaximiseChecks(bridge: Bridge): Promise<void> {
 		JSON.stringify([floated, target]),
 	);
 
+	// A floating panel resizes from every edge and corner: the opposite edges stay where they are,
+	// the panel stays inside the area and above its minimum size, and the size is saved.
+	interface Edges {
+		l: number;
+		t: number;
+		r: number;
+		b: number;
+		areaW: number;
+		areaH: number;
+	}
+	const edges = () =>
+		bridge.js<Edges | null>(
+			`const e = document.querySelector('section[data-panel="objects"]');
+			 if (!e) return null;
+			 const r = e.getBoundingClientRect();
+			 const a = e.offsetParent.getBoundingClientRect();
+			 return { l: r.left - a.left, t: r.top - a.top, r: r.right - a.left, b: r.bottom - a.top, areaW: a.width, areaH: a.height };`,
+		);
+	const resizeFrom = (handle: string, dx: number, dy: number) =>
+		bridge.js<boolean>(
+			`const src = document.querySelector(${JSON.stringify(handle === 'se' ? 'section[data-panel="objects"] button[aria-label="Resize Objects"]' : `section[data-panel="objects"] [data-resize-handle="${handle}"]`)});
+			 if (!src) return false;
+			 const r = src.getBoundingClientRect();
+			 const p = { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+			 const wait = () => new Promise((res) => setTimeout(res, 60));
+			 const fire = (type, x, y) => src.dispatchEvent(new PointerEvent(type, {
+			   bubbles: true, cancelable: true, pointerId: 41, button: 0, clientX: x, clientY: y,
+			 }));
+			 fire('pointerdown', p.x, p.y);
+			 await wait();
+			 fire('pointermove', p.x + ${dx}, p.y + ${dy});
+			 await wait();
+			 fire('pointerup', p.x + ${dx}, p.y + ${dy});
+			 await wait();
+			 return true;`,
+		);
+	const near = (a: number, b: number) => Math.abs(a - b) <= 1;
+	// Snapping may nudge a moving edge by a few pixels, so a drag is judged by its direction and
+	// by the opposite edges, which never move.
+	const e0 = await edges();
+	const had = e0 !== null && (await resizeFrom('w', -60, 0));
+	await sleep(200);
+	const ew = await edges();
+	check(
+		'resize: dragging the west edge moves the left edge and keeps the right edge',
+		!!e0 &&
+			!!ew &&
+			had &&
+			ew.l < e0.l - 40 &&
+			near(ew.r, e0.r) &&
+			near(ew.t, e0.t) &&
+			near(ew.b, e0.b),
+		JSON.stringify([had, e0, ew]),
+	);
+	await resizeFrom('n', 0, -40);
+	await sleep(200);
+	const en = await edges();
+	check(
+		'resize: dragging the north edge moves the top edge and keeps the bottom edge',
+		!!ew && !!en && en.t < ew.t - 25 && near(en.b, ew.b) && near(en.l, ew.l) && near(en.r, ew.r),
+		JSON.stringify([ew, en]),
+	);
+	await resizeFrom('ne', 40, 30);
+	await sleep(200);
+	const ene = await edges();
+	check(
+		'resize: dragging the north-east corner moves the top and right edges only',
+		!!en &&
+			!!ene &&
+			ene.r > en.r + 25 &&
+			ene.t > en.t + 15 &&
+			near(ene.l, en.l) &&
+			near(ene.b, en.b),
+		JSON.stringify([en, ene]),
+	);
+	await resizeFrom('w', 5000, 0);
+	await resizeFrom('n', 0, 5000);
+	await sleep(200);
+	const emin = await edges();
+	check(
+		'resize: dragging past the minimum size holds the opposite edges instead of sliding',
+		!!ene &&
+			!!emin &&
+			near(emin.r, ene.r) &&
+			near(emin.b, ene.b) &&
+			emin.r - emin.l >= 199 &&
+			emin.r - emin.l <= 201 &&
+			emin.b - emin.t >= 119 &&
+			emin.b - emin.t <= 121,
+		JSON.stringify([ene, emin]),
+	);
+	await resizeFrom('nw', -5000, -5000);
+	await sleep(200);
+	const emax = await edges();
+	check(
+		'resize: dragging past the area stops at its edges and keeps the opposite corner',
+		!!emin &&
+			!!emax &&
+			near(emax.l, 0) &&
+			near(emax.t, 0) &&
+			near(emax.r, emin.r) &&
+			near(emax.b, emin.b),
+		JSON.stringify([emin, emax]),
+	);
+	await resizeFrom('se', 5000, 5000);
+	await sleep(200);
+	const efull = await edges();
+	check(
+		'resize: the south-east corner grows to the area and no further',
+		!!emax &&
+			!!efull &&
+			near(efull.l, emax.l) &&
+			near(efull.t, emax.t) &&
+			near(efull.r, efull.areaW) &&
+			near(efull.b, efull.areaH),
+		JSON.stringify(efull),
+	);
+	await sleep(1000);
+	const saved = await bridge.js<{ x: number; y: number; w: number; h: number }>(
+		`const s = await window.__TAURI_INTERNALS__.invoke('plugin:fizz-studio-settings|settings_get');
+		 const f = s.settings.dock.workspaces[s.settings.dock.active].panels.objects.float;
+		 return { x: f.x, y: f.y, w: f.w, h: f.h };`,
+	);
+	check(
+		'resize: the resized rectangle is saved in the workspace',
+		!!efull &&
+			near(saved.x, efull.l) &&
+			near(saved.y, efull.t) &&
+			near(saved.w, efull.r - efull.l) &&
+			near(saved.h, efull.b - efull.t),
+		JSON.stringify([saved, efull]),
+	);
+
 	// Docking it back puts it at the end; Alt+ArrowLeft on its tab reorders it, with an announcement.
 	check('drag: the floating panel docks back', await clickLabelled(bridge, 'Dock Objects right'));
 	await sleep(300);
