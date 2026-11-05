@@ -74,6 +74,16 @@ interface Press {
 	target: Element;
 }
 
+/** Capturing can throw for a pointer the browser does not know (a synthetic one); the drag still works. */
+function capture(target: Element, pointer: number, on: boolean): void {
+	try {
+		if (on) target.setPointerCapture?.(pointer);
+		else target.releasePointerCapture?.(pointer);
+	} catch {
+		// Nothing to capture or release.
+	}
+}
+
 function outsideWindow(p: Point): boolean {
 	return p.x < 0 || p.y < 0 || p.x > window.innerWidth || p.y > window.innerHeight;
 }
@@ -98,7 +108,7 @@ export function useDockDrag(options: DockDragOptions): DockDrag {
 		(event: ReactPointerEvent<HTMLElement>, id: string, source: DragSource) => {
 			if (event.button !== 0 || press.current) return;
 			const target = event.currentTarget;
-			target.setPointerCapture?.(event.pointerId);
+			capture(target, event.pointerId, true);
 			const current: Press = {
 				id,
 				source,
@@ -133,7 +143,7 @@ export function useDockDrag(options: DockDragOptions): DockDrag {
 
 			const up = (e: PointerEvent) => {
 				if (press.current !== current || e.pointerId !== current.pointer) return;
-				target.releasePointerCapture?.(e.pointerId);
+				capture(target, e.pointerId, false);
 				const point = { x: e.clientX, y: e.clientY };
 				const was = finish();
 				if (!was?.active) return;
@@ -157,7 +167,7 @@ export function useDockDrag(options: DockDragOptions): DockDrag {
 				if (e.key !== 'Escape' || !current.active) return;
 				e.preventDefault();
 				e.stopPropagation();
-				target.releasePointerCapture?.(current.pointer);
+				capture(target, current.pointer, false);
 				cancel();
 			};
 

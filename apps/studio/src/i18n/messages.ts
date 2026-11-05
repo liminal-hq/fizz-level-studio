@@ -386,6 +386,18 @@ export const enMessages = {
 	'dock.drag.floated': '{title} is floating over the level.',
 	// translator: Announced to screen readers when a drag of a panel is cancelled and the panel stays where it was. {title} is the panel’s name.
 	'dock.drag.cancelled': 'Move cancelled. {title} stays where it was.',
+	// translator: Name and tooltip of a button in a panel’s header. Makes the panel fill the editor’s whole workspace, with the level and the other panels hidden behind it. This is not the window’s own maximise button. {title} is the panel’s name.
+	'panel.maximise': 'Maximise {title}',
+	// translator: Tooltip of the button that maximises a panel. {title} is the panel’s name and {keys} the keys that do the same, such as “Ctrl+Shift+M”.
+	'panel.maximise.tip': 'Maximise {title} ({keys})',
+	// translator: Name and tooltip of a button in a maximised panel’s header. Puts the panel back where it was in the layout. {title} is the panel’s name.
+	'panel.restore': 'Restore {title}',
+	// translator: Tooltip of the button that restores a maximised panel. {title} is the panel’s name and {keys} the keys that do the same, such as “Ctrl+Shift+M”.
+	'panel.restore.tip': 'Restore {title} ({keys})',
+	// translator: Menu item and command in the View menu. Makes a panel fill the editor’s workspace. {panel} is the panel’s name.
+	'view.maximise': 'Maximise {panel}',
+	// translator: Menu item and command in the View menu, shown while a panel is maximised. Puts the panel back in the layout. {panel} is the panel’s name.
+	'view.restore': 'Restore {panel}',
 	// translator: Menu item in the View menu. Hides every docked and floating panel so the level has the whole window, and brings the same panels back when chosen again.
 	'view.levelFirst': 'Show the level only',
 

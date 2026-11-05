@@ -101,3 +101,8 @@
 	white-space: nowrap;
 	border: 0;
 }
+
+/* A maximised panel covers the workspace; the docks are kept as they are, only not shown. */
+.shell[hidden] {
+	display: none;
+}

@@ -38,6 +38,8 @@ export interface DockActions {
 	resetZoneSize(zone: ZoneId): void;
 	/** Moves a docked panel to a place among its group's tabs. */
 	reorder(id: string, index: number): void;
+	/** Makes an expandable panel fill the workspace. */
+	maximise(id: string): void;
 }
 
 export interface DockShellProps {
@@ -53,6 +55,10 @@ export interface DockShellProps {
 	actions: DockActions;
 	/** The drag controller; without one, panels cannot be dragged. */
 	drag?: DockDrag;
+	/** Whether a panel offers the maximise button. */
+	expandable?: (id: string) => boolean;
+	/** A panel is maximised: the docks stay (their arrangement is kept) but are not shown. */
+	hidden?: boolean;
 	/** What the last drag did, for the screen reader. */
 	announcement?: string;
 	/** The level. It takes whatever the docks leave and is never covered by them. */
@@ -73,6 +79,8 @@ export function DockShell({
 	actions,
 	drag,
 	announcement = '',
+	expandable,
+	hidden = false,
 	children,
 }: DockShellProps) {
 	const [tabNote, setTabNote] = useState('');
@@ -161,6 +169,8 @@ export function DockShell({
 							onReorder={reorder}
 							onDragStart={drag?.begin}
 							dragging={dragging?.id ?? null}
+							expandable={expandable}
+							onMaximise={actions.maximise}
 						/>
 					</>
 				)}
@@ -175,6 +185,7 @@ export function DockShell({
 			ref={shell}
 			onKeyDown={onKeyDown}
 			data-dragging={dragging ? '' : undefined}
+			hidden={hidden || undefined}
 		>
 			{zone('left')}
 			<div className={styles.level} data-level>

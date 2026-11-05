@@ -58,7 +58,9 @@ export interface CommandDef {
 	section: number;
 	label: MessageId;
 	/** The `{token}` values of `label`, for a command named after something (a brush). */
-	labelValues?: Record<string, string>;
+	labelValues?: Record<string, string> | (() => Record<string, string>);
+	/** True when the command is left out of the menus and the palette for now (its opposite is showing). */
+	hidden?: (facts: CommandFacts) => boolean;
 	/** Set when the command asks the person for a value before it runs (the palette prompts for it). */
 	argument?: 'line';
 	/** The keys, as shown on the row; the keys themselves are handled by the screens. */
@@ -74,7 +76,8 @@ export interface CommandDef {
 }
 
 /** The text of a command's label. */
-export const commandLabel = (def: CommandDef) => t(def.label, def.labelValues);
+export const commandLabel = (def: CommandDef) =>
+	t(def.label, typeof def.labelValues === 'function' ? def.labelValues() : def.labelValues);
 
 /** The palette heading a command is listed under. */
 export function paletteGroupOf(def: CommandDef): PaletteGroup {
@@ -83,6 +86,9 @@ export function paletteGroupOf(def: CommandDef): PaletteGroup {
 
 /** The keys that open the command palette, as shown on its View row. */
 export const COMMAND_PALETTE_KEYS = 'Ctrl+Shift+P';
+
+/** The keys that maximise the focused panel or restore it, as shown on its rows and tooltips. */
+export const MAXIMISE_KEYS = 'Ctrl+Shift+M';
 
 /** The keys that quit the app, as shown on its File row; the main window handles the keys. */
 export const QUIT_KEYS = 'Ctrl+Q';
@@ -98,6 +104,22 @@ const panelCommand = (id: PanelId, title: MessageId): CommandDef => ({
 	label: title,
 	enabled: (facts) => facts.editorOpen,
 	checked: (facts) => facts.panels[id],
+});
+
+/**
+ * Maximise or Restore for an expandable panel. Each panel has one row at a time: Maximise until it
+ * is maximised, then Restore.
+ */
+const maximiseCommand = (id: PanelId, title: MessageId, restore: boolean): CommandDef => ({
+	id: `view.${restore ? 'restore' : 'maximise'}.${id}`,
+	menu: 'view',
+	section: 1,
+	group: 'panels',
+	label: restore ? 'view.restore' : 'view.maximise',
+	labelValues: () => ({ panel: t(title) }),
+	shortcut: MAXIMISE_KEYS,
+	enabled: (facts) => facts.editorOpen && facts.panels[id],
+	hidden: (facts) => (facts.maximised === id) !== restore,
 });
 
 /** The commands in menu order. Ids are unique; `panelCommandId` and the handlers use them. */
@@ -139,13 +161,18 @@ export const COMMANDS: readonly CommandDef[] = [
 		enabled: (facts) => facts.canRedo,
 	},
 	...PANEL_SPECS.map((spec) => panelCommand(spec.id, spec.title)),
+	...PANEL_SPECS.filter((spec) => spec.expandable).flatMap((spec) => [
+		maximiseCommand(spec.id, spec.title, false),
+		maximiseCommand(spec.id, spec.title, true),
+	]),
 	{
 		id: 'view.levelFirst',
 		menu: 'view',
 		section: 1,
 		label: 'view.levelFirst',
 		shortcut: 'Tab',
-		enabled: (facts) => facts.editorOpen,
+		// Maximising wins over level-first: while a panel fills the workspace, Tab does nothing.
+		enabled: (facts) => facts.editorOpen && facts.maximised === null,
 		checked: (facts) => facts.levelFirst,
 	},
 	{
@@ -240,6 +267,9 @@ export function brushCommands(brushes: readonly Brush[]): CommandDef[] {
 export function allCommands(facts: CommandFacts): CommandDef[] {
 	return [...COMMANDS, ...PALETTE_COMMANDS, ...brushCommands(facts.brushes)];
 }
+
+export const maximiseCommandId = (id: PanelId, restore: boolean) =>
+	`view.${restore ? 'restore' : 'maximise'}.${id}`;
 
 export const panelCommandId = (id: PanelId) => `view.panel.${id}`;
 

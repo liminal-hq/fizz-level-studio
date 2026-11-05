@@ -24,6 +24,8 @@ import {
 	INITIAL_SESSION,
 	activateTab,
 	closePeek,
+	maximisePanel,
+	restorePanel,
 	dockPanel,
 	floatPanel,
 	peekPanel,
@@ -77,6 +79,10 @@ export interface DockLayoutHandle {
 	closePeek(): void;
 	pin(id: string): void;
 	toggleLevelFirst(): void;
+	/** Makes an expandable panel fill the workspace (not saved). */
+	maximise(id: string): void;
+	/** Puts the maximised panel back. */
+	restore(): void;
 	/** Puts the active workspace back to its shipped arrangement. */
 	reset(): void;
 }
@@ -224,7 +230,16 @@ export function useDockLayout(client: DockClient, windowSize: Size, area: Size):
 		},
 		[edit],
 	);
-	const levelFirst = useCallback(() => setRawSession((s) => toggleLevelFirst(s)), []);
+	// Maximising wins over level-first: while a panel fills the workspace, level-first is ignored.
+	const levelFirst = useCallback(
+		() => setRawSession((s) => (s.maximised !== null ? s : toggleLevelFirst(s))),
+		[],
+	);
+	const maximise = useCallback(
+		(id: string) => setRawSession((s) => maximisePanel(settleSession(s, current()), current(), id)),
+		[],
+	);
+	const restore = useCallback(() => setRawSession((s) => restorePanel(s)), []);
 
 	const reset = useCallback(() => {
 		if (timer.current) clearTimeout(timer.current);
@@ -295,6 +310,8 @@ export function useDockLayout(client: DockClient, windowSize: Size, area: Size):
 		closePeek: closePeekNow,
 		pin,
 		toggleLevelFirst: levelFirst,
+		maximise,
+		restore,
 		reset,
 	};
 }

@@ -97,7 +97,8 @@ export function scriptExtensions({ editable, words, label }: ScriptEditorOptions
 			...(editable ? [...closeBracketsKeymap, ...historyKeymap, ...completionKeymap] : []),
 			...foldKeymap,
 			...searchKeymap,
-			...lintKeymap,
+			// Ctrl+Shift+M maximises the panel, so the lint panel's own binding for it is left out.
+			...lintKeymap.filter((binding) => binding.key !== 'Mod-Shift-m'),
 			...defaultKeymap,
 		]),
 	];
