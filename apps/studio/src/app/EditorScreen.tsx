@@ -23,7 +23,7 @@ import { CommandBridgeContext, NO_FACTS } from '../commands/commandBridge';
 import { GhostsPanel } from '../panels/GhostsPanel';
 import { FloatingPanel } from '../panels/float/FloatingPanel';
 import { neighboursOf, usePanelLayout } from '../panels/float/usePanelLayout';
-import { panelCommandId } from '../commands/registry';
+import { brushCommandId, panelCommandId, toolCommandId } from '../commands/registry';
 import { PANEL_SPECS, type PanelId } from '../panels/float/panelSpecs';
 import { PanelsMenu } from '../panels/float/PanelsMenu';
 import { SnapGuides } from '../panels/float/SnapGuides';
@@ -36,10 +36,11 @@ import { TornOffNotice } from '../panels/TornOffNotice';
 import { usePanelDock } from '../panels/usePanelDock';
 import { layoutClient as defaultLayoutClient, type LayoutClient } from '../services/layoutClient';
 import type { PanelWindowClient } from '../services/panelWindowClient';
+import { BRUSH_GROUPS, brushWords, type Brush } from '../tools/brush';
 import { pasteRect } from '../tools/clip';
 import { SPACING_KEYS, toolForKey } from '../tools/shortcuts';
 import { ToolPalette } from '../tools/ToolPalette';
-import type { Cell, PointerPhase } from '../tools/tool';
+import { TOOL_IDS, type Cell, type PointerPhase } from '../tools/tool';
 import { useTool } from '../tools/useTool';
 import { isLevelError, type LevelClient } from '../worlds/levelClient';
 import styles from './EditorScreen.module.css';
@@ -243,13 +244,29 @@ export function EditorScreen({
 
 	// The application menu's Edit and View rows: facts as they are now, and actions that call the latest.
 	const bridge = useContext(CommandBridgeContext);
-	const live = useRef({ undo, redo, setVisible: floating.setVisible, reset: floating.reset });
-	live.current = { undo, redo, setVisible: floating.setVisible, reset: floating.reset };
+	const live = useRef({
+		undo,
+		redo,
+		setVisible: floating.setVisible,
+		reset: floating.reset,
+		setTool: tool.setTool,
+		setBrush: tool.setBrush,
+		showLine,
+	});
+	live.current = {
+		undo,
+		redo,
+		setVisible: floating.setVisible,
+		reset: floating.reset,
+		setTool: tool.setTool,
+		setBrush: tool.setBrush,
+		showLine,
+	};
 	const panelsShown = visibleOf(floating.panels);
 	const panelsKey = PANEL_SPECS.map((spec) => (panelsShown[spec.id] ? '1' : '0')).join('');
 	useEffect(() => {
 		if (!bridge) return;
-		const handlers: Record<string, () => void> = {
+		const handlers: Record<string, (argument?: string) => void> = {
 			'edit.undo': () => live.current.undo(),
 			'edit.redo': () => live.current.redo(),
 			'view.resetLayout': () => live.current.reset(),
@@ -258,6 +275,14 @@ export function EditorScreen({
 			handlers[panelCommandId(spec.id)] = () =>
 				live.current.setVisible(spec.id, !panelsRef.current[spec.id]);
 		}
+		for (const id of TOOL_IDS) handlers[toolCommandId(id)] = () => live.current.setTool(id);
+		// Go to line shows the Script panel if it is hidden, then reveals the line in it.
+		handlers['goto.line'] = (argument) => {
+			const line = Number(argument);
+			if (!Number.isInteger(line) || line < 1) return;
+			if (!panelsRef.current.script) live.current.setVisible('script', true);
+			live.current.showLine(line);
+		};
 		const remove = bridge.setHandlers(handlers);
 		return () => {
 			remove();
@@ -266,9 +291,29 @@ export function EditorScreen({
 				canUndo: false,
 				canRedo: false,
 				panels: NO_FACTS.panels,
+				brushes: NO_FACTS.brushes,
+				lineCount: 0,
 			});
 		};
 	}, [bridge]);
+
+	// One palette command per brush the Palette panel offers, so the command palette can choose it.
+	const brushes = useMemo<Brush[]>(
+		() =>
+			BRUSH_GROUPS.flatMap((group) =>
+				brushWords(group, snapshot.view.palette, words).map((kind) => ({ group, kind })),
+			),
+		[snapshot.view.palette, words],
+	);
+	useEffect(() => {
+		if (!bridge) return;
+		const handlers: Record<string, () => void> = {};
+		for (const brush of brushes) {
+			handlers[brushCommandId(brush)] = () => live.current.setBrush(brush);
+		}
+		return bridge.setHandlers(handlers);
+	}, [bridge, brushes]);
+	const lineCount = useMemo(() => snapshot.text.split('\n').length, [snapshot.text]);
 	const panelsRef = useRef(panelsShown);
 	panelsRef.current = panelsShown;
 	useEffect(() => {
@@ -277,8 +322,10 @@ export function EditorScreen({
 			canUndo: snapshot.can_undo,
 			canRedo: snapshot.can_redo,
 			panels: panelsRef.current,
+			brushes,
+			lineCount,
 		});
-	}, [bridge, snapshot.can_undo, snapshot.can_redo, panelsKey]);
+	}, [bridge, snapshot.can_undo, snapshot.can_redo, panelsKey, brushes, lineCount]);
 
 	const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
 		if (isTyping(event.target)) return;

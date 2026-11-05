@@ -609,6 +609,24 @@ describe('the command palette', () => {
 		expect(screen.queryByRole('dialog')).toBeNull();
 	});
 
+	it('chooses a tool and a brush in the editor', async () => {
+		const user = userEvent.setup();
+		setup();
+		await openFromDialog(user);
+		pressShortcut();
+		await user.type(screen.getByRole('combobox'), 'erase{Enter}');
+		await waitFor(() =>
+			expect(screen.getByRole('button', { name: /^Erase/ })).toHaveAttribute(
+				'aria-pressed',
+				'true',
+			),
+		);
+		pressShortcut();
+		await user.type(screen.getByRole('combobox'), 'brush: gloop{Enter}');
+		await waitFor(() => expect(screen.getByText('Brush: gloop')).toBeInTheDocument());
+		expect(screen.getByRole('button', { name: /^Paint/ })).toHaveAttribute('aria-pressed', 'true');
+	});
+
 	it('hides a panel from the palette', async () => {
 		const user = userEvent.setup();
 		setup();
@@ -617,6 +635,20 @@ describe('the command palette', () => {
 		pressShortcut();
 		await user.type(screen.getByRole('combobox'), 'hide history{Enter}');
 		await waitFor(() => expect(screen.queryByRole('region', { name: 'History' })).toBeNull());
+	});
+
+	it('goes to a line, showing the Script panel if it was hidden', async () => {
+		const user = userEvent.setup();
+		setup();
+		await openFromDialog(user);
+		pressShortcut();
+		await user.type(screen.getByRole('combobox'), 'hide script{Enter}');
+		await waitFor(() => expect(screen.queryByRole('region', { name: 'Script' })).toBeNull());
+		pressShortcut();
+		await user.type(screen.getByRole('combobox'), 'go to line{Enter}');
+		await user.type(screen.getByRole('textbox', { name: 'Line number' }), '1{Enter}');
+		expect(await screen.findByRole('region', { name: 'Script' })).toBeInTheDocument();
+		expect(screen.queryByRole('dialog')).toBeNull();
 	});
 
 	it('dims editor commands on the start screen', async () => {
