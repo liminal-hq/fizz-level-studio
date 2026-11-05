@@ -1,0 +1,15 @@
+[package]
+name = "fizz-studio-profile"
+version = "0.1.0"
+description = "Target profiles for the studio: the legend, limits, and capability states a target offers, read through a port so a generated profile can replace the provisional ones"
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+homepage.workspace = true
+repository.workspace = true
+publish = false
+
+[dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }

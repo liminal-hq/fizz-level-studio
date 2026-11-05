@@ -1,5 +1,9 @@
 [workspace]
-members = ["crates/fizz-studio-language"]
+members = [
+	"crates/fizz-studio-dialect",
+	"crates/fizz-studio-language",
+	"crates/fizz-studio-profile",
+]
 # The proof workspace is a copy of the game's crates and builds on its own.
 exclude = ["scratch/rust"]
 resolver = "2"

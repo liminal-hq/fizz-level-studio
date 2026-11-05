@@ -1,0 +1,70 @@
+script fizz2 0
+level "Lighthouse Point" 32x48 id=light-1
+start 2,2
+floor open
+
+map
+	|......................B........B|  47
+	|......................B........B|  46
+	|......................B........B|  45
+	|......................B........B|  44
+	|......................B........B|  43
+	|......................B........B|  42
+	|......................B.BBBBB..B|  41
+	|......................b........B|  40
+	|....................E.b........B|  39
+	|....................E.b........B|  38
+	|#..............B===============#|  37
+	|###############Bwwwwwwwwwwwwwww#|  36
+	|###############Bwwwwwwwwwwwwwww#|  35
+	|###############Bwwwwwwww=======#|  34
+	|###############Bwwwwwwwwwwwwwww#|  33
+	|###############Bwwwwwwwwwwwwwww#|  32
+	|###############B=======wwwwwwww#|  31
+	|###############Bwwwwwwwwwwwwwww#|  30
+	|###############Bwwwwwwwwwwwwwww#|  29
+	|###############Bwwwwwwww=======#|  28
+	|###############Bwwwwwwwwwwwwwww#|  27
+	|###############Bwwwwwwwwwwwwwww#|  26
+	|###############B=======wwwwwwww#|  25
+	|###############Bwwwwwwwwwwwwwww#|  24
+	|###############Bwwwwwwwwwwwwwww#|  23
+	|#wwwwwwwwwwwwwwDwwwwwwww=======#|  22
+	|#wwwwwwwwwwwwwwDwwwwwwwwwwwwwww#|  21
+	|#wwwwwwwwwwwwwwDwwwwwwwwwwwwwww#|  20
+	|#wwwwwww=======BBBBBBBBBBBBBBBB#|  19
+	|#wwwwwwwwwwwwwwB################|  18
+	|#wwwwwwwwwwwwwwB################|  17
+	|#=======wwwwwwwB################|  16
+	|#wwwwwwwwwwwwwwB################|  15
+	|#wwwwwwwwwwwwwwB################|  14
+	|#wwwwwww=======B################|  13
+	|#wwwwwwwwwwwwwwB################|  12
+	|#wwwwwwwwwwwwwwB################|  11
+	|#w=============B################|  10
+	|#wwwwwwwwwwwwwwB################|  9
+	|#wwwwwwwwwwwwwwB################|  8
+	|#wwwwwww=======B################|  7
+	|#wwwwwwwwwwwwwwB################|  6
+	|#wwwwwwwwwwwwwwB################|  5
+	|#=======wwwwwwwB################|  4
+	|#wwwwwwwwwwwwwwB################|  3
+	|#wwwwwwwww^^^wwB################|  2
+	|################################|  1
+	|################################|  0
+
+objects
+	key-red     id=red-key     at=2.5,11.7
+	key-blue    id=blue-key    at=24.5,42.7
+	cheezie     id=hang-1      at=25.5,40.2
+	cheezie     id=hang-2      at=27.5,40.2
+	cheezie     id=shelf-cheezie at=27.5,42.7
+	choc        id=shelf-choc  at=26.5,42.7
+	cookie      id=shelf-cookie at=25.5,42.7
+	soda        id=floor-can   at=28.5,38.7
+	soda        id=shelf-can   at=28.5,42.7
+	chicken     id=hen         at=8,11 dir=-1
+
+// The two doors are locks: a key opens its door. The syntax is the studio's proposal (LANGUAGE.md) and provisional.
+lock red-door  key=red  at=15,20
+lock blue-door key=blue at=22,38

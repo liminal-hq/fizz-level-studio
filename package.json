@@ -15,10 +15,11 @@
 		"check:case": "bash scripts/check-case-collisions.sh",
 		"check:storage": "bash scripts/check-browser-storage.sh",
 		"check:licences": "bash scripts/check-licences.sh",
-		"validate": "bun run test && bun run test:mcp && bun run format:check && bun run lint:md && bun run check:links && bun run check:headers && bun run check:boundaries && bun run check:case && bun run check:storage && bun run check:licences && cargo fmt --all -- --check && cargo clippy --workspace --all-targets -- -D warnings && cargo nextest run --workspace",
-		"lint:md": "markdownlint-cli2 '**/*.md' '#node_modules' '#packages/mcp/node_modules' '#scratch/rust/target'",
+		"validate": "bun run test && bun run test:mcp && bun run format:check && bun run lint:md && bun run check:links && bun run check:headers && bun run check:boundaries && bun run check:case && bun run check:storage && bun run check:licences && bun run check:stubs && cargo fmt --all -- --check && cargo clippy --workspace --all-targets -- -D warnings && cargo nextest run --workspace",
+		"lint:md": "markdownlint-cli2 '**/*.md' '#node_modules' '#packages/mcp/node_modules' '#scratch/rust/target' '#.claude'",
 		"format": "prettier --write \"**/*.{ts,tsx,js,mjs,json,css,yml,yaml}\"",
-		"format:check": "prettier --check \"**/*.{ts,tsx,js,mjs,json,css,yml,yaml}\""
+		"format:check": "prettier --check \"**/*.{ts,tsx,js,mjs,json,css,yml,yaml}\"",
+		"check:stubs": "bash scripts/list-stubs.sh"
 	},
 	"description": "A level and overworld editor for Lieutenant Fizz: a plain-text level language, an MCP server for Claude and proofs against the game",
 	"license": "Apache-2.0 OR MIT",

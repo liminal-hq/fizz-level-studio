@@ -100,6 +100,7 @@ The repository's home is GitHub (`liminal-hq/fizz-level-studio`), so use `gh` fo
   - `bun run test:mcp` runs the MCP server's tests, including a real stdio round trip.
   - `bun run prove` and `bun run prove:all` rebuild levels from scripts and compare them with the game. They need Rust and the crates in the local Cargo cache (`--offline`), and build only inside `scratch/rust/`.
   - `bun run validate` runs everything below, and the Rust checks, in one go before a commit; CI runs the same checks as separate jobs. `bun run check:headers`, `check:case`, `check:storage`, `check:boundaries` and `check:licences` are the gate scripts in `scripts/`.
+  - `bun run check:stubs` lists the Fizz 2 stubs still in the workspace (each `stub.rs` names the change request it stands in for); it informs and never fails. A stub is deleted when the real implementation passes the same contract suite (`docs/BUILD-PLAN.md`, section 4).
   - `bun run lint:md` runs markdownlint over every Markdown file, and `bun run check:links` checks every relative link and anchor.
 - **Before committing:** run `bun run test`, `bun run test:mcp` and `bun run lint:md`. Run `bun run prove:all` after any change to the parser, printer, exporter or overworld code.
 

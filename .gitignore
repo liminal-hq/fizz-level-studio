@@ -17,3 +17,6 @@ test-results/
 
 # Rust build output
 /target/
+
+# Helper worktrees
+.claude/worktrees/

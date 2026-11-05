@@ -1,0 +1,41 @@
+{
+	"id": "ep2",
+	"name": "Lieutenant Fizz 2, Episode 2 (provisional)",
+	"provisional": "Written by hand from fizz-ep2's tiles.rs and the slice level's legend. Generated from the Fizz 2 content export (F2) once it lands.",
+	"dialects": [{ "name": "fizz2", "version": 0 }],
+	"legend": [
+		{ "letter": ".", "tile": "EMPTY", "id": 0, "meaning": "Open air" },
+		{ "letter": "#", "tile": "FILL", "id": 1, "meaning": "Solid fill" },
+		{ "letter": "B", "tile": "BLOCK", "id": 2, "meaning": "A solid block" },
+		{ "letter": "=", "tile": "PLAT", "id": 3, "meaning": "A one-way platform" },
+		{ "letter": "^", "tile": "SPIKE", "id": 4, "meaning": "Spikes: lethal" },
+		{ "letter": "D", "tile": "DOOR_R", "id": 12, "meaning": "A red door" },
+		{ "letter": "b", "tile": "DOOR_B", "id": 13, "meaning": "A blue door" },
+		{ "letter": "E", "tile": "EXIT", "id": 17, "meaning": "The exit doorway" },
+		{ "letter": "w", "tile": "WALLBG", "id": 30, "meaning": "Interior back wall; not solid" }
+	],
+	"limits": {
+		"rules": 32,
+		"states": 32,
+		"state_values": 8,
+		"strings": 32,
+		"string_bytes": 30,
+		"sprite_min": 1,
+		"sprite_max": 255
+	},
+	"capabilities": {
+		"map-grid": "accepted",
+		"objects": "accepted",
+		"states": "accepted",
+		"rules": "accepted",
+		"lock": "accepted",
+		"lights": "accepted",
+		"words-and-sounds": "accepted",
+		"custom-definitions": "accepted",
+		"behaviour-scripts": "accepted",
+		"bitmap-panels": "accepted",
+		"retro-art": "accepted",
+		"theme": "reserved",
+		"music": "reserved"
+	}
+}

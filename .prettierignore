@@ -25,3 +25,4 @@ tools/verify-rasteriser.ts
 tools/design-harness
 target
 test-results
+.claude
