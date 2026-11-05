@@ -12,6 +12,8 @@ import {
 	keyDelta,
 	moveRect,
 	resizeRect,
+	resizeRectFrom,
+	type ResizeHandle,
 } from './panelGeometry';
 
 const area = { w: 1000, h: 600 };
@@ -82,6 +84,156 @@ describe('resizeRect', () => {
 
 	it('stops at the area edge', () => {
 		expect(resizeRect(start, 5000, 5000, min, area)).toEqual({ x: 100, y: 100, w: 900, h: 500 });
+	});
+});
+
+describe('resizeRectFrom', () => {
+	const start = { x: 100, y: 100, w: 300, h: 200 };
+
+	it('moves only the east edge for e', () => {
+		expect(resizeRectFrom(start, 'e', 40, 99, min, area)).toEqual({ ...start, w: 340 });
+	});
+
+	it('moves only the south edge for s', () => {
+		expect(resizeRectFrom(start, 's', 99, 20, min, area)).toEqual({ ...start, h: 220 });
+	});
+
+	it('moves the west edge and the position together, keeping the right edge', () => {
+		expect(resizeRectFrom(start, 'w', -40, 99, min, area)).toEqual({
+			x: 60,
+			y: 100,
+			w: 340,
+			h: 200,
+		});
+		expect(resizeRectFrom(start, 'w', 40, 99, min, area)).toEqual({
+			x: 140,
+			y: 100,
+			w: 260,
+			h: 200,
+		});
+	});
+
+	it('moves the north edge and the position together, keeping the bottom edge', () => {
+		expect(resizeRectFrom(start, 'n', 99, -30, min, area)).toEqual({
+			x: 100,
+			y: 70,
+			w: 300,
+			h: 230,
+		});
+		expect(resizeRectFrom(start, 'n', 99, 30, min, area)).toEqual({
+			x: 100,
+			y: 130,
+			w: 300,
+			h: 170,
+		});
+	});
+
+	it('moves two edges from a corner', () => {
+		expect(resizeRectFrom(start, 'ne', 10, -10, min, area)).toEqual({
+			x: 100,
+			y: 90,
+			w: 310,
+			h: 210,
+		});
+		expect(resizeRectFrom(start, 'nw', -10, -10, min, area)).toEqual({
+			x: 90,
+			y: 90,
+			w: 310,
+			h: 210,
+		});
+		expect(resizeRectFrom(start, 'se', 10, 10, min, area)).toEqual({
+			x: 100,
+			y: 100,
+			w: 310,
+			h: 210,
+		});
+		expect(resizeRectFrom(start, 'sw', -10, 10, min, area)).toEqual({
+			x: 90,
+			y: 100,
+			w: 310,
+			h: 210,
+		});
+	});
+
+	it('holds the opposite edge at the minimum size', () => {
+		const right = start.x + start.w;
+		const bottom = start.y + start.h;
+		const w = resizeRectFrom(start, 'w', 5000, 0, min, area);
+		expect(w).toEqual({ x: right - min.w, y: 100, w: min.w, h: 200 });
+		const n = resizeRectFrom(start, 'n', 0, 5000, min, area);
+		expect(n).toEqual({ x: 100, y: bottom - min.h, w: 300, h: min.h });
+		const nw = resizeRectFrom(start, 'nw', 5000, 5000, min, area);
+		expect(nw).toEqual({ x: right - min.w, y: bottom - min.h, ...min });
+		expect(resizeRectFrom(start, 'e', -5000, 0, min, area)).toEqual({ ...start, w: min.w });
+		expect(resizeRectFrom(start, 's', 0, -5000, min, area)).toEqual({ ...start, h: min.h });
+		expect(resizeRectFrom(start, 'ne', -5000, 5000, min, area)).toEqual({
+			x: 100,
+			y: bottom - min.h,
+			...min,
+		});
+		expect(resizeRectFrom(start, 'sw', 5000, -5000, min, area)).toEqual({
+			x: right - min.w,
+			y: 100,
+			...min,
+		});
+	});
+
+	it('stops the moving edges at the area, keeping the opposite edges', () => {
+		expect(resizeRectFrom(start, 'w', -5000, 0, min, area)).toEqual({
+			x: 0,
+			y: 100,
+			w: 400,
+			h: 200,
+		});
+		expect(resizeRectFrom(start, 'n', 0, -5000, min, area)).toEqual({
+			x: 100,
+			y: 0,
+			w: 300,
+			h: 300,
+		});
+		expect(resizeRectFrom(start, 'e', 5000, 0, min, area)).toEqual({ ...start, w: 900 });
+		expect(resizeRectFrom(start, 's', 0, 5000, min, area)).toEqual({ ...start, h: 500 });
+		expect(resizeRectFrom(start, 'nw', -5000, -5000, min, area)).toEqual({
+			x: 0,
+			y: 0,
+			w: 400,
+			h: 300,
+		});
+		expect(resizeRectFrom(start, 'se', 5000, 5000, min, area)).toEqual({
+			...start,
+			w: 900,
+			h: 500,
+		});
+	});
+
+	it('never gives a negative or sub-minimum size, even in an area smaller than the minimum', () => {
+		const tiny = { w: 100, h: 80 };
+		for (const handle of ['n', 's', 'e', 'w', 'ne', 'nw', 'se', 'sw'] as ResizeHandle[]) {
+			for (const [dx, dy] of [
+				[5000, 5000],
+				[-5000, -5000],
+				[5000, -5000],
+				[-5000, 5000],
+			] as const) {
+				const out = resizeRectFrom({ x: 0, y: 0, w: 200, h: 120 }, handle, dx, dy, min, tiny);
+				expect(out.w).toBeGreaterThanOrEqual(min.w);
+				expect(out.h).toBeGreaterThanOrEqual(min.h);
+				expect(out.x).toBeGreaterThanOrEqual(0);
+				expect(out.y).toBeGreaterThanOrEqual(0);
+			}
+		}
+	});
+
+	it('matches resizeRect for the south-east corner', () => {
+		for (const [dx, dy] of [
+			[40, 20],
+			[-5000, -5000],
+			[5000, 5000],
+		] as const) {
+			expect(resizeRectFrom(start, 'se', dx, dy, min, area)).toEqual(
+				resizeRect(start, dx, dy, min, area),
+			);
+		}
 	});
 });
 

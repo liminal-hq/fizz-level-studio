@@ -8,7 +8,6 @@
 	box-sizing: border-box;
 	width: var(--fls-float-w);
 	height: var(--fls-float-h);
-	overflow: hidden;
 	color: var(--fls-text-primary);
 	/* Glass: the level shows, blurred, through the panel. */
 	background: var(--fls-glass-bg);
@@ -21,6 +20,16 @@
 
 .panel[data-collapsed] {
 	height: var(--fls-float-header);
+}
+
+/* The frame clips the header and body to the rounded corners, so the resize handles can sit on the outer edge. */
+.frame {
+	display: flex;
+	flex: 1;
+	flex-direction: column;
+	min-height: 0;
+	overflow: hidden;
+	border-radius: 11px;
 }
 
 .header {
@@ -118,6 +127,8 @@
 	border: 0;
 	cursor: nwse-resize;
 	touch-action: none;
+	z-index: 2;
+	border-bottom-right-radius: 11px;
 }
 
 /* Maximised: the panel fills the workspace where it is, without moving in the tree. */
@@ -147,4 +158,128 @@
 /* Another panel is maximised: hidden, and out of the tab order, but still mounted. */
 .panel[data-suppressed] {
 	visibility: hidden;
+}
+
+/*
+ * Resize handles: thin invisible hit areas straddling the panel's outer edge, so they leave the
+ * header's buttons and the body's scrollbars alone. The corners are larger and sit above the edges.
+ * A faint accent line shows under the pointer. The bottom-right corner is the keyboard grip.
+ */
+.edge {
+	position: absolute;
+	z-index: 1;
+	touch-action: none;
+}
+
+.edge::after {
+	content: '';
+	position: absolute;
+	background: var(--fls-accent-edge);
+	opacity: 0;
+	transition: opacity 120ms ease;
+	pointer-events: none;
+}
+
+.edge:hover::after {
+	opacity: 0.6;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.edge::after {
+		transition: none;
+	}
+}
+
+.edge-n,
+.edge-s {
+	left: 8px;
+	right: 8px;
+	height: 6px;
+	cursor: ns-resize;
+}
+
+.edge-e,
+.edge-w {
+	top: 8px;
+	bottom: 8px;
+	width: 6px;
+	cursor: ew-resize;
+}
+
+.edge-n {
+	top: -4px;
+}
+
+.edge-s {
+	bottom: -4px;
+}
+
+.edge-e {
+	right: -4px;
+}
+
+.edge-w {
+	left: -4px;
+}
+
+.edge-n::after,
+.edge-s::after {
+	left: 0;
+	right: 0;
+	height: 2px;
+}
+
+.edge-n::after {
+	top: 3px;
+}
+
+.edge-s::after {
+	bottom: 3px;
+}
+
+.edge-e::after,
+.edge-w::after {
+	top: 0;
+	bottom: 0;
+	width: 2px;
+}
+
+.edge-e::after {
+	right: 3px;
+}
+
+.edge-w::after {
+	left: 3px;
+}
+
+.edge-ne,
+.edge-nw,
+.edge-sw {
+	z-index: 2;
+	width: 12px;
+	height: 12px;
+}
+
+.edge-ne::after,
+.edge-nw::after,
+.edge-sw::after {
+	display: none;
+}
+
+.edge-ne {
+	top: -4px;
+	right: -4px;
+	cursor: nesw-resize;
+}
+
+.edge-sw {
+	bottom: -4px;
+	left: -4px;
+	cursor: nesw-resize;
+}
+
+.edge-nw {
+	top: -4px;
+	left: -4px;
+	cursor: nwse-resize;
 }
