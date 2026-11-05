@@ -10,7 +10,7 @@ use std::sync::mpsc::RecvTimeoutError;
 use std::sync::{Arc, Mutex, MutexGuard};
 use std::time::{Duration, Instant, UNIX_EPOCH};
 
-use fizz_studio_level::LevelDocument;
+use fizz_studio_level::{open_level_text, AnyLevelDocument};
 use fizz_studio_protocol::{LevelError, LevelSnapshot, RecoveryEntry};
 use fizz_studio_session::{Author, Session, SessionError, WriterToken};
 use fizz_studio_world::{
@@ -48,7 +48,7 @@ impl std::fmt::Debug for Worlds {
 pub(crate) struct OpenLevel {
     id: String,
     path: PathBuf,
-    pub(crate) session: Session<LevelDocument>,
+    pub(crate) session: Session<AnyLevelDocument>,
     pub(crate) writer: WriterToken,
     /// What the studio last wrote to the file or read from it; the base of an outside-edit merge.
     disk_text: String,
@@ -124,6 +124,8 @@ impl OpenLevel {
             },
             // The revision an outside edit made stays marked until another change replaces it.
             edited_outside: session.outside_revision() == Some(session.revision()),
+            target: session.document().target(),
+            banner: session.document().banner(),
         }
     }
 
@@ -358,8 +360,8 @@ impl Worlds {
             FolderWatcher::start(folder, DEFAULT_DEBOUNCE, disk.clone()).map_err(io_error)?;
 
         let mut session = match &recovered {
-            Some(kept) => Session::recovered(LevelDocument::new(kept.clone())),
-            None => Session::new(LevelDocument::new(text.clone())),
+            Some(kept) => Session::recovered(open_level_text(kept.clone())),
+            None => Session::new(open_level_text(text.clone())),
         };
         let writer = session.claim_writer(WRITER_NAME).map_err(session_error)?;
         let id = format!("level-{}", self.next.fetch_add(1, Ordering::Relaxed) + 1);

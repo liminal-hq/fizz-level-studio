@@ -90,6 +90,15 @@ pub enum LevelEdit {
     },
 }
 
+/// Which game's language a level is written in.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "snake_case")]
+#[ts(export, export_to = "../../../packages/protocol/src/generated/")]
+pub enum LevelTarget {
+    Fizz1,
+    Fizz2,
+}
+
 /// An open level: its text, its view, and where it is in its history.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS)]
 #[ts(export, export_to = "../../../packages/protocol/src/generated/")]
@@ -111,6 +120,10 @@ pub struct LevelSnapshot {
     pub author: String,
     /// True when the last change came from outside the studio and has not been saved.
     pub edited_outside: bool,
+    /// Which game's language the level is written in.
+    pub target: LevelTarget,
+    /// A message key the canvas shows above the grid, such as `level.flatFallback`.
+    pub banner: Option<String>,
 }
 
 /// What kind of project a folder is.

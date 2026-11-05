@@ -7,7 +7,7 @@ use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
-use fizz_studio_protocol::{LevelEdit, LevelError, LevelSnapshot, ProjectKind};
+use fizz_studio_protocol::{LevelEdit, LevelError, LevelSnapshot, LevelTarget, ProjectKind};
 use tauri::test::{mock_builder, mock_context, noop_assets, MockRuntime};
 use tauri::{Listener, Manager, WebviewUrl, WebviewWindowBuilder};
 
@@ -546,4 +546,47 @@ fn the_studios_recovery_writes_are_not_outside_edits() {
     assert_eq!(level.revision, painted.revision);
     assert!(!level.edited_outside);
     assert_eq!(level.author, "person");
+}
+
+const SLICE: &str = include_str!("../../../fixtures/fizz2/worlds/light/levels/light-1.fizz");
+
+#[test]
+fn a_fizz_2_level_opens_flat_and_a_paint_saves_only_its_row() {
+    let app = app();
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("light-1.fizz");
+    std::fs::write(&path, SLICE).unwrap();
+    let opened = open(&app, &path);
+    assert_eq!(opened.target, LevelTarget::Fizz2);
+    assert_eq!(opened.banner.as_deref(), Some("level.flatFallback"));
+    assert_eq!((opened.view.width, opened.view.height), (32, 48));
+    assert!(opened.view.diagnostics.is_empty());
+
+    let edit = LevelEdit::Paint {
+        tile: "BLOCK".to_string(),
+        x: vec![[3, 5]],
+        y: vec![[3, 3]],
+    };
+    let painted = apply(&app, &opened.id, edit, opened.revision).unwrap();
+    assert_eq!(painted.target, LevelTarget::Fizz2);
+    save(&app, &opened.id);
+
+    let written = std::fs::read_to_string(&path).unwrap();
+    let before: Vec<&str> = SLICE.split('\n').collect();
+    let after: Vec<&str> = written.split('\n').collect();
+    assert_eq!(before.len(), after.len());
+    let changed: Vec<usize> = (0..before.len())
+        .filter(|&i| before[i] != after[i])
+        .collect();
+    assert_eq!(changed.len(), 1);
+    assert!(after[changed[0]].starts_with("\t|#wwBBBwwww"));
+}
+
+#[test]
+fn a_fizz_1_level_has_no_banner() {
+    let app = app();
+    let (_dir, path) = project();
+    let opened = open(&app, &path);
+    assert_eq!(opened.target, LevelTarget::Fizz1);
+    assert_eq!(opened.banner, None);
 }

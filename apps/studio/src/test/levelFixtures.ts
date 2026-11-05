@@ -41,6 +41,8 @@ export function levelSnapshot(
 		redo_name: null,
 		author: 'person',
 		edited_outside: false,
+		target: 'fizz1',
+		banner: null,
 		...overrides,
 	};
 }
