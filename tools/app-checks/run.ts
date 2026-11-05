@@ -269,9 +269,28 @@ async function main(): Promise<void> {
 		);
 		check('the main window shows the panel is away', noticed !== null);
 		await bridge.ready('panel-script-1');
-		const clicked = await within(10_000, () =>
-			clickByText('Dock back', 'panel-script-1').catch(() => false),
-		);
+		// A slow runner can take a while to draw a new window, so wait generously, and when it still
+		// fails say what the window held so the cause is in the log rather than a bare FAIL.
+		let lastDockBackProblem = 'the button was not found';
+		const clicked = await within(30_000, async () => {
+			try {
+				const found = await clickByText('Dock back', 'panel-script-1');
+				if (!found) lastDockBackProblem = 'the window has no Dock back button yet';
+				return found;
+			} catch (error) {
+				lastDockBackProblem = error instanceof Error ? error.message : String(error);
+				return false;
+			}
+		});
+		if (clicked === null) {
+			const windows = await bridge.windows().catch(() => []);
+			const text = await bridge
+				.js<string>(`return document.body.innerText.slice(0, 300);`, 'panel-script-1')
+				.catch(() => '(the window could not be read)');
+			console.error(
+				`Dock back diagnostics: ${lastDockBackProblem}; windows: ${windows.join(', ')}; text: ${text}`,
+			);
+		}
 		check('the panel window offers Dock back', clicked !== null);
 		const docked = await within(
 			10_000,
