@@ -19,6 +19,8 @@ tauri-build = { workspace = true }
 [dependencies]
 tauri = { workspace = true }
 log = { workspace = true }
+chrono = { workspace = true }
+tauri-plugin-log = "2"
 
 [dev-dependencies]
 tauri = { workspace = true, features = ["test"] }

@@ -3,6 +3,7 @@
 // (c) Copyright 2026 Liminal HQ, Scott Morris
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
+pub mod logging;
 pub mod windows;
 
 use windows::WindowKind;
@@ -11,6 +12,9 @@ use windows::WindowKind;
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        // The webview's `console.*` calls are forwarded into this plugin's stream by
+        // `src/services/logger.ts`.
+        .plugin(logging::plugin())
         .setup(|app| {
             windows::open_or_focus(app.handle(), WindowKind::Main, 1)?;
             Ok(())

@@ -7,7 +7,12 @@ import { getCurrentWindow } from '@tauri-apps/api/window';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { App } from './app/App';
+import { initLogger } from './services/logger';
 import './theme/tokens.css';
+
+const label = getCurrentWindow().label;
+
+initLogger(label);
 
 const root = document.getElementById('root');
 if (!root) {
@@ -16,6 +21,8 @@ if (!root) {
 
 createRoot(root).render(
 	<StrictMode>
-		<App windowLabel={getCurrentWindow().label} />
+		<App windowLabel={label} />
 	</StrictMode>,
 );
+
+console.info('The window is ready.');
