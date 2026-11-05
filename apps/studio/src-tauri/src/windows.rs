@@ -33,14 +33,18 @@ pub struct WindowSpec {
     pub always_on_top: bool,
 }
 
-/// The title the app's windows carry before the page names them (the page sets the real one).
+/// The title the tear-off ghost carries. It is never shown in a window list.
 const APP_TITLE: &str = "Fizz Level Studio";
+
+/// The native title a main window opens with: the start screen's name. The page then keeps it equal
+/// to the title bar's text (`set_window_title`), which never holds the app's name.
+pub const START_TITLE: &str = "Start";
 
 /// The spec for a kind of window.
 pub fn spec_for(kind: WindowKind) -> WindowSpec {
     match kind {
         WindowKind::Main => WindowSpec {
-            title: APP_TITLE,
+            title: START_TITLE,
             size: (1440.0, 900.0),
             min_size: Some((1024.0, 680.0)),
             resizable: true,
@@ -49,7 +53,7 @@ pub fn spec_for(kind: WindowKind) -> WindowSpec {
             always_on_top: false,
         },
         WindowKind::Panel => WindowSpec {
-            title: APP_TITLE,
+            title: "Panel",
             size: (520.0, 720.0),
             min_size: Some((320.0, 240.0)),
             resizable: true,
@@ -146,6 +150,15 @@ pub fn build_window_at<R: Runtime>(
         window.show()?;
     }
     Ok(window)
+}
+
+/// Sets the native title of the window that asks (the taskbar, Alt+Tab and window lists show it).
+///
+/// A window can name only itself: the target is the calling webview's window, never an argument.
+/// The page sends the same text its title bar shows, so the two never differ.
+#[tauri::command]
+pub fn set_window_title<R: Runtime>(window: WebviewWindow<R>, title: String) -> Result<(), String> {
+    window.set_title(&title).map_err(|e| e.to_string())
 }
 
 /// Focuses the window `id` if it is open, and otherwise builds it.
@@ -354,6 +367,27 @@ mod tests {
             WindowId::About,
             WindowId::TearGhost,
         ]
+    }
+
+    #[test]
+    fn no_window_opens_titled_with_the_app_name() {
+        for id in every_id() {
+            if id == WindowId::TearGhost || id == WindowId::About {
+                continue;
+            }
+            assert!(!spec_for(id.kind()).title.contains("Fizz"), "{id:?}");
+        }
+        assert_eq!(spec_for(WindowKind::Main).title, START_TITLE);
+    }
+
+    #[test]
+    fn a_window_accepts_a_native_title_for_itself() {
+        // The mock runtime does not report a title back, so this proves the command runs for the
+        // calling window; the running-app checks read the real title.
+        let app = tauri::test::mock_app();
+        let id = WindowId::Main { n: 1 };
+        let window = build_window(app.handle(), &id).expect("builds");
+        set_window_title(window, "crater.fizz •".to_owned()).expect("sets");
     }
 
     #[test]

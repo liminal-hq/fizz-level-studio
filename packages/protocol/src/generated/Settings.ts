@@ -4,6 +4,7 @@ import type { ColourMode } from "./ColourMode";
 import type { DockSettings } from "./DockSettings";
 import type { GlassMode } from "./GlassMode";
 import type { PanelLayout } from "./PanelLayout";
+import type { UiSettings } from "./UiSettings";
 
 /**
  * The application settings. Every field has a default, so a file written by an older build (or
@@ -22,6 +23,10 @@ glass: GlassMode,
  * Bigger hit targets and text for the controls.
  */
 larger_controls: boolean, 
+/**
+ * What the window chrome shows.
+ */
+ui: UiSettings, 
 /**
  * The interface language as a BCP 47 tag.
  */

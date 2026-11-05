@@ -8,7 +8,7 @@ use std::sync::Arc;
 
 use fizz_studio_protocol::{
     AccentChoice, ColourMode, GlassMode, PanelLayout, PanelPlacement, Settings, SettingsError,
-    SettingsField, SettingsPatch, RECENT_WORLDS_CAP,
+    SettingsField, SettingsPatch, UiSettings, RECENT_WORLDS_CAP,
 };
 use fizz_studio_settings::{
     apply_patch, default_layout, resolve_layout, touch_recent, BlobStorage, DiskStorage,
@@ -136,7 +136,7 @@ fn a_version_one_file_without_layouts_migrates_untouched() {
 #[test]
 fn a_version_with_no_step_is_unreadable_not_guessed() {
     let file = memory_file(Some(r#"{ "version": 0, "settings": {} }"#));
-    assert_eq!(SETTINGS_VERSION, 4);
+    assert_eq!(SETTINGS_VERSION, 5);
     let report = file.load();
     assert!(report
         .problem
@@ -593,7 +593,7 @@ fn the_accent_and_glass_survive_a_save_and_load() {
     store_file.save(&settings).unwrap();
     let saved: Value =
         serde_json::from_str(&store_file.storage().get(SETTINGS_FILE).unwrap()).unwrap();
-    assert_eq!(saved["version"], 4);
+    assert_eq!(saved["version"], 5);
     assert_eq!(saved["settings"]["accent"]["kind"], "custom");
     assert_eq!(saved["settings"]["glass"], "on");
     assert_eq!(store_file.load().settings, settings);
@@ -605,4 +605,61 @@ fn a_file_with_a_bad_custom_accent_is_set_aside() {
         r##"{ "version": 3, "settings": { "accent": { "kind": "custom", "hex": "nope" } } }"##,
     ));
     assert!(file.load().set_aside.is_some());
+}
+
+#[test]
+fn the_menu_bar_defaults_off() {
+    assert!(!Settings::default().ui.menu_bar);
+    assert!(!UiSettings::default().menu_bar);
+}
+
+#[test]
+fn a_version_four_file_migrates_to_five_with_the_menu_bar_off() {
+    let file = memory_file(Some(
+        r#"{ "version": 4, "settings": { "colour_mode": "dark" } }"#,
+    ));
+    let report = file.load();
+    assert_eq!(report.problem, None);
+    assert_eq!(report.settings.colour_mode, ColourMode::Dark);
+    assert!(!report.settings.ui.menu_bar);
+    // The step writes the field itself, so the file on disk says so after the next save.
+    let migrated = fizz_studio_settings::migrate(
+        json!({ "colour_mode": "dark" }),
+        4,
+        SETTINGS_VERSION,
+        fizz_studio_settings::MIGRATIONS,
+    )
+    .unwrap();
+    assert_eq!(migrated["ui"]["menu_bar"], false);
+    // An older file passes through every step.
+    let older = memory_file(Some(r#"{ "version": 1, "settings": {} }"#)).load();
+    assert_eq!(older.problem, None);
+    assert!(!older.settings.ui.menu_bar);
+}
+
+#[test]
+fn a_migration_keeps_a_menu_bar_choice_that_is_already_there() {
+    let file = memory_file(Some(
+        r#"{ "version": 4, "settings": { "ui": { "menu_bar": true } } }"#,
+    ));
+    assert!(file.load().settings.ui.menu_bar);
+}
+
+#[test]
+fn a_patch_sets_the_menu_bar_and_it_survives_a_save_and_load() {
+    let patch = SettingsPatch {
+        ui: Some(UiSettings { menu_bar: true }),
+        ..SettingsPatch::default()
+    };
+    let next = apply_patch(&Settings::default(), &patch).unwrap();
+    assert!(next.ui.menu_bar);
+    assert_eq!(next.colour_mode, ColourMode::System);
+    let file = memory_file(None);
+    file.save(&next).unwrap();
+    let saved: Value = serde_json::from_str(&file.storage().get(SETTINGS_FILE).unwrap()).unwrap();
+    assert_eq!(saved["settings"]["ui"]["menu_bar"], true);
+    assert_eq!(file.load().settings, next);
+    // A patch that names nothing leaves it alone.
+    let same = apply_patch(&next, &SettingsPatch::default()).unwrap();
+    assert!(same.ui.menu_bar);
 }

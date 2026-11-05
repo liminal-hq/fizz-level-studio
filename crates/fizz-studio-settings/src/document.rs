@@ -18,7 +18,7 @@ use crate::rules::validate;
 use crate::storage::{BlobStorage, StorageError};
 
 /// The version of the file this build writes.
-pub const SETTINGS_VERSION: u32 = 4;
+pub const SETTINGS_VERSION: u32 = 5;
 
 /// The name of the settings file in the storage.
 pub const SETTINGS_FILE: &str = "settings.json";

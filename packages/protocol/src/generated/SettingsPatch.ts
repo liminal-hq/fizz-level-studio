@@ -4,12 +4,17 @@ import type { ColourMode } from "./ColourMode";
 import type { DockSettings } from "./DockSettings";
 import type { GlassMode } from "./GlassMode";
 import type { PanelLayout } from "./PanelLayout";
+import type { UiSettings } from "./UiSettings";
 
 /**
  * A change to the settings: only the fields that change. A layout entry set to `null` is removed, which restores that kind's defaults.
  * The recent list changes through its own commands, never through a patch.
  */
-export type SettingsPatch = { colour_mode?: ColourMode, accent?: AccentChoice, glass?: GlassMode, larger_controls?: boolean, locale?: string, layout?: { [key in string]: PanelLayout | null }, 
+export type SettingsPatch = { colour_mode?: ColourMode, accent?: AccentChoice, glass?: GlassMode, larger_controls?: boolean, 
+/**
+ * Replaces the chrome choices as a whole.
+ */
+ui?: UiSettings, locale?: string, layout?: { [key in string]: PanelLayout | null }, 
 /**
  * Replaces the dock as a whole.
  */

@@ -13,7 +13,7 @@ import { TOOL_IDS, type ToolId } from '../tools/tool';
 import type { Brush } from '../tools/brush';
 import type { BridgeSnapshot, CommandFacts } from './commandBridge';
 
-export type MenuName = 'file' | 'edit' | 'view' | 'window';
+export type MenuName = 'file' | 'edit' | 'view' | 'window' | 'help';
 
 /** The headings the command palette lists commands under, in the order it lists them. */
 export type PaletteGroup =
@@ -24,6 +24,7 @@ export type PaletteGroup =
 	| 'edit'
 	| 'view'
 	| 'window'
+	| 'help'
 	| 'goto';
 
 export const PALETTE_GROUPS: readonly PaletteGroup[] = [
@@ -34,6 +35,7 @@ export const PALETTE_GROUPS: readonly PaletteGroup[] = [
 	'edit',
 	'view',
 	'window',
+	'help',
 	'goto',
 ];
 
@@ -45,6 +47,7 @@ export const PALETTE_GROUP_LABELS: Record<PaletteGroup, MessageId> = {
 	edit: 'cmdPalette.group.edit',
 	view: 'cmdPalette.group.view',
 	window: 'cmdPalette.group.window',
+	help: 'cmdPalette.group.help',
 	goto: 'cmdPalette.group.goto',
 };
 
@@ -134,11 +137,20 @@ export const COMMANDS: readonly CommandDef[] = [
 		shortcut: 'Ctrl+S',
 		enabled: hasLevel,
 	},
-	{ id: 'file.close', menu: 'file', section: 1, label: 'main.closeLevel', enabled: hasLevel },
+	{
+		id: 'file.preferences',
+		menu: 'file',
+		section: 2,
+		label: 'appMenu.preferences',
+		shortcut: 'Ctrl+,',
+		enabled: always,
+		run: () => void openWindow({ kind: 'preferences' }),
+	},
+	{ id: 'file.close', menu: 'file', section: 3, label: 'main.closeLevel', enabled: hasLevel },
 	{
 		id: 'file.quit',
 		menu: 'file',
-		section: 2,
+		section: 3,
 		label: 'appMenu.quit',
 		shortcut: QUIT_KEYS,
 		enabled: always,
@@ -193,17 +205,8 @@ export const COMMANDS: readonly CommandDef[] = [
 		enabled: always,
 	},
 	{
-		id: 'window.preferences',
-		menu: 'window',
-		section: 0,
-		label: 'appMenu.preferences',
-		shortcut: 'Ctrl+,',
-		enabled: always,
-		run: () => void openWindow({ kind: 'preferences' }),
-	},
-	{
-		id: 'window.about',
-		menu: 'window',
+		id: 'help.about',
+		menu: 'help',
 		section: 0,
 		label: 'appMenu.about',
 		enabled: always,
@@ -269,7 +272,8 @@ export const dockBackCommandId = (id: PanelId) => `view.panel.${id}.dockBack`;
 /**
  * Tear off and Dock back, built for each panel (its name is the command's value): a panel in the
  * main window offers Tear off, and one in a window of its own offers Dock back. They run through
- * handlers the editor publishes under `tearOffCommandId` and `dockBackCommandId`.
+ * handlers the editor publishes under `tearOffCommandId` and `dockBackCommandId`. They are the Window
+ * menu's rows as well as the palette's.
  */
 export function panelWindowCommands(facts: CommandFacts): CommandDef[] {
 	return PANEL_SPECS.map((spec): CommandDef => {
@@ -277,6 +281,7 @@ export function panelWindowCommands(facts: CommandFacts): CommandDef[] {
 		return facts.away[spec.id]
 			? {
 					id: dockBackCommandId(spec.id),
+					menu: 'window',
 					group: 'panels',
 					section: 0,
 					label: 'cmdPalette.dockPanelBack',
@@ -285,6 +290,7 @@ export function panelWindowCommands(facts: CommandFacts): CommandDef[] {
 				}
 			: {
 					id: tearOffCommandId(spec.id),
+					menu: 'window',
 					group: 'panels',
 					section: 0,
 					label: 'cmdPalette.tearOffPanel',

@@ -9,7 +9,7 @@ import type { SettingsSnapshot } from '@liminal-hq/fizz-studio-protocol/generate
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import type { SettingsClient } from '../services/settingsClient';
-import { useAppearanceSettings } from './useAppearanceSettings';
+import { usePreferencesSettings } from './usePreferencesSettings';
 
 const BASE: Settings = {
 	colour_mode: 'system',
@@ -19,6 +19,7 @@ const BASE: Settings = {
 	locale: 'en-CA',
 	recent_worlds: [],
 	layout: {},
+	ui: { menu_bar: false },
 	dock: { active: '', workspaces: {} },
 };
 
@@ -57,22 +58,23 @@ function fakeClient(refuse?: (patch: SettingsPatch, basedOn: number) => unknown)
 	};
 }
 
-describe('useAppearanceSettings', () => {
+describe('usePreferencesSettings', () => {
 	it('loads the values in force', async () => {
 		const { client } = fakeClient();
-		const { result } = renderHook(() => useAppearanceSettings(client));
+		const { result } = renderHook(() => usePreferencesSettings(client));
 		expect(result.current.values).toBeNull();
 		await waitFor(() => expect(result.current.values).not.toBeNull());
 		expect(result.current.values).toEqual({
 			colour_mode: 'system',
 			accent: { kind: 'system' },
 			glass: 'system',
+			ui: { menu_bar: false },
 		});
 	});
 
 	it('saves a change at once against the revision it last saw', async () => {
 		const { client } = fakeClient();
-		const { result } = renderHook(() => useAppearanceSettings(client));
+		const { result } = renderHook(() => usePreferencesSettings(client));
 		await waitFor(() => expect(result.current.values).not.toBeNull());
 		await act(() => result.current.change('glass', { glass: 'off' }));
 		expect(client.update).toHaveBeenCalledWith({ glass: 'off' }, 0);
@@ -86,7 +88,7 @@ describe('useAppearanceSettings', () => {
 			field: 'accent-hex',
 			message: 'no',
 		}));
-		const { result } = renderHook(() => useAppearanceSettings(client));
+		const { result } = renderHook(() => usePreferencesSettings(client));
 		await waitFor(() => expect(result.current.values).not.toBeNull());
 		await act(() =>
 			result.current.change('accentHex', { accent: { kind: 'custom', hex: 'nope' } }),
@@ -100,7 +102,7 @@ describe('useAppearanceSettings', () => {
 	it('clears a field’s error when that field is changed again', async () => {
 		let fail = true;
 		const { client } = fakeClient(() => (fail ? { kind: 'storage', message: 'disk' } : null));
-		const { result } = renderHook(() => useAppearanceSettings(client));
+		const { result } = renderHook(() => usePreferencesSettings(client));
 		await waitFor(() => expect(result.current.values).not.toBeNull());
 		await act(() => result.current.change('glass', { glass: 'off' }));
 		expect(result.current.errors.glass).toBe('The change could not be saved.');
@@ -114,7 +116,7 @@ describe('useAppearanceSettings', () => {
 		const { client } = fakeClient(() =>
 			refusals-- > 0 ? { kind: 'stale', based_on: 0, current: 3 } : null,
 		);
-		const { result } = renderHook(() => useAppearanceSettings(client));
+		const { result } = renderHook(() => usePreferencesSettings(client));
 		await waitFor(() => expect(result.current.values).not.toBeNull());
 		await act(() => result.current.change('colourMode', { colour_mode: 'dark' }));
 		expect(client.update).toHaveBeenCalledTimes(2);
@@ -124,7 +126,7 @@ describe('useAppearanceSettings', () => {
 
 	it('follows a change made in another window and stops listening on unmount', async () => {
 		const fake = fakeClient();
-		const { result, unmount } = renderHook(() => useAppearanceSettings(fake.client));
+		const { result, unmount } = renderHook(() => usePreferencesSettings(fake.client));
 		await waitFor(() => expect(result.current.values).not.toBeNull());
 		act(() => fake.hear(snapshot(4, { accent: { kind: 'afterglow-purple' } })));
 		expect(result.current.values?.accent).toEqual({ kind: 'afterglow-purple' });
@@ -136,15 +138,36 @@ describe('useAppearanceSettings', () => {
 
 	it('resets the page’s settings to the defaults', async () => {
 		const { client } = fakeClient();
-		const { result } = renderHook(() => useAppearanceSettings(client));
+		const { result } = renderHook(() => usePreferencesSettings(client));
 		await waitFor(() => expect(result.current.values).not.toBeNull());
 		await act(() => result.current.change('glass', { glass: 'off' }));
-		await act(() => result.current.reset());
+		await act(() => result.current.reset('appearance'));
 		expect(client.update).toHaveBeenLastCalledWith(
 			{ colour_mode: 'system', accent: { kind: 'system' }, glass: 'system' },
 			1,
 		);
 		expect(result.current.values?.glass).toBe('system');
+	});
+
+	it('saves the menu bar choice and resets the General page to off', async () => {
+		const { client } = fakeClient();
+		const { result } = renderHook(() => usePreferencesSettings(client));
+		await waitFor(() => expect(result.current.values).not.toBeNull());
+		await act(() => result.current.change('menuBar', { ui: { menu_bar: true } }));
+		expect(client.update).toHaveBeenLastCalledWith({ ui: { menu_bar: true } }, 0);
+		expect(result.current.values?.ui.menu_bar).toBe(true);
+		await act(() => result.current.reset('general'));
+		expect(client.update).toHaveBeenLastCalledWith({ ui: { menu_bar: false } }, 1);
+		expect(result.current.values?.ui.menu_bar).toBe(false);
+	});
+
+	it('shows a refused menu bar change against the menu bar', async () => {
+		const { client } = fakeClient(() => ({ kind: 'storage', message: 'disk full' }));
+		const { result } = renderHook(() => usePreferencesSettings(client));
+		await waitFor(() => expect(result.current.values).not.toBeNull());
+		await act(() => result.current.change('menuBar', { ui: { menu_bar: true } }));
+		expect(result.current.errors.menuBar).toBe('The change could not be saved.');
+		expect(result.current.values?.ui.menu_bar).toBe(false);
 	});
 
 	it('reports settings that cannot be read', async () => {
@@ -155,7 +178,7 @@ describe('useAppearanceSettings', () => {
 			update: async () => snapshot(1),
 			onChanged: () => () => {},
 		};
-		const { result } = renderHook(() => useAppearanceSettings(client));
+		const { result } = renderHook(() => usePreferencesSettings(client));
 		await waitFor(() => expect(result.current.unavailable).toBe(true));
 	});
 });
