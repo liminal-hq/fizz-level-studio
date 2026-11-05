@@ -39,6 +39,7 @@ function snapshot(revision: number): SettingsSnapshot {
 			locale: 'en-CA',
 			recent_worlds: [],
 			layout: {},
+			dock: { active: '', workspaces: {} },
 		},
 	};
 }

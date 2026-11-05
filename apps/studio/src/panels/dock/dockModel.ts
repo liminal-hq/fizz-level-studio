@@ -6,61 +6,16 @@
 // Every panel is in exactly one state: docked in a zone (left, right or bottom), floating over the
 // level, or in its own window. A zone holds tab groups of docked panels and has a size, a
 // collapsed flag (a collapsed zone folds to a rail) and caps. A workspace is one named
-// arrangement of all of that. The shapes below mirror the settings crate's wire types (their
-// names and snake_case fields), and the defaults are read from the fixture the settings crate's
-// tests also check, so the two cannot drift apart.
+// arrangement of all of that. The types are the ones `ts-rs` generates from the protocol crate
+// (`packages/protocol/src/generated/`: `Workspace`, `Zone`, `PanelEntry`, `DockSettings` and so
+// on), and the defaults are read from the fixture the settings crate's tests also check, so the
+// two cannot drift apart.
 
-import type { PanelPlacement } from '@liminal-hq/fizz-studio-protocol/generated/PanelPlacement';
+import type { DockSettings } from '@liminal-hq/fizz-studio-protocol/generated/DockSettings';
+import type { Workspace } from '@liminal-hq/fizz-studio-protocol/generated/Workspace';
+import type { ZoneId } from '@liminal-hq/fizz-studio-protocol/generated/ZoneId';
 import defaults from '@liminal-hq/fizz-studio-protocol/fixtures/default-dock';
 import type { PanelId } from '../float/panelSpecs';
-
-export type ZoneId = 'left' | 'right' | 'bottom';
-export type PlaceKind = 'docked' | 'floating' | 'window';
-
-/** Panels sharing one slot of a zone as tabs, one of them showing. */
-export interface TabGroup {
-	tabs: string[];
-	active: string;
-}
-
-export interface Zone {
-	/** Width for the left and right zones, height for the bottom zone, in pixels. */
-	size: number;
-	/** Folded to a rail showing each panel's icon and title. */
-	collapsed: boolean;
-	groups: TabGroup[];
-}
-
-/** Where a torn-off window sits on the screen, in pixels. */
-export interface WindowPlacement {
-	x: number;
-	y: number;
-	w: number;
-	h: number;
-}
-
-export interface PanelEntry {
-	place: PlaceKind;
-	/** The zone the panel was last docked in: where it goes when it docks back. */
-	home: ZoneId;
-	/** Where it floats, kept while it is docked so it floats again where it was. */
-	float: PanelPlacement;
-	/** Where its own window sits, kept after it comes back. */
-	window: WindowPlacement | null;
-	/** What it was before it went to its own window: where it returns to. */
-	window_from: PlaceKind;
-}
-
-/** One named arrangement of every panel. */
-export interface Workspace {
-	panels: { [id: string]: PanelEntry };
-	zones: Record<ZoneId, Zone>;
-}
-
-export interface DockSettings {
-	active: string;
-	workspaces: { [name: string]: Workspace };
-}
 
 /** The panel ids in the order the Panels menu lists them. */
 export const PANEL_IDS: readonly PanelId[] = [

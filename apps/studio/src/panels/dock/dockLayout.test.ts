@@ -3,6 +3,7 @@
 // (c) Copyright 2026 Liminal HQ, Scott Morris
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
+import type { Workspace } from '@liminal-hq/fizz-studio-protocol/generated/Workspace';
 import { describe, expect, it } from 'vitest';
 import {
 	INITIAL_SESSION,
@@ -24,7 +25,7 @@ import {
 	toggleLevelFirst,
 	toggleZone,
 } from './dockLayout';
-import { PANEL_IDS, defaultWorkspace, dockedIn, zoneOf, type Workspace } from './dockModel';
+import { PANEL_IDS, defaultWorkspace, dockedIn, zoneOf } from './dockModel';
 import { validateWorkspace } from './dockNormalise';
 
 const big = { w: 1440, h: 900 };

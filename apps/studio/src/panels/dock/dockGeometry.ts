@@ -7,18 +7,11 @@
 // bar, menu row and tool bar; what is left is the workspace, where the zones sit and the level
 // takes what they leave. A zone without panels takes no room; a collapsed one takes its rail.
 
+import type { DockSettings } from '@liminal-hq/fizz-studio-protocol/generated/DockSettings';
+import type { Workspace } from '@liminal-hq/fizz-studio-protocol/generated/Workspace';
+import type { ZoneId } from '@liminal-hq/fizz-studio-protocol/generated/ZoneId';
 import type { Rect, Size } from '../float/panelGeometry';
-import {
-	CAP_PERCENT,
-	RAIL_SIZE,
-	TOOL_COLUMN,
-	TOP_CHROME,
-	ZONE_MAX,
-	zoneMin,
-	type DockSettings,
-	type Workspace,
-	type ZoneId,
-} from './dockModel';
+import { CAP_PERCENT, RAIL_SIZE, TOOL_COLUMN, TOP_CHROME, ZONE_MAX, zoneMin } from './dockModel';
 
 /** The largest a zone may be in a window: about 30% of the window in its direction. */
 export function zoneCap(zone: ZoneId, window: Size): number {

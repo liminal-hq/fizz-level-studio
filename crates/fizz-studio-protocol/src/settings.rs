@@ -12,6 +12,8 @@ use std::fmt;
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
+use crate::dock::DockSettings;
+
 /// How many worlds the recent list keeps.
 pub const RECENT_WORLDS_CAP: usize = 12;
 
@@ -67,6 +69,16 @@ pub enum GlassMode {
 #[ts(export, export_to = "../../../packages/protocol/src/generated/")]
 pub enum SettingsField {
     AccentHex,
+    /// The name of a workspace, or the active workspace's name.
+    WorkspaceName,
+    /// A panel in a workspace that is unknown, missing or in more than one place.
+    WorkspacePanel,
+    /// A tab group that is empty or whose showing tab is not among its tabs.
+    WorkspaceTabs,
+    /// A zone size outside its range.
+    ZoneSize,
+    /// A floating rectangle or a window placement that is not on a real screen.
+    WorkspaceRect,
 }
 
 /// Where one floating panel sits in its window, in pixels from the top-left of the editor area.
@@ -114,6 +126,9 @@ pub struct Settings {
     /// Panel layouts by window kind (`main` for the editor window). A panel missing from a saved
     /// layout, or a kind with none, takes the defaults in the settings crate.
     pub layout: BTreeMap<String, PanelLayout>,
+    /// The dock: named workspaces (Paint, Script, Review, and any the person adds) and which one
+    /// is active. Every panel is in exactly one place in each workspace.
+    pub dock: DockSettings,
 }
 
 impl Default for Settings {
@@ -126,6 +141,7 @@ impl Default for Settings {
             locale: DEFAULT_LOCALE.to_owned(),
             recent_worlds: Vec::new(),
             layout: BTreeMap::new(),
+            dock: DockSettings::default(),
         }
     }
 }
@@ -154,6 +170,10 @@ pub struct SettingsPatch {
     #[serde(skip_serializing_if = "Option::is_none")]
     #[ts(optional)]
     pub layout: Option<BTreeMap<String, Option<PanelLayout>>>,
+    /// Replaces the dock as a whole.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub dock: Option<DockSettings>,
 }
 
 /// The settings in force and the revision they are at. It is both the answer to a read and the

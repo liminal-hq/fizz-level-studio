@@ -8,6 +8,12 @@
 // panel exactly once, unknown panels gone, no empty tab group, an active tab that exists and sizes
 // within the caps. It keeps every value that is usable and takes the default for the rest.
 
+import type { DockSettings } from '@liminal-hq/fizz-studio-protocol/generated/DockSettings';
+import type { PanelEntry } from '@liminal-hq/fizz-studio-protocol/generated/PanelEntry';
+import type { PlaceKind } from '@liminal-hq/fizz-studio-protocol/generated/PlaceKind';
+import type { WindowPlacement } from '@liminal-hq/fizz-studio-protocol/generated/WindowPlacement';
+import type { Workspace } from '@liminal-hq/fizz-studio-protocol/generated/Workspace';
+import type { ZoneId } from '@liminal-hq/fizz-studio-protocol/generated/ZoneId';
 import type { PanelPlacement } from '@liminal-hq/fizz-studio-protocol/generated/PanelPlacement';
 import type { Size } from '../float/panelGeometry';
 import { clampZoneSize, clampZoneSizeAbsolute } from './dockGeometry';
@@ -20,12 +26,6 @@ import {
 	defaultWorkspace,
 	defaultWorkspaceFor,
 	zoneMin,
-	type DockSettings,
-	type PanelEntry,
-	type PlaceKind,
-	type WindowPlacement,
-	type Workspace,
-	type ZoneId,
 } from './dockModel';
 
 export type DockProblemKind =

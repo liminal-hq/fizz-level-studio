@@ -7,17 +7,14 @@
 // new one; a move that cannot apply returns its input unchanged. A panel is always in exactly one
 // place: moving it takes it out of the old one first, so none is lost or doubled.
 
+import type { PanelEntry } from '@liminal-hq/fizz-studio-protocol/generated/PanelEntry';
+import type { Workspace } from '@liminal-hq/fizz-studio-protocol/generated/Workspace';
+import type { WindowPlacement } from '@liminal-hq/fizz-studio-protocol/generated/WindowPlacement';
+import type { ZoneId } from '@liminal-hq/fizz-studio-protocol/generated/ZoneId';
 import type { PanelPlacement } from '@liminal-hq/fizz-studio-protocol/generated/PanelPlacement';
 import type { Size } from '../float/panelGeometry';
 import { clampZoneSize } from './dockGeometry';
-import {
-	ZONE_IDS,
-	zoneOf,
-	type PanelEntry,
-	type Workspace,
-	type WindowPlacement,
-	type ZoneId,
-} from './dockModel';
+import { ZONE_IDS, zoneOf } from './dockModel';
 
 /** The moves that are about the session, not the arrangement: none of them is saved. */
 export interface DockSession {

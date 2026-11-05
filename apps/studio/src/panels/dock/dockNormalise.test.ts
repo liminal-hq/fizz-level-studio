@@ -3,6 +3,7 @@
 // (c) Copyright 2026 Liminal HQ, Scott Morris
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
+import type { Workspace } from '@liminal-hq/fizz-studio-protocol/generated/Workspace';
 import { describe, expect, it } from 'vitest';
 import { floatPanel } from './dockLayout';
 import {
@@ -12,7 +13,6 @@ import {
 	defaultWorkspaceFor,
 	dockedIn,
 	zoneOf,
-	type Workspace,
 } from './dockModel';
 import {
 	createWorkspace,
