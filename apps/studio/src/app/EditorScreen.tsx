@@ -22,7 +22,8 @@ import { CommandBridgeContext, NO_FACTS } from '../commands/commandBridge';
 import { FloatingPanel } from '../panels/float/FloatingPanel';
 import { neighboursOf } from '../panels/float/usePanelLayout';
 import { DockShell } from '../panels/dock/DockShell';
-import { isLevelFirstKey } from '../panels/dock/dockKeys';
+import { isLevelFirstKey, isMaximiseKey, isRestoreKey, panelOfNode } from '../panels/dock/dockKeys';
+import { PanelExpandButton } from '../panels/dock/PanelExpandButton';
 import { PanelCommands } from '../panels/dock/PanelCommands';
 import { useDockLayout } from '../panels/dock/useDockLayout';
 import {
@@ -33,8 +34,13 @@ import {
 } from '../panels/dock/dockDrop';
 import { useDockDrag } from '../panels/dock/useDockDrag';
 import { ZONE_LABELS } from '../panels/dock/DockZone';
-import { brushCommandId, panelCommandId, toolCommandId } from '../commands/registry';
-import { PANEL_SPECS, type PanelId } from '../panels/float/panelSpecs';
+import {
+	brushCommandId,
+	maximiseCommandId,
+	panelCommandId,
+	toolCommandId,
+} from '../commands/registry';
+import { PANEL_SPECS, isExpandable, type PanelId } from '../panels/float/panelSpecs';
 import { PanelsMenu } from '../panels/float/PanelsMenu';
 import { SnapGuides } from '../panels/float/SnapGuides';
 import { useElementSize } from '../panels/float/useElementSize';
@@ -259,6 +265,8 @@ export function EditorScreen({
 		setBrush: tool.setBrush,
 		showLine,
 		levelFirst: dock.toggleLevelFirst,
+		maximise: dock.maximise,
+		restore: dock.restore,
 	});
 	live.current = {
 		undo,
@@ -269,6 +277,8 @@ export function EditorScreen({
 		setBrush: tool.setBrush,
 		showLine,
 		levelFirst: dock.toggleLevelFirst,
+		maximise: dock.maximise,
+		restore: dock.restore,
 	};
 	const panelsShown = dock.shown;
 	const panelsKey = PANEL_SPECS.map((spec) => (panelsShown[spec.id] ? '1' : '0')).join('');
@@ -283,6 +293,10 @@ export function EditorScreen({
 		for (const spec of PANEL_SPECS) {
 			handlers[panelCommandId(spec.id)] = () =>
 				live.current.setVisible(spec.id, !panelsRef.current[spec.id]);
+		}
+		for (const spec of PANEL_SPECS.filter((candidate) => candidate.expandable)) {
+			handlers[maximiseCommandId(spec.id, false)] = () => live.current.maximise(spec.id);
+			handlers[maximiseCommandId(spec.id, true)] = () => live.current.restore();
 		}
 		for (const id of TOOL_IDS) handlers[toolCommandId(id)] = () => live.current.setTool(id);
 		// Go to line shows the Script panel if it is hidden, then reveals the line in it.
@@ -300,6 +314,7 @@ export function EditorScreen({
 				canUndo: false,
 				canRedo: false,
 				levelFirst: false,
+				maximised: null,
 				panels: NO_FACTS.panels,
 				brushes: NO_FACTS.brushes,
 				lineCount: 0,
@@ -332,6 +347,7 @@ export function EditorScreen({
 			canUndo: snapshot.can_undo,
 			canRedo: snapshot.can_redo,
 			levelFirst: dock.session.levelFirst,
+			maximised: (dock.session.maximised as PanelId | null) ?? null,
 			panels: panelsRef.current,
 			brushes,
 			lineCount,
@@ -344,6 +360,7 @@ export function EditorScreen({
 		brushes,
 		lineCount,
 		dock.session.levelFirst,
+		dock.session.maximised,
 	]);
 
 	// Tab, on the level or on nothing, shows the level only and brings the panels back.
@@ -357,6 +374,43 @@ export function EditorScreen({
 		window.addEventListener('keydown', onKey);
 		return () => window.removeEventListener('keydown', onKey);
 	}, [toggleLevelFirst]);
+
+	// Ctrl+Shift+M maximises the focused expandable panel (else the last one used, else the
+	// Script) or restores the maximised one; Escape restores where it is free.
+	// While a panel is maximised, Tab (level-first) is ignored: maximising wins.
+	const lastPanel = useRef<PanelId>('script');
+	const maximised = dock.session.maximised;
+	const { maximise, restore } = dock;
+	useEffect(() => {
+		const note = (event: Event) => {
+			const id = panelOfNode(event.target instanceof Element ? event.target : null);
+			if (id !== null && isExpandable(id)) lastPanel.current = id as PanelId;
+		};
+		const onKey = (event: globalThis.KeyboardEvent) => {
+			if (isMaximiseKey(event)) {
+				event.preventDefault();
+				if (maximised !== null) {
+					restore();
+					return;
+				}
+				const focused = panelOfNode(
+					document.activeElement instanceof Element ? document.activeElement : null,
+				);
+				maximise(focused !== null && isExpandable(focused) ? focused : lastPanel.current);
+			} else if (maximised !== null && isRestoreKey(event)) {
+				event.preventDefault();
+				restore();
+			}
+		};
+		document.addEventListener('focusin', note);
+		document.addEventListener('pointerdown', note);
+		window.addEventListener('keydown', onKey);
+		return () => {
+			document.removeEventListener('focusin', note);
+			document.removeEventListener('pointerdown', note);
+			window.removeEventListener('keydown', onKey);
+		};
+	}, [maximised, maximise, restore]);
 
 	const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
 		if (isTyping(event.target)) return;
@@ -476,7 +530,9 @@ export function EditorScreen({
 					window={dock.window}
 					session={dock.session}
 					titleOf={titleOf}
-					renderPanel={(id) => content(id as PanelId)}
+					renderPanel={(id) => (id === maximised ? null : content(id as PanelId))}
+					expandable={isExpandable}
+					hidden={maximised !== null}
 					actions={dock}
 					drag={drag}
 					announcement={dragNote}
@@ -499,7 +555,7 @@ export function EditorScreen({
 				</DockShell>
 				{PANEL_SPECS.map((spec) => {
 					const view = dock.floating[spec.id];
-					if (!view.visible) return null;
+					if (!view.visible || maximised !== null) return null;
 					return (
 						<FloatingPanel
 							key={spec.id}
@@ -519,18 +575,43 @@ export function EditorScreen({
 							onToggleCollapsed={() => dock.toggleFloatCollapsed(spec.id)}
 							onRaise={() => dock.raise(spec.id)}
 							actions={
-								<PanelCommands
-									title={t(spec.title)}
-									at="float"
-									onDock={(zone) => dock.dockTo(spec.id, zone)}
-									onFloat={() => {}}
-								/>
+								<>
+									{spec.expandable && !view.collapsed && (
+										<PanelExpandButton
+											title={t(spec.title)}
+											expanded={false}
+											onToggle={() => dock.maximise(spec.id)}
+										/>
+									)}
+									<PanelCommands
+										title={t(spec.title)}
+										at="float"
+										onDock={(zone) => dock.dockTo(spec.id, zone)}
+										onFloat={() => {}}
+									/>
+								</>
 							}
 						>
 							{content(spec.id)}
 						</FloatingPanel>
 					);
 				})}
+				{maximised !== null && (
+					<section
+						className={styles.maximised}
+						data-panel-id={maximised}
+						data-panel-maximised=""
+						aria-labelledby="maximised-title"
+					>
+						<header className={styles.maximisedHeader}>
+							<h2 id="maximised-title" className={styles.maximisedTitle}>
+								{titleOf(maximised)}
+							</h2>
+							<PanelExpandButton title={titleOf(maximised)} expanded onToggle={dock.restore} />
+						</header>
+						<div className={styles.maximisedBody}>{content(maximised as PanelId)}</div>
+					</section>
+				)}
 				<SnapGuides guides={guides} />
 			</div>
 		</div>

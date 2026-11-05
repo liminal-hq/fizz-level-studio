@@ -31,6 +31,7 @@ function actions(): DockActions {
 		resizeZone: vi.fn(),
 		resetZoneSize: vi.fn(),
 		reorder: vi.fn(),
+		maximise: vi.fn(),
 	};
 }
 

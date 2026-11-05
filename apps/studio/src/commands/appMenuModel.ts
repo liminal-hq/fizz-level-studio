@@ -49,7 +49,9 @@ export function appMenuItems(snapshot: BridgeSnapshot): MenuItem[] {
 	return (Object.keys(MENU_IDS) as MenuName[]).map((menu): MenuItem => {
 		const items: MenuItem[] = [];
 		let section: number | null = null;
-		for (const def of COMMANDS.filter((command) => command.menu === menu)) {
+		for (const def of COMMANDS.filter(
+			(command) => command.menu === menu && !command.hidden?.(snapshot.facts),
+		)) {
 			if (section !== null && def.section !== section) {
 				items.push({ type: 'separator', id: `${menu}-rule-${def.section}` });
 			}

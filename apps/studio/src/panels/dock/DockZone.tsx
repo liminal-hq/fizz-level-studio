@@ -15,6 +15,7 @@ import {
 import { t, type MessageId } from '../../i18n/messages';
 import { FoldButton } from './FoldButton';
 import { PanelCommands } from './PanelCommands';
+import { PanelExpandButton } from './PanelExpandButton';
 import { PANEL_ICONS } from './panelIcons';
 import type { PanelId } from '../float/panelSpecs';
 import type { DragSource } from './useDockDrag';
@@ -33,6 +34,9 @@ export interface DockZoneProps {
 	onReorder?: (id: string, index: number) => void;
 	/** A press on a tab or a header that may become a drag. */
 	onDragStart?: (event: PointerEvent<HTMLElement>, id: string, source: DragSource) => void;
+	/** Whether a panel can be maximised, and the action that does it. */
+	expandable?: (id: string) => boolean;
+	onMaximise?: (id: string) => void;
 	/** The panel being dragged, dimmed where it sits. */
 	dragging?: string | null;
 }
@@ -60,6 +64,8 @@ export function DockZone({
 	onReorder,
 	onDragStart,
 	dragging = null,
+	expandable,
+	onMaximise,
 }: DockZoneProps) {
 	return (
 		<section className={styles.zone} data-zone={zone} aria-label={t(ZONE_LABELS[zone])}>
@@ -78,6 +84,8 @@ export function DockZone({
 					onReorder={onReorder}
 					onDragStart={onDragStart}
 					dragging={dragging}
+					expandable={expandable}
+					onMaximise={onMaximise}
 				/>
 			))}
 		</section>
@@ -102,6 +110,8 @@ function Group({
 	onReorder,
 	onDragStart,
 	dragging = null,
+	expandable,
+	onMaximise,
 }: GroupProps) {
 	const id = `dock-${zone}-${index}`;
 	const strip = useRef<HTMLDivElement>(null);
@@ -177,6 +187,13 @@ function Group({
 						);
 					})}
 				</div>
+				{onMaximise && expandable?.(active) && (
+					<PanelExpandButton
+						title={titleOf(active)}
+						expanded={false}
+						onToggle={() => onMaximise(active)}
+					/>
+				)}
 				<PanelCommands
 					title={titleOf(active)}
 					at={zone}
@@ -188,6 +205,7 @@ function Group({
 			<div
 				className={styles.body}
 				id={`${id}-panel`}
+				data-panel-id={active}
 				role="tabpanel"
 				aria-labelledby={`${id}-tab-${active}`}
 			>
