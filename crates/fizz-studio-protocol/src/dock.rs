@@ -99,6 +99,19 @@ pub struct WindowPlacement {
     pub h: i32,
 }
 
+/// Where a panel's window is, as the app reports it when the window opens, moves, resizes or
+/// closes. The frontend writes it into the panel's `window` record in the active workspace.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[ts(export, export_to = "../../../packages/protocol/src/generated/")]
+pub struct PanelPlaced {
+    /// The window's label, such as `panel-script-1`.
+    pub label: String,
+    pub placement: WindowPlacement,
+    /// Whether `placement.x` and `placement.y` are real. A platform that cannot say where a window
+    /// is (Wayland) reports the size only, and the saved position is then left as it was.
+    pub positioned: bool,
+}
+
 /// One panel in a workspace.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, TS)]
 #[ts(export, export_to = "../../../packages/protocol/src/generated/")]

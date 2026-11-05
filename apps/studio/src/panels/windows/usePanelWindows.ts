@@ -11,11 +11,17 @@
 // assumes nothing it has not been told: a failed command leaves the panel where it was.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import type { PanelPlaced } from '@liminal-hq/fizz-studio-protocol/generated/PanelPlaced';
 import { panelFromLabel } from '../../app/windowKind';
+import { registerFlush } from '../../services/pendingWrites';
 import { panelWindowClient, type PanelWindowClient } from '../../services/panelWindowClient';
 import type { DockLayoutHandle } from '../dock/useDockLayout';
 import { PANEL_IDS } from '../dock/dockModel';
 import type { PanelId } from '../float/panelSpecs';
+import { recordPlacement } from './placement';
+
+/** How long a moving window is left alone before its place is recorded, in milliseconds. */
+export const PLACE_DELAY_MS = 250;
 
 export interface PanelWindows {
 	/** Whether each panel is in a window of its own. */
@@ -38,14 +44,47 @@ export function usePanelWindows(
 	const busy = useRef(new Set<string>());
 	const latest = useRef(dock);
 	latest.current = dock;
+	/** Where each panel's window last reported it was, waiting for the window to stop moving. */
+	const pending = useRef(new Map<string, PanelPlaced>());
+	const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+	/** Records every place waiting, in the workspace that is active now. */
+	const record = useCallback(() => {
+		if (timer.current) clearTimeout(timer.current);
+		timer.current = null;
+		for (const [id, placed] of pending.current) {
+			const was = latest.current.workspace.panels[id]?.window ?? null;
+			latest.current.placeWindow(id, recordPlacement(was, placed));
+		}
+		pending.current.clear();
+	}, []);
+
+	// A window closing at quit time must not lose where it was: record, then write the dock now.
+	useEffect(
+		() =>
+			registerFlush(async () => {
+				record();
+				await latest.current.flush();
+			}),
+		[record],
+	);
 
 	useEffect(() => {
 		let live = true;
 		const stop = client.onClosed((label) => {
 			const panel = panelFromLabel(label);
 			if (panel === null) return;
+			// Where the window was when it closed is recorded before the panel comes back.
+			record();
 			opened.current.delete(panel);
 			latest.current.bringBack(panel);
+		});
+		const stopPlaced = client.onPlaced((placed) => {
+			const panel = panelFromLabel(placed.label);
+			if (panel === null) return;
+			pending.current.set(panel, placed);
+			if (timer.current) clearTimeout(timer.current);
+			timer.current = setTimeout(record, PLACE_DELAY_MS);
 		});
 		client
 			.open()
@@ -61,18 +100,22 @@ export function usePanelWindows(
 		return () => {
 			live = false;
 			stop();
+			stopPlaced();
+			if (timer.current) clearTimeout(timer.current);
 		};
-	}, [client]);
+	}, [client, record]);
 
 	const open = useCallback(
-		(id: PanelId, then?: () => void) => {
+		(id: PanelId, then?: (placed: PanelPlaced) => void) => {
 			if (busy.current.has(id)) return;
 			busy.current.add(id);
+			// The window opens where the active workspace last had it, fitted to the screens now.
+			const remembered = latest.current.workspace.panels[id]?.window ?? null;
 			client
-				.tearOff(id)
-				.then(() => {
+				.tearOff(id, remembered)
+				.then((placed) => {
 					opened.current.add(id);
-					then?.();
+					then?.(placed);
 				})
 				.catch(() => {})
 				.finally(() => busy.current.delete(id));
@@ -96,18 +139,28 @@ export function usePanelWindows(
 		[client],
 	);
 
+	/** Records the place a window actually opened at, which differs from the record when it was fitted. */
+	const keep = useCallback((id: PanelId, placed: PanelPlaced) => {
+		const was = latest.current.workspace.panels[id]?.window ?? null;
+		latest.current.placeWindow(id, recordPlacement(was, placed));
+	}, []);
+
 	// Make the windows match the saved arrangement once both are known.
 	useEffect(() => {
 		if (!known || !loaded) return;
 		for (const id of PANEL_IDS) {
 			const inWindow = workspace.panels[id]?.place === 'window';
-			if (inWindow && !opened.current.has(id)) open(id);
+			if (inWindow && !opened.current.has(id)) open(id, (placed) => keep(id, placed));
 			else if (!inWindow && opened.current.has(id)) close(id);
 		}
-	}, [known, loaded, workspace, open, close]);
+	}, [known, loaded, workspace, open, close, keep]);
 
 	const tearOff = useCallback(
-		(id: PanelId) => open(id, () => latest.current.sendToWindow(id)),
+		(id: PanelId) =>
+			open(id, (placed) => {
+				const was = latest.current.workspace.panels[id]?.window ?? null;
+				latest.current.sendToWindow(id, recordPlacement(was, placed));
+			}),
 		[open],
 	);
 	const dockBack = useCallback(

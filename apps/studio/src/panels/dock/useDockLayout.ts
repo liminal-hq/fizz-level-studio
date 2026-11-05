@@ -31,6 +31,7 @@ import {
 	dockPanel,
 	floatPanel,
 	peekPanel,
+	placeWindow,
 	reorderTab,
 	pinPanel,
 	resizeZone,
@@ -94,6 +95,10 @@ export interface DockLayoutHandle {
 	sendToWindow(id: string, at?: WindowPlacement): void;
 	/** Brings a panel in a window of its own back to its zone, or to floating. */
 	bringBack(id: string): void;
+	/** Records where a panel's window is, whatever the panel's place now. */
+	placeWindow(id: string, at: WindowPlacement): void;
+	/** Writes a change waiting on its pause now; resolves when Rust has it. */
+	flush(): Promise<void>;
 }
 
 /**
@@ -193,6 +198,10 @@ export function useDockLayout(client: DockClient, windowSize: Size, area: Size):
 	);
 	const toWindow = useCallback(
 		(id: string, at?: WindowPlacement) => edit((ws) => sendToWindow(ws, id, at)),
+		[edit],
+	);
+	const record = useCallback(
+		(id: string, at: WindowPlacement) => edit((ws) => placeWindow(ws, id, at)),
 		[edit],
 	);
 	const fromWindow = useCallback((id: string) => edit((ws) => bringBack(ws, id)), [edit]);
@@ -344,5 +353,7 @@ export function useDockLayout(client: DockClient, windowSize: Size, area: Size):
 		loaded,
 		sendToWindow: toWindow,
 		bringBack: fromWindow,
+		placeWindow: record,
+		flush,
 	};
 }

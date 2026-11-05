@@ -40,9 +40,10 @@ describe('panelWindowClient', () => {
 	it('opens and closes the panel window through the app commands', async () => {
 		invoke.mockResolvedValue(undefined);
 		await panelWindowClient.tearOff('script');
-		expect(invoke).toHaveBeenCalledWith('open_window', {
-			id: { kind: 'panel', panel: 'script', n: 1 },
-		});
+		expect(invoke).toHaveBeenCalledWith('tear_off_panel', { panel: 'script', placement: null });
+		const place = { x: 1, y: 2, w: 300, h: 400 };
+		await panelWindowClient.tearOff('history', place);
+		expect(invoke).toHaveBeenCalledWith('tear_off_panel', { panel: 'history', placement: place });
 		await panelWindowClient.dockBack('script');
 		expect(invoke).toHaveBeenCalledWith('close_panel', {
 			id: { kind: 'panel', panel: 'script', n: 1 },
@@ -73,6 +74,30 @@ describe('panelWindowClient', () => {
 		await Promise.resolve();
 		await Promise.resolve();
 		expect(early).toHaveBeenCalled();
+	});
+});
+
+describe('where a panel window is', () => {
+	it('hears the placed event and stops listening', async () => {
+		const unlisten = vi.fn();
+		let handler: (event: { payload: unknown }) => void = () => {};
+		listen.mockImplementation(async (_name: string, h: typeof handler) => {
+			handler = h;
+			return unlisten;
+		});
+		const heard: unknown[] = [];
+		const stop = panelWindowClient.onPlaced((placed) => heard.push(placed));
+		await Promise.resolve();
+		const placed = {
+			label: 'panel-script-1',
+			placement: { x: 1, y: 2, w: 3, h: 4 },
+			positioned: true,
+		};
+		handler({ payload: placed });
+		expect(heard).toEqual([placed]);
+		expect(listen.mock.calls[0]?.[0]).toBe('panel://placed');
+		stop();
+		expect(unlisten).toHaveBeenCalled();
 	});
 });
 

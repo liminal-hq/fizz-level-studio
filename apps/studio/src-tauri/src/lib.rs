@@ -6,6 +6,7 @@
 pub mod close_gate;
 pub mod launch;
 pub mod logging;
+pub mod panel_place;
 pub mod quit;
 pub mod quit_round;
 pub mod windows;
@@ -30,7 +31,7 @@ fn settings_storage<R: tauri::Runtime>(app: &tauri::AppHandle<R>) -> Arc<dyn Blo
 
 /// The tear-off ghost: one shared window the plugin creates once the event loop runs, which loads
 /// the app bundle and is routed by its label (`tear-ghost`, one of the window labels in
-/// `windows.rs`). No window-state plugin is registered, so the ghost needs no denylist entry.
+/// `windows.rs`). No window-state plugin is registered (D65), so the ghost needs no denylist entry.
 fn tear_off_options() -> tauri_plugin_window_tearoff::Options {
     tauri_plugin_window_tearoff::Options {
         ghost_label: WindowId::TearGhost.label(),
@@ -87,6 +88,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             windows::open_window,
             windows::open_panels,
+            windows::tear_off_panel,
             windows::close_panel,
             launch::app_launch_paths,
             quit::app_quit,
@@ -105,6 +107,14 @@ pub fn run() {
         // can show the panel in its place again.
         .on_window_event(|window, event| {
             quit::request_close(window, event);
+            if matches!(
+                event,
+                tauri::WindowEvent::Moved(_)
+                    | tauri::WindowEvent::Resized(_)
+                    | tauri::WindowEvent::CloseRequested { .. }
+            ) {
+                windows::report_panel_placed(window);
+            }
             if matches!(event, tauri::WindowEvent::Destroyed) {
                 windows::announce_panel_closed(window.app_handle(), window.label());
                 quit::window_gone(window.app_handle(), window.label());
