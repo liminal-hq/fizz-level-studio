@@ -23,16 +23,14 @@
 }
 
 .body {
-	display: grid;
+	position: relative;
 	flex: 1;
-	grid-template-columns: minmax(0, 1fr) 22rem;
 	min-height: 0;
+	overflow: hidden;
 }
 
-.side {
-	display: flex;
-	flex-direction: column;
-	min-height: 0;
-	overflow: auto;
-	border-left: 1px solid var(--fls-border-subtle);
+/* The level fills the editor area; every panel floats over it. */
+.canvas {
+	position: absolute;
+	inset: 0;
 }

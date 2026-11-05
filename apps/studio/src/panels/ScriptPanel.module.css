@@ -1,15 +1,13 @@
 .panel {
-	flex: 1 0 14rem;
 	display: flex;
+	flex: 1;
 	flex-direction: column;
 	min-height: 0;
 	padding: 0.5rem 0.75rem;
-	overflow: auto;
-	background: var(--fls-bg-content);
 }
 
-.title,
 .subtitle {
+	flex: none;
 	margin: 0 0 0.4rem;
 	font-size: 0.95rem;
 }
@@ -19,7 +17,9 @@
 }
 
 .editor {
+	flex: 1 1 6rem;
 	min-width: 0;
+	min-height: 0;
 	border: 1px solid var(--fls-border-subtle);
 	border-radius: 4px;
 	overflow: hidden;
@@ -31,7 +31,10 @@
 }
 
 .problems {
+	flex: none;
+	max-height: 6rem;
 	margin: 0;
+	overflow: auto;
 	padding: 0;
 	list-style: none;
 }
@@ -60,9 +63,9 @@
 
 .header {
 	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	gap: 0.5rem;
+	flex: none;
+	justify-content: flex-end;
+	margin-bottom: 0.4rem;
 }
 
 .tearOff {

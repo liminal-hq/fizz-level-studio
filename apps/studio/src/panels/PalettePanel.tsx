@@ -64,8 +64,7 @@ export function PalettePanel({ tiles, words: docs, brush, onBrush }: PalettePane
 	};
 
 	return (
-		<section className={styles.panel} aria-label={t('palette.title')}>
-			<h2 className={styles.title}>{t('palette.title')}</h2>
+		<div className={styles.panel}>
 			<div className={styles.tabs} role="tablist" aria-label={t('palette.groups')}>
 				{BRUSH_GROUPS.map((group) => (
 					<button
@@ -108,6 +107,6 @@ export function PalettePanel({ tiles, words: docs, brush, onBrush }: PalettePane
 			{shown !== 'tile' && docs.length === 0 && (
 				<p className={styles.note}>{t('palette.unavailable')}</p>
 			)}
-		</section>
+		</div>
 	);
 }

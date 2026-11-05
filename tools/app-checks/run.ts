@@ -93,6 +93,18 @@ async function main(): Promise<void> {
 		});
 		check('the level named on the command line opens', shown !== null);
 
+		// The canvas must have room, and the panels must float inside it; a layout rule lost in
+		// a refactor once left the canvas zero tall, which no jsdom test can see.
+		const laidOut = await bridge.js<{ canvas: number; panels: number }>(
+			`const c = document.querySelector('canvas')?.getBoundingClientRect();
+			 const p = [...document.querySelectorAll('[role=region][aria-label]')].filter((e) => e.getBoundingClientRect().height > 40);
+			 return { canvas: c ? c.height : 0, panels: p.length };`,
+		);
+		check(
+			'the level canvas is on screen with room to draw',
+			laidOut.canvas > 300,
+			String(laidOut.canvas),
+		);
 		const opened = await openLevel(bridge, path);
 		check('the open level has its 5,376 cells', opened.cells === 5376, String(opened.cells));
 		check('a fresh level has nothing to undo', !opened.canUndo && opened.revision === 0);

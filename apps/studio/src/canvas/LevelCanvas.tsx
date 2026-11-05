@@ -10,7 +10,6 @@ import { t } from '../i18n/messages';
 import type { Cell, PointerPhase, Rect } from '../tools/tool';
 import { drawLevel, readCanvasColours, type DrawContext } from './drawLevel';
 import styles from './LevelCanvas.module.css';
-import { ObjectList } from './ObjectList';
 import { resolveTileColours } from './tileColours';
 import { wheelAction } from './wheel';
 import {
@@ -44,10 +43,13 @@ export interface LevelCanvasProps {
 	selection?: Rect | null;
 	/** Claude's pending proposals to draw as ghosts; leave out to draw none. */
 	ghosts?: readonly GhostCell[];
-	/** Called when the person chooses a cell: an entry in the objects list, or a click on the grid. */
-	onCellChosen?: (cell: Cell, source: 'grid' | 'list') => void;
-	/** Called when a problem in the objects list is chosen. */
-	onSelectLine?: (line: number) => void;
+	/** Called when the person clicks a cell of the grid. */
+	onCellChosen?: (cell: Cell, source: 'grid') => void;
+	/**
+	 * Asks the canvas to bring a cell into view, such as one chosen in the objects list. A new
+	 * `serial` asks again for the same cell.
+	 */
+	reveal?: { cell: Cell; serial: number } | null;
 }
 
 const NO_CELLS: readonly Cell[] = [];
@@ -65,7 +67,7 @@ export function LevelCanvas({
 	paste = null,
 	selection = null,
 	ghosts = NO_GHOSTS,
-	onSelectLine,
+	reveal = null,
 	onCellChosen,
 }: LevelCanvasProps) {
 	const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -168,6 +170,14 @@ export function LevelCanvas({
 		setCamera(revealCell(viewport, cell, size, view));
 	};
 
+	// A cell chosen elsewhere is brought into view; each new serial asks once.
+	const lastReveal = useRef(0);
+	useEffect(() => {
+		if (!reveal || reveal.serial === lastReveal.current) return;
+		lastReveal.current = reveal.serial;
+		setCamera((current) => revealCell(current, reveal.cell, size, view));
+	}, [reveal, size, view]);
+
 	const onPointerDown = (event: PointerEvent<HTMLCanvasElement>) => {
 		if (event.button !== 0) return;
 		event.currentTarget.focus();
@@ -264,14 +274,6 @@ export function LevelCanvas({
 					</div>
 				</div>
 			</div>
-			<ObjectList
-				view={view}
-				onSelectCell={(cell) => {
-					moveTo(cell);
-					onCellChosen?.(cell, 'list');
-				}}
-				onSelectLine={onSelectLine}
-			/>
 		</div>
 	);
 }

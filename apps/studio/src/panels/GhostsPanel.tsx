@@ -18,10 +18,7 @@ export interface GhostsPanelProps {
 /** Read-only: it shows what Claude proposed. Accepting and rejecting are not here yet. */
 export function GhostsPanel({ proposals, shown, onToggle, onRefresh }: GhostsPanelProps) {
 	return (
-		<section className={styles.panel} aria-labelledby="ghosts-panel-title">
-			<h2 id="ghosts-panel-title" className={styles.title}>
-				{t('ghosts.title')}
-			</h2>
+		<div className={styles.panel}>
 			<div className={styles.bar}>
 				<label className={styles.toggle}>
 					<input
@@ -50,6 +47,6 @@ export function GhostsPanel({ proposals, shown, onToggle, onRefresh }: GhostsPan
 				</ul>
 			)}
 			<p className={styles.note}>{t('ghosts.readOnly')}</p>
-		</section>
+		</div>
 	);
 }

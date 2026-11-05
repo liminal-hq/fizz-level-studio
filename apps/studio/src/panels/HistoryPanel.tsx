@@ -38,10 +38,7 @@ export function HistoryPanel({
 	onRedo,
 }: HistoryPanelProps) {
 	return (
-		<section className={styles.panel} aria-labelledby="history-panel-title">
-			<h2 id="history-panel-title" className={styles.title}>
-				{t('history.title')}
-			</h2>
+		<div className={styles.panel}>
 			<div className={styles.buttons}>
 				<button
 					type="button"
@@ -62,6 +59,6 @@ export function HistoryPanel({
 					{redoName ? t('history.redoNamed', { name: redoName }) : t('history.redo')}
 				</button>
 			</div>
-		</section>
+		</div>
 	);
 }

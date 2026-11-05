@@ -13,7 +13,7 @@ import {
 } from 'react';
 import { t } from '../../i18n/messages';
 import styles from './FloatingPanel.module.css';
-import { keyDelta, moveRect, resizeRect, type Rect, type Size } from './panelGeometry';
+import { isMeasured, keyDelta, moveRect, resizeRect, type Rect, type Size } from './panelGeometry';
 import { snapMoveWithin, snapResize, type Guide } from './snap';
 
 export interface FloatingPanelProps {
@@ -44,6 +44,7 @@ export interface FloatingPanelProps {
 	children: ReactNode;
 }
 
+const UNBOUNDED: Size = { w: 100_000, h: 100_000 };
 const NO_NEIGHBOURS: readonly Rect[] = [];
 
 interface Gesture {
@@ -67,7 +68,7 @@ export function FloatingPanel({
 	collapsed,
 	z,
 	min,
-	area,
+	area: measured,
 	onChange,
 	onToggleCollapsed,
 	onRaise,
@@ -76,6 +77,8 @@ export function FloatingPanel({
 	actions,
 	children,
 }: FloatingPanelProps) {
+	// Until the area has been laid out it has no edges to keep a panel inside.
+	const area = isMeasured(measured) ? measured : UNBOUNDED;
 	const gesture = useRef<Gesture | null>(null);
 	// Where the panel was when a key gesture began, so Escape can put it back.
 	const keyOrigin = useRef<Rect | null>(null);

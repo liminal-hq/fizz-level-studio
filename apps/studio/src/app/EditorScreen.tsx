@@ -9,13 +9,21 @@ import type { LevelSnapshot } from '@liminal-hq/fizz-studio-protocol/generated/L
 import type { WordDoc } from '@liminal-hq/fizz-studio-protocol/generated/WordDoc';
 import { useCallback, useMemo, useEffect, useRef, useState, type KeyboardEvent } from 'react';
 import { LevelCanvas } from '../canvas/LevelCanvas';
+import { ObjectList } from '../canvas/ObjectList';
 import { enMessages, t, type MessageId } from '../i18n/messages';
 import { GhostsPanel } from '../panels/GhostsPanel';
+import { FloatingPanel } from '../panels/float/FloatingPanel';
+import { neighboursOf, usePanelLayout } from '../panels/float/usePanelLayout';
+import { PANEL_SPECS, type PanelId } from '../panels/float/panelSpecs';
+import { SnapGuides } from '../panels/float/SnapGuides';
+import { useElementSize } from '../panels/float/useElementSize';
+import type { Guide } from '../panels/float/snap';
 import { HistoryPanel, historyShortcut } from '../panels/HistoryPanel';
 import { PalettePanel } from '../panels/PalettePanel';
 import { ScriptPanel } from '../panels/ScriptPanel';
 import { TornOffNotice } from '../panels/TornOffNotice';
 import { usePanelDock } from '../panels/usePanelDock';
+import { layoutClient as defaultLayoutClient, type LayoutClient } from '../services/layoutClient';
 import type { PanelWindowClient } from '../services/panelWindowClient';
 import { pasteRect } from '../tools/clip';
 import { SPACING_KEYS, toolForKey } from '../tools/shortcuts';
@@ -34,6 +42,8 @@ export interface EditorScreenProps {
 	onSnapshot?: (snapshot: LevelSnapshot) => void;
 	/** Opens and closes panel windows; defaults to the app's commands. */
 	panelWindows?: PanelWindowClient;
+	/** Reads and saves where the floating panels sit; defaults to the settings plugin. */
+	layouts?: LayoutClient;
 }
 
 /** Keys typed into these belong to the control, not to the editor's shortcuts. */
@@ -52,6 +62,7 @@ export function EditorScreen({
 	client,
 	onSnapshot,
 	panelWindows,
+	layouts = defaultLayoutClient,
 }: EditorScreenProps) {
 	const [snapshot, setSnapshot] = useState(initial);
 	const held = useRef(initial);
@@ -69,6 +80,11 @@ export function EditorScreen({
 	const levelId = snapshot.id;
 	const revision = snapshot.revision;
 	const scriptDock = usePanelDock('script', panelWindows);
+	const areaRef = useRef<HTMLDivElement>(null);
+	const area = useElementSize(areaRef);
+	const floating = usePanelLayout(layouts, area);
+	const [guides, setGuides] = useState<Guide[]>([]);
+	const [reveal, setReveal] = useState<{ cell: Cell; serial: number } | null>(null);
 
 	const follow = useRef(onSnapshot);
 	follow.current = onSnapshot;
@@ -171,6 +187,16 @@ export function EditorScreen({
 		[client, tool.tool, showLine],
 	);
 
+	// Choosing an object in the list moves the cursor to it, brings it into view and shows its line.
+	const onObjectChosen = useCallback(
+		(cell: Cell) => {
+			setCursor(cell);
+			setReveal((old) => ({ cell, serial: (old?.serial ?? 0) + 1 }));
+			onCellChosen(cell, 'list');
+		},
+		[onCellChosen],
+	);
+
 	const onToolEvent = useCallback(
 		(phase: PointerPhase, cell: Cell) => {
 			const edits = tool.pointer(phase, cell);
@@ -225,6 +251,57 @@ export function EditorScreen({
 	const noteText =
 		snapshot.banner && snapshot.banner in enMessages ? t(snapshot.banner as MessageId) : null;
 
+	const panelContent = (id: PanelId) => {
+		switch (id) {
+			case 'palette':
+				return (
+					<PalettePanel
+						tiles={snapshot.view.palette}
+						words={words}
+						brush={tool.brush}
+						onBrush={tool.setBrush}
+					/>
+				);
+			case 'objects':
+				return (
+					<ObjectList view={snapshot.view} onSelectCell={onObjectChosen} onSelectLine={showLine} />
+				);
+			case 'history':
+				return (
+					<HistoryPanel
+						canUndo={snapshot.can_undo}
+						canRedo={snapshot.can_redo}
+						undoName={snapshot.undo_name}
+						redoName={snapshot.redo_name}
+						onUndo={undo}
+						onRedo={redo}
+					/>
+				);
+			case 'proposals':
+				return (
+					<GhostsPanel
+						proposals={proposals}
+						shown={showGhosts}
+						onToggle={setShowGhosts}
+						onRefresh={() => setReads((n) => n + 1)}
+					/>
+				);
+			case 'script':
+				return scriptDock.tornOff ? (
+					<TornOffNotice messageId="panel.scriptTornOff" onDockBack={scriptDock.dockBack} />
+				) : (
+					<ScriptPanel
+						words={words}
+						text={snapshot.text}
+						diagnostics={snapshot.view.diagnostics}
+						focusLine={focusLine}
+						focusSerial={focusSerial}
+						onTearOff={scriptDock.tearOff}
+					/>
+				);
+		}
+	};
+
 	return (
 		<div
 			className={styles.screen}
@@ -248,54 +325,47 @@ export function EditorScreen({
 				</p>
 			)}
 			<ToolPalette handle={tool} />
-			<div className={styles.body}>
-				<LevelCanvas
-					view={snapshot.view}
-					cursor={cursor}
-					onCursorChange={setCursor}
-					onToolEvent={onToolEvent}
-					preview={tool.preview}
-					previewShape={tool.tool === 'paint' && tool.brush.group === 'item' ? 'item' : 'cell'}
-					paste={tool.tool === 'stamp' && tool.clip ? pasteRect(tool.clip, cursor) : null}
-					selection={tool.selection}
-					ghosts={ghostCells}
-					onSelectLine={showLine}
-					onCellChosen={onCellChosen}
-				/>
-				<div className={styles.side}>
-					<PalettePanel
-						tiles={snapshot.view.palette}
-						words={words}
-						brush={tool.brush}
-						onBrush={tool.setBrush}
-					/>
-					<GhostsPanel
-						proposals={proposals}
-						shown={showGhosts}
-						onToggle={setShowGhosts}
-						onRefresh={() => setReads((n) => n + 1)}
-					/>
-					{scriptDock.tornOff ? (
-						<TornOffNotice messageId="panel.scriptTornOff" onDockBack={scriptDock.dockBack} />
-					) : (
-						<ScriptPanel
-							words={words}
-							text={snapshot.text}
-							diagnostics={snapshot.view.diagnostics}
-							focusLine={focusLine}
-							focusSerial={focusSerial}
-							onTearOff={scriptDock.tearOff}
-						/>
-					)}
-					<HistoryPanel
-						canUndo={snapshot.can_undo}
-						canRedo={snapshot.can_redo}
-						undoName={snapshot.undo_name}
-						redoName={snapshot.redo_name}
-						onUndo={undo}
-						onRedo={redo}
+			<div className={styles.body} ref={areaRef}>
+				<div className={styles.canvas}>
+					<LevelCanvas
+						view={snapshot.view}
+						cursor={cursor}
+						onCursorChange={setCursor}
+						onToolEvent={onToolEvent}
+						preview={tool.preview}
+						previewShape={tool.tool === 'paint' && tool.brush.group === 'item' ? 'item' : 'cell'}
+						paste={tool.tool === 'stamp' && tool.clip ? pasteRect(tool.clip, cursor) : null}
+						selection={tool.selection}
+						ghosts={ghostCells}
+						reveal={reveal}
+						onCellChosen={onCellChosen}
 					/>
 				</div>
+				{PANEL_SPECS.map((spec) => {
+					const view = floating.panels[spec.id];
+					if (!view.visible) return null;
+					return (
+						<FloatingPanel
+							key={spec.id}
+							id={spec.id}
+							title={t(spec.title)}
+							subtitle={spec.id === 'palette' ? tool.brush.kind : undefined}
+							rect={view.rect}
+							collapsed={view.collapsed}
+							z={view.z}
+							min={spec.min}
+							area={area}
+							neighbours={neighboursOf(spec.id, floating.panels)}
+							onGuides={setGuides}
+							onChange={(rect) => floating.change(spec.id, rect)}
+							onToggleCollapsed={() => floating.toggleCollapsed(spec.id)}
+							onRaise={() => floating.raise(spec.id)}
+						>
+							{panelContent(spec.id)}
+						</FloatingPanel>
+					);
+				})}
+				<SnapGuides guides={guides} />
 			</div>
 		</div>
 	);

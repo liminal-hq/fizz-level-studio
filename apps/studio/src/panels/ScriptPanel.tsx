@@ -30,7 +30,7 @@ export interface ScriptPanelProps {
 const NO_WORDS: readonly WordDoc[] = [];
 
 /**
- * The script in a code editor with line numbers, find, folding, hover documentation and the
+ * The script in a code editor that fills the panel (the panel's owner sizes it) with line numbers, find, folding, hover documentation and the
  * parser's problems marked on their lines. Below it, each problem is a button that marks its line
  * and moves the keyboard into the editor there.
  */
@@ -59,17 +59,14 @@ export function ScriptPanel({
 	}, [focusLine, focusSerial]);
 
 	return (
-		<section className={styles.panel} aria-labelledby="script-panel-title">
-			<div className={styles.header}>
-				<h2 id="script-panel-title" className={styles.title}>
-					{t('script.title')}
-				</h2>
-				{onTearOff && (
+		<div className={styles.panel}>
+			{onTearOff && (
+				<div className={styles.header}>
 					<button type="button" className={styles.tearOff} onClick={onTearOff}>
 						{t('panel.tearOff')}
 					</button>
-				)}
-			</div>
+				</div>
+			)}
 			<ScriptEditor
 				className={styles.editor}
 				text={text}
@@ -97,6 +94,6 @@ export function ScriptPanel({
 					))}
 				</ul>
 			)}
-		</section>
+		</div>
 	);
 }

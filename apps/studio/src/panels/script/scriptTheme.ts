@@ -15,8 +15,7 @@ export const scriptTheme = EditorView.theme({
 		color: 'var(--fls-text-primary)',
 		backgroundColor: 'var(--fls-bg-content)',
 		fontSize: '0.85rem',
-		maxHeight: '22rem',
-		minHeight: '10rem',
+		height: '100%',
 	},
 	'&.cm-focused': {
 		outline: '2px solid var(--fls-focus-ring)',

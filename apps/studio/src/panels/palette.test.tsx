@@ -40,7 +40,8 @@ describe('PalettePanel', () => {
 
 	it('lists the level tiles, then the documented items and enemies on their tabs', async () => {
 		render(<PalettePanel {...props()} />);
-		const region = screen.getByRole('region', { name: 'Palette' });
+		const region = screen.getByRole('tablist', { name: 'Palette groups' })
+			.parentElement as HTMLElement;
 		expect(within(region).getByRole('button', { name: 'grass' })).toHaveAttribute(
 			'title',
 			'Grassy ground',
