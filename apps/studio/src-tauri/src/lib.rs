@@ -15,6 +15,8 @@ pub fn run() {
         // The webview's `console.*` calls are forwarded into this plugin's stream by
         // `src/services/logger.ts`.
         .plugin(logging::plugin())
+        // The webview asks the OS plugin for its platform, so the window frame can adapt.
+        .plugin(tauri_plugin_os::init())
         .setup(|app| {
             windows::open_or_focus(app.handle(), WindowKind::Main, 1)?;
             Ok(())

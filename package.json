@@ -26,9 +26,9 @@
 		"tauri": "bun run --cwd apps/studio tauri",
 		"tauri:dev": "bun run --cwd apps/studio tauri:dev",
 		"build": "bun run --cwd apps/studio build",
-		"typecheck": "bun run --cwd apps/studio typecheck",
-		"test:js": "bun run --cwd apps/studio test",
-		"test:js:ci": "bun run --cwd apps/studio test:ci"
+		"typecheck": "bun run --cwd packages/chrome typecheck && bun run --cwd apps/studio typecheck",
+		"test:js": "bun run --cwd packages/chrome test && bun run --cwd apps/studio test",
+		"test:js:ci": "bun run --cwd packages/chrome test:ci && bun run --cwd apps/studio test:ci"
 	},
 	"description": "A level and overworld editor for Lieutenant Fizz: a plain-text level language, an MCP server for Claude and proofs against the game",
 	"license": "Apache-2.0 OR MIT",
@@ -38,6 +38,7 @@
 		"prettier": "3.6.2"
 	},
 	"workspaces": [
-		"apps/*"
+		"apps/*",
+		"packages/chrome"
 	]
 }

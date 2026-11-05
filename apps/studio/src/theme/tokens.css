@@ -1,20 +1,113 @@
-/* Design tokens: the only place colour literals live. Components use var(--fls-*). */
-
+/*
+ * The studio's semantic theme tokens. Components use these, never raw colours. The scheme follows
+ * the OS by default; `data-fls-theme="light"` or `data-fls-theme="dark"` on the root element
+ * overrides it. The level canvas is never themed: the game's palette stays the game's palette.
+ */
 :root {
-	--fls-surface: #14121b;
-	--fls-surface-raised: #1d1a28;
-	--fls-text: #ece8f6;
-	--fls-text-muted: #a49fb8;
-	--fls-accent: #a78bfa;
+	color-scheme: light dark;
+
+	/* What a window draws: the window colour, the work area behind the canvas, and panel content. */
+	--fls-solid-window: #f5f3fa;
+	--fls-solid-stage: #e8e4f1;
+	--fls-solid-content: #fbfaff;
+	--fls-bg-window: var(--fls-solid-window);
+	--fls-bg-stage: var(--fls-solid-stage);
+	--fls-bg-content: var(--fls-solid-content);
+	--fls-bg-raised: #ffffff;
+	--fls-bg-hover: #e6e1f2;
+	--fls-bg-selected: #ddd3f7;
+	--fls-border-subtle: #d8d2e6;
+	--fls-text-primary: #1b1826;
+	--fls-text-secondary: #4a4560;
+	--fls-text-muted: #6f6a85;
+	--fls-accent: #6d4fd6;
+	--fls-accent-fg: #ffffff;
+	/* What the chrome reads for text on the accent: always the same colour as `--fls-accent-fg`. */
+	--fls-accent-contrast: var(--fls-accent-fg);
+	--fls-danger: #b91c1c;
+	--fls-success: #15803d;
+	--fls-warning: #a16207;
+	--fls-focus-ring: #2563eb;
+
+	/* Window chrome (packages/chrome). Derived from the palette so they follow the scheme. */
+	--fls-bg-chrome: var(--fls-bg-raised);
+	--fls-control-bg: color-mix(in srgb, var(--fls-text-primary) 6%, transparent);
+	--fls-control-bg-hover: color-mix(in srgb, var(--fls-text-primary) 12%, transparent);
+	--fls-title-bar-height: 40px;
+	--fls-title-bar-opacity: 1;
+	--fls-window-radius: 12px;
+
+	/* Control size: 28px, or larger when the settings ask for it. */
+	--fls-hit-target: 28px;
+	--fls-text-scale: 1;
+
 	--fls-font: system-ui, sans-serif;
 }
 
+@media (prefers-color-scheme: dark) {
+	:root:not([data-fls-theme='light']) {
+		color-scheme: dark;
+		--fls-solid-window: #14121b;
+		--fls-solid-stage: #0e0c14;
+		--fls-solid-content: #181523;
+		--fls-bg-raised: #1d1a28;
+		--fls-bg-hover: #272337;
+		--fls-bg-selected: #3a2f63;
+		--fls-border-subtle: #2d2940;
+		--fls-text-primary: #ece8f6;
+		--fls-text-secondary: #c5bfdb;
+		--fls-text-muted: #a49fb8;
+		--fls-accent: #a78bfa;
+		--fls-accent-fg: #14121b;
+		--fls-danger: #f87171;
+		--fls-success: #4ade80;
+		--fls-warning: #facc15;
+		--fls-focus-ring: #60a5fa;
+	}
+}
+
 :root[data-fls-theme='light'] {
-	--fls-surface: #f7f5fb;
-	--fls-surface-raised: #ffffff;
-	--fls-text: #1b1826;
-	--fls-text-muted: #5b5670;
-	--fls-accent: #6d4fd6;
+	color-scheme: light;
+}
+
+:root[data-fls-theme='dark'] {
+	color-scheme: dark;
+	--fls-solid-window: #14121b;
+	--fls-solid-stage: #0e0c14;
+	--fls-solid-content: #181523;
+	--fls-bg-raised: #1d1a28;
+	--fls-bg-hover: #272337;
+	--fls-bg-selected: #3a2f63;
+	--fls-border-subtle: #2d2940;
+	--fls-text-primary: #ece8f6;
+	--fls-text-secondary: #c5bfdb;
+	--fls-text-muted: #a49fb8;
+	--fls-accent: #a78bfa;
+	--fls-accent-fg: #14121b;
+	--fls-danger: #f87171;
+	--fls-success: #4ade80;
+	--fls-warning: #facc15;
+	--fls-focus-ring: #60a5fa;
+}
+
+/*
+ * Window frame per platform. Windows draws the window shadow itself (`shadow: true`, set in
+ * `src-tauri/src/windows.rs`), so the CSS adds no margin or shadow there. Linux draws no shadow
+ * for a frameless window, so the frame keeps a transparent margin and draws the shadow in CSS. On
+ * Windows 11 the OS also rounds the corners, so the CSS radius is dropped there to avoid two
+ * mismatched radii. With no platform set (a plain browser), the frame uses no margin and no shadow.
+ */
+:root[data-platform='linux'] {
+	/* The resize hit area is a fixed 5px strip at the window's outer edge, so a small margin keeps
+	   it close to the visible edge. The shadow must fit inside the margin to avoid a hard clip. */
+	--fls-window-shadow-margin: 8px;
+	--fls-window-shadow: 0 2px 8px rgba(0, 0, 0, 0.42), 0 0 0 1px rgba(0, 0, 0, 0.22);
+	/* No drop shadow while unfocused, only the hairline ring so the edge stays visible. */
+	--fls-window-shadow-unfocused: 0 0 0 1px rgba(0, 0, 0, 0.22);
+}
+
+:root[data-platform='windows'][data-windows11='true'] {
+	--fls-window-radius: 0px;
 }
 
 html,
@@ -22,7 +115,8 @@ body,
 #root {
 	margin: 0;
 	height: 100%;
-	background: var(--fls-surface);
-	color: var(--fls-text);
+	/* The window is transparent so the frame can round its own corners. */
+	background: transparent;
+	color: var(--fls-text-primary);
 	font-family: var(--fls-font);
 }

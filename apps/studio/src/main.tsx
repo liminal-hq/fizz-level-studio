@@ -8,11 +8,13 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { App } from './app/App';
 import { initLogger } from './services/logger';
+import { applyPlatform } from './theme/platform';
 import './theme/tokens.css';
 
 const label = getCurrentWindow().label;
 
 initLogger(label);
+applyPlatform();
 
 const root = document.getElementById('root');
 if (!root) {

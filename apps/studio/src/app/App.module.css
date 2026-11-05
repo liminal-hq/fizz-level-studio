@@ -1,8 +1,9 @@
 .app {
 	display: grid;
-	place-items: center;
-	height: 100%;
+	flex: 1;
+	place-content: center;
 	text-align: center;
+	background: var(--fls-bg-content);
 }
 
 .title {
