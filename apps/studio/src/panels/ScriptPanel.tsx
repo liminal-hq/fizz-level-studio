@@ -3,9 +3,11 @@
 // (c) Copyright 2026 Liminal HQ, Scott Morris
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
+import type { WordDoc } from '@liminal-hq/fizz-studio-protocol/generated/WordDoc';
 import type { ViewDiagnostic } from '@liminal-hq/fizz-studio-protocol/generated/ViewDiagnostic';
 import { useEffect, useRef, useState } from 'react';
 import { t } from '../i18n/messages';
+import { LineComposer } from './LineComposer';
 import styles from './ScriptPanel.module.css';
 
 export interface ScriptPanelProps {
@@ -14,6 +16,8 @@ export interface ScriptPanelProps {
 	diagnostics: readonly ViewDiagnostic[];
 	/** A line (counted from 1) to mark and bring into view, such as one chosen elsewhere. */
 	focusLine?: number | null;
+	/** The documented words, from the backend; when given, a field offers completion from them. */
+	words?: readonly WordDoc[];
 }
 
 /** The script's lines. A trailing newline ends the last line rather than starting an empty one. */
@@ -28,7 +32,7 @@ export function scriptLines(text: string): string[] {
  * The script as plain text with line numbers. It highlights nothing it does not parse: the only
  * marks are the lines named by a problem and the line the person chose.
  */
-export function ScriptPanel({ text, diagnostics, focusLine = null }: ScriptPanelProps) {
+export function ScriptPanel({ text, diagnostics, focusLine = null, words }: ScriptPanelProps) {
 	const lines = scriptLines(text);
 	const [chosen, setChosen] = useState<number | null>(null);
 	const lineRefs = useRef(new Map<number, HTMLLIElement>());
@@ -75,6 +79,7 @@ export function ScriptPanel({ text, diagnostics, focusLine = null }: ScriptPanel
 					);
 				})}
 			</ol>
+			{words && words.length > 0 && <LineComposer words={words} />}
 			<h3 className={styles.subtitle}>{t('script.diagnostics')}</h3>
 			{diagnostics.length === 0 ? (
 				<p className={styles.none}>{t('script.noProblems')}</p>

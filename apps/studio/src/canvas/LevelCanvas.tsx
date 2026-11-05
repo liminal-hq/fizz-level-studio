@@ -3,6 +3,7 @@
 // (c) Copyright 2026 Liminal HQ, Scott Morris
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
+import type { GhostCell } from '@liminal-hq/fizz-studio-protocol/generated/GhostCell';
 import type { LevelView } from '@liminal-hq/fizz-studio-protocol/generated/LevelView';
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent } from 'react';
 import { t } from '../i18n/messages';
@@ -37,11 +38,14 @@ export interface LevelCanvasProps {
 	preview?: readonly Cell[];
 	/** Select's rectangle, drawn as an outline. */
 	selection?: Rect | null;
+	/** Claude's pending proposals to draw as ghosts; leave out to draw none. */
+	ghosts?: readonly GhostCell[];
 	/** Called when a problem in the objects list is chosen. */
 	onSelectLine?: (line: number) => void;
 }
 
 const NO_CELLS: readonly Cell[] = [];
+const NO_GHOSTS: readonly GhostCell[] = [];
 const FALLBACK_SIZE: Size = { width: 640, height: 384 };
 
 /** The canvas is not themed: the colours come from the `--fls-tile-*` and `--fls-canvas-*` tokens. */
@@ -52,6 +56,7 @@ export function LevelCanvas({
 	onToolEvent,
 	preview = NO_CELLS,
 	selection = null,
+	ghosts = NO_GHOSTS,
 	onSelectLine,
 }: LevelCanvasProps) {
 	const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -135,8 +140,9 @@ export function LevelCanvas({
 			cursor,
 			selection,
 			preview,
+			ghosts,
 		});
-	}, [view, viewport, size, cursor, selection, preview]);
+	}, [view, viewport, size, cursor, selection, preview, ghosts]);
 
 	const cellAt = (event: PointerEvent<HTMLCanvasElement>): Cell => {
 		const rect = event.currentTarget.getBoundingClientRect();

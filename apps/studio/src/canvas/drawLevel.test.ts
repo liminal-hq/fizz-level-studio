@@ -12,6 +12,7 @@ interface Call {
 	op: string;
 	args: unknown[];
 	fill: string;
+	stroke: string;
 }
 
 /** A recording stand-in for the 2D context. */
@@ -21,7 +22,7 @@ function recorder(): { ctx: DrawContext; calls: Call[] } {
 	const note =
 		(op: string) =>
 		(...args: unknown[]) => {
-			calls.push({ op, args, fill: state.fillStyle });
+			calls.push({ op, args, fill: state.fillStyle, stroke: state.strokeStyle });
 		};
 	const ctx = {
 		get fillStyle() {
@@ -88,6 +89,10 @@ const colours: CanvasColours = {
 	spawn: 'spawn',
 	start: 'start',
 	ink: 'ink',
+	ghostPaint: 'ghostPaint',
+	ghostClear: 'ghostClear',
+	ghostPlace: 'ghostPlace',
+	ghostEdge: 'ghostEdge',
 };
 
 const options = (overrides: Partial<DrawOptions> = {}): DrawOptions => ({
@@ -157,6 +162,34 @@ describe('drawLevel', () => {
 		expect(letters).toEqual(expect.arrayContaining(['C', 'G', 'B']));
 		expect(calls.filter((c) => c.op === 'strokeRect').length).toBe(3);
 		expect(calls.some((c) => c.op === 'fillRect' && c.fill === 'preview')).toBe(true);
+	});
+
+	it('draws ghosts as translucent cells by what they would do, and none unless given', () => {
+		const view = levelView(6, 4, { start: null });
+		const none = recorder();
+		drawLevel(none.ctx, view, options());
+		expect(none.calls.some((c) => c.fill === 'ghostPaint' || c.stroke === 'ghostClear')).toBe(
+			false,
+		);
+
+		const { ctx, calls } = recorder();
+		drawLevel(
+			ctx,
+			view,
+			options({
+				ghosts: [
+					{ x: 1, y: 2, op: 'paint', word: 'grass' },
+					{ x: 2, y: 2, op: 'clear', word: null },
+					{ x: 3, y: 2, op: 'place', word: 'cheezie' },
+					{ x: 90, y: 2, op: 'paint', word: 'grass' },
+				],
+			}),
+		);
+		// y = 2 of 4 rows is row 1 from the top: 16 px down, at 16 px a cell.
+		const washes = calls.filter((c) => c.op === 'fillRect' && c.fill === 'ghostPaint');
+		expect(washes.map((c) => c.args)).toEqual([[16, 16, 16, 16]]);
+		expect(calls.some((c) => c.op === 'strokeRect' && c.stroke === 'ghostClear')).toBe(true);
+		expect(calls.some((c) => c.op === 'arc')).toBe(true);
 	});
 
 	it('skips cells that are scrolled out of the window', () => {

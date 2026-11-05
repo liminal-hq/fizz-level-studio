@@ -10,6 +10,8 @@ const plugin = vi.hoisted(() => ({
 	applyEdit: vi.fn(),
 	closeLevel: vi.fn(),
 	endStep: vi.fn(),
+	languageWords: vi.fn(),
+	levelGhosts: vi.fn(),
 	onLevelChanged: vi.fn(),
 	onLevelConflict: vi.fn(),
 	openLevel: vi.fn(),
@@ -160,5 +162,17 @@ describe('levelConflicts', () => {
 		expect(heard).toHaveBeenCalledWith({ id: 'level-1', marked: '<<<<' });
 		stop();
 		expect(unlisten).toHaveBeenCalled();
+	});
+});
+
+describe('words and ghosts', () => {
+	it('reads both through the plugin', async () => {
+		const doc = { word: 'paint', kind: 'statement', syntax: 's', example: 'e', note: 'n' };
+		plugin.languageWords.mockResolvedValue([doc]);
+		plugin.levelGhosts.mockResolvedValue([]);
+		const client = new TauriLevelClient();
+		await expect(client.words()).resolves.toEqual([doc]);
+		await expect(client.ghosts('a')).resolves.toEqual([]);
+		expect(plugin.levelGhosts).toHaveBeenCalledWith('a');
 	});
 });

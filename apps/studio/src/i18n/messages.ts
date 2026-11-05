@@ -96,6 +96,57 @@ export const enMessages = {
 	// translator: A link to a script line that has a problem: line number, code and message.
 	'script.problem': 'Line {line}: {code} {message}',
 
+	// translator: Heading of the panel that lists the words the person can paint or place with.
+	'palette.title': 'Palette',
+	// translator: Heading of the Palette’s list of tile words (the kinds of ground and wall).
+	'palette.tiles': 'Tiles',
+	// translator: Heading of the Palette’s list of item words (collectables, such as a key).
+	'palette.items': 'Items',
+	// translator: Heading of the Palette’s list of enemy words.
+	'palette.enemies': 'Enemies',
+	// translator: Shown under the enemies; enemies are listed for reference and cannot be placed with a tool yet.
+	'palette.enemiesNote': 'Listed for reference. Enemies are placed in the script for now.',
+	// translator: Shown in place of the Palette’s item and enemy lists while the words are loading or unavailable.
+	'palette.unavailable': 'The word list is not available.',
+
+	// translator: Label of the text field in which a line of script is typed, with word completion.
+	'compose.label': 'Script line',
+	// translator: Hint for the script line field. “Tab” and “Enter” are key names.
+	'compose.hint': 'Type a word, then press Tab or Enter to complete it.',
+	// translator: Accessible name of the list of suggested words under the script line field.
+	'compose.suggestions': 'Word suggestions',
+	// translator: Spoken when suggestions appear. {count} is how many.
+	'compose.count.one': '{count} suggestion',
+	// translator: Spoken when suggestions appear. {count} is how many.
+	'compose.count.other': '{count} suggestions',
+	// translator: What kind of word a suggestion is. A statement is a line of the script, such as “paint”.
+	'compose.kind.statement': 'statement',
+	// translator: What kind of word a suggestion is. A section is a heading in the script, such as “edits”.
+	'compose.kind.section': 'section',
+	// translator: What kind of word a suggestion is. A segment is a kind of terrain.
+	'compose.kind.segment': 'terrain',
+	// translator: What kind of word a suggestion is. A tile is a kind of ground or wall.
+	'compose.kind.tile': 'tile',
+	// translator: What kind of word a suggestion is. An item is a collectable.
+	'compose.kind.item': 'item',
+	// translator: What kind of word a suggestion is.
+	'compose.kind.enemy': 'enemy',
+
+	// translator: Heading of the panel that shows what Claude has proposed and the person has not yet answered.
+	'ghosts.title': 'Proposals',
+	// translator: Label of the switch that shows or hides Claude’s proposed changes as faint cells on the canvas.
+	'ghosts.show': 'Show Claude’s proposals on the canvas',
+	// translator: Button that reads Claude’s proposals again.
+	'ghosts.refresh': 'Refresh',
+	// translator: Shown when Claude has no pending proposals.
+	'ghosts.none': 'Nothing proposed',
+	// translator: How many cells a pending proposal changes, shown beside its title.
+	'ghosts.cells.one': '{count} cell',
+	// translator: How many cells a pending proposal changes, shown beside its title.
+	'ghosts.cells.other': '{count} cells',
+	// translator: Note that the proposals can be seen but not yet accepted or rejected here.
+	'ghosts.readOnly': 'You can see proposals here. Accepting and rejecting them comes later.',
+
 	// translator: Heading of the panel with the undo and redo buttons.
 	'history.title': 'History',
 	// translator: Verb. Takes back the last step.

@@ -138,6 +138,11 @@ body,
 	--fls-canvas-spawn: #ff6b6b;
 	--fls-canvas-start: #7dff8a;
 	--fls-canvas-object-ink: #1b1d2b;
+	/* Claude's pending proposals: translucent, so the level shows through. */
+	--fls-canvas-ghost-paint: rgba(190, 150, 255, 0.5);
+	--fls-canvas-ghost-clear: rgba(255, 140, 160, 0.85);
+	--fls-canvas-ghost-place: rgba(190, 150, 255, 0.9);
+	--fls-canvas-ghost-edge: rgba(235, 220, 255, 0.9);
 
 	--fls-tile-solid: #7a6a58;
 	--fls-tile-platform: #b08d57;

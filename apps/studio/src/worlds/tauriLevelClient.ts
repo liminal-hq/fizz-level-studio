@@ -7,15 +7,19 @@ import {
 	applyEdit,
 	closeLevel,
 	endStep,
+	languageWords,
+	levelGhosts,
 	onLevelChanged,
 	onLevelConflict,
 	openLevel,
 	redo,
 	saveLevel,
 	undo,
+	type GhostProposal,
 	type LevelConflict,
 	type LevelEdit,
 	type LevelSnapshot,
+	type WordDoc,
 } from '@liminal-hq/fizz-studio-plugin-worlds';
 import type { LevelClient } from './levelClient';
 
@@ -127,6 +131,14 @@ export class TauriLevelClient implements LevelClient, WorldsClient {
 
 	async redo(id: string, basedOn: bigint): Promise<LevelSnapshot> {
 		return this.take(await redo(id, revisionToWire(basedOn)));
+	}
+
+	words(): Promise<WordDoc[]> {
+		return languageWords();
+	}
+
+	ghosts(id: string): Promise<GhostProposal[]> {
+		return levelGhosts(id);
 	}
 
 	onChanged(listener: (snapshot: LevelSnapshot) => void): () => void {

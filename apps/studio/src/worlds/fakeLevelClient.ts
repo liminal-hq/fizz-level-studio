@@ -3,8 +3,10 @@
 // (c) Copyright 2026 Liminal HQ, Scott Morris
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
+import type { GhostProposal } from '@liminal-hq/fizz-studio-protocol/generated/GhostProposal';
 import type { LevelEdit } from '@liminal-hq/fizz-studio-protocol/generated/LevelEdit';
 import type { LevelSnapshot } from '@liminal-hq/fizz-studio-protocol/generated/LevelSnapshot';
+import type { WordDoc } from '@liminal-hq/fizz-studio-protocol/generated/WordDoc';
 import type { LevelClient } from './levelClient';
 
 interface HistoryEntry {
@@ -56,6 +58,11 @@ export class FakeLevelClient implements LevelClient {
 
 	/** Every call `applyEdit` has had, in order, for tests to inspect. */
 	readonly applied: Array<{ edit: LevelEdit; basedOn: bigint; mergeKey?: string }> = [];
+
+	/** What `words()` answers; a test sets it. */
+	wordDocs: WordDoc[] = [];
+	/** What `ghosts()` answers; a test sets it. */
+	ghostProposals: GhostProposal[] = [];
 
 	constructor(initial: LevelSnapshot) {
 		this.current = cloneSnapshot(initial);
@@ -120,6 +127,15 @@ export class FakeLevelClient implements LevelClient {
 		const next = cloneSnapshot(entry.before);
 		next.revision = this.current.revision + 1n;
 		return this.settle(next);
+	}
+
+	async words(): Promise<WordDoc[]> {
+		return this.wordDocs.map((doc) => ({ ...doc }));
+	}
+
+	async ghosts(id: string): Promise<GhostProposal[]> {
+		this.check(id);
+		return this.ghostProposals.map((proposal) => ({ ...proposal }));
 	}
 
 	onChanged(listener: (snapshot: LevelSnapshot) => void): () => void {

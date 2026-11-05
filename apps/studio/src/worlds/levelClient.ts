@@ -3,9 +3,11 @@
 // (c) Copyright 2026 Liminal HQ, Scott Morris
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
+import type { GhostProposal } from '@liminal-hq/fizz-studio-protocol/generated/GhostProposal';
 import type { LevelEdit } from '@liminal-hq/fizz-studio-protocol/generated/LevelEdit';
 import type { LevelError } from '@liminal-hq/fizz-studio-protocol/generated/LevelError';
 import type { LevelSnapshot } from '@liminal-hq/fizz-studio-protocol/generated/LevelSnapshot';
+import type { WordDoc } from '@liminal-hq/fizz-studio-protocol/generated/WordDoc';
 
 /**
  * What the editor needs from the backend for one open level. Every command takes the revision the
@@ -28,6 +30,10 @@ export interface LevelClient {
 	endStep(id: string): Promise<LevelSnapshot>;
 	undo(id: string, basedOn: bigint): Promise<LevelSnapshot>;
 	redo(id: string, basedOn: bigint): Promise<LevelSnapshot>;
+	/** The language's documented words, from Rust, for the Palette and completion. */
+	words(): Promise<WordDoc[]>;
+	/** The changes Claude proposed for this level that nobody has answered yet. Read-only. */
+	ghosts(id: string): Promise<GhostProposal[]>;
 	/** Listens for snapshots the backend pushes (another window, Claude, an outside edit). */
 	onChanged(listener: (snapshot: LevelSnapshot) => void): () => void;
 }

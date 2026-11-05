@@ -3,12 +3,16 @@
 // (c) Copyright 2026 Liminal HQ, Scott Morris
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
+import type { GhostProposal } from '@liminal-hq/fizz-studio-protocol/generated/GhostProposal';
 import type { LevelEdit } from '@liminal-hq/fizz-studio-protocol/generated/LevelEdit';
 import type { LevelSnapshot } from '@liminal-hq/fizz-studio-protocol/generated/LevelSnapshot';
-import { useCallback, useEffect, useRef, useState, type KeyboardEvent } from 'react';
+import type { WordDoc } from '@liminal-hq/fizz-studio-protocol/generated/WordDoc';
+import { useCallback, useMemo, useEffect, useRef, useState, type KeyboardEvent } from 'react';
 import { LevelCanvas } from '../canvas/LevelCanvas';
 import { enMessages, t, type MessageId } from '../i18n/messages';
+import { GhostsPanel } from '../panels/GhostsPanel';
 import { HistoryPanel, historyShortcut } from '../panels/HistoryPanel';
+import { PalettePanel } from '../panels/PalettePanel';
 import { ScriptPanel } from '../panels/ScriptPanel';
 import { toolForKey } from '../tools/shortcuts';
 import { ToolPalette } from '../tools/ToolPalette';
@@ -46,6 +50,11 @@ export function EditorScreen({ snapshot: initial, client, onSnapshot }: EditorSc
 	const [focusLine, setFocusLine] = useState<number | null>(null);
 	const [problem, setProblem] = useState<MessageId | null>(null);
 	const tool = useTool(snapshot.view);
+	const [words, setWords] = useState<WordDoc[]>([]);
+	const [proposals, setProposals] = useState<GhostProposal[]>([]);
+	const [showGhosts, setShowGhosts] = useState(true);
+	const levelId = snapshot.id;
+	const revision = snapshot.revision;
 
 	const follow = useRef(onSnapshot);
 	follow.current = onSnapshot;
@@ -63,6 +72,36 @@ export function EditorScreen({ snapshot: initial, client, onSnapshot }: EditorSc
 	}, [initial, accept]);
 
 	useEffect(() => client.onChanged(accept), [client, accept]);
+
+	// The documented words come from Rust once; they feed the Palette and the Script panel.
+	useEffect(() => {
+		let current = true;
+		client.words().then(
+			(found) => current && setWords(found),
+			() => current && setWords([]),
+		);
+		return () => {
+			current = false;
+		};
+	}, [client]);
+
+	// Claude's proposals live in a file the studio is not told about, so they are read again when
+	// the level changes and when the person asks.
+	const [reads, setReads] = useState(0);
+	useEffect(() => {
+		let current = true;
+		client.ghosts(levelId).then(
+			(found) => current && setProposals(found),
+			() => current && setProposals([]),
+		);
+		return () => {
+			current = false;
+		};
+	}, [client, levelId, revision, reads]);
+	const ghostCells = useMemo(
+		() => (showGhosts ? proposals.flatMap((proposal) => proposal.cells) : undefined),
+		[showGhosts, proposals],
+	);
 
 	// Commands are chained so each is based on the revision the previous one produced.
 	const enqueue = useCallback((run: () => Promise<void>) => {
@@ -174,10 +213,32 @@ export function EditorScreen({ snapshot: initial, client, onSnapshot }: EditorSc
 					onToolEvent={onToolEvent}
 					preview={tool.preview}
 					selection={tool.selection}
+					ghosts={ghostCells}
 					onSelectLine={setFocusLine}
 				/>
 				<div className={styles.side}>
+					<PalettePanel
+						tiles={snapshot.view.palette}
+						words={words}
+						tile={tool.tile}
+						item={tool.item}
+						onPickTile={(word) => {
+							tool.setTile(word);
+							tool.setTool('paint');
+						}}
+						onPickItem={(word) => {
+							tool.setItem(word);
+							tool.setTool('stamp');
+						}}
+					/>
+					<GhostsPanel
+						proposals={proposals}
+						shown={showGhosts}
+						onToggle={setShowGhosts}
+						onRefresh={() => setReads((n) => n + 1)}
+					/>
 					<ScriptPanel
+						words={words}
 						text={snapshot.text}
 						diagnostics={snapshot.view.diagnostics}
 						focusLine={focusLine}

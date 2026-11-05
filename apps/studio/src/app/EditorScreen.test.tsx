@@ -3,7 +3,7 @@
 // (c) Copyright 2026 Liminal HQ, Scott Morris
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import crater from '../../../../fixtures/fizz1/raster/levels-crater.json';
@@ -225,5 +225,64 @@ describe('EditorScreen', () => {
 		expect(await screen.findByRole('alert')).toHaveTextContent(
 			'The level changed first, so that edit was not applied. Try it again.',
 		);
+	});
+});
+
+describe('EditorScreen panels', () => {
+	const word = (w: string, kind: string) => ({
+		word: w,
+		kind,
+		syntax: `${w} <args>`,
+		example: w,
+		note: '',
+	});
+
+	function mountWithWords() {
+		const snapshot = levelSnapshot();
+		const client = new FakeLevelClient(snapshot);
+		client.wordDocs = [word('paint', 'statement'), word('soda', 'item'), word('gloop', 'enemy')];
+		client.ghostProposals = [
+			{
+				id: 'h1',
+				title: 'A ledge',
+				why: null,
+				lines: ['paint grass x=2 y=2'],
+				cells: [{ x: 2, y: 2, op: 'paint', word: 'grass' }],
+			},
+		];
+		render(<EditorScreen snapshot={snapshot} client={client} />);
+		return client;
+	}
+
+	it('chooses a palette tile for Paint and an item for Stamp', async () => {
+		const user = userEvent.setup();
+		mountWithWords();
+		const region = await screen.findByRole('region', { name: 'Palette' });
+		await user.click(screen.getByRole('button', { name: 'Stamp' }));
+		await user.click(within(region).getByRole('button', { name: 'grass' }));
+		expect(screen.getByRole('button', { name: /^Paint/ })).toHaveAttribute('aria-pressed', 'true');
+		expect(within(region).getByRole('button', { name: 'grass' })).toHaveAttribute(
+			'aria-pressed',
+			'true',
+		);
+		expect(screen.getByRole('combobox', { name: 'Tile' })).toHaveValue('grass');
+		await user.click(await within(region).findByRole('button', { name: 'soda' }));
+		expect(screen.getByRole('button', { name: /^Stamp/ })).toHaveAttribute('aria-pressed', 'true');
+	});
+
+	it('offers paint for pa in the Script panel from the backend words', async () => {
+		const user = userEvent.setup();
+		mountWithWords();
+		const field = await screen.findByRole('combobox', { name: 'Script line' });
+		await user.type(field, 'pa');
+		expect(await screen.findByRole('option', { name: /^paint/ })).toBeInTheDocument();
+		await user.keyboard('{Tab}');
+		expect(field).toHaveValue('paint');
+	});
+
+	it("lists Claude's pending proposals from the backend", async () => {
+		mountWithWords();
+		expect(await screen.findByText('A ledge')).toBeInTheDocument();
+		expect(screen.getByRole('switch')).toBeChecked();
 	});
 });
