@@ -130,6 +130,21 @@ fn current(app: &App, id: &str) -> LevelSnapshot {
 }
 
 #[test]
+fn the_words_and_a_cells_line_are_answered_for_an_open_level() {
+    let app = app();
+    let (_dir, path) = project();
+    let snapshot = open(&app, &path);
+    let words = commands::language_words();
+    assert!(words
+        .iter()
+        .any(|w| w.word == "plat" && w.kind == "statement"));
+    let line = commands::level_cell_line(worlds(&app), snapshot.id.clone(), 50, 10).unwrap();
+    assert_eq!(line, Some(17));
+    let missing = commands::level_cell_line(worlds(&app), "nope".into(), 0, 0);
+    assert!(missing.is_err());
+}
+
+#[test]
 fn a_folder_opens_with_its_levels() {
     let (dir, path) = project();
     let info = commands::project_open(dir.path().to_string_lossy().into_owned()).unwrap();

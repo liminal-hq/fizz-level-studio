@@ -56,6 +56,7 @@ pub fn init_with<R: Runtime>(config: RecoveryConfig) -> TauriPlugin<R> {
             commands::recovery_restore,
             commands::recovery_discard,
             commands::language_words,
+            commands::level_cell_line,
             commands::level_ghosts,
         ])
         .setup(move |app, _api| {

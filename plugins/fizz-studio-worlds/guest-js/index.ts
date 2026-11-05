@@ -119,6 +119,14 @@ export function languageWords(): Promise<WordDoc[]> {
 }
 
 /**
+ * The script line (counted from 1) of the last statement that changed the cell `x`, `y` of an open
+ * level, or `null` when no statement did.
+ */
+export function levelCellLine(id: string, x: number, y: number): Promise<number | null> {
+	return cmd<number | null>('level_cell_line', { id, x, y });
+}
+
+/**
  * The changes Claude proposed for an open level that the person has not yet accepted or rejected,
  * read from the level's `<level>.studio.json` sidecar and spread into cells. Read-only.
  */

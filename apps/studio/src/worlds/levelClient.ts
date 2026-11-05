@@ -34,6 +34,8 @@ export interface LevelClient {
 	words(): Promise<WordDoc[]>;
 	/** The changes Claude proposed for this level that nobody has answered yet. Read-only. */
 	ghosts(id: string): Promise<GhostProposal[]>;
+	/** The script line (from 1) of the last statement that changed a cell, or `null` if none did. */
+	cellLine(id: string, x: number, y: number): Promise<number | null>;
 	/** Listens for snapshots the backend pushes (another window, Claude, an outside edit). */
 	onChanged(listener: (snapshot: LevelSnapshot) => void): () => void;
 }

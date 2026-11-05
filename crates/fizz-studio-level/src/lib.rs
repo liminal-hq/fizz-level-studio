@@ -12,6 +12,7 @@ mod fizz2_view;
 mod new;
 mod proposals;
 mod view;
+mod words;
 
 #[cfg(test)]
 mod fizz2_tests;

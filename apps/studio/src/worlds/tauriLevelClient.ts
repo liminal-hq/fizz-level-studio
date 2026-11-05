@@ -8,6 +8,7 @@ import {
 	closeLevel,
 	endStep,
 	languageWords,
+	levelCellLine,
 	levelGhosts,
 	onLevelChanged,
 	onLevelConflict,
@@ -135,6 +136,10 @@ export class TauriLevelClient implements LevelClient, WorldsClient {
 
 	words(): Promise<WordDoc[]> {
 		return languageWords();
+	}
+
+	cellLine(id: string, x: number, y: number): Promise<number | null> {
+		return levelCellLine(id, x, y);
 	}
 
 	ghosts(id: string): Promise<GhostProposal[]> {

@@ -194,3 +194,23 @@ fn replace_refuses_a_range_inside_a_character() {
     assert!(document.replace(0, 9, "x").is_err());
     assert_eq!(document.text(), "é");
 }
+
+#[test]
+fn a_cell_is_traced_to_the_last_statement_that_changed_it() {
+    let doc = LevelDocument::new(CRATER);
+    assert_eq!(doc.cell_line(50, 10), Some(17));
+    assert_eq!(doc.cell_line(107, 5), Some(18));
+    assert_eq!(doc.cell_line(50, 11), Some(30));
+    assert_eq!(doc.cell_line(3, 4), Some(5));
+    assert_eq!(doc.cell_line(100, 20), None);
+    assert_eq!(doc.cell_line(-1, 0), None);
+}
+
+#[test]
+fn a_painted_cell_is_traced_to_its_edit_line() {
+    let mut text = CRATER.to_string();
+    text.push_str("\nedits\n  paint one-way x=50 y=10\n");
+    let doc = LevelDocument::new(text.clone());
+    let line = text.lines().count() as u32;
+    assert_eq!(doc.cell_line(50, 10), Some(line));
+}

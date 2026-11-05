@@ -17,6 +17,7 @@ const COMMANDS: &[&str] = &[
     "recovery_restore",
     "recovery_discard",
     "language_words",
+    "level_cell_line",
     "level_ghosts",
 ];
 

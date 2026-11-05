@@ -14,5 +14,6 @@ permissions = [
 	"allow-recovery-restore",
 	"allow-recovery-discard",
 	"allow-language-words",
+	"allow-level-cell-line",
 	"allow-level-ghosts",
 ]

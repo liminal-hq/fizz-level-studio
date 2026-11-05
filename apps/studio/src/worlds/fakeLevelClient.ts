@@ -61,6 +61,8 @@ export class FakeLevelClient implements LevelClient {
 
 	/** What `words()` answers; a test sets it. */
 	wordDocs: WordDoc[] = [];
+	/** The line `cellLine()` answers for a cell, keyed `x,y`; a test sets them. */
+	readonly cellLines = new Map<string, number>();
 	/** What `ghosts()` answers; a test sets it. */
 	ghostProposals: GhostProposal[] = [];
 
@@ -127,6 +129,11 @@ export class FakeLevelClient implements LevelClient {
 		const next = cloneSnapshot(entry.before);
 		next.revision = this.current.revision + 1n;
 		return this.settle(next);
+	}
+
+	async cellLine(id: string, x: number, y: number): Promise<number | null> {
+		this.check(id);
+		return this.cellLines.get(`${x},${y}`) ?? null;
 	}
 
 	async words(): Promise<WordDoc[]> {

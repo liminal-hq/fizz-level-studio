@@ -23,6 +23,7 @@ const {
 	closeLevel,
 	createLevel,
 	discardRecovery,
+	levelCellLine,
 	endStep,
 	newerOnly,
 	onLevelChanged,
@@ -112,6 +113,19 @@ describe('recovery', () => {
 			[`${prefix}recovery_list`, undefined],
 			[`${prefix}recovery_restore`, { id: 'level-1' }],
 			[`${prefix}recovery_discard`, { id: 'level-1' }],
+		]);
+	});
+});
+
+describe('language words and cell lines', () => {
+	it('asks for the words and for the line of a cell', async () => {
+		invoke.mockResolvedValue(null);
+		await languageWords();
+		await levelCellLine('level-1', 50, 10);
+		const prefix = 'plugin:fizz-studio-worlds|';
+		expect(invoke.mock.calls).toEqual([
+			[`${prefix}language_words`, undefined],
+			[`${prefix}level_cell_line`, { id: 'level-1', x: 50, y: 10 }],
 		]);
 	});
 });

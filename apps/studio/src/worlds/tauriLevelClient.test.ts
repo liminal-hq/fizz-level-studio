@@ -11,6 +11,7 @@ const plugin = vi.hoisted(() => ({
 	closeLevel: vi.fn(),
 	endStep: vi.fn(),
 	languageWords: vi.fn(),
+	levelCellLine: vi.fn(),
 	levelGhosts: vi.fn(),
 	onLevelChanged: vi.fn(),
 	onLevelConflict: vi.fn(),
@@ -162,6 +163,14 @@ describe('levelConflicts', () => {
 		expect(heard).toHaveBeenCalledWith({ id: 'level-1', marked: '<<<<' });
 		stop();
 		expect(unlisten).toHaveBeenCalled();
+	});
+});
+
+describe('cell lines', () => {
+	it('asks the plugin for the line of a cell', async () => {
+		plugin.levelCellLine.mockResolvedValue(17);
+		expect(await new TauriLevelClient().cellLine('level-1', 50, 10)).toBe(17);
+		expect(plugin.levelCellLine).toHaveBeenCalledWith('level-1', 50, 10);
 	});
 });
 
