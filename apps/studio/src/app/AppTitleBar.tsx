@@ -6,13 +6,25 @@
 import { TitleBar } from '@liminal-hq/fizz-studio-chrome/TitleBar';
 import { TitleBarTitle } from '@liminal-hq/fizz-studio-chrome/TitleBar/TitleBarTitle';
 import { chromeLabels } from '../i18n/chromeLabels';
-import { t } from '../i18n/messages';
+import { t, type MessageId } from '../i18n/messages';
 
-export function AppTitleBar() {
-	return (
-		<TitleBar
-			labels={chromeLabels()}
-			center={<TitleBarTitle>{t('window.main.title')}</TitleBarTitle>}
-		/>
-	);
+export interface AppTitleBarProps {
+	/** The catalogue key of the title when no document is named. Defaults to the main title. */
+	titleId?: MessageId;
+	/** The open document's name; the title then reads “Name — Fizz Level Studio”. */
+	documentName?: string;
+	/** Marks the document with a “•” when it has unsaved changes. */
+	dirty?: boolean;
+}
+
+export function AppTitleBar({
+	titleId = 'window.main.title',
+	documentName,
+	dirty,
+}: AppTitleBarProps) {
+	const title =
+		documentName === undefined
+			? t(titleId)
+			: t(dirty ? 'window.main.titledDirty' : 'window.main.titled', { name: documentName });
+	return <TitleBar labels={chromeLabels()} center={<TitleBarTitle>{title}</TitleBarTitle>} />;
 }

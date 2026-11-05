@@ -22,6 +22,8 @@ export interface EditorScreenProps {
 	/** The level as it was when the screen opened; newer snapshots arrive through the client. */
 	snapshot: LevelSnapshot;
 	client: LevelClient;
+	/** Called with every snapshot the screen takes up, so a parent can follow the level. */
+	onSnapshot?: (snapshot: LevelSnapshot) => void;
 }
 
 /** Keys typed into these belong to the control, not to the editor's shortcuts. */
@@ -35,7 +37,7 @@ function isTyping(target: EventTarget | null): boolean {
  * backend owns the document, so every change goes out through `client` and comes back as a new
  * snapshot. Commands run one at a time, each based on the revision the one before returned.
  */
-export function EditorScreen({ snapshot: initial, client }: EditorScreenProps) {
+export function EditorScreen({ snapshot: initial, client, onSnapshot }: EditorScreenProps) {
 	const [snapshot, setSnapshot] = useState(initial);
 	const held = useRef(initial);
 	const queue = useRef<Promise<void>>(Promise.resolve());
@@ -45,11 +47,15 @@ export function EditorScreen({ snapshot: initial, client }: EditorScreenProps) {
 	const [problem, setProblem] = useState<MessageId | null>(null);
 	const tool = useTool(snapshot.view);
 
+	const follow = useRef(onSnapshot);
+	follow.current = onSnapshot;
+
 	const accept = useCallback((incoming: LevelSnapshot) => {
 		const kept = newerSnapshot(held.current, incoming);
 		if (kept === held.current) return;
 		held.current = kept;
 		setSnapshot(kept);
+		follow.current?.(kept);
 	}, []);
 
 	useEffect(() => {

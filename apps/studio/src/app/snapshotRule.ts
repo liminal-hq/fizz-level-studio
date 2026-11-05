@@ -12,5 +12,8 @@ import type { LevelSnapshot } from '@liminal-hq/fizz-studio-protocol/generated/L
  */
 export function newerSnapshot(held: LevelSnapshot, incoming: LevelSnapshot): LevelSnapshot {
 	if (incoming.id !== held.id) return incoming;
-	return incoming.revision > held.revision ? incoming : held;
+	if (incoming.revision !== held.revision)
+		return incoming.revision > held.revision ? incoming : held;
+	// A save keeps the revision and moves the saved one up.
+	return incoming.saved_revision > held.saved_revision ? incoming : held;
 }

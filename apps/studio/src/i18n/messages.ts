@@ -115,6 +115,68 @@ export const enMessages = {
 	'editor.failed': 'That edit could not be applied.',
 	// translator: Accessible name of the editor’s main area, which holds the canvas, tools and panels.
 	'editor.region': 'Level editor',
+
+	// translator: Title bar text for a window showing a level. {name} is the level’s name.
+	'window.main.titled': '{name} — Fizz Level Studio',
+	// translator: Title bar text for a level with unsaved changes; the “•” marks them. {name} is the level’s name.
+	'window.main.titledDirty': '• {name} — Fizz Level Studio',
+	// translator: The title of the New level window, shown in its title bar.
+	'window.newWorld.title': 'New level',
+	// translator: The title of the Preferences window, shown in its title bar.
+	'window.preferences.title': 'Preferences',
+	// translator: The title of the About window, shown in its title bar.
+	'window.about.title': 'About Fizz Level Studio',
+
+	// translator: A line shown in the New level window until it is built.
+	'placeholder.newWorld': 'New level is coming.',
+	// translator: A line shown in the Preferences window until it is built.
+	'placeholder.preferences': 'Preferences are coming.',
+	// translator: A line shown in the About window until it is built.
+	'placeholder.about': 'About is coming.',
+
+	// translator: A short description of the app, shown on the start screen under its name.
+	'main.tagline': 'A level editor for Lieutenant Fizz.',
+	// translator: Verb phrase on a button. Opens a file dialog to choose a level file.
+	'main.openLevel': 'Open level…',
+	// translator: The title of the native file dialog for choosing a level file.
+	'main.openDialogTitle': 'Open a level',
+	// translator: The name of the .fizz file type in the file dialog’s filter.
+	'main.fileFilter': 'Fizz level',
+	// translator: Heading of the list of levels opened recently.
+	'main.recent': 'Recent levels',
+	// translator: Shown when the list of recent levels is empty.
+	'main.recentNone': 'No recent levels yet.',
+	// translator: Verb phrase on a button. Empties the list of recent levels.
+	'main.clearRecent': 'Clear recent',
+	// translator: Shown beside a recent level whose file could not be opened, for example because it moved.
+	'main.recentMissing': 'This file could not be opened. It may have moved or been deleted.',
+	// translator: An error banner. {path} is the file that could not be opened.
+	'main.openFailed': 'Could not open {path}.',
+	// translator: An error banner shown when saving the level failed.
+	'main.saveFailed': 'The level could not be saved.',
+	// translator: An error banner shown when closing the level failed.
+	'main.closeFailed': 'The level could not be closed.',
+	// translator: Verb. A button that hides a message.
+	'main.dismiss': 'Dismiss',
+	// translator: Accessible name of the group of buttons that act on the open level.
+	'main.levelActions': 'Level actions',
+	// translator: Verb. A button that writes the level to its file.
+	'main.save': 'Save',
+	// translator: Verb phrase on a button. Closes the open level and returns to the start screen.
+	'main.closeLevel': 'Close level',
+	// translator: Title of a question asked when closing a level with unsaved changes. {name} is the level’s name.
+	'main.closeConfirmTitle': 'Save changes to {name}?',
+	// translator: The question’s explanation: what happens to unsaved changes.
+	'main.closeConfirmMessage': 'If you do not save, your changes to this level are lost.',
+	// translator: Verb. A button that throws away unsaved changes.
+	'main.discard': 'Discard',
+	// translator: Verb. A button that abandons what the person was about to do.
+	'main.cancel': 'Cancel',
+	// translator: A banner explaining that the level’s file changed outside the studio on the same lines as unsaved changes.
+	'main.conflict':
+		'The file changed outside the studio on lines you also changed. The text below marks where.',
+	// translator: Accessible name of the box holding the text with conflict markers.
+	'main.conflictText': 'Text with conflict markers',
 } as const;
 
 export type MessageId = keyof typeof enMessages;

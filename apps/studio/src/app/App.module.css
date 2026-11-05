@@ -14,13 +14,7 @@
 	background: var(--fls-bg-content);
 }
 
-.title {
+.message {
 	margin: 0;
-	font-size: 1.6rem;
-}
-
-.label {
-	margin: 0.4rem 0 0;
-	color: var(--fls-text-muted);
-	font-variant-numeric: tabular-nums;
+	color: var(--fls-text-secondary);
 }
