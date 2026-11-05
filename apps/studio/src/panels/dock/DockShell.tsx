@@ -10,8 +10,9 @@ import type { Size } from '../float/panelGeometry';
 import { DockRail } from './DockRail';
 import { DockZone } from './DockZone';
 import { PeekPanel } from './PeekPanel';
-import { clampZoneSize, zoneExtent } from './dockGeometry';
-import { RAIL_SIZE, dockedIn, zoneOf } from './dockModel';
+import { DockResizeHandle } from './DockResizeHandle';
+import { clampZoneSize, zoneCap, zoneExtent } from './dockGeometry';
+import { RAIL_SIZE, dockedIn, zoneMin, zoneOf } from './dockModel';
 import type { DockSession } from './dockLayout';
 import styles from './DockShell.module.css';
 
@@ -23,6 +24,8 @@ export interface DockActions {
 	peek(id: string): void;
 	closePeek(): void;
 	pin(id: string): void;
+	resizeZone(zone: ZoneId, size: number): void;
+	resetZoneSize(zone: ZoneId): void;
 }
 
 export interface DockShellProps {
@@ -105,16 +108,26 @@ export function DockShell({
 						onUnfold={() => actions.toggleZone(id)}
 					/>
 				) : (
-					<DockZone
-						zone={id}
-						groups={z.groups}
-						titleOf={titleOf}
-						renderPanel={renderPanel}
-						onActivate={actions.activate}
-						onDock={actions.dockTo}
-						onFloat={actions.floatPanel}
-						onFold={() => actions.toggleZone(id)}
-					/>
+					<>
+						<DockResizeHandle
+							zone={id}
+							size={extent(id)}
+							min={zoneMin(id)}
+							max={zoneCap(id, window)}
+							onResize={(size) => actions.resizeZone(id, size)}
+							onReset={() => actions.resetZoneSize(id)}
+						/>
+						<DockZone
+							zone={id}
+							groups={z.groups}
+							titleOf={titleOf}
+							renderPanel={renderPanel}
+							onActivate={actions.activate}
+							onDock={actions.dockTo}
+							onFloat={actions.floatPanel}
+							onFold={() => actions.toggleZone(id)}
+						/>
+					</>
 				)}
 			</div>
 		);
@@ -123,7 +136,9 @@ export function DockShell({
 	return (
 		<div className={styles.shell} style={style} ref={shell} onKeyDown={onKeyDown}>
 			{zone('left')}
-			<div className={styles.level}>{children}</div>
+			<div className={styles.level} data-level>
+				{children}
+			</div>
 			{zone('right')}
 			{zone('bottom')}
 			{peeking !== null && peekZone !== null && (

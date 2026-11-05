@@ -22,6 +22,7 @@ import { CommandBridgeContext, NO_FACTS } from '../commands/commandBridge';
 import { FloatingPanel } from '../panels/float/FloatingPanel';
 import { neighboursOf } from '../panels/float/usePanelLayout';
 import { DockShell } from '../panels/dock/DockShell';
+import { isLevelFirstKey } from '../panels/dock/dockKeys';
 import { PanelCommands } from '../panels/dock/PanelCommands';
 import { useDockLayout } from '../panels/dock/useDockLayout';
 import { brushCommandId, panelCommandId, toolCommandId } from '../commands/registry';
@@ -248,6 +249,7 @@ export function EditorScreen({
 		setTool: tool.setTool,
 		setBrush: tool.setBrush,
 		showLine,
+		levelFirst: dock.toggleLevelFirst,
 	});
 	live.current = {
 		undo,
@@ -257,6 +259,7 @@ export function EditorScreen({
 		setTool: tool.setTool,
 		setBrush: tool.setBrush,
 		showLine,
+		levelFirst: dock.toggleLevelFirst,
 	};
 	const panelsShown = dock.shown;
 	const panelsKey = PANEL_SPECS.map((spec) => (panelsShown[spec.id] ? '1' : '0')).join('');
@@ -266,6 +269,7 @@ export function EditorScreen({
 			'edit.undo': () => live.current.undo(),
 			'edit.redo': () => live.current.redo(),
 			'view.resetLayout': () => live.current.reset(),
+			'view.levelFirst': () => live.current.levelFirst(),
 		};
 		for (const spec of PANEL_SPECS) {
 			handlers[panelCommandId(spec.id)] = () =>
@@ -286,6 +290,7 @@ export function EditorScreen({
 				editorOpen: false,
 				canUndo: false,
 				canRedo: false,
+				levelFirst: false,
 				panels: NO_FACTS.panels,
 				brushes: NO_FACTS.brushes,
 				lineCount: 0,
@@ -317,11 +322,32 @@ export function EditorScreen({
 			editorOpen: true,
 			canUndo: snapshot.can_undo,
 			canRedo: snapshot.can_redo,
+			levelFirst: dock.session.levelFirst,
 			panels: panelsRef.current,
 			brushes,
 			lineCount,
 		});
-	}, [bridge, snapshot.can_undo, snapshot.can_redo, panelsKey, brushes, lineCount]);
+	}, [
+		bridge,
+		snapshot.can_undo,
+		snapshot.can_redo,
+		panelsKey,
+		brushes,
+		lineCount,
+		dock.session.levelFirst,
+	]);
+
+	// Tab, on the level or on nothing, shows the level only and brings the panels back.
+	const toggleLevelFirst = dock.toggleLevelFirst;
+	useEffect(() => {
+		const onKey = (event: globalThis.KeyboardEvent) => {
+			if (!isLevelFirstKey(event)) return;
+			event.preventDefault();
+			toggleLevelFirst();
+		};
+		window.addEventListener('keydown', onKey);
+		return () => window.removeEventListener('keydown', onKey);
+	}, [toggleLevelFirst]);
 
 	const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
 		if (isTyping(event.target)) return;

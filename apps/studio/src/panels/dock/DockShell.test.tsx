@@ -3,7 +3,7 @@
 // (c) Copyright 2026 Liminal HQ, Scott Morris
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
-import { render, screen, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { DockShell, type DockActions } from './DockShell';
@@ -28,6 +28,8 @@ function actions(): DockActions {
 		peek: vi.fn(),
 		closePeek: vi.fn(),
 		pin: vi.fn(),
+		resizeZone: vi.fn(),
+		resetZoneSize: vi.fn(),
 	};
 }
 
@@ -209,5 +211,102 @@ describe('folded docks', () => {
 	it('leaves the rails in place but not usable while the level comes first', () => {
 		mount(folded(), actions(), { ...INITIAL_SESSION, levelFirst: true });
 		expect(screen.getByRole('button', { name: 'Objects' })).toBeDisabled();
+	});
+});
+
+describe('resizing a dock', () => {
+	const handle = (name: string) => screen.getByRole('separator', { name });
+
+	it('gives each open dock a separator with its size and limits', () => {
+		mount();
+		const left = handle('Resize the left dock');
+		expect(left).toHaveAttribute('aria-valuenow', '196');
+		expect(left).toHaveAttribute('aria-valuemin', '160');
+		expect(left).toHaveAttribute('aria-valuemax', '432');
+		expect(left).toHaveAttribute('aria-orientation', 'vertical');
+		const bottom = handle('Resize the bottom dock');
+		expect(bottom).toHaveAttribute('aria-orientation', 'horizontal');
+		expect(bottom).toHaveAttribute('aria-valuemin', '96');
+		expect(bottom).toHaveAttribute('aria-valuemax', '270');
+	});
+
+	it('has no handle on a folded dock', () => {
+		mount(visibleWorkspace(setZoneCollapsed(defaultWorkspace(), 'left', true)));
+		expect(screen.queryByRole('separator', { name: 'Resize the left dock' })).toBeNull();
+	});
+
+	it('steps with the arrow keys the way the dock grows, and in larger steps with Shift', async () => {
+		const user = userEvent.setup();
+		const a = mount();
+		handle('Resize the left dock').focus();
+		await user.keyboard('{ArrowRight}');
+		expect(a.resizeZone).toHaveBeenLastCalledWith('left', 204);
+		await user.keyboard('{ArrowLeft}');
+		expect(a.resizeZone).toHaveBeenLastCalledWith('left', 188);
+		await user.keyboard('{Shift>}{ArrowRight}{/Shift}');
+		expect(a.resizeZone).toHaveBeenLastCalledWith('left', 228);
+		handle('Resize the right dock').focus();
+		await user.keyboard('{ArrowLeft}');
+		expect(a.resizeZone).toHaveBeenLastCalledWith('right', 272);
+		handle('Resize the bottom dock').focus();
+		await user.keyboard('{ArrowUp}');
+		expect(a.resizeZone).toHaveBeenLastCalledWith('bottom', 188);
+		await user.keyboard('{Home}');
+		expect(a.resizeZone).toHaveBeenLastCalledWith('bottom', 96);
+		await user.keyboard('{End}');
+		expect(a.resizeZone).toHaveBeenLastCalledWith('bottom', 270);
+	});
+
+	it('follows a pointer drag, shows the size while it lasts and ends with the last size', () => {
+		const a = mount();
+		const left = handle('Resize the left dock');
+		fireEvent.pointerDown(left, { button: 0, clientX: 200, clientY: 10, pointerId: 1 });
+		expect(screen.getByText('196 px')).toBeInTheDocument();
+		fireEvent.pointerMove(left, { clientX: 250, clientY: 10, pointerId: 1 });
+		expect(a.resizeZone).toHaveBeenLastCalledWith('left', 246);
+		fireEvent.pointerUp(left, { clientX: 260, clientY: 10, pointerId: 1 });
+		expect(a.resizeZone).toHaveBeenLastCalledWith('left', 256);
+		expect(screen.queryByText('196 px')).toBeNull();
+	});
+
+	it('grows the right and bottom docks the other way', () => {
+		const a = mount();
+		const right = handle('Resize the right dock');
+		fireEvent.pointerDown(right, { button: 0, clientX: 500, clientY: 10, pointerId: 1 });
+		fireEvent.pointerMove(right, { clientX: 450, clientY: 10, pointerId: 1 });
+		expect(a.resizeZone).toHaveBeenLastCalledWith('right', 314);
+		fireEvent.pointerUp(right, { clientX: 450, clientY: 10, pointerId: 1 });
+		const bottom = handle('Resize the bottom dock');
+		fireEvent.pointerDown(bottom, { button: 0, clientX: 10, clientY: 600, pointerId: 2 });
+		fireEvent.pointerMove(bottom, { clientX: 10, clientY: 560, pointerId: 2 });
+		expect(a.resizeZone).toHaveBeenLastCalledWith('bottom', 220);
+	});
+
+	it('puts the size back when the drag is cancelled with Escape', async () => {
+		const user = userEvent.setup();
+		const a = mount();
+		const left = handle('Resize the left dock');
+		fireEvent.pointerDown(left, { button: 0, clientX: 200, clientY: 10, pointerId: 1 });
+		fireEvent.pointerMove(left, { clientX: 260, clientY: 10, pointerId: 1 });
+		await user.keyboard('{Escape}');
+		expect(a.resizeZone).toHaveBeenLastCalledWith('left', 196);
+	});
+
+	it('resets the size on a double-click', async () => {
+		const user = userEvent.setup();
+		const a = mount();
+		await user.dblClick(handle('Resize the right dock'));
+		expect(a.resetZoneSize).toHaveBeenCalledWith('right');
+	});
+
+	it('shows the readout while the keys are used on the handle and hides it when it loses the focus', async () => {
+		const user = userEvent.setup();
+		mount();
+		handle('Resize the left dock').focus();
+		expect(screen.queryByText('196 px')).toBeNull();
+		await user.keyboard('{ArrowRight}');
+		expect(screen.getByText('196 px')).toBeInTheDocument();
+		act(() => handle('Resize the left dock').blur());
+		expect(screen.queryByText('196 px')).toBeNull();
 	});
 });

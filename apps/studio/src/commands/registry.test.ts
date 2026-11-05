@@ -58,6 +58,20 @@ describe('the registry', () => {
 		}
 	});
 
+	it('lists Show the level only in the View menu with the Tab key, checked while it is on', () => {
+		const handlers = { 'view.levelFirst': () => {} };
+		const rows = rowsOf(
+			appMenuItems(snapshot({ editorOpen: true, levelFirst: true }, handlers)),
+			'menu:view',
+		);
+		const row = rows.find((item) => 'label' in item && item.label === 'Show the level only');
+		expect(row).toMatchObject({ shortcut: 'Tab', checked: true });
+		const off = rowsOf(appMenuItems(snapshot({ editorOpen: false }, handlers)), 'menu:view');
+		expect(
+			off.find((item) => 'label' in item && item.label === 'Show the level only'),
+		).toHaveProperty('disabled', true);
+	});
+
 	it('enables the level commands only with a level open and a handler', () => {
 		const handlers = { 'file.save': () => {}, 'file.close': () => {} };
 		const save = COMMANDS.find((command) => command.id === 'file.save')!;

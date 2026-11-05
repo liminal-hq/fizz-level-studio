@@ -166,4 +166,76 @@ describe('the editor’s docks', () => {
 			'true',
 		);
 	});
+
+	it('resizes a dock with the keys, held to its cap, and saves the size', async () => {
+		const user = userEvent.setup();
+		const { docks } = await mount();
+		const handle = screen.getByRole('separator', { name: 'Resize the left dock' });
+		handle.focus();
+		await user.keyboard('{ArrowRight}');
+		expect(handle).toHaveAttribute('aria-valuenow', '204');
+		await user.keyboard('{End}');
+		expect(handle).toHaveAttribute('aria-valuenow', '384');
+		await user.keyboard('{Shift>}{ArrowRight}{/Shift}');
+		expect(handle).toHaveAttribute('aria-valuenow', '384');
+		await waitFor(() => expect(docks.save).toHaveBeenCalled(), { timeout: 2000 });
+		const saved = vi.mocked(docks.save).mock.calls.at(-1)![0];
+		expect(saved.workspaces[saved.active]!.zones.left.size).toBe(384);
+	});
+
+	it('resets a dock’s size with a double-click', async () => {
+		const user = userEvent.setup();
+		await mount();
+		const handle = screen.getByRole('separator', { name: 'Resize the left dock' });
+		handle.focus();
+		await user.keyboard('{End}');
+		await user.dblClick(handle);
+		expect(handle).toHaveAttribute('aria-valuenow', '196');
+	});
+
+	it('hides the docks and floating panels with Tab on the level and brings them back', async () => {
+		const user = userEvent.setup();
+		const { bridge } = await mount();
+		await user.click(
+			within(screen.getByRole('region', { name: 'Left dock' })).getByRole('button', {
+				name: 'Float Palette',
+			}),
+		);
+		expect(screen.getByRole('region', { name: 'Palette' })).toBeInTheDocument();
+		screen.getByRole('application').focus();
+		await user.keyboard('{Tab}');
+		expect(screen.queryByRole('region', { name: 'Palette' })).toBeNull();
+		expect(screen.queryByRole('region', { name: 'Right dock' })).toBeNull();
+		expect(screen.queryByRole('region', { name: 'Bottom dock' })).toBeNull();
+		expect(screen.getByRole('application')).toBeInTheDocument();
+		expect(bridge.getSnapshot().facts.levelFirst).toBe(true);
+		await user.keyboard('{Tab}');
+		expect(screen.getByRole('region', { name: 'Palette' })).toBeInTheDocument();
+		expect(screen.getByRole('region', { name: 'Right dock' })).toBeInTheDocument();
+		expect(bridge.getSnapshot().facts.levelFirst).toBe(false);
+	});
+
+	it('keeps Tab for the focus when it is in a panel', async () => {
+		const user = userEvent.setup();
+		await mount();
+		screen.getByRole('tab', { name: 'Palette' }).focus();
+		await user.keyboard('{Tab}');
+		expect(screen.getByRole('region', { name: 'Right dock' })).toBeInTheDocument();
+	});
+
+	it('keeps the rails while the level comes first and restores the same set', async () => {
+		const user = userEvent.setup();
+		const { bridge } = await mount(defaultDock());
+		expect(runCommand('view.levelFirst', bridge.getSnapshot())).toBe(true);
+		await waitFor(() => expect(bridge.getSnapshot().facts.levelFirst).toBe(true));
+		expect(screen.queryByRole('region', { name: 'Left dock' })).toBeNull();
+		expect(screen.getByRole('button', { name: 'Script' })).toBeDisabled();
+		expect(screen.getByRole('group', { name: 'Right rail' })).toBeInTheDocument();
+		runCommand('view.levelFirst', bridge.getSnapshot());
+		await waitFor(() =>
+			expect(screen.getByRole('region', { name: 'Left dock' })).toBeInTheDocument(),
+		);
+		expect(screen.getByRole('button', { name: 'Script' })).toBeEnabled();
+		expect(user).toBeDefined();
+	});
 });

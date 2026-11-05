@@ -135,6 +135,15 @@ export const COMMANDS: readonly CommandDef[] = [
 	},
 	...PANEL_SPECS.map((spec) => panelCommand(spec.id, spec.title)),
 	{
+		id: 'view.levelFirst',
+		menu: 'view',
+		section: 1,
+		label: 'view.levelFirst',
+		shortcut: 'Tab',
+		enabled: (facts) => facts.editorOpen,
+		checked: (facts) => facts.levelFirst,
+	},
+	{
 		id: 'view.resetLayout',
 		menu: 'view',
 		group: 'panels',

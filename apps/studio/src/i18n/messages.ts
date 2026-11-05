@@ -370,6 +370,17 @@ export const enMessages = {
 	// translator: Verb phrase on an icon button. Turns a panel peeking over the level into a real dock again. {title} is the panel’s name.
 	'dock.pin': 'Pin {title}',
 
+	// translator: Label of the draggable edge between the level and the left dock. A person drags it, or presses the arrow keys on it, to make the dock wider or narrower.
+	'dock.resize.left': 'Resize the left dock',
+	// translator: Label of the draggable edge between the level and the right dock. A person drags it, or presses the arrow keys on it, to make the dock wider or narrower.
+	'dock.resize.right': 'Resize the right dock',
+	// translator: Label of the draggable edge between the level and the bottom dock. A person drags it, or presses the arrow keys on it, to make the dock taller or shorter.
+	'dock.resize.bottom': 'Resize the bottom dock',
+	// translator: The size of a dock shown while it is dragged. {size} is a number of pixels, so “264 px”.
+	'dock.size': '{size} px',
+	// translator: Menu item in the View menu. Hides every docked and floating panel so the level has the whole window, and brings the same panels back when chosen again.
+	'view.levelFirst': 'Show the level only',
+
 	// translator: The name of the File menu in the application menu. Level files are opened, saved and closed from it.
 	'appMenu.file': 'File',
 	// translator: The name of the Edit menu in the application menu. Undo and Redo are in it.
