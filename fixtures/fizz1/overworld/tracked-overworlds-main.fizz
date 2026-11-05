@@ -1,0 +1,91 @@
+// The Episode 1 overworld, written as a script. It rebuilds `build_overworld()` in levels.rs tile for tile.
+overworld "Overworld" 60x44 id=main
+start 9.2,8.2
+
+// The first area to match a tile decides its area, so the lake comes first.
+area gumdrop-isle x=20..29 y=18..27
+area crater-fields x=0..24 y=0..22
+area marshmallow-meadows x=0..24 y=23..43
+area frosting-frontier x=25..59 y=0..22
+area rock-candy-reach x=25..59 y=23..43
+
+blocks
+  grass x=0..59 y=0..43
+  // The sea around the edge.
+  river x=0..59 y=0..1
+  river x=0..59 y=42..43
+  river x=0..1 y=2..41
+  river x=58..59 y=2..41
+  // Two rivers cross the map and cut it into four regions; where they meet is a lake with an island that can only be reached by teleporter.
+  river x=24..25 y=0..43
+  river x=0..59 y=22..23
+  river x=20..29 y=18..27
+  grass x=23..26 y=21..24
+  // Paths run x first, then y, between the points.
+  path from=8,9 to=14,6
+  path from=14,6 to=16,14
+  path from=16,14 to=6,16
+  path from=6,16 to=12,19
+  path from=12,26 to=5,30
+  path from=5,30 to=8,37
+  path from=5,30 to=16,31
+  path from=8,37 to=20,38
+  path from=29,38 to=37,34
+  path from=37,34 to=46,38
+  path from=37,34 to=41,28
+  path from=46,38 to=53,27
+  path from=46,38 to=51,30
+  path from=53,18 to=33,15
+  path from=47,18 to=47,14
+  path from=33,15 to=34,6
+  path from=34,6 to=44,6
+  // Trees and rocks on free ground, by each area's rates, keeping clear of every point and path.
+  scatter
+  // Crater Corners, around Zarg Lookout: two houses and a shop north of the street, and a house and the fountain west of the tower.
+  house-a x=7 y=17
+  house-b x=9 y=17
+  shop x=11 y=17
+  house-b x=4 y=17
+  fountain x=4 y=15
+  // The hidden pad's clearing: a ring of trees with a single gap to the west, and the way in kept clear.
+  grass x=53..57 y=38..42
+  tree x=53..57 y=38
+  tree x=53..57 y=42
+  tree x=53 y=39
+  tree x=53 y=41
+  tree x=57 y=39..41
+  grass x=50..53 y=40
+
+points
+  saucer at=8,10
+  level crater at=14,6
+  // The first area is a tutorial: Crater Fields, then Meteor Mesa, then Zarg Lookout.
+  level meteor-mesa at=16,14 req=crater
+  level zarg-lookout at=6,16 req=meteor-mesa
+  // The three levels of Crater Fields power the way down to the Meadows.
+  tele crater-down at=12,19 with=meadows-up req=crater,meteor-mesa,zarg-lookout
+  tele meadows-up at=12,26 with=crater-down req=crater,meteor-mesa,zarg-lookout
+  level marshmallow-meadows at=5,30
+  level fudge-bog at=16,31
+  level bonbon-playhouse at=8,37
+  tele meadows-east at=20,38 with=rock-candy-west req=marshmallow-meadows,bonbon-playhouse
+  tele rock-candy-west at=29,38 with=meadows-east req=marshmallow-meadows,bonbon-playhouse
+  level caves at=37,34
+  level mirror-shafts at=46,38
+  level sugar-glass-gallery at=51,30
+  tele candy-north at=53,27 with=frontier-south req=caves,mirror-shafts
+  tele frontier-south at=53,18 with=candy-north req=caves,mirror-shafts
+  level frosting-flats at=47,14
+  level frosting-spire at=33,15
+  level cocoa-foundry at=34,6
+  // The Citadel stays locked until both Frosting Frontier levels on the way are done.
+  level citadel at=44,6 req=frosting-spire,cocoa-foundry big
+  // The secret pair: a pad on the island, always on show, and its hidden partner in a ring of trees in the far north-east.
+  tele island-pad at=26,22 with=hidden-pad req=secret
+  tele hidden-pad at=55,40 with=island-pad req=secret hidden
+  level gumdrop-isle at=24,23
+  level whisper-hollow at=41,28
+  // Crater Corners: the welcome sign, the bakery sign and the fountain sign.
+  sign 0 at=8,16
+  sign 1 at=11,16
+  sign 2 at=4,16

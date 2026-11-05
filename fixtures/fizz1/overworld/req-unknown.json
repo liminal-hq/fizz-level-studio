@@ -1,0 +1,109 @@
+{
+	"id": "overworld/req-unknown",
+	"from": "tools/fizz1-cases.ts: an unknown requirement, near and far",
+	"isOverworld": true,
+	"ast": {
+		"nodes": [
+			{
+				"type": "overworld",
+				"name": "T",
+				"w": 20,
+				"h": 20,
+				"id": "test",
+				"line": 1,
+				"raw": "overworld \"T\" 20x20 id=test",
+				"comment": null
+			},
+			{
+				"type": "start",
+				"x": {
+					"value": 3,
+					"text": "3"
+				},
+				"y": {
+					"value": 3,
+					"text": "3"
+				},
+				"line": 2,
+				"raw": "start 3,3",
+				"comment": null
+			},
+			{
+				"type": "section",
+				"name": "blocks",
+				"line": 3,
+				"raw": "blocks",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "grass",
+				"x": {
+					"lo": 0,
+					"hi": 19
+				},
+				"y": {
+					"lo": 0,
+					"hi": 19
+				},
+				"line": 4,
+				"raw": "  grass x=0..19 y=0..19",
+				"comment": null
+			},
+			{
+				"type": "section",
+				"name": "points",
+				"line": 5,
+				"raw": "points",
+				"comment": null
+			},
+			{
+				"type": "error",
+				"code": "E002",
+				"line": 6,
+				"raw": "  level caves at=1,1 req=crator",
+				"comment": null
+			},
+			{
+				"type": "error",
+				"code": "E002",
+				"line": 7,
+				"raw": "  level caves at=1,1 req=secrt",
+				"comment": null
+			},
+			{
+				"type": "error",
+				"code": "E002",
+				"line": 8,
+				"raw": "  level caves at=1,1 req=crater,moon",
+				"comment": null
+			},
+			{
+				"type": "blank",
+				"line": 9,
+				"raw": "",
+				"comment": null
+			}
+		]
+	},
+	"errors": [
+		{
+			"line": 6,
+			"code": "E002",
+			"message": "unknown requirement `crator`",
+			"fix": "did you mean `crater`?"
+		},
+		{
+			"line": 7,
+			"code": "E002",
+			"message": "unknown requirement `secrt`",
+			"fix": "did you mean `secret`?"
+		},
+		{
+			"line": 8,
+			"code": "E002",
+			"message": "unknown requirement `moon`",
+			"fix": "use one of: crater, caves, citadel, meteor-mesa, zarg-lookout, marshmallow-meadows, bonbon-playhouse, fudge-bog, mirror-shafts, sugar-glass-gallery, frosting-flats, frosting-spire, cocoa-foundry, gumdrop-isle, whisper-hollow, saucer, secret"
+		}
+	]
+}

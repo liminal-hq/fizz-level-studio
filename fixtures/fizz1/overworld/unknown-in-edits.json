@@ -1,0 +1,61 @@
+{
+	"id": "overworld/unknown-in-edits",
+	"from": "tools/fizz1-cases.ts: an unknown statement in the edits block",
+	"isOverworld": true,
+	"ast": {
+		"nodes": [
+			{
+				"type": "overworld",
+				"name": "T",
+				"w": 20,
+				"h": 20,
+				"id": "test",
+				"line": 1,
+				"raw": "overworld \"T\" 20x20 id=test",
+				"comment": null
+			},
+			{
+				"type": "start",
+				"x": {
+					"value": 3,
+					"text": "3"
+				},
+				"y": {
+					"value": 3,
+					"text": "3"
+				},
+				"line": 2,
+				"raw": "start 3,3",
+				"comment": null
+			},
+			{
+				"type": "section",
+				"name": "edits",
+				"line": 3,
+				"raw": "edits",
+				"comment": null
+			},
+			{
+				"type": "error",
+				"code": "E001",
+				"line": 4,
+				"raw": "  floop",
+				"comment": null
+			},
+			{
+				"type": "blank",
+				"line": 5,
+				"raw": "",
+				"comment": null
+			}
+		]
+	},
+	"errors": [
+		{
+			"line": 4,
+			"code": "E001",
+			"message": "unknown statement `floop` in `edits`",
+			"fix": "`edits` takes: fill, block, one-way, spike, choc, slope-r45, slope-l45, slope-r22a, slope-r22b, slope-l22a, slope-l22b, red-door, ..."
+		}
+	]
+}

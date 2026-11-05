@@ -1,0 +1,87 @@
+{
+	"id": "overworld/path-missing-end",
+	"from": "tools/fizz1-cases.ts: a path with no end, with a single number, and with a stray word",
+	"isOverworld": true,
+	"ast": {
+		"nodes": [
+			{
+				"type": "overworld",
+				"name": "T",
+				"w": 20,
+				"h": 20,
+				"id": "test",
+				"line": 1,
+				"raw": "overworld \"T\" 20x20 id=test",
+				"comment": null
+			},
+			{
+				"type": "start",
+				"x": {
+					"value": 3,
+					"text": "3"
+				},
+				"y": {
+					"value": 3,
+					"text": "3"
+				},
+				"line": 2,
+				"raw": "start 3,3",
+				"comment": null
+			},
+			{
+				"type": "section",
+				"name": "blocks",
+				"line": 3,
+				"raw": "blocks",
+				"comment": null
+			},
+			{
+				"type": "error",
+				"code": "E003",
+				"line": 4,
+				"raw": "  path from=1,2",
+				"comment": null
+			},
+			{
+				"type": "error",
+				"code": "E004",
+				"line": 5,
+				"raw": "  path from=1 to=2,2",
+				"comment": null
+			},
+			{
+				"type": "error",
+				"code": "E009",
+				"line": 6,
+				"raw": "  path from=1,2 to=3,3 loose",
+				"comment": null
+			},
+			{
+				"type": "blank",
+				"line": 7,
+				"raw": "",
+				"comment": null
+			}
+		]
+	},
+	"errors": [
+		{
+			"line": 4,
+			"code": "E003",
+			"message": "missing field `to=`",
+			"fix": "add `to=14,6`"
+		},
+		{
+			"line": 5,
+			"code": "E004",
+			"message": "`from=` takes two numbers, found `1`",
+			"fix": "write `from=8,9`"
+		},
+		{
+			"line": 6,
+			"code": "E009",
+			"message": "unexpected `loose`",
+			"fix": "this statement takes: from=X,Y to=X,Y"
+		}
+	]
+}

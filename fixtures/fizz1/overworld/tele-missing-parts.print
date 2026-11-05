@@ -1,0 +1,7 @@
+overworld "T" 20x20 id=test
+start 3,3
+points
+  tele
+  tele a
+  tele b at=1,1
+  tele c at=1,1 with=

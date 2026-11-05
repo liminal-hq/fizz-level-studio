@@ -1,0 +1,3 @@
+overworld "T" 20x20 id=test
+blocks
+  grass x=0 y=0

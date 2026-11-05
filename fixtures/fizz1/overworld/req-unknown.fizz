@@ -1,0 +1,8 @@
+overworld "T" 20x20 id=test
+start 3,3
+blocks
+  grass x=0..19 y=0..19
+points
+  level caves at=1,1 req=crator
+  level caves at=1,1 req=secrt
+  level caves at=1,1 req=crater,moon

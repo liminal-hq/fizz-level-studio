@@ -1,0 +1,23 @@
+{
+	"id": "overworld/edge-lone-comment",
+	"from": "tools/fizz1-cases.ts: a file that is one comment",
+	"isOverworld": false,
+	"ast": {
+		"nodes": [
+			{
+				"type": "comment",
+				"line": 1,
+				"raw": "// just a comment",
+				"comment": "just a comment"
+			}
+		]
+	},
+	"errors": [
+		{
+			"line": 1,
+			"code": "E007",
+			"message": "the script has no `overworld` header",
+			"fix": "start the script with: overworld \"Name\" 60x44 id=main"
+		}
+	]
+}

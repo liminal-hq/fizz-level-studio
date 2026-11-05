@@ -1,0 +1,74 @@
+{
+	"id": "overworld/scatter-with-words",
+	"from": "tools/fizz1-cases.ts: scatter takes nothing",
+	"isOverworld": true,
+	"ast": {
+		"nodes": [
+			{
+				"type": "overworld",
+				"name": "T",
+				"w": 20,
+				"h": 20,
+				"id": "test",
+				"line": 1,
+				"raw": "overworld \"T\" 20x20 id=test",
+				"comment": null
+			},
+			{
+				"type": "start",
+				"x": {
+					"value": 3,
+					"text": "3"
+				},
+				"y": {
+					"value": 3,
+					"text": "3"
+				},
+				"line": 2,
+				"raw": "start 3,3",
+				"comment": null
+			},
+			{
+				"type": "section",
+				"name": "blocks",
+				"line": 3,
+				"raw": "blocks",
+				"comment": null
+			},
+			{
+				"type": "error",
+				"code": "E009",
+				"line": 4,
+				"raw": "  scatter now",
+				"comment": null
+			},
+			{
+				"type": "error",
+				"code": "E009",
+				"line": 5,
+				"raw": "  scatter x=1",
+				"comment": null
+			},
+			{
+				"type": "blank",
+				"line": 6,
+				"raw": "",
+				"comment": null
+			}
+		]
+	},
+	"errors": [
+		{
+			"line": 4,
+			"code": "E009",
+			"message": "unexpected `now`",
+			"fix": "this statement takes: nothing"
+		},
+		{
+			"line": 5,
+			"code": "E009",
+			"message": "unknown field `x=`",
+			"fix": "this statement takes: nothing"
+		}
+	]
+}

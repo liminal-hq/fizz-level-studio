@@ -1,0 +1,44 @@
+{
+	"id": "overworld/header-no-id",
+	"from": "tools/fizz1-cases.ts: a header with no id",
+	"isOverworld": true,
+	"ast": {
+		"nodes": [
+			{
+				"type": "error",
+				"code": "E003",
+				"line": 1,
+				"raw": "overworld \"T\" 20x20",
+				"comment": null
+			},
+			{
+				"type": "start",
+				"x": {
+					"value": 3,
+					"text": "3"
+				},
+				"y": {
+					"value": 3,
+					"text": "3"
+				},
+				"line": 2,
+				"raw": "start 3,3",
+				"comment": null
+			},
+			{
+				"type": "blank",
+				"line": 3,
+				"raw": "",
+				"comment": null
+			}
+		]
+	},
+	"errors": [
+		{
+			"line": 1,
+			"code": "E003",
+			"message": "missing field `id=`",
+			"fix": "add `id=main`"
+		}
+	]
+}

@@ -1,0 +1,126 @@
+{
+	"id": "overworld/tile-fields",
+	"from": "tools/fizz1-cases.ts: tile lines with missing, repeated and unknown fields",
+	"isOverworld": true,
+	"ast": {
+		"nodes": [
+			{
+				"type": "overworld",
+				"name": "T",
+				"w": 20,
+				"h": 20,
+				"id": "test",
+				"line": 1,
+				"raw": "overworld \"T\" 20x20 id=test",
+				"comment": null
+			},
+			{
+				"type": "start",
+				"x": {
+					"value": 3,
+					"text": "3"
+				},
+				"y": {
+					"value": 3,
+					"text": "3"
+				},
+				"line": 2,
+				"raw": "start 3,3",
+				"comment": null
+			},
+			{
+				"type": "section",
+				"name": "blocks",
+				"line": 3,
+				"raw": "blocks",
+				"comment": null
+			},
+			{
+				"type": "error",
+				"code": "E003",
+				"line": 4,
+				"raw": "  grass y=1",
+				"comment": null
+			},
+			{
+				"type": "error",
+				"code": "E003",
+				"line": 5,
+				"raw": "  grass x=1",
+				"comment": null
+			},
+			{
+				"type": "error",
+				"code": "E009",
+				"line": 6,
+				"raw": "  grass x=1 x=2 y=0",
+				"comment": null
+			},
+			{
+				"type": "error",
+				"code": "E009",
+				"line": 7,
+				"raw": "  grass x=1 y=0 z=1",
+				"comment": null
+			},
+			{
+				"type": "error",
+				"code": "E013",
+				"line": 8,
+				"raw": "  grass x=1..30 y=0",
+				"comment": null
+			},
+			{
+				"type": "error",
+				"code": "E009",
+				"line": 9,
+				"raw": "  grass x=1 y=0 loose",
+				"comment": null
+			},
+			{
+				"type": "blank",
+				"line": 10,
+				"raw": "",
+				"comment": null
+			}
+		]
+	},
+	"errors": [
+		{
+			"line": 4,
+			"code": "E003",
+			"message": "missing field `x=`",
+			"fix": "add `x=24..25`"
+		},
+		{
+			"line": 5,
+			"code": "E003",
+			"message": "missing field `y=`",
+			"fix": "add `y=0..43`"
+		},
+		{
+			"line": 6,
+			"code": "E009",
+			"message": "field `x=` is given twice",
+			"fix": "keep one `x=`"
+		},
+		{
+			"line": 7,
+			"code": "E009",
+			"message": "unknown field `z=`",
+			"fix": "this statement takes: x=A..B y=A..B"
+		},
+		{
+			"line": 8,
+			"code": "E013",
+			"message": "x 1..30 is outside the overworld (x runs 0..19)",
+			"fix": "keep x within 0..19, or change the size on the `overworld` line"
+		},
+		{
+			"line": 9,
+			"code": "E009",
+			"message": "unexpected `loose`",
+			"fix": "this statement takes: x=A..B y=A..B"
+		}
+	]
+}

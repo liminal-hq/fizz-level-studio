@@ -1,0 +1,8 @@
+// top
+overworld "A // B" 20x20 id=test // header
+  // indented
+start 3,3   //
+
+   
+blocks // here
+  grass x=0 y=0 // tile

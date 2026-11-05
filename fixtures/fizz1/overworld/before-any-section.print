@@ -1,0 +1,4 @@
+overworld "T" 20x20 id=test
+start 3,3
+grass x=1 y=1
+saucer at=2,2

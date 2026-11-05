@@ -1,0 +1,62 @@
+{
+	"id": "overworld/huge",
+	"from": "tools/fizz1-cases.ts: sizes past what a double holds",
+	"isOverworld": true,
+	"ast": {
+		"nodes": [
+			{
+				"type": "overworld",
+				"name": "T",
+				"w": null,
+				"h": 3,
+				"id": "test",
+				"line": 1,
+				"raw": "overworld \"T\" 9999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999x3 id=test",
+				"comment": null
+			},
+			{
+				"type": "start",
+				"x": {
+					"value": 0,
+					"text": "0"
+				},
+				"y": {
+					"value": 0,
+					"text": "0"
+				},
+				"line": 2,
+				"raw": "start 0,0",
+				"comment": null
+			},
+			{
+				"type": "section",
+				"name": "blocks",
+				"line": 3,
+				"raw": "blocks",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "grass",
+				"x": {
+					"lo": 0,
+					"hi": 99999
+				},
+				"y": {
+					"lo": 0,
+					"hi": 2
+				},
+				"line": 4,
+				"raw": "  grass x=0..99999 y=0..2",
+				"comment": null
+			},
+			{
+				"type": "blank",
+				"line": 5,
+				"raw": "",
+				"comment": null
+			}
+		]
+	},
+	"errors": []
+}

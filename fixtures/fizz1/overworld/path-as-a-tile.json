@@ -1,0 +1,89 @@
+{
+	"id": "overworld/path-as-a-tile",
+	"from": "tools/fizz1-cases.ts: path as a tile word, with and without its fields",
+	"isOverworld": true,
+	"ast": {
+		"nodes": [
+			{
+				"type": "overworld",
+				"name": "T",
+				"w": 20,
+				"h": 20,
+				"id": "test",
+				"line": 1,
+				"raw": "overworld \"T\" 20x20 id=test",
+				"comment": null
+			},
+			{
+				"type": "start",
+				"x": {
+					"value": 3,
+					"text": "3"
+				},
+				"y": {
+					"value": 3,
+					"text": "3"
+				},
+				"line": 2,
+				"raw": "start 3,3",
+				"comment": null
+			},
+			{
+				"type": "section",
+				"name": "blocks",
+				"line": 3,
+				"raw": "blocks",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "path",
+				"x": {
+					"lo": 1,
+					"hi": 2
+				},
+				"y": {
+					"lo": 3,
+					"hi": 3
+				},
+				"line": 4,
+				"raw": "  path x=1..2 y=3",
+				"comment": null
+			},
+			{
+				"type": "error",
+				"code": "E003",
+				"line": 5,
+				"raw": "  path",
+				"comment": null
+			},
+			{
+				"type": "error",
+				"code": "E003",
+				"line": 6,
+				"raw": "  path y=1",
+				"comment": null
+			},
+			{
+				"type": "blank",
+				"line": 7,
+				"raw": "",
+				"comment": null
+			}
+		]
+	},
+	"errors": [
+		{
+			"line": 5,
+			"code": "E003",
+			"message": "missing field `x=`",
+			"fix": "add `x=24..25`"
+		},
+		{
+			"line": 6,
+			"code": "E003",
+			"message": "missing field `x=`",
+			"fix": "add `x=24..25`"
+		}
+	]
+}

@@ -1,0 +1,23 @@
+{
+	"id": "overworld/edge-empty",
+	"from": "tools/fizz1-cases.ts: an empty file",
+	"isOverworld": false,
+	"ast": {
+		"nodes": [
+			{
+				"type": "blank",
+				"line": 1,
+				"raw": "",
+				"comment": null
+			}
+		]
+	},
+	"errors": [
+		{
+			"line": 1,
+			"code": "E007",
+			"message": "the script has no `overworld` header",
+			"fix": "start the script with: overworld \"Name\" 60x44 id=main"
+		}
+	]
+}

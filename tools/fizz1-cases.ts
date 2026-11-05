@@ -696,3 +696,394 @@ export const EDIT_CASES: EditCase[] = [
 		edits: [clear(2, 2)],
 	},
 ];
+
+// ---------------------------------------------------------------- overworld scripts
+
+const OW = 'packages/language/test/overworld.test.ts';
+/** The test file's header: a 20x20 map of grass with a start, then the `points` section open. */
+const OW_HEAD = 'overworld "T" 20x20 id=test\nstart 3,3\nblocks\n  grass x=0..19 y=0..19\npoints\n';
+const OW_TOP = 'overworld "T" 20x20 id=test\nstart 3,3\n';
+const OW_BLOCKS = `${OW_TOP}blocks\n`;
+const OW_POINTS = `${OW_TOP}points\n`;
+
+/** Curated overworld inputs; the corpus parses these with `parseOverworld`. */
+export const OVERWORLD_CASES: Case[] = [
+	{
+		id: 'overworld/header-and-start',
+		from: `${OW}: the smallest valid overworld`,
+		source: OW_TOP,
+	},
+	{
+		id: 'overworld/everything',
+		from: `${EDGE}: one of every statement, with a trailing comment on some`,
+		source:
+			'// A small map\noverworld "Everything" 30x24 id=main   // header\nstart 9.2, 8.2\narea crater-fields x=0..14 y=0..23\narea gumdrop-isle x=15..29 y=0..23\n\nblocks\n  grass x=0..29 y=0..23\n  river x=10..11 y=0..23   // the river\n  path from=8,9 to=14,6\n  path x=3..4 y=3\n  scatter\npoints\n  level crater at=14,6 big\n  level caves at=20.5,10 req=crater,secret hidden\n  tele pad-a at=12,19 with=pad-b\n  tele pad-b at=2,2 with=pad-a req=crater\n  saucer at=3,3\n  sign 0 at=8,16\nedits\n  tree x=5 y=5\n  sign 1 at=6,6\n',
+	},
+	{
+		id: 'overworld/tele-needs-a-partner',
+		from: `${OW}: a teleporter must pair with one that exists`,
+		source: `${OW_HEAD}  tele a at=3,3 with=nope\n`,
+	},
+	{
+		id: 'overworld/tele-pair-forward',
+		from: `${OW}: a teleporter may pair with one declared later`,
+		source: `${OW_HEAD}  tele a at=3,3 with=b\n  tele b at=9,9 with=a req=crater,secret\n`,
+	},
+	{
+		id: 'overworld/tele-two-missing-partners',
+		from: `${EDGE}: two teleporters with missing partners list the names that exist`,
+		source: `${OW_HEAD}  tele a at=3,3 with=x\n  tele b at=4,4 with=y\n`,
+	},
+	{
+		id: 'overworld/tele-duplicate-name',
+		from: `${EDGE}: a second teleporter with the same name`,
+		source: `${OW_HEAD}  tele a at=3,3 with=a\n  tele a at=4,4 with=a\n`,
+	},
+	{
+		id: 'overworld/tele-name-kept-after-failure',
+		from: `${EDGE}: a teleporter whose line fails after its name is read still holds the name`,
+		source: `${OW_HEAD}  tele a at=99,3 with=b\n  tele b at=4,4 with=a\n`,
+	},
+	{
+		id: 'overworld/unknown-level',
+		from: `${OW}: a level must be a known level`,
+		source: `${OW_HEAD}  level crator at=3,3\n`,
+	},
+	{
+		id: 'overworld/unknown-level-far',
+		from: `${EDGE}: an unknown level with no close match lists the choices`,
+		source: `${OW_HEAD}  level zzzzzzzz at=3,3\n`,
+	},
+	{
+		id: 'overworld/point-outside-the-map',
+		from: `${OW}: a point outside the map is refused`,
+		source: `${OW_HEAD}  saucer at=30,3\n`,
+	},
+	{
+		id: 'overworld/point-below-the-map',
+		from: `${EDGE}: a negative y is outside the map`,
+		source: `${OW_HEAD}  saucer at=3,-1\n`,
+	},
+	{
+		id: 'overworld/point-fraction-floors',
+		from: `${EDGE}: a fractional point is checked on the tile it floors to`,
+		source: `${OW_HEAD}  saucer at=19.9,0.5\n  saucer at=20.1,3\n`,
+	},
+	{
+		id: 'overworld/level-in-blocks',
+		from: `${OW}: a level point belongs under points`,
+		source: `${OW_BLOCKS}  saucer at=3,3\n`,
+	},
+	{
+		id: 'overworld/tile-in-points',
+		from: `${EDGE}: a tile line belongs under blocks`,
+		source: `${OW_POINTS}  grass x=0 y=0\n`,
+	},
+	{
+		id: 'overworld/scatter-in-points',
+		from: `${EDGE}: a scatter belongs under blocks`,
+		source: `${OW_POINTS}  scatter\n  path from=1,1 to=2,2\n`,
+	},
+	{
+		id: 'overworld/edits-take-both',
+		from: `${EDGE}: the edits block takes tile lines and points`,
+		source: `${OW_TOP}edits\n  river x=1 y=1\n  saucer at=2,2\n  scatter\n`,
+	},
+	{
+		id: 'overworld/paint-and-clear',
+		from: `${EDGE}: paint and clear are not overworld words`,
+		source: `${OW_BLOCKS}  paint grass x=1 y=1\n  clear x=1 y=1\n`,
+	},
+	{
+		id: 'overworld/empty-is-not-a-block-word',
+		from: `${EDGE}: the empty tile is not a blocks word`,
+		source: `${OW_BLOCKS}  empty x=1 y=1\n`,
+	},
+	{
+		id: 'overworld/before-any-section',
+		from: `${EDGE}: a statement before any section header`,
+		source: `${OW_TOP}grass x=1 y=1\nsaucer at=2,2\n`,
+	},
+	{
+		id: 'overworld/section-before-header',
+		from: `${EDGE}: a section header is allowed before the overworld header`,
+		source: 'blocks\noverworld "T" 20x20 id=test\nstart 3,3\n',
+	},
+	{
+		id: 'overworld/statement-before-header',
+		from: `${EDGE}: a statement before the overworld header`,
+		source: 'start 3,3\noverworld "T" 20x20 id=test\n',
+	},
+	{
+		id: 'overworld/second-header',
+		from: `${EDGE}: a second overworld header`,
+		source: `${OW_TOP}overworld "U" 10x10 id=other\n`,
+	},
+	{
+		id: 'overworld/no-header',
+		from: `${EDGE}: a script with no header and no other error`,
+		source: '// nothing here\n\n',
+	},
+	{
+		id: 'overworld/header-malformed',
+		from: `${EDGE}: a malformed header puts the error on its line and the missing start on line 0`,
+		source: 'overworld T 20x20 id=test\n',
+	},
+	{
+		id: 'overworld/header-no-id',
+		from: `${EDGE}: a header with no id`,
+		source: 'overworld "T" 20x20\nstart 3,3\n',
+	},
+	{
+		id: 'overworld/header-extra-field',
+		from: `${EDGE}: a header with an unknown field and a stray word`,
+		source: 'overworld "T" 20x20 id=a size=3\nstart 3,3\noverworld "U" 20x20 id=a loose\n',
+	},
+	{
+		id: 'overworld/too-small',
+		from: `${EDGE}: an overworld smaller than 3x3`,
+		source: 'overworld "T" 2x40 id=test\nstart 0,0\n',
+	},
+	{
+		id: 'overworld/huge',
+		from: `${EDGE}: sizes past what a double holds`,
+		source: `overworld "T" ${'9'.repeat(400)}x3 id=test\nstart 0,0\nblocks\n  grass x=0..99999 y=0..2\n`,
+	},
+	{
+		id: 'overworld/no-start',
+		from: `${EDGE}: a header with no start line`,
+		source: 'overworld "T" 20x20 id=test\nblocks\n  grass x=0 y=0\n',
+	},
+	{
+		id: 'overworld/second-start',
+		from: `${EDGE}: a second start line`,
+		source: `${OW_TOP}start 4,4\n`,
+	},
+	{
+		id: 'overworld/start-forms',
+		from: `${EDGE}: start with spaces around the comma`,
+		source: 'overworld "T" 20x20 id=test\nstart 1 , 2\n',
+	},
+	{
+		id: 'overworld/start-one-number',
+		from: `${EDGE}: start with one number`,
+		source: 'overworld "T" 20x20 id=test\nstart 3\n',
+	},
+	{
+		id: 'overworld/start-not-a-number',
+		from: `${EDGE}: start with words`,
+		source: 'overworld "T" 20x20 id=test\nstart a,2\nstart 1,b\n',
+	},
+	{
+		id: 'overworld/start-three',
+		from: `${EDGE}: start with three numbers, an empty one and none`,
+		source: 'overworld "T" 20x20 id=test\nstart 1,2,3\nstart 1,\nstart ,\nstart\n',
+	},
+	{
+		id: 'overworld/area-unknown',
+		from: `${EDGE}: an unknown area, near and far`,
+		source: `${OW_TOP}area crater-field x=0..1 y=0..1\narea moon x=0..1 y=0..1\n`,
+	},
+	{
+		id: 'overworld/area-missing-parts',
+		from: `${EDGE}: an area with no name, no x and no y`,
+		source: `${OW_TOP}area\narea crater-fields y=0..1\narea crater-fields x=0..1\n`,
+	},
+	{
+		id: 'overworld/area-outside',
+		from: `${EDGE}: an area that runs off the map`,
+		source: `${OW_TOP}area crater-fields x=0..20 y=-1..3\narea crater-fields x=5 y=19..20\n`,
+	},
+	{
+		id: 'overworld/area-bad-range',
+		from: `${EDGE}: an area with a backwards range, a list and an extra field`,
+		source: `${OW_TOP}area crater-fields x=5..1 y=0\narea crater-fields x=1,2 y=0\narea crater-fields x=1 y=0 z=3\n`,
+	},
+	{
+		id: 'overworld/area-in-a-section',
+		from: `${EDGE}: an area line may sit inside any section`,
+		source: `${OW_POINTS}  area gumdrop-isle x=0..4 y=0..4\n`,
+	},
+	{
+		id: 'overworld/req-unknown',
+		from: `${EDGE}: an unknown requirement, near and far`,
+		source: `${OW_HEAD}  level caves at=1,1 req=crator\n  level caves at=1,1 req=secrt\n  level caves at=1,1 req=crater,moon\n`,
+	},
+	{
+		id: 'overworld/req-empty-item',
+		from: `${EDGE}: a requirement list with an empty item`,
+		source: `${OW_HEAD}  level caves at=1,1 req=crater,,secret\n  level caves at=1,1 req=crater, secret\n`,
+	},
+	{
+		id: 'overworld/req-without-value',
+		from: `${EDGE}: req= with no value`,
+		source: `${OW_HEAD}  level caves at=1,1 req=\n`,
+	},
+	{
+		id: 'overworld/path-fractional',
+		from: `${EDGE}: a path between fractional tiles, and whole numbers written with a fraction`,
+		source: `${OW_BLOCKS}  path from=1.5,2 to=4,4\n  path from=1.0,2.0 to=4,4\n`,
+	},
+	{
+		id: 'overworld/path-outside',
+		from: `${EDGE}: a path that leaves the map`,
+		source: `${OW_BLOCKS}  path from=1,2 to=40,4\n  path from=1,2 to=4,-3\n`,
+	},
+	{
+		id: 'overworld/path-missing-end',
+		from: `${EDGE}: a path with no end, with a single number, and with a stray word`,
+		source: `${OW_BLOCKS}  path from=1,2\n  path from=1 to=2,2\n  path from=1,2 to=3,3 loose\n`,
+	},
+	{
+		id: 'overworld/path-as-a-tile',
+		from: `${EDGE}: path as a tile word, with and without its fields`,
+		source: `${OW_BLOCKS}  path x=1..2 y=3\n  path\n  path y=1\n`,
+	},
+	{
+		id: 'overworld/sign-numbers',
+		from: `${EDGE}: sign numbers as JavaScript's Number() reads them`,
+		source: `${OW_HEAD}  sign 0 at=1,1\n  sign 0x10 at=1,1\n  sign 1e1 at=1,1\n  sign 5. at=1,1\n  sign -0 at=1,1\n  sign +3 at=1,1\n`,
+	},
+	{
+		id: 'overworld/sign-bad',
+		from: `${EDGE}: sign numbers that are refused`,
+		source: `${OW_HEAD}  sign -1 at=1,1\n  sign 1.5 at=1,1\n  sign x at=1,1\n  sign Infinity at=1,1\n  sign\n  sign 2\n`,
+	},
+	{
+		id: 'overworld/unknown-in-blocks',
+		from: `${EDGE}: an unknown statement under blocks lists the first twelve words`,
+		source: `${OW_BLOCKS}  floop x=1\n  grasss x=1 y=1\n`,
+	},
+	{
+		id: 'overworld/unknown-in-points',
+		from: `${EDGE}: an unknown statement under points lists all four words`,
+		source: `${OW_POINTS}  lvl crater at=1,1\n`,
+	},
+	{
+		id: 'overworld/unknown-in-edits',
+		from: `${EDGE}: an unknown statement in the edits block`,
+		source: `${OW_TOP}edits\n  floop\n`,
+	},
+	{
+		id: 'overworld/section-after-edits',
+		from: `${EDGE}: a section after the edits block`,
+		source: `${OW_TOP}edits\nblocks\npoints\nedits\n`,
+	},
+	{
+		id: 'overworld/section-with-words',
+		from: `${EDGE}: a section word followed by something else is not a section header`,
+		source: `${OW_TOP}blocks extra\npoints\n`,
+	},
+	{
+		id: 'overworld/tile-fields',
+		from: `${EDGE}: tile lines with missing, repeated and unknown fields`,
+		source: `${OW_BLOCKS}  grass y=1\n  grass x=1\n  grass x=1 x=2 y=0\n  grass x=1 y=0 z=1\n  grass x=1..30 y=0\n  grass x=1 y=0 loose\n`,
+	},
+	{
+		id: 'overworld/tile-outside',
+		from: `${EDGE}: tile ranges that leave the map`,
+		source: `${OW_BLOCKS}  grass x=-1..3 y=0\n  grass x=0 y=0..20\n  grass x=0..19 y=19\n`,
+	},
+	{
+		id: 'overworld/scatter-with-words',
+		from: `${EDGE}: scatter takes nothing`,
+		source: `${OW_BLOCKS}  scatter now\n  scatter x=1\n`,
+	},
+	{
+		id: 'overworld/level-flags',
+		from: `${EDGE}: level flags in any order, and a repeated flag`,
+		source: `${OW_POINTS}  level crater hidden at=1,1 big\n  level crater at=2,2 big big\n  level crater at=3,3 req=caves\n`,
+	},
+	{
+		id: 'overworld/level-missing-parts',
+		from: `${EDGE}: level points with a missing name or position`,
+		source: `${OW_POINTS}  level\n  level crater\n  level crater at=1\n  level crater at=a,b\n  level crater at=1,2,3\n`,
+	},
+	{
+		id: 'overworld/tele-missing-parts',
+		from: `${EDGE}: teleporters with a missing name, position or partner`,
+		source: `${OW_POINTS}  tele\n  tele a\n  tele b at=1,1\n  tele c at=1,1 with=\n`,
+	},
+	{
+		id: 'overworld/saucer-extra',
+		from: `${EDGE}: a saucer with extra words`,
+		source: `${OW_POINTS}  saucer\n  saucer at=1,1 hidden\n  saucer at=1,1 req=crater\n`,
+	},
+	{
+		id: 'overworld/duplicate-fields-before-a-name',
+		from: `${EDGE}: a repeated field fails before the statement is read, even on start`,
+		source: `${OW_TOP}start a=1 a=2\narea x=1 x=2\n`,
+	},
+	{
+		id: 'overworld/comments',
+		from: `${EDGE}: comments, a quoted // in the name, and comment-only lines`,
+		source:
+			'// top\noverworld "A // B" 20x20 id=test // header\n  // indented\nstart 3,3   //\n\n   \nblocks // here\n  grass x=0 y=0 // tile\n',
+	},
+	{
+		id: 'overworld/whitespace',
+		from: `${EDGE}: tabs, odd spacing and a non-breaking space`,
+		source:
+			'overworld\t"T"\t20x20\tid=test\n\tstart\t3 ,\t4\nblocks\n\t\tgrass\tx=0..1\ty=0\n  river x=2 y=2\n',
+	},
+	{
+		id: 'overworld/unicode-name',
+		from: `${EDGE}: a name with accents and an emoji`,
+		source: 'overworld "Café 🍬" 20x20 id=test\nstart 3,3\n',
+	},
+	{
+		id: 'overworld/bom',
+		from: `${EDGE}: a byte order mark before the header`,
+		source: '﻿overworld "T" 20x20 id=test\nstart 3,3\n',
+	},
+	{
+		id: 'overworld/edge-crlf',
+		from: `${EDGE}: CRLF line endings`,
+		source: `${OW_HEAD}  saucer at=3,3\n  tele a at=4,4 with=a\n`.replaceAll('\n', '\r\n'),
+	},
+	{
+		id: 'overworld/edge-no-final-newline',
+		from: `${EDGE}: a last line with no newline`,
+		source: `${OW_HEAD}  saucer at=3,3`,
+	},
+	{
+		id: 'overworld/edge-empty',
+		from: `${EDGE}: an empty file`,
+		source: '',
+	},
+	{
+		id: 'overworld/edge-lone-comment',
+		from: `${EDGE}: a file that is one comment`,
+		source: '// just a comment',
+	},
+	{
+		id: 'overworld/edge-lone-comment-and-newline',
+		from: `${EDGE}: a comment and a final newline`,
+		source: '// just a comment\n',
+	},
+	{
+		id: 'overworld/edge-blank-lines',
+		from: `${EDGE}: blank lines only`,
+		source: '\n\n  \n',
+	},
+	{
+		id: 'overworld/edge-level-script',
+		from: `${EDGE}: a level script read as an overworld`,
+		source: HEAD,
+	},
+	{
+		id: 'overworld/edge-line-separator',
+		from: `${EDGE}: a line separator inside a header and inside a comment`,
+		source: 'overworld "T" 20x20 id=a b\nstart 3,3 // x y\n',
+	},
+	{
+		id: 'overworld/edge-lone-cr',
+		from: `${EDGE}: a lone carriage return in the middle of a header`,
+		source: 'overworld "T" 20x20 id=a\rb\nstart 3,3\n',
+	},
+	{
+		id: 'overworld/is-overworld-comment-first',
+		from: `${EDGE}: an overworld header after comment and blank lines`,
+		source: '\n// c\n  // d\n\noverworld "T" 20x20 id=test\nstart 3,3\n',
+	},
+];

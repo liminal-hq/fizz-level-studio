@@ -1,0 +1,5 @@
+overworld "T" 20x20 id=test
+start 1,2,3
+start 1,
+start ,
+start

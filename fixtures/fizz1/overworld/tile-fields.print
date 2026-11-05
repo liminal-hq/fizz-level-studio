@@ -1,0 +1,9 @@
+overworld "T" 20x20 id=test
+start 3,3
+blocks
+  grass y=1
+  grass x=1
+  grass x=1 x=2 y=0
+  grass x=1 y=0 z=1
+  grass x=1..30 y=0
+  grass x=1 y=0 loose

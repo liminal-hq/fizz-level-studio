@@ -1,0 +1,4 @@
+overworld "T" 20x20 id=test
+start 3,3
+points
+  lvl crater at=1,1

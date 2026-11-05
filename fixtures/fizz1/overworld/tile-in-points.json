@@ -1,0 +1,61 @@
+{
+	"id": "overworld/tile-in-points",
+	"from": "tools/fizz1-cases.ts: a tile line belongs under blocks",
+	"isOverworld": true,
+	"ast": {
+		"nodes": [
+			{
+				"type": "overworld",
+				"name": "T",
+				"w": 20,
+				"h": 20,
+				"id": "test",
+				"line": 1,
+				"raw": "overworld \"T\" 20x20 id=test",
+				"comment": null
+			},
+			{
+				"type": "start",
+				"x": {
+					"value": 3,
+					"text": "3"
+				},
+				"y": {
+					"value": 3,
+					"text": "3"
+				},
+				"line": 2,
+				"raw": "start 3,3",
+				"comment": null
+			},
+			{
+				"type": "section",
+				"name": "points",
+				"line": 3,
+				"raw": "points",
+				"comment": null
+			},
+			{
+				"type": "error",
+				"code": "E008",
+				"line": 4,
+				"raw": "  grass x=0 y=0",
+				"comment": null
+			},
+			{
+				"type": "blank",
+				"line": 5,
+				"raw": "",
+				"comment": null
+			}
+		]
+	},
+	"errors": [
+		{
+			"line": 4,
+			"code": "E008",
+			"message": "`grass` belongs under `blocks`, not `points`",
+			"fix": "move the line under a `blocks` header"
+		}
+	]
+}

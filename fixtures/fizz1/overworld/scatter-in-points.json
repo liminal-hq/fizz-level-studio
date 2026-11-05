@@ -1,0 +1,74 @@
+{
+	"id": "overworld/scatter-in-points",
+	"from": "tools/fizz1-cases.ts: a scatter belongs under blocks",
+	"isOverworld": true,
+	"ast": {
+		"nodes": [
+			{
+				"type": "overworld",
+				"name": "T",
+				"w": 20,
+				"h": 20,
+				"id": "test",
+				"line": 1,
+				"raw": "overworld \"T\" 20x20 id=test",
+				"comment": null
+			},
+			{
+				"type": "start",
+				"x": {
+					"value": 3,
+					"text": "3"
+				},
+				"y": {
+					"value": 3,
+					"text": "3"
+				},
+				"line": 2,
+				"raw": "start 3,3",
+				"comment": null
+			},
+			{
+				"type": "section",
+				"name": "points",
+				"line": 3,
+				"raw": "points",
+				"comment": null
+			},
+			{
+				"type": "error",
+				"code": "E008",
+				"line": 4,
+				"raw": "  scatter",
+				"comment": null
+			},
+			{
+				"type": "error",
+				"code": "E008",
+				"line": 5,
+				"raw": "  path from=1,1 to=2,2",
+				"comment": null
+			},
+			{
+				"type": "blank",
+				"line": 6,
+				"raw": "",
+				"comment": null
+			}
+		]
+	},
+	"errors": [
+		{
+			"line": 4,
+			"code": "E008",
+			"message": "`scatter` belongs under `blocks`, not `points`",
+			"fix": "move the line under a `blocks` header"
+		},
+		{
+			"line": 5,
+			"code": "E008",
+			"message": "`path` belongs under `blocks`, not `points`",
+			"fix": "move the line under a `blocks` header"
+		}
+	]
+}

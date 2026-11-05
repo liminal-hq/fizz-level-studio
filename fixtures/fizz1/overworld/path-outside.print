@@ -1,0 +1,5 @@
+overworld "T" 20x20 id=test
+start 3,3
+blocks
+  path from=1,2 to=40,4
+  path from=1,2 to=4,-3

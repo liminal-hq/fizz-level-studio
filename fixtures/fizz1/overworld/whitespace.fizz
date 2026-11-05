@@ -1,0 +1,5 @@
+overworld	"T"	20x20	id=test
+	start	3 ,	4
+blocks
+		grass	x=0..1	y=0
+  river x=2 y=2

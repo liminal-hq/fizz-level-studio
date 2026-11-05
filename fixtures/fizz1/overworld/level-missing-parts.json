@@ -1,0 +1,113 @@
+{
+	"id": "overworld/level-missing-parts",
+	"from": "tools/fizz1-cases.ts: level points with a missing name or position",
+	"isOverworld": true,
+	"ast": {
+		"nodes": [
+			{
+				"type": "overworld",
+				"name": "T",
+				"w": 20,
+				"h": 20,
+				"id": "test",
+				"line": 1,
+				"raw": "overworld \"T\" 20x20 id=test",
+				"comment": null
+			},
+			{
+				"type": "start",
+				"x": {
+					"value": 3,
+					"text": "3"
+				},
+				"y": {
+					"value": 3,
+					"text": "3"
+				},
+				"line": 2,
+				"raw": "start 3,3",
+				"comment": null
+			},
+			{
+				"type": "section",
+				"name": "points",
+				"line": 3,
+				"raw": "points",
+				"comment": null
+			},
+			{
+				"type": "error",
+				"code": "E003",
+				"line": 4,
+				"raw": "  level",
+				"comment": null
+			},
+			{
+				"type": "error",
+				"code": "E003",
+				"line": 5,
+				"raw": "  level crater",
+				"comment": null
+			},
+			{
+				"type": "error",
+				"code": "E004",
+				"line": 6,
+				"raw": "  level crater at=1",
+				"comment": null
+			},
+			{
+				"type": "error",
+				"code": "E004",
+				"line": 7,
+				"raw": "  level crater at=a,b",
+				"comment": null
+			},
+			{
+				"type": "error",
+				"code": "E004",
+				"line": 8,
+				"raw": "  level crater at=1,2,3",
+				"comment": null
+			},
+			{
+				"type": "blank",
+				"line": 9,
+				"raw": "",
+				"comment": null
+			}
+		]
+	},
+	"errors": [
+		{
+			"line": 4,
+			"code": "E003",
+			"message": "missing level id",
+			"fix": "write `level crater at=14,6`"
+		},
+		{
+			"line": 5,
+			"code": "E003",
+			"message": "missing field `at=`",
+			"fix": "add `at=14,6`"
+		},
+		{
+			"line": 6,
+			"code": "E004",
+			"message": "`at=` takes two numbers, found `1`",
+			"fix": "write `at=14,6`"
+		},
+		{
+			"line": 7,
+			"code": "E004",
+			"message": "`at=` must be a number, found `a`",
+			"fix": "write a decimal such as 7 or 88.5"
+		},
+		{
+			"line": 8,
+			"code": "E004",
+			"message": "`at=` takes two numbers, found `1,2,3`",
+			"fix": "write `at=14,6`"
+		}
+	]
+}

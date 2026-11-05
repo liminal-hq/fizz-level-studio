@@ -1,0 +1,57 @@
+{
+	"id": "overworld/header-extra-field",
+	"from": "tools/fizz1-cases.ts: a header with an unknown field and a stray word",
+	"isOverworld": true,
+	"ast": {
+		"nodes": [
+			{
+				"type": "error",
+				"code": "E009",
+				"line": 1,
+				"raw": "overworld \"T\" 20x20 id=a size=3",
+				"comment": null
+			},
+			{
+				"type": "start",
+				"x": {
+					"value": 3,
+					"text": "3"
+				},
+				"y": {
+					"value": 3,
+					"text": "3"
+				},
+				"line": 2,
+				"raw": "start 3,3",
+				"comment": null
+			},
+			{
+				"type": "error",
+				"code": "E006",
+				"line": 3,
+				"raw": "overworld \"U\" 20x20 id=a loose",
+				"comment": null
+			},
+			{
+				"type": "blank",
+				"line": 4,
+				"raw": "",
+				"comment": null
+			}
+		]
+	},
+	"errors": [
+		{
+			"line": 1,
+			"code": "E009",
+			"message": "unknown field `size=`",
+			"fix": "this statement takes: id=NAME"
+		},
+		{
+			"line": 3,
+			"code": "E006",
+			"message": "a second `overworld` header",
+			"fix": "a script holds one overworld"
+		}
+	]
+}

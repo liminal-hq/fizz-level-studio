@@ -1,0 +1,64 @@
+{
+	"id": "overworld/is-overworld-comment-first",
+	"from": "tools/fizz1-cases.ts: an overworld header after comment and blank lines",
+	"isOverworld": true,
+	"ast": {
+		"nodes": [
+			{
+				"type": "blank",
+				"line": 1,
+				"raw": "",
+				"comment": null
+			},
+			{
+				"type": "comment",
+				"line": 2,
+				"raw": "// c",
+				"comment": "c"
+			},
+			{
+				"type": "comment",
+				"line": 3,
+				"raw": "  // d",
+				"comment": "d"
+			},
+			{
+				"type": "blank",
+				"line": 4,
+				"raw": "",
+				"comment": null
+			},
+			{
+				"type": "overworld",
+				"name": "T",
+				"w": 20,
+				"h": 20,
+				"id": "test",
+				"line": 5,
+				"raw": "overworld \"T\" 20x20 id=test",
+				"comment": null
+			},
+			{
+				"type": "start",
+				"x": {
+					"value": 3,
+					"text": "3"
+				},
+				"y": {
+					"value": 3,
+					"text": "3"
+				},
+				"line": 6,
+				"raw": "start 3,3",
+				"comment": null
+			},
+			{
+				"type": "blank",
+				"line": 7,
+				"raw": "",
+				"comment": null
+			}
+		]
+	},
+	"errors": []
+}

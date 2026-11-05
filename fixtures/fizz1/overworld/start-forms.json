@@ -1,0 +1,40 @@
+{
+	"id": "overworld/start-forms",
+	"from": "tools/fizz1-cases.ts: start with spaces around the comma",
+	"isOverworld": true,
+	"ast": {
+		"nodes": [
+			{
+				"type": "overworld",
+				"name": "T",
+				"w": 20,
+				"h": 20,
+				"id": "test",
+				"line": 1,
+				"raw": "overworld \"T\" 20x20 id=test",
+				"comment": null
+			},
+			{
+				"type": "start",
+				"x": {
+					"value": 1,
+					"text": "1"
+				},
+				"y": {
+					"value": 2,
+					"text": "2"
+				},
+				"line": 2,
+				"raw": "start 1 , 2",
+				"comment": null
+			},
+			{
+				"type": "blank",
+				"line": 3,
+				"raw": "",
+				"comment": null
+			}
+		]
+	},
+	"errors": []
+}

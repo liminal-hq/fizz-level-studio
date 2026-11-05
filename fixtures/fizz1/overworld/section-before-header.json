@@ -1,0 +1,47 @@
+{
+	"id": "overworld/section-before-header",
+	"from": "tools/fizz1-cases.ts: a section header is allowed before the overworld header",
+	"isOverworld": false,
+	"ast": {
+		"nodes": [
+			{
+				"type": "section",
+				"name": "blocks",
+				"line": 1,
+				"raw": "blocks",
+				"comment": null
+			},
+			{
+				"type": "overworld",
+				"name": "T",
+				"w": 20,
+				"h": 20,
+				"id": "test",
+				"line": 2,
+				"raw": "overworld \"T\" 20x20 id=test",
+				"comment": null
+			},
+			{
+				"type": "start",
+				"x": {
+					"value": 3,
+					"text": "3"
+				},
+				"y": {
+					"value": 3,
+					"text": "3"
+				},
+				"line": 3,
+				"raw": "start 3,3",
+				"comment": null
+			},
+			{
+				"type": "blank",
+				"line": 4,
+				"raw": "",
+				"comment": null
+			}
+		]
+	},
+	"errors": []
+}

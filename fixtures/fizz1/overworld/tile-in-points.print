@@ -1,0 +1,4 @@
+overworld "T" 20x20 id=test
+start 3,3
+points
+  grass x=0 y=0

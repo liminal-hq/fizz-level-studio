@@ -1,0 +1,11 @@
+overworld "T" 20x20 id=test
+start 3,3
+blocks
+  grass x=0..19 y=0..19
+points
+  sign -1 at=1,1
+  sign 1.5 at=1,1
+  sign x at=1,1
+  sign Infinity at=1,1
+  sign
+  sign 2

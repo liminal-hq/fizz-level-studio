@@ -1,0 +1,55 @@
+{
+	"id": "overworld/no-start",
+	"from": "tools/fizz1-cases.ts: a header with no start line",
+	"isOverworld": true,
+	"ast": {
+		"nodes": [
+			{
+				"type": "overworld",
+				"name": "T",
+				"w": 20,
+				"h": 20,
+				"id": "test",
+				"line": 1,
+				"raw": "overworld \"T\" 20x20 id=test",
+				"comment": null
+			},
+			{
+				"type": "section",
+				"name": "blocks",
+				"line": 2,
+				"raw": "blocks",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "grass",
+				"x": {
+					"lo": 0,
+					"hi": 0
+				},
+				"y": {
+					"lo": 0,
+					"hi": 0
+				},
+				"line": 3,
+				"raw": "  grass x=0 y=0",
+				"comment": null
+			},
+			{
+				"type": "blank",
+				"line": 4,
+				"raw": "",
+				"comment": null
+			}
+		]
+	},
+	"errors": [
+		{
+			"line": 1,
+			"code": "E010",
+			"message": "the script has no `start` line",
+			"fix": "add `start 9.2,8.2` (where Ben stands when the map opens)"
+		}
+	]
+}

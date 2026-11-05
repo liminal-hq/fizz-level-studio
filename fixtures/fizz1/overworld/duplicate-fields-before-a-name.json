@@ -1,0 +1,67 @@
+{
+	"id": "overworld/duplicate-fields-before-a-name",
+	"from": "tools/fizz1-cases.ts: a repeated field fails before the statement is read, even on start",
+	"isOverworld": true,
+	"ast": {
+		"nodes": [
+			{
+				"type": "overworld",
+				"name": "T",
+				"w": 20,
+				"h": 20,
+				"id": "test",
+				"line": 1,
+				"raw": "overworld \"T\" 20x20 id=test",
+				"comment": null
+			},
+			{
+				"type": "start",
+				"x": {
+					"value": 3,
+					"text": "3"
+				},
+				"y": {
+					"value": 3,
+					"text": "3"
+				},
+				"line": 2,
+				"raw": "start 3,3",
+				"comment": null
+			},
+			{
+				"type": "error",
+				"code": "E009",
+				"line": 3,
+				"raw": "start a=1 a=2",
+				"comment": null
+			},
+			{
+				"type": "error",
+				"code": "E009",
+				"line": 4,
+				"raw": "area x=1 x=2",
+				"comment": null
+			},
+			{
+				"type": "blank",
+				"line": 5,
+				"raw": "",
+				"comment": null
+			}
+		]
+	},
+	"errors": [
+		{
+			"line": 3,
+			"code": "E009",
+			"message": "field `a=` is given twice",
+			"fix": "keep one `a=`"
+		},
+		{
+			"line": 4,
+			"code": "E009",
+			"message": "field `x=` is given twice",
+			"fix": "keep one `x=`"
+		}
+	]
+}
