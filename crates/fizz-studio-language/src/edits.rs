@@ -3,7 +3,7 @@
 // (c) Copyright 2026 Liminal HQ, Scott Morris
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
-use crate::ast::{Ast, Body, Node, Range, SectionName};
+use crate::ast::{Ast, Body, Node, Num, Range, SectionName};
 
 /// One edit the studio adds to the `edits` block. `xs` by `ys` is a cross product, as in the language.
 #[derive(Debug, Clone, PartialEq)]
@@ -22,6 +22,26 @@ pub enum Edit {
         xs: Vec<Range>,
         ys: Vec<Range>,
     },
+    /// A run of items along one row: `row ITEM x=a..b y=r [by=n]`.
+    Row {
+        kind: String,
+        x: Range,
+        y: f64,
+        by: f64,
+    },
+    /// An enemy or prop on a cell: `drone x=88 y=7`.
+    Spawn {
+        kind: String,
+        x: u32,
+        y: u32,
+    },
+}
+
+fn whole(n: u32) -> Num {
+    Num {
+        value: f64::from(n),
+        text: n.to_string(),
+    }
 }
 
 fn to_body(edit: &Edit) -> Body {
@@ -39,6 +59,19 @@ fn to_body(edit: &Edit) -> Body {
             kind: kind.clone(),
             xs: xs.clone(),
             ys: ys.clone(),
+        },
+        Edit::Row { kind, x, y, by } => Body::Row {
+            kind: kind.clone(),
+            x: *x,
+            y: *y,
+            by: *by,
+        },
+        Edit::Spawn { kind, x, y } => Body::Spawn {
+            kind: kind.clone(),
+            xs: vec![whole(*x)],
+            y: Some(whole(*y)),
+            dir: None,
+            ride: false,
         },
     }
 }
@@ -115,6 +148,40 @@ mod tests {
             print(&ast),
             format!("{BASE}\nedits\n  paint one-way x=26,28 y=9\n")
         );
+    }
+
+    #[test]
+    fn writes_a_row_with_a_step_and_an_enemy_with_a_cell() {
+        let ast = append_edits(
+            &parse(BASE).ast,
+            &[
+                Edit::Row {
+                    kind: "cheezie".into(),
+                    x: Range { lo: 5.0, hi: 11.0 },
+                    y: 7.0,
+                    by: 3.0,
+                },
+                Edit::Row {
+                    kind: "choc".into(),
+                    x: Range { lo: 2.0, hi: 4.0 },
+                    y: 6.0,
+                    by: 1.0,
+                },
+                Edit::Spawn {
+                    kind: "drone".into(),
+                    x: 8,
+                    y: 9,
+                },
+            ],
+        );
+        let text = print(&ast);
+        assert_eq!(
+            text,
+            format!(
+                "{BASE}\nedits\n  row cheezie x=5..11 y=7 by=3\n  row choc x=2..4 y=6\n  drone x=8 y=9\n"
+            )
+        );
+        assert!(parse(&text).errors.is_empty());
     }
 
     #[test]

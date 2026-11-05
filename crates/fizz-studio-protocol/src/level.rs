@@ -88,6 +88,16 @@ pub enum LevelEdit {
         x: Vec<CellRange>,
         y: Vec<CellRange>,
     },
+    /// A run of items along one row, `row ITEM x=from..to y=y by=by`. `by` is the step in cells
+    /// (1 for every cell); the run must land on its step, so `(to - from)` divides by `by`.
+    Row {
+        item: String,
+        x: CellRange,
+        y: u32,
+        by: u32,
+    },
+    /// An enemy or prop on one cell, such as `drone x=88 y=7`.
+    Spawn { enemy: String, x: u32, y: u32 },
 }
 
 /// Which game's language a level is written in.

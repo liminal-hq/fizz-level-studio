@@ -257,7 +257,7 @@ pub fn fix(d: &Diagnostic) -> String {
             "start the script with: level \"Name\" 192x28 ground=4 id=crater".to_string()
         }
         Key::SecondArena => "keep one `arena` line".to_string(),
-        Key::NotInEdits => "the edits block holds paint, clear, place, enemies, hover, channel, room and secret-room; move this line above `edits`".to_string(),
+        Key::NotInEdits => "the edits block holds paint, clear, place, row, enemies, hover, channel, room and secret-room; move this line above `edits`".to_string(),
         Key::SecondTopLine => format!("keep one `{}` line", a(0)),
         Key::BeforeAnySection => format!("put it under a `{}` header", a(1)),
         Key::UnknownStatement => suggest_fix(&a(1), &a(2)),

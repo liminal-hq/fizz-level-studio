@@ -160,6 +160,93 @@ fn bad_edits_are_refused_and_change_nothing() {
 }
 
 #[test]
+fn a_row_is_one_line_with_its_step_and_undoes_in_one_go() {
+    let (mut session, token) = open();
+    let row = LevelEdit::Row {
+        item: "cheezie".to_string(),
+        x: [4, 10],
+        y: 9,
+        by: 3,
+    };
+    assert_eq!(step_name(&row), "Place 3 cheezie");
+    session.apply(&token, request(&session, row)).unwrap();
+    assert!(session.text().ends_with("  row cheezie x=4..10 y=9 by=3\n"));
+    let view = LevelDocument::new(session.text()).view();
+    assert!(view.diagnostics.is_empty());
+    let placed = view
+        .items
+        .iter()
+        .filter(|i| i.y == 9.0 && i.kind == "cheezie")
+        .count();
+    assert!(placed >= 3);
+    session.undo(&token, session.revision()).unwrap();
+    assert_eq!(session.text(), CRATER);
+}
+
+#[test]
+fn a_row_off_its_step_or_an_unknown_enemy_is_refused() {
+    let (mut session, token) = open();
+    for edit in [
+        LevelEdit::Row {
+            item: "cheezie".to_string(),
+            x: [4, 9],
+            y: 9,
+            by: 3,
+        },
+        LevelEdit::Row {
+            item: "cheezie".to_string(),
+            x: [4, 9],
+            y: 9,
+            by: 0,
+        },
+        LevelEdit::Row {
+            item: "gold".to_string(),
+            x: [4, 6],
+            y: 9,
+            by: 1,
+        },
+        LevelEdit::Row {
+            item: "cheezie".to_string(),
+            x: [4, 6],
+            y: 99,
+            by: 1,
+        },
+        LevelEdit::Spawn {
+            enemy: "dragon".to_string(),
+            x: 4,
+            y: 9,
+        },
+        LevelEdit::Spawn {
+            enemy: "drone".to_string(),
+            x: 400,
+            y: 9,
+        },
+    ] {
+        assert!(session.apply(&token, request(&session, edit)).is_err());
+    }
+    assert_eq!(session.text(), CRATER);
+}
+
+#[test]
+fn an_enemy_is_one_spawn_line() {
+    let (mut session, token) = open();
+    let spawn = LevelEdit::Spawn {
+        enemy: "drone".to_string(),
+        x: 20,
+        y: 12,
+    };
+    assert_eq!(step_name(&spawn), "Place drone");
+    session.apply(&token, request(&session, spawn)).unwrap();
+    assert!(session.text().ends_with("  drone x=20 y=12\n"));
+    let view = LevelDocument::new(session.text()).view();
+    assert!(view.diagnostics.is_empty());
+    assert!(view
+        .spawns
+        .iter()
+        .any(|s| s.kind == "drone" && s.x == 20.0 && s.y == Some(12.0)));
+}
+
+#[test]
 fn a_script_with_errors_still_has_a_view() {
     let broken = "level \"Tiny\" 4x3 ground=1 id=crater\nstart 1,1\nbogus line\n";
     let view = LevelDocument::new(broken).view();

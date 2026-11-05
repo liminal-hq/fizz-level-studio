@@ -136,7 +136,7 @@ impl Document for Fizz2LevelDocument {
 				let letter = self.letter("EMPTY")?;
 				self.paint(letter, x, y)
 			}
-			LevelEdit::Place { .. } => Err(refuse(
+			LevelEdit::Place { .. } | LevelEdit::Row { .. } | LevelEdit::Spawn { .. } => Err(refuse(
 				"objects in Fizz 2 levels cannot be placed yet; they arrive with the next milestone",
 			)),
 		}

@@ -92,7 +92,7 @@
 			"line": 7,
 			"code": "E008",
 			"message": "`walls` cannot appear in the edits block",
-			"fix": "the edits block holds paint, clear, place, enemies, hover, channel, room and secret-room; move this line above `edits`"
+			"fix": "the edits block holds paint, clear, place, row, enemies, hover, channel, room and secret-room; move this line above `edits`"
 		}
 	]
 }

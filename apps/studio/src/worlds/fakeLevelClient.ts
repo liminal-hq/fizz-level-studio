@@ -20,6 +20,11 @@ function rangeText(ranges: Array<[number, number]>): string {
 }
 
 function editLine(edit: LevelEdit): string {
+	if (edit.kind === 'row') {
+		const by = edit.by > 1 ? ` by=${edit.by}` : '';
+		return `row ${edit.item} x=${edit.x[0]}..${edit.x[1]} y=${edit.y}${by}`;
+	}
+	if (edit.kind === 'spawn') return `${edit.enemy} x=${edit.x} y=${edit.y}`;
 	const where = `x=${rangeText(edit.x)} y=${rangeText(edit.y)}`;
 	if (edit.kind === 'paint') return `paint ${edit.tile} ${where}`;
 	if (edit.kind === 'clear') return `clear ${where}`;
@@ -27,6 +32,10 @@ function editLine(edit: LevelEdit): string {
 }
 
 function editName(edit: LevelEdit): string {
+	if (edit.kind === 'row') {
+		return `Place ${Math.floor((edit.x[1] - edit.x[0]) / Math.max(edit.by, 1)) + 1} ${edit.item}`;
+	}
+	if (edit.kind === 'spawn') return `Place ${edit.enemy}`;
 	if (edit.kind === 'paint') return `Paint ${edit.tile}`;
 	if (edit.kind === 'clear') return 'Clear';
 	return `Place ${edit.item}`;
@@ -40,6 +49,7 @@ function cloneSnapshot(snapshot: LevelSnapshot): LevelSnapshot {
 			palette: [...snapshot.view.palette],
 			cells: [...snapshot.view.cells],
 			items: snapshot.view.items.map((item) => ({ ...item })),
+			spawns: snapshot.view.spawns.map((spawn) => ({ ...spawn })),
 		},
 	};
 }
@@ -172,6 +182,18 @@ export class FakeLevelClient implements LevelClient {
 
 	private apply(snapshot: LevelSnapshot, edit: LevelEdit): void {
 		const { view } = snapshot;
+		if (edit.kind === 'row') {
+			for (let x = edit.x[0]; x <= edit.x[1]; x += Math.max(edit.by, 1)) {
+				if (x >= 0 && x < view.width && edit.y < view.height) {
+					view.items.push({ kind: edit.item, x, y: edit.y });
+				}
+			}
+			return;
+		}
+		if (edit.kind === 'spawn') {
+			view.spawns.push({ kind: edit.enemy, x: edit.x, y: edit.y, dir: null, ride: false });
+			return;
+		}
 		const columns = edit.x.flatMap(([from, to]) => span(from, to));
 		const rows = edit.y.flatMap(([from, to]) => span(from, to));
 		const inside = (x: number, y: number) => x >= 0 && y >= 0 && x < view.width && y < view.height;
