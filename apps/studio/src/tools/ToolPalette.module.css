@@ -4,59 +4,29 @@
 	align-items: center;
 	gap: 0.75rem;
 	padding: 0.5rem 0.75rem;
-	background: var(--fls-bg-raised);
+	background: var(--fls-bg-window);
 	border-bottom: 1px solid var(--fls-border-subtle);
 }
 
 .tools {
 	display: flex;
-	gap: 0.25rem;
+	gap: 0.5rem;
 }
 
 .tool {
-	display: inline-flex;
-	align-items: center;
-	gap: 0.4rem;
-	min-height: var(--fls-hit-target);
-	padding: 0 0.6rem;
-	color: var(--fls-text-primary);
-	background: var(--fls-control-bg);
-	border: 1px solid var(--fls-border-subtle);
-	border-radius: 6px;
-	font: inherit;
-	cursor: default;
-}
-
-.tool:hover {
-	background: var(--fls-control-bg-hover);
-}
-
-.tool[aria-pressed='true'] {
-	color: var(--fls-accent-contrast);
-	background: var(--fls-accent);
-	border-color: var(--fls-accent);
-}
-
-.tool:focus-visible {
-	outline: 2px solid var(--fls-focus-ring);
-	outline-offset: 2px;
+	composes: keycap from '../theme/keycap.module.css';
 }
 
 .key {
-	font-family: ui-monospace, monospace;
+	font-family: var(--fls-font-mono);
 	font-size: 0.75em;
+	font-weight: 400;
 	opacity: 0.75;
 }
 
 .chip {
-	display: inline-flex;
-	align-items: center;
-	gap: 0.5rem;
-	min-height: var(--fls-hit-target);
+	composes: keycap static from '../theme/keycap.module.css';
 	padding: 0 0.6rem 0 0.3rem;
-	background: var(--fls-bg-content);
-	border: 1px solid var(--fls-border-subtle);
-	border-radius: 999px;
 }
 
 .swatch {
@@ -90,27 +60,9 @@
 }
 
 .step {
-	min-width: var(--fls-hit-target);
-	min-height: var(--fls-hit-target);
-	color: var(--fls-text-primary);
-	background: var(--fls-control-bg);
-	border: 1px solid var(--fls-border-subtle);
-	border-radius: 6px;
-	font: inherit;
-	cursor: default;
-}
-
-.step:hover:not(:disabled) {
-	background: var(--fls-control-bg-hover);
-}
-
-.step:disabled {
-	color: var(--fls-text-muted);
-}
-
-.step:focus-visible {
-	outline: 2px solid var(--fls-focus-ring);
-	outline-offset: 2px;
+	composes: keycap from '../theme/keycap.module.css';
+	min-width: var(--fls-key-height);
+	padding: 0 0.5rem;
 }
 
 .hint {

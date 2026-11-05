@@ -58,6 +58,8 @@
 	--fls-key-ink: #2b2a33;
 	--fls-key-shadow: 0 2px 4px rgb(28 27 32 / 0.2);
 	--fls-key-travel: 2px;
+	/* A key's height is fixed so its edge thinning never shifts its neighbours. */
+	--fls-key-height: max(36px, var(--fls-hit-target));
 
 	/* The lit key: the active tool, in the accent. */
 	--fls-lit-key-top: var(--fls-accent);

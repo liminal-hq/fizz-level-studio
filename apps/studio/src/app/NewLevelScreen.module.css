@@ -56,41 +56,28 @@
 	min-height: var(--fls-hit-target);
 }
 
-.input,
-.button {
+.input {
 	min-height: var(--fls-hit-target);
 	padding: 0 0.5rem;
 	color: var(--fls-text-primary);
 	background: var(--fls-control-bg);
 	border: 1px solid var(--fls-border-subtle);
-	border-radius: 6px;
+	border-radius: 8px;
 	font: inherit;
 }
 
 .button {
-	padding: 0 0.75rem;
-	cursor: default;
-}
-
-.button:hover:not(:disabled) {
-	background: var(--fls-control-bg-hover);
-}
-
-.button:disabled {
-	opacity: 0.6;
+	composes: keycap from '../theme/keycap.module.css';
 }
 
 .input:focus-visible,
-.button:focus-visible,
 .choice input:focus-visible {
 	outline: 2px solid var(--fls-focus-ring);
 	outline-offset: 2px;
 }
 
 .primary {
-	color: var(--fls-accent-contrast);
-	background: var(--fls-accent);
-	border-color: var(--fls-accent);
+	composes: keycap lit from '../theme/keycap.module.css';
 }
 
 .hint {

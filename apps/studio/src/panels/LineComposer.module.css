@@ -17,7 +17,7 @@
 	background: var(--fls-bg-raised);
 	border: 1px solid var(--fls-border-subtle);
 	border-radius: 6px;
-	font-family: ui-monospace, monospace;
+	font-family: var(--fls-font-mono);
 	font-size: 0.85rem;
 }
 
@@ -39,7 +39,7 @@
 }
 
 .syntax code {
-	font-family: ui-monospace, monospace;
+	font-family: var(--fls-font-mono);
 	overflow-wrap: anywhere;
 }
 
@@ -71,7 +71,7 @@
 	gap: 0.5rem;
 	padding: 0.2rem 0.4rem;
 	border-radius: 4px;
-	font-family: ui-monospace, monospace;
+	font-family: var(--fls-font-mono);
 	font-size: 0.85rem;
 	cursor: default;
 }
@@ -81,8 +81,8 @@
 }
 
 .option[aria-selected='true'] {
-	color: var(--fls-accent-contrast);
-	background: var(--fls-accent);
+	color: var(--fls-lit-key-ink);
+	background: linear-gradient(180deg, var(--fls-lit-key-top), var(--fls-lit-key-bottom));
 }
 
 .kind {
