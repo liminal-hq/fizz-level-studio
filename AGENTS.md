@@ -99,6 +99,7 @@ The repository's home is GitHub (`liminal-hq/fizz-level-studio`), so use `gh` fo
   - `bun run test` runs the language package's tests (`bun test packages/language`).
   - `bun run test:mcp` runs the MCP server's tests, including a real stdio round trip.
   - `bun run prove` and `bun run prove:all` rebuild levels from scripts and compare them with the game. They need Rust and the crates in the local Cargo cache (`--offline`), and build only inside `scratch/rust/`.
+  - `bun run validate` runs everything below, and the Rust checks, in one go before a commit; CI runs the same checks as separate jobs. `bun run check:headers`, `check:case`, `check:storage`, `check:boundaries` and `check:licences` are the gate scripts in `scripts/`.
   - `bun run lint:md` runs markdownlint over every Markdown file, and `bun run check:links` checks every relative link and anchor.
 - **Before committing:** run `bun run test`, `bun run test:mcp` and `bun run lint:md`. Run `bun run prove:all` after any change to the parser, printer, exporter or overworld code.
 
@@ -133,7 +134,7 @@ Planned, not built, and the more important target. Lieutenant Fizz 2 is a separa
 
 ## CI
 
-`.github/workflows/ci.yml` runs one job per check on GitHub Actions (`ubuntu-24.04`) for every pull request and push to `main`: Markdown lint, link check, language tests, MCP server tests (which installs the server's dependencies with `--frozen-lockfile`), Rust format, Rust Clippy, and Rust tests. The test jobs write JUnit XML (`bun run test:ci`, `bun run test:mcp:ci`, and nextest's `ci` profile), and `.github/workflows/publish-test-results.yml` posts the results to the pull request as a comment and a check run; it is a separate `workflow_run` workflow so that it also works for Dependabot and fork pull requests, and it takes effect once it is on `main`. The proofs need Rust and the game's crates, so they run locally, not in CI. `.github/dependabot.yml` is configured with every limit at zero, so it is off until someone raises them.
+`.github/workflows/ci.yml` runs one job per check on GitHub Actions (`ubuntu-24.04`) for every pull request and push to `main`: Markdown lint, link check, language tests, MCP server tests (which installs the server's dependencies with `--frozen-lockfile`), Rust format, Rust Clippy, Rust tests, and the gate checks (licence headers, case collisions, browser storage, plugin boundaries, and dependency licences). The test jobs write JUnit XML (`bun run test:ci`, `bun run test:mcp:ci`, and nextest's `ci` profile), and `.github/workflows/publish-test-results.yml` posts the results to the pull request as a comment and a check run; it is a separate `workflow_run` workflow so that it also works for Dependabot and fork pull requests, and it takes effect once it is on `main`. The proofs need Rust and the game's crates, so they run locally, not in CI. `.github/dependabot.yml` is configured with every limit at zero, so it is off until someone raises them.
 
 ## Frontend Code Conventions
 

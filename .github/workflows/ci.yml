@@ -245,3 +245,109 @@ jobs:
           name: rust-test-results
           path: target/nextest/ci/junit.xml
           if-no-files-found: error
+
+  licence-headers:
+    name: Licence headers
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Licence headers
+        id: check
+        run: bash scripts/check-headers.sh
+
+      - name: Job summary
+        if: always()
+        run: |
+          {
+            echo "## Licence headers"
+            echo "- Result: \`${{ steps.check.outcome }}\`"
+            echo "- Command: \`bash scripts/check-headers.sh\`"
+          } >> "${GITHUB_STEP_SUMMARY}"
+
+  case-collisions:
+    name: Case collisions
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Case collisions
+        id: check
+        run: bash scripts/check-case-collisions.sh
+
+      - name: Job summary
+        if: always()
+        run: |
+          {
+            echo "## Case collisions"
+            echo "- Result: \`${{ steps.check.outcome }}\`"
+            echo "- Command: \`bash scripts/check-case-collisions.sh\`"
+          } >> "${GITHUB_STEP_SUMMARY}"
+
+  browser-storage:
+    name: Browser storage
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Browser storage
+        id: check
+        run: bash scripts/check-browser-storage.sh
+
+      - name: Job summary
+        if: always()
+        run: |
+          {
+            echo "## Browser storage"
+            echo "- Result: \`${{ steps.check.outcome }}\`"
+            echo "- Command: \`bash scripts/check-browser-storage.sh\`"
+          } >> "${GITHUB_STEP_SUMMARY}"
+
+  plugin-boundaries:
+    name: Plugin boundaries
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Plugin boundaries
+        id: check
+        run: bash scripts/check-plugin-boundaries.sh
+
+      - name: Job summary
+        if: always()
+        run: |
+          {
+            echo "## Plugin boundaries"
+            echo "- Result: \`${{ steps.check.outcome }}\`"
+            echo "- Command: \`bash scripts/check-plugin-boundaries.sh\`"
+          } >> "${GITHUB_STEP_SUMMARY}"
+
+  dependency-licences:
+    name: Dependency licences
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install the pinned Rust toolchain
+        run: rustup toolchain install
+
+      - name: Install cargo-deny
+        uses: taiki-e/install-action@cargo-deny
+
+      - name: Dependency licences
+        id: check
+        run: bash scripts/check-licences.sh
+
+      - name: Job summary
+        if: always()
+        run: |
+          {
+            echo "## Dependency licences"
+            echo "- Result: \`${{ steps.check.outcome }}\`"
+            echo "- Command: \`bash scripts/check-licences.sh\`"
+          } >> "${GITHUB_STEP_SUMMARY}"
