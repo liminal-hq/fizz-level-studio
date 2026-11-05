@@ -49,18 +49,37 @@ describe('maximising a panel', () => {
 		const { bridge, docks } = await mount();
 		await user.click(screen.getByRole('button', { name: 'Maximise Script' }));
 		expect(maximised()).toBeInTheDocument();
-		expect(screen.queryByRole('region', { name: 'Left dock' })).toBeNull();
-		expect(screen.queryByRole('region', { name: 'Bottom dock' })).toBeNull();
-		expect(screen.queryByRole('application')).toBeNull();
+		// Everything else stays mounted; the stylesheet hides it (and its tab stops).
+		expect(document.querySelector('[data-has-maximised]')).toBeInTheDocument();
+		expect(screen.getByRole('region', { name: 'Left dock' })).not.toHaveAttribute(
+			'data-panel-maximised',
+		);
 		expect(bridge.getSnapshot().facts.maximised).toBe('script');
 		await user.click(screen.getByRole('button', { name: 'Restore Script' }));
 		expect(maximised()).toBeNull();
+		expect(document.querySelector('[data-has-maximised]')).toBeNull();
 		expect(screen.getByRole('region', { name: 'Left dock' })).toBeInTheDocument();
 		expect(screen.getByRole('region', { name: 'Bottom dock' })).toBeInTheDocument();
 		expect(screen.getByRole('application')).toBeInTheDocument();
 		expect(bridge.getSnapshot().facts.maximised).toBeNull();
 		// Maximising is not part of the saved layout.
 		expect(docks.save).not.toHaveBeenCalled();
+	});
+
+	it('keeps the Script editor mounted, the same node, while it is maximised and restored', async () => {
+		const user = userEvent.setup();
+		await mount();
+		const editor = await screen.findByRole('textbox', { name: 'Script text' });
+		const scroller = editor.closest('.cm-scroller') as HTMLElement;
+		scroller.scrollTop = 37;
+		await user.click(screen.getByRole('button', { name: 'Maximise Script' }));
+		expect(screen.getByRole('textbox', { name: 'Script text' })).toBe(editor);
+		expect(document.contains(editor)).toBe(true);
+		expect(maximised()).toContainElement(editor);
+		expect(scroller.scrollTop).toBe(37);
+		await user.click(screen.getByRole('button', { name: 'Restore Script' }));
+		expect(screen.getByRole('textbox', { name: 'Script text' })).toBe(editor);
+		expect(scroller.scrollTop).toBe(37);
 	});
 
 	it('toggles with Ctrl+Shift+M on the focused panel, or the Script when none is', async () => {

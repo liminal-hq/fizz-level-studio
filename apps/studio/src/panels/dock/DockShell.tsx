@@ -40,6 +40,8 @@ export interface DockActions {
 	reorder(id: string, index: number): void;
 	/** Makes an expandable panel fill the workspace. */
 	maximise(id: string): void;
+	/** Puts the maximised panel back. */
+	restore(): void;
 }
 
 export interface DockShellProps {
@@ -57,8 +59,11 @@ export interface DockShellProps {
 	drag?: DockDrag;
 	/** Whether a panel offers the maximise button. */
 	expandable?: (id: string) => boolean;
-	/** A panel is maximised: the docks stay (their arrangement is kept) but are not shown. */
-	hidden?: boolean;
+	/**
+	 * The maximised panel, if any. Nothing is re-parented: the panel keeps its place in its dock,
+	 * whose group is laid over the workspace by the stylesheet while everything else is hidden.
+	 */
+	maximised?: string | null;
 	/** What the last drag did, for the screen reader. */
 	announcement?: string;
 	/** The level. It takes whatever the docks leave and is never covered by them. */
@@ -80,7 +85,7 @@ export function DockShell({
 	drag,
 	announcement = '',
 	expandable,
-	hidden = false,
+	maximised = null,
 	children,
 }: DockShellProps) {
 	const [tabNote, setTabNote] = useState('');
@@ -171,6 +176,8 @@ export function DockShell({
 							dragging={dragging?.id ?? null}
 							expandable={expandable}
 							onMaximise={actions.maximise}
+							maximised={maximised}
+							onRestore={actions.restore}
 						/>
 					</>
 				)}
@@ -185,7 +192,7 @@ export function DockShell({
 			ref={shell}
 			onKeyDown={onKeyDown}
 			data-dragging={dragging ? '' : undefined}
-			hidden={hidden || undefined}
+			data-has-maximised={maximised !== null ? '' : undefined}
 		>
 			{zone('left')}
 			<div className={styles.level} data-level>

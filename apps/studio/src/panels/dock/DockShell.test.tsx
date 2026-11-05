@@ -4,6 +4,7 @@
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
 import { act, fireEvent, render, screen, within } from '@testing-library/react';
+import { useState } from 'react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { DockShell, type DockActions } from './DockShell';
@@ -32,6 +33,7 @@ function actions(): DockActions {
 		resetZoneSize: vi.fn(),
 		reorder: vi.fn(),
 		maximise: vi.fn(),
+		restore: vi.fn(),
 	};
 }
 
@@ -310,5 +312,69 @@ describe('resizing a dock', () => {
 		expect(screen.getByText('196 px')).toBeInTheDocument();
 		act(() => handle('Resize the left dock').blur());
 		expect(screen.queryByText('196 px')).toBeNull();
+	});
+});
+
+describe('a maximised panel', () => {
+	function Counter({ id }: { id: string }) {
+		const [n, setN] = useState(0);
+		return (
+			<button data-counter={id} onClick={() => setN(n + 1)}>
+				{`count ${n}`}
+			</button>
+		);
+	}
+
+	const shell = (maximised: string | null) => (
+		<DockShell
+			view={visibleWorkspace(defaultWorkspace())}
+			window={{ w: 1440, h: 900 }}
+			session={INITIAL_SESSION}
+			titleOf={(id) => titles[id]!}
+			renderPanel={(id) => (
+				<div data-body={id}>
+					<Counter id={id} />
+				</div>
+			)}
+			actions={actions()}
+			maximised={maximised}
+		>
+			<div data-testid="level" />
+		</DockShell>
+	);
+
+	it('stays the same DOM node with its state while it is maximised and restored', async () => {
+		const user = userEvent.setup();
+		const { rerender } = render(shell(null));
+		const body = document.querySelector<HTMLElement>('[data-body="script"]')!;
+		const counter = within(body).getByRole('button');
+		await user.click(counter);
+		await user.click(counter);
+		body.scrollTop = 12;
+		const groupBefore = body.closest('[data-group-zone]');
+
+		rerender(shell('script'));
+		expect(document.querySelector('[data-body="script"]')).toBe(body);
+		expect(within(body).getByRole('button')).toBe(counter);
+		expect(counter).toHaveTextContent('count 2');
+		expect(body.scrollTop).toBe(12);
+		expect(body.closest('[data-group-zone]')).toBe(groupBefore);
+		expect(groupBefore).toHaveAttribute('data-panel-maximised');
+		expect(document.querySelector('[data-has-maximised]')).toBeInTheDocument();
+		// The other docks and the level are still mounted, only hidden by the stylesheet.
+		expect(screen.getByTestId('level')).toBeInTheDocument();
+		expect(document.querySelector('[data-body="palette"]')).toBeInTheDocument();
+		// Inside the maximised group the header offers Restore, not the dock's buttons.
+		expect(
+			within(groupBefore as HTMLElement).getByRole('button', { name: 'Restore Script' }),
+		).toBeInTheDocument();
+		expect(within(groupBefore as HTMLElement).queryByRole('tab')).toBeNull();
+
+		rerender(shell(null));
+		expect(document.querySelector('[data-body="script"]')).toBe(body);
+		expect(counter).toHaveTextContent('count 2');
+		expect(body.scrollTop).toBe(12);
+		expect(document.querySelector('[data-panel-maximised]')).toBeNull();
+		expect(screen.getByRole('tab', { name: 'Script' })).toBeInTheDocument();
 	});
 });

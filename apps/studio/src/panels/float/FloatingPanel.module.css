@@ -119,3 +119,32 @@
 	cursor: nwse-resize;
 	touch-action: none;
 }
+
+/* Maximised: the panel fills the workspace where it is, without moving in the tree. */
+.panel[data-panel-maximised][data-panel-maximised] {
+	inset: 0;
+	z-index: 30;
+	width: auto;
+	height: auto;
+	border: 0;
+	border-radius: 0;
+	box-shadow: none;
+	background: var(--fls-bg-content);
+	backdrop-filter: none;
+	-webkit-backdrop-filter: none;
+}
+
+.panel[data-panel-maximised] .header {
+	cursor: default;
+}
+
+.panel[data-panel-maximised] .grip,
+.panel[data-panel-maximised] .chevron,
+.panel[data-panel-maximised] .resize {
+	display: none;
+}
+
+/* Another panel is maximised: hidden, and out of the tab order, but still mounted. */
+.panel[data-suppressed] {
+	visibility: hidden;
+}

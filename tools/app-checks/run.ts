@@ -443,18 +443,52 @@ async function dragAndMaximiseChecks(bridge: Bridge): Promise<void> {
 		JSON.stringify(moved),
 	);
 
-	// Maximise: Script fills the area under the tool bar, hides the level, and restore is exact.
+	// Maximise: Script fills the area under the tool bar, hides the level, and keeps its editor.
 	const normal = await measureLayout(bridge);
+	const probe = await bridge.js<{
+		lines: number;
+		scroll: number;
+		anchor: number;
+		head: number;
+	} | null>(
+		`const content = document.querySelector('.cm-content');
+		 const view = content && (content.cmView || content.cmTile) && (content.cmView || content.cmTile).view;
+		 if (!view) return { diag: String(!!content) + ' ' + (content ? Object.keys(content).join(',') + ' ' + Object.keys(content.cmTile || {}).join(',') : '') };
+		 window.__scriptNode = content;
+		 const to = Math.min(view.state.doc.length, 40);
+		 view.dispatch({ selection: { anchor: 5, head: to } });
+		 view.scrollDOM.scrollTop = 40;
+		 await new Promise((res) => setTimeout(res, 100));
+		 return { lines: view.state.doc.lines, scroll: view.scrollDOM.scrollTop, anchor: 5, head: to };`,
+	);
+	check(
+		'maximise: the Script editor has a selection and a scroll position set',
+		probe !== null && probe.scroll > 0,
+		JSON.stringify(probe),
+	);
+	const editorState = () =>
+		bridge.js<{ same: boolean; scroll: number; anchor: number; head: number } | null>(
+			`const content = document.querySelector('.cm-content');
+			 const view = content && (content.cmView || content.cmTile) && (content.cmView || content.cmTile).view;
+			 if (!view) return null;
+			 const sel = view.state.selection.main;
+			 return { same: content === window.__scriptNode, scroll: view.scrollDOM.scrollTop, anchor: sel.anchor, head: sel.head };`,
+		);
 	check('maximise: Script offers the button', await clickLabelled(bridge, 'Maximise Script'));
 	await sleep(400);
-	const full = await bridge.js<{ fill: Box | null; area: Box | null; canvas: boolean }>(
+	const full = await bridge.js<{ fill: Box | null; area: Box | null; canvasHidden: boolean }>(
 		`const box = (e) => { if (!e) return null; const r = e.getBoundingClientRect(); return { x: r.left, y: r.top, w: r.width, h: r.height }; };
 		 const f = document.querySelector('[data-panel-maximised]');
 		 const canvas = document.querySelector('canvas');
-		 return { fill: box(f), area: box(f && f.parentElement), canvas: !!canvas && canvas.getBoundingClientRect().width > 0 };`,
+		 return { fill: box(f), area: box(f && f.closest('[data-has-maximised]') && f.closest('[data-has-maximised]').parentElement), canvasHidden: !!canvas && getComputedStyle(canvas).visibility === 'hidden' };`,
 	);
-	const docksHidden = await bridge.js<boolean>(
-		`return [...document.querySelectorAll('section[aria-label$=" dock"]')].every((e) => e.getBoundingClientRect().width === 0);`,
+	// Hidden docks and floating panels are mounted but cannot take the focus: nothing outside the
+	// maximised panel that a Tab press could reach is visible.
+	const reachable = await bridge.js<string[]>(
+		`const max = document.querySelector('[data-panel-maximised]');
+		 return [...document.querySelectorAll('[data-has-maximised] button, [data-has-maximised] [tabindex], [data-has-maximised] canvas, [data-has-maximised] textarea, [data-has-maximised] [contenteditable]')]
+		   .filter((e) => !max.contains(e) && getComputedStyle(e).visibility !== 'hidden')
+		   .map((e) => e.tagName + '|' + (e.getAttribute('aria-label') || '') + '|' + '');`,
 	);
 	check(
 		'maximise: the Script fills the workspace area under the tool bar and the level is hidden',
@@ -465,13 +499,37 @@ async function dragAndMaximiseChecks(bridge: Bridge): Promise<void> {
 			full.fill.h > 300 &&
 			// The area starts where the level started: right under the tool bar.
 			Math.abs(full.fill.y - normal.canvas!.y) < 2 &&
-			!full.canvas &&
-			docksHidden,
+			full.canvasHidden,
 		JSON.stringify(full),
+	);
+	check(
+		'maximise: the hidden docks cannot be reached by Tab',
+		reachable.length === 0,
+		reachable.slice(0, 5).join(' ; '),
+	);
+	const during = await editorState();
+	check(
+		'maximise: the same editor, scroll position and selection survive maximising',
+		!!during &&
+			during.same &&
+			Math.abs(during.scroll - probe!.scroll) <= 1 &&
+			during.anchor === probe!.anchor &&
+			during.head === probe!.head,
+		JSON.stringify([probe, during]),
 	);
 	check('maximise: Restore is offered', await clickLabelled(bridge, 'Restore Script'));
 	await sleep(400);
 	const back = await measureLayout(bridge);
+	const after = await editorState();
+	check(
+		'maximise: the same editor, scroll position and selection survive restoring',
+		!!after &&
+			after.same &&
+			Math.abs(after.scroll - probe!.scroll) <= 1 &&
+			after.anchor === probe!.anchor &&
+			after.head === probe!.head,
+		JSON.stringify([probe, after]),
+	);
 	check(
 		'maximise: Restore returns the previous sizes exactly',
 		sameBox(back.canvas, normal.canvas) &&

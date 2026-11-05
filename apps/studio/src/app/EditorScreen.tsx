@@ -530,9 +530,9 @@ export function EditorScreen({
 					window={dock.window}
 					session={dock.session}
 					titleOf={titleOf}
-					renderPanel={(id) => (id === maximised ? null : content(id as PanelId))}
+					renderPanel={(id) => content(id as PanelId)}
 					expandable={isExpandable}
-					hidden={maximised !== null}
+					maximised={maximised}
 					actions={dock}
 					drag={drag}
 					announcement={dragNote}
@@ -555,7 +555,7 @@ export function EditorScreen({
 				</DockShell>
 				{PANEL_SPECS.map((spec) => {
 					const view = dock.floating[spec.id];
-					if (!view.visible || maximised !== null) return null;
+					if (!view.visible) return null;
 					return (
 						<FloatingPanel
 							key={spec.id}
@@ -574,44 +574,34 @@ export function EditorScreen({
 							onChange={(rect) => dock.changeFloat(spec.id, rect)}
 							onToggleCollapsed={() => dock.toggleFloatCollapsed(spec.id)}
 							onRaise={() => dock.raise(spec.id)}
+							maximised={maximised === spec.id}
+							suppressed={maximised !== null && maximised !== spec.id}
 							actions={
-								<>
-									{spec.expandable && !view.collapsed && (
-										<PanelExpandButton
+								maximised === spec.id ? (
+									<PanelExpandButton title={t(spec.title)} expanded onToggle={dock.restore} />
+								) : (
+									<>
+										{spec.expandable && !view.collapsed && (
+											<PanelExpandButton
+												title={t(spec.title)}
+												expanded={false}
+												onToggle={() => dock.maximise(spec.id)}
+											/>
+										)}
+										<PanelCommands
 											title={t(spec.title)}
-											expanded={false}
-											onToggle={() => dock.maximise(spec.id)}
+											at="float"
+											onDock={(zone) => dock.dockTo(spec.id, zone)}
+											onFloat={() => {}}
 										/>
-									)}
-									<PanelCommands
-										title={t(spec.title)}
-										at="float"
-										onDock={(zone) => dock.dockTo(spec.id, zone)}
-										onFloat={() => {}}
-									/>
-								</>
+									</>
+								)
 							}
 						>
 							{content(spec.id)}
 						</FloatingPanel>
 					);
 				})}
-				{maximised !== null && (
-					<section
-						className={styles.maximised}
-						data-panel-id={maximised}
-						data-panel-maximised=""
-						aria-labelledby="maximised-title"
-					>
-						<header className={styles.maximisedHeader}>
-							<h2 id="maximised-title" className={styles.maximisedTitle}>
-								{titleOf(maximised)}
-							</h2>
-							<PanelExpandButton title={titleOf(maximised)} expanded onToggle={dock.restore} />
-						</header>
-						<div className={styles.maximisedBody}>{content(maximised as PanelId)}</div>
-					</section>
-				)}
 				<SnapGuides guides={guides} />
 			</div>
 		</div>

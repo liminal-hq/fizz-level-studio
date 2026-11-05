@@ -85,3 +85,11 @@
 .tab[data-dragging] {
 	opacity: 0.5;
 }
+
+/* The maximised panel's header: its title and the Restore button. */
+.maximisedTitle {
+	flex: 1;
+	margin: 0;
+	font-size: 0.95rem;
+	font-weight: 600;
+}
