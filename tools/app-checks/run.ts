@@ -987,6 +987,39 @@ function clickLabelOnly(bridge: Bridge, label: string): Promise<boolean> {
 	);
 }
 
+/**
+ * Lists every visible button-like control in a window that is not drawn as a keycap. A keycap has a
+ * raised bottom edge (3px at rest, 1px while pressed or lit) and the key gradient as its
+ * background. Controls with a look of their own are left out on purpose: menus and the menu bar,
+ * the title bar's buttons, tabs, list and palette rows (the `entry` class), the settings navigation (`navItem`), a floating panel's drag grip and fold chevron, and a palette group's disclosure heading, switches, checkboxes and radios, and the
+ * resize and drag grips.
+ */
+function keycapOffenders(bridge: Bridge, windowLabel = 'main-1'): Promise<string[]> {
+	return bridge.js<string[]>(
+		`const skip = '[role=menuitem], [role=menuitemradio], [role=menuitemcheckbox], [role=menubar] *, [role=menu] *, [data-tauri-drag-region] *, [role=tab], [role=option], [role=listbox] *, [role=switch], [role=checkbox], [role=radio], [role=separator], [role=slider], [class*=_entry_], [class*=_navItem_], [data-grip], [class*=_grip_], [class*=_chevron_], [class*=_fold_], [data-keycap-exempt]';
+		 const visible = (e) => { const r = e.getBoundingClientRect(); const c = getComputedStyle(e); return r.width > 0 && r.height > 0 && c.visibility !== 'hidden' && c.display !== 'none'; };
+		 const bad = [];
+		 for (const e of document.querySelectorAll('button, [role=button]')) {
+			 if (e.matches(skip) || !visible(e)) continue;
+			 const c = getComputedStyle(e);
+			 const edge = c.borderBottomWidth;
+			 const keycap = (edge === '3px' || edge === '1px') && c.backgroundImage.includes('linear-gradient');
+			 if (!keycap) {
+				 const name = e.getAttribute('aria-label') || e.textContent.trim().slice(0, 30);
+				 bad.push((e.tagName.toLowerCase()) + ' "' + name + '" (' + String(e.className).split(' ')[0] + '): edge ' + edge + ', ' + (c.backgroundImage === 'none' ? 'flat ' + c.backgroundColor : 'gradient'));
+			 }
+		 }
+		 return bad;`,
+		windowLabel,
+	);
+}
+
+/** Checks that every visible button in this window is a keycap, naming the ones that are not. */
+async function checkKeycaps(bridge: Bridge, where: string, windowLabel = 'main-1'): Promise<void> {
+	const bad = await keycapOffenders(bridge, windowLabel);
+	check(`${where}: every button is a keycap`, bad.length === 0, bad.join('; '));
+}
+
 async function main(): Promise<void> {
 	if (!existsSync(binary)) {
 		console.error(`No debug build at ${binary}. Run \`bun run app:build\` first.`);
@@ -1121,6 +1154,7 @@ async function main(): Promise<void> {
 			JSON.stringify(bars),
 		);
 		check('the canvas still has room with the menu bar', (bars?.canvas ?? 0) > 300);
+		await checkKeycaps(bridge, 'the main window with the default layout');
 		check(
 			'with the bar showing, the title bar app menu is plain text',
 			await bridge.js<boolean>(
@@ -1196,6 +1230,7 @@ async function main(): Promise<void> {
 			palette !== null && palette.options > 5 && palette.listH > 100,
 			JSON.stringify(palette),
 		);
+		await checkKeycaps(bridge, 'the command palette');
 		const wide = await bridge.js<number>(`return window.innerWidth;`);
 		check(
 			'the command palette fits inside the window',
@@ -1386,6 +1421,7 @@ async function main(): Promise<void> {
 			return box && box.w > 0 && box.h > 0 ? box : null;
 		});
 		check('the Appearance heading renders with a size', heading !== null, JSON.stringify(heading));
+		await checkKeycaps(bridge, 'the Preferences window', 'preferences');
 		const prefsAccent = (
 			await bridge.js<{ v: string }>(
 				`return { v: document.documentElement.style.getPropertyValue('--fls-accent') };`,
@@ -1590,6 +1626,7 @@ async function main(): Promise<void> {
 				`const names = [...document.querySelectorAll('dialog[open] button, [role=dialog] button')].map((b) => b.textContent.trim()); return ['Cancel', 'Discard', 'Save'].every((n) => names.includes(n));`,
 			)) === true,
 		);
+		await checkKeycaps(bridge, 'the close question');
 		await bridge.js<boolean>(
 			`const b = [...document.querySelectorAll('dialog[open] button, [role=dialog] button')].find((x) => x.textContent.trim() === 'Cancel'); b.click(); return true;`,
 		);
@@ -1689,11 +1726,13 @@ async function main(): Promise<void> {
 				.catch(() => false),
 		);
 		check('close checks: the New level form takes input', typedInForm !== null);
+		await checkKeycaps(bridge, 'the New level window', 'new-world');
 		await closeCall('new-world');
 		const discardAsked = await within(5000, async () =>
 			(await dialogText('new-world'))?.includes('Discard this new level?') ? true : null,
 		);
 		check('a New level window with input asks before it closes', discardAsked !== null);
+		await checkKeycaps(bridge, 'the New level discard question', 'new-world');
 		await bridge.js<boolean>(
 			`const b = [...document.querySelectorAll('dialog[open] button, [role=dialog] button')].find((x) => x.textContent.trim() === 'Keep editing'); b.click(); return true;`,
 			'new-world',
