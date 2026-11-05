@@ -79,6 +79,8 @@ function existing(dir: string): string[] {
 	const found: string[] = [];
 	for (const name of readdirSync(dir)) {
 		const full = join(dir, name);
+		// `raster/` belongs to `tools/gen-fizz1-raster.ts`.
+		if (full === join(OUT, 'raster')) continue;
 		if (statSync(full).isDirectory()) found.push(...existing(full));
 		else found.push(relative(OUT, full));
 	}

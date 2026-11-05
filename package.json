@@ -9,6 +9,8 @@
 		"test:mcp:ci": "mkdir -p test-results && bun test packages/mcp --reporter=junit --reporter-outfile=test-results/mcp-junit.xml",
 		"gen:fizz1": "bun tools/gen-fizz1-fixtures.ts",
 		"check:fizz1": "bun tools/gen-fizz1-fixtures.ts --check",
+		"gen:raster": "bun tools/gen-fizz1-raster.ts",
+		"check:raster": "bun tools/gen-fizz1-raster.ts --check",
 		"prove": "bash scripts/prove-crater.sh",
 		"prove:all": "bash scripts/prove-all.sh",
 		"check:links": "bun tools/check-links.ts",

@@ -14,6 +14,7 @@ pub mod js;
 pub mod messages;
 pub mod parser;
 pub mod printer;
+pub mod raster;
 pub mod tables;
 
 /// The name reports use for this crate.
