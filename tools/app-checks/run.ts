@@ -75,6 +75,208 @@ function levelCall(
 	);
 }
 
+/** Clicks the tab with this name, as a person would to show a docked panel. */
+function clickTab(bridge: Bridge, name: string): Promise<boolean> {
+	return bridge.js<boolean>(
+		`const t = [...document.querySelectorAll('[role=tab]')].find((x) => x.textContent.trim() === ${JSON.stringify(name)});
+		 if (!t) return false;
+		 t.click();
+		 return true;`,
+	);
+}
+
+/** Clicks the button with this accessible name. */
+function clickLabelled(bridge: Bridge, label: string): Promise<boolean> {
+	return bridge.js<boolean>(
+		`const b = document.querySelector('button[aria-label=' + JSON.stringify(${JSON.stringify(label)}) + ']');
+		 if (!b) return false;
+		 b.click();
+		 return true;`,
+	);
+}
+
+interface Box {
+	x: number;
+	y: number;
+	w: number;
+	h: number;
+}
+
+/** The boxes of the canvas, the three docks and the three rails, as drawn (null when absent). */
+interface Layout {
+	window: { w: number; h: number };
+	canvas: Box | null;
+	left: Box | null;
+	right: Box | null;
+	bottom: Box | null;
+	leftRail: Box | null;
+	rightRail: Box | null;
+	bottomRail: Box | null;
+}
+
+function measureLayout(bridge: Bridge): Promise<Layout> {
+	return bridge.js<Layout>(
+		`const box = (e) => { if (!e) return null; const r = e.getBoundingClientRect(); return { x: r.left, y: r.top, w: r.width, h: r.height }; };
+		 const dock = (n) => box(document.querySelector('section[aria-label=' + JSON.stringify(n) + ']'));
+		 const rail = (n) => box(document.querySelector('[role=group][aria-label=' + JSON.stringify(n) + ']'));
+		 return {
+		   window: { w: window.innerWidth, h: window.innerHeight },
+		   canvas: box(document.querySelector('canvas')),
+		   left: dock('Left dock'), right: dock('Right dock'), bottom: dock('Bottom dock'),
+		   leftRail: rail('Left rail'), rightRail: rail('Right rail'), bottomRail: rail('Bottom rail'),
+		 };`,
+	);
+}
+
+/** Dispatches a key on the element found by this selector, bubbling like a real key press. */
+function pressKey(bridge: Bridge, selector: string, key: string, shift = false): Promise<boolean> {
+	return bridge.js<boolean>(
+		`const e = document.querySelector(${JSON.stringify(selector)});
+		 if (!e) return false;
+		 e.focus();
+		 e.dispatchEvent(new KeyboardEvent('keydown', { key: ${JSON.stringify(key)}, shiftKey: ${shift}, bubbles: true, cancelable: true }));
+		 return true;`,
+	);
+}
+
+const apart = (a: Box, b: Box) =>
+	a.x + a.w <= b.x + 1 || b.x + b.w <= a.x + 1 || a.y + a.h <= b.y + 1 || b.y + b.h <= a.y + 1;
+
+/**
+ * The dock layout, measured in the real window: the layout bug that once left the canvas zero tall
+ * could not be seen by a jsdom test. It folds, opens, resizes and hides docks and leaves the right
+ * and bottom docks open for the checks that follow.
+ */
+async function dockChecks(bridge: Bridge): Promise<void> {
+	// The shipped Paint workspace opens the Palette dock and folds the other two to rails.
+	let m = await measureLayout(bridge);
+	check(
+		'the left dock is open beside the level and does not overlap it',
+		!!m.left && !!m.canvas && m.left.w > 100 && m.left.h > 100 && apart(m.left, m.canvas),
+		JSON.stringify(m.left),
+	);
+	check(
+		'the right and bottom docks are folded to 36 px rails',
+		!!m.rightRail &&
+			!!m.bottomRail &&
+			Math.abs(m.rightRail.w - 36) < 1.5 &&
+			Math.abs(m.bottomRail.h - 36) < 1.5 &&
+			!m.right &&
+			!m.bottom,
+		JSON.stringify([m.rightRail, m.bottomRail]),
+	);
+
+	// Opening a rail's dock gives it room without taking the canvas's.
+	check('the bottom dock unfolds', await clickLabelled(bridge, 'Unfold the bottom dock'));
+	check('the right dock unfolds', await clickLabelled(bridge, 'Unfold the right dock'));
+	await sleep(300);
+	m = await measureLayout(bridge);
+	check(
+		'the unfolded docks have size and do not overlap the level',
+		!!m.right &&
+			!!m.bottom &&
+			!!m.canvas &&
+			m.right.w > 100 &&
+			m.bottom.h > 60 &&
+			apart(m.right, m.canvas) &&
+			apart(m.bottom, m.canvas) &&
+			apart(m.left!, m.canvas),
+		JSON.stringify([m.right, m.bottom, m.canvas]),
+	);
+	check(
+		'the canvas keeps its room with all three docks open',
+		(m.canvas?.h ?? 0) > 300,
+		String(m.canvas?.h),
+	);
+
+	// Resizing: the keys step a dock and hold it to its cap (30% of the window).
+	const before = m.left!.w;
+	await pressKey(bridge, '[role=separator][aria-label="Resize the left dock"]', 'ArrowRight', true);
+	await sleep(200);
+	m = await measureLayout(bridge);
+	check(
+		'a dock grows 32 px with Shift and the arrow key',
+		Math.abs(m.left!.w - (before + 32)) < 1.5,
+		`${before} to ${m.left?.w}`,
+	);
+	await pressKey(bridge, '[role=separator][aria-label="Resize the left dock"]', 'End');
+	await sleep(200);
+	m = await measureLayout(bridge);
+	const cap = Math.floor((m.window.w * 30) / 100);
+	check(
+		'a dock dragged as wide as it goes stops at its cap',
+		Math.abs(m.left!.w - cap) < 1.5 && m.left!.w <= cap + 1,
+		`${m.left?.w} against a cap of ${cap}`,
+	);
+	check(
+		'the canvas keeps its room after the widest dock',
+		(m.canvas?.h ?? 0) > 300 && (m.canvas?.w ?? 0) > 200,
+	);
+
+	// A synthetic pointer drag on the separator (real mouse events are unreliable under the bridge).
+	const dragged = await bridge.js<{ from: number; to: number }>(
+		`const h = document.querySelector('[role=separator][aria-label="Resize the left dock"]');
+		 const dock = () => document.querySelector('section[aria-label="Left dock"]').getBoundingClientRect().width;
+		 const from = dock();
+		 const fire = (type, x) => h.dispatchEvent(new PointerEvent(type, { bubbles: true, cancelable: true, button: 0, pointerId: 7, clientX: x, clientY: 100 }));
+		 fire('pointerdown', 400); fire('pointermove', 300); fire('pointerup', 300);
+		 await new Promise((r) => setTimeout(r, 200));
+		 return { from, to: dock() };`,
+	);
+	check(
+		'dragging the separator narrows the dock by the distance dragged',
+		Math.abs(dragged.to - (dragged.from - 100)) < 1.5,
+		`${dragged.from} to ${dragged.to}`,
+	);
+	await bridge.js(
+		`document.querySelector('[role=separator][aria-label="Resize the left dock"]').dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));`,
+	);
+	await sleep(200);
+	m = await measureLayout(bridge);
+	check(
+		'a double-click puts the dock back to its default size',
+		Math.abs(m.left!.w - 196) < 1.5,
+		String(m.left?.w),
+	);
+
+	// Folding shows the rail and gives the room back to the level.
+	const wide = m.canvas!.w;
+	check('the left dock folds', await clickLabelled(bridge, 'Fold the left dock'));
+	await sleep(300);
+	m = await measureLayout(bridge);
+	check(
+		'a folded dock shows its rail and the level takes the room',
+		!!m.leftRail && Math.abs(m.leftRail.w - 36) < 1.5 && !m.left && m.canvas!.w > wide,
+		JSON.stringify(m.leftRail),
+	);
+	check('the left dock opens again', await clickLabelled(bridge, 'Unfold the left dock'));
+	await sleep(300);
+
+	// Level-first hides every dock and brings the same set back.
+	m = await measureLayout(bridge);
+	const open = m.canvas!.w;
+	await bridge.js(
+		`document.querySelector('canvas').focus(); document.querySelector('canvas').dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', bubbles: true, cancelable: true }));`,
+	);
+	await sleep(300);
+	m = await measureLayout(bridge);
+	check(
+		'Tab on the level hides the docks and gives it the window',
+		!m.left && !m.right && !m.bottom && m.canvas!.w > open,
+		JSON.stringify([m.left, m.right, m.bottom]),
+	);
+	await bridge.js(
+		`document.querySelector('canvas').dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', bubbles: true, cancelable: true }));`,
+	);
+	await sleep(300);
+	m = await measureLayout(bridge);
+	check(
+		'Tab again brings the same docks back',
+		!!m.left && !!m.right && !!m.bottom && Math.abs(m.canvas!.w - open) < 1.5,
+		JSON.stringify([m.left?.w, m.right?.w, m.bottom?.h]),
+	);
+}
+
 async function main(): Promise<void> {
 	if (!existsSync(binary)) {
 		console.error(`No debug build at ${binary}. Run \`bun run app:build\` first.`);
@@ -105,8 +307,8 @@ async function main(): Promise<void> {
 		});
 		check('the level named on the command line opens', shown !== null);
 
-		// The canvas must have room, and the panels must float inside it; a layout rule lost in
-		// a refactor once left the canvas zero tall, which no jsdom test can see.
+		// The canvas must have room; a layout rule lost in a refactor once left the canvas zero
+		// tall, which no jsdom test can see. The dock checks below measure the docks the same way.
 		const laidOut = await bridge.js<{ canvas: number; panels: number }>(
 			`const c = document.querySelector('canvas')?.getBoundingClientRect();
 			 const p = [...document.querySelectorAll('[role=region][aria-label]')].filter((e) => e.getBoundingClientRect().height > 40);
@@ -132,6 +334,7 @@ async function main(): Promise<void> {
 			JSON.stringify(bars),
 		);
 		check('the canvas still has room with the menu bar', (bars?.canvas ?? 0) > 300);
+		await dockChecks(bridge);
 		const pressByRole = (role: string, name: string) =>
 			bridge.js<boolean>(
 				`const el = [...document.querySelectorAll('[role=${role}]')].find((x) => x.textContent.trim().startsWith(${JSON.stringify(name)}));
@@ -259,6 +462,8 @@ async function main(): Promise<void> {
 			'the paint is one named step',
 			painted.undoName === 'Paint block' && painted.revision === 1,
 		);
+		// History is the right dock's second tab; show it before reading the undo button.
+		await clickTab(bridge, 'History');
 		const history = await within(2000, async () =>
 			bridge.js<boolean>(`return document.body.innerText.includes('Undo Paint block');`),
 		);
