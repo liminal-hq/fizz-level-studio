@@ -57,6 +57,10 @@ Exports `levels/crater.fizz` as `crater_fizz` and `scratch/kitchen-sink.fizz` as
 
 The level proofs check the scripts in `levels/real/`, which `tools/decompile-level.ts` wrote as fills from the game's data; the hand-written `levels/crater.fizz` is proven by the crater test. The proof copy matched the game's crates on 2026-10-18 except for the proof modules (`diff` of `crates/sim/src` and `episodes/episode-1/game/src`).
 
+### The native rasteriser check
+
+`crates/fizz-studio-games/tests/rasteriser.rs` links Fizz 1's crates natively and, for each of the 16 scripts in `levels/real/`, rasterises it with the Rust rasteriser (`fizz-studio-language`) and compares the result with `lf_episode_1::levels::build_level` for the id the script names: the grid size, switch bits, every tile (game ids mapped to tile words through a table the compiler checks against `lf_episode_1::tiles`), every item with its cell centre, every spawn's kind, position, facing and `ride`, and Ben's start. A difference fails the test with the level name and the first few mismatches. It proves that the Rust rasteriser agrees with the game itself, not only with the TypeScript rasteriser's golden files, and it needs no bun, no `scratch/` copy and no dump step.
+
 ### Audits (run by hand)
 
 | Command | Reports |

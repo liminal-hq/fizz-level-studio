@@ -1135,6 +1135,7 @@ dependencies = [
  "fizz-phys",
  "fizz-sim",
  "fizz-slice-view",
+ "fizz-studio-language",
  "fizz-view",
  "lf-episode-1",
  "lf-sim",

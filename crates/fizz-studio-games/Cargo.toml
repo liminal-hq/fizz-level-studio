@@ -20,3 +20,6 @@ fizz-pack = { git = "https://github.com/ScottMorris/lieutenant-fizz-2", rev = "b
 fizz-ep2 = { git = "https://github.com/ScottMorris/lieutenant-fizz-2", rev = "ba1ec8ef0fc1ea438134c2a8345656db95e4ff7b" }
 fizz-view = { git = "https://github.com/ScottMorris/lieutenant-fizz-2", rev = "ba1ec8ef0fc1ea438134c2a8345656db95e4ff7b" }
 fizz-slice-view = { git = "https://github.com/ScottMorris/lieutenant-fizz-2", rev = "ba1ec8ef0fc1ea438134c2a8345656db95e4ff7b" }
+
+[dev-dependencies]
+fizz-studio-language = { path = "../fizz-studio-language" }
