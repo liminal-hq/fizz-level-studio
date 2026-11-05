@@ -29,16 +29,13 @@ async function mount(dock = openDock()) {
 }
 
 describe('the editor’s docks', () => {
-	it('opens the left dock and folds the right and bottom docks in the shipped Paint workspace', async () => {
+	it('opens all three docks in the shipped Paint workspace', async () => {
 		await mount(defaultDock());
 		expect(screen.getByRole('region', { name: 'Left dock' })).toBeInTheDocument();
-		const right = screen.getByRole('group', { name: 'Right rail' });
-		expect(within(right).getByRole('button', { name: 'Objects' })).toBeInTheDocument();
-		expect(
-			within(screen.getByRole('group', { name: 'Bottom rail' })).getByRole('button', {
-				name: 'Script',
-			}),
-		).toBeInTheDocument();
+		expect(screen.getByRole('region', { name: 'Right dock' })).toBeInTheDocument();
+		expect(screen.getByRole('region', { name: 'Bottom dock' })).toBeInTheDocument();
+		expect(screen.queryByRole('group', { name: 'Right rail' })).toBeNull();
+		expect(screen.queryByRole('group', { name: 'Bottom rail' })).toBeNull();
 	});
 
 	it('docks the panels around the canvas when every dock is open', async () => {
@@ -223,9 +220,12 @@ describe('the editor’s docks', () => {
 		expect(screen.getByRole('region', { name: 'Right dock' })).toBeInTheDocument();
 	});
 
-	it('keeps the rails while the level comes first and restores the same set', async () => {
+	it('keeps the rails of folded docks while the level comes first and restores the same set', async () => {
 		const user = userEvent.setup();
-		const { bridge } = await mount(defaultDock());
+		const folded = defaultDock();
+		folded.workspaces.Paint!.zones.right.collapsed = true;
+		folded.workspaces.Paint!.zones.bottom.collapsed = true;
+		const { bridge } = await mount(folded);
 		expect(runCommand('view.levelFirst', bridge.getSnapshot())).toBe(true);
 		await waitFor(() => expect(bridge.getSnapshot().facts.levelFirst).toBe(true));
 		expect(screen.queryByRole('region', { name: 'Left dock' })).toBeNull();

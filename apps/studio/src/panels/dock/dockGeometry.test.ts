@@ -90,14 +90,20 @@ describe('rails and empty zones', () => {
 		expect(levelRect(ws, big).w).toBe(1440 - 64 - RAIL_SIZE);
 	});
 
-	it('gives the shipped workspaces more level than the default', () => {
+	it('opens every dock in the Paint workspace and keeps the level near 42% at 1440 by 900', () => {
 		const paint = defaultWorkspaceFor('Paint');
+		expect(paint).toEqual(defaultWorkspace());
 		expect(levelRect(paint, big)).toEqual({
 			x: 64 + 196,
 			y: 124,
-			w: 1440 - 64 - 196 - 36,
-			h: 900 - 124 - 36,
+			w: 1440 - 64 - 196 - 264,
+			h: 900 - 124 - 180,
 		});
+		expect(levelShare(paint, big)).toBeGreaterThan(0.41);
+		expect(levelShare(paint, big)).toBeLessThan(0.43);
+	});
+
+	it('keeps a useful share of the level in every shipped workspace on a small window', () => {
 		for (const name of ['Paint', 'Script', 'Review']) {
 			const share = levelShare(defaultWorkspaceFor(name), small);
 			expect(share).toBeGreaterThan(0.3);

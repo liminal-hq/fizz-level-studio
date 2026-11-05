@@ -260,7 +260,7 @@ describe('the dock and its workspaces', () => {
 	it('shapes the shipped workspaces as designed', () => {
 		const { Paint, Script, Review } = defaultDock().workspaces;
 		expect(Paint!.zones.left.collapsed).toBe(false);
-		expect(Paint!.zones.right.collapsed && Paint!.zones.bottom.collapsed).toBe(true);
+		expect(Paint!.zones.right.collapsed || Paint!.zones.bottom.collapsed).toBe(false);
 		expect(dockedIn(Script!, 'bottom')).toEqual(['script', 'proposals']);
 		expect(Script!.zones.bottom.size).toBeGreaterThan(defaultWorkspace().zones.bottom.size);
 		expect(Review!.zones.right.groups[0]!.active).toBe('proposals');

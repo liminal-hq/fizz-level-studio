@@ -221,7 +221,7 @@
 				},
 				"right": {
 					"size": 264,
-					"collapsed": true,
+					"collapsed": false,
 					"groups": [
 						{
 							"tabs": [
@@ -234,7 +234,7 @@
 				},
 				"bottom": {
 					"size": 180,
-					"collapsed": true,
+					"collapsed": false,
 					"groups": [
 						{
 							"tabs": [

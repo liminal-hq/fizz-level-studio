@@ -144,44 +144,34 @@ const apart = (a: Box, b: Box) =>
 
 /**
  * The dock layout, measured in the real window: the layout bug that once left the canvas zero tall
- * could not be seen by a jsdom test. It folds, opens, resizes and hides docks and leaves the right
- * and bottom docks open for the checks that follow.
+ * could not be seen by a jsdom test. It folds, opens, resizes and hides docks and leaves all three
+ * docks open for the checks that follow.
  */
 async function dockChecks(bridge: Bridge): Promise<void> {
-	// The shipped Paint workspace opens the Palette dock and folds the other two to rails.
+	// The shipped Paint workspace opens all three docks (board H1 of the design canvas).
 	let m = await measureLayout(bridge);
 	check(
-		'the left dock is open beside the level and does not overlap it',
-		!!m.left && !!m.canvas && m.left.w > 100 && m.left.h > 100 && apart(m.left, m.canvas),
-		JSON.stringify(m.left),
-	);
-	check(
-		'the right and bottom docks are folded to 36 px rails',
-		!!m.rightRail &&
-			!!m.bottomRail &&
-			Math.abs(m.rightRail.w - 36) < 1.5 &&
-			Math.abs(m.bottomRail.h - 36) < 1.5 &&
-			!m.right &&
-			!m.bottom,
-		JSON.stringify([m.rightRail, m.bottomRail]),
-	);
-
-	// Opening a rail's dock gives it room without taking the canvas's.
-	check('the bottom dock unfolds', await clickLabelled(bridge, 'Unfold the bottom dock'));
-	check('the right dock unfolds', await clickLabelled(bridge, 'Unfold the right dock'));
-	await sleep(300);
-	m = await measureLayout(bridge);
-	check(
-		'the unfolded docks have size and do not overlap the level',
-		!!m.right &&
+		'the three docks are open, with no rails, and do not overlap the level',
+		!!m.left &&
+			!!m.right &&
 			!!m.bottom &&
 			!!m.canvas &&
+			!m.leftRail &&
+			!m.rightRail &&
+			!m.bottomRail &&
+			m.left.w > 100 &&
 			m.right.w > 100 &&
 			m.bottom.h > 60 &&
+			apart(m.left, m.canvas) &&
 			apart(m.right, m.canvas) &&
-			apart(m.bottom, m.canvas) &&
-			apart(m.left!, m.canvas),
-		JSON.stringify([m.right, m.bottom, m.canvas]),
+			apart(m.bottom, m.canvas),
+		JSON.stringify([m.left, m.right, m.bottom, m.canvas]),
+	);
+	const share = m.canvas
+		? Math.round(((m.canvas.w * m.canvas.h) / (m.window.w * m.window.h)) * 100)
+		: 0;
+	console.log(
+		`level share at ${m.window.w}x${m.window.h}: canvas ${m.canvas?.w}x${m.canvas?.h} (${share}% of the window)`,
 	);
 	check(
 		'the canvas keeps its room with all three docks open',

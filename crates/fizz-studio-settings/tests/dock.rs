@@ -129,8 +129,12 @@ fn the_default_arrangement_is_palette_left_objects_and_history_right_script_and_
 #[test]
 fn the_workspaces_vary_the_default_as_designed() {
     let paint = default_workspace_for("Paint");
-    assert!(!paint.zones.left.collapsed);
-    assert!(paint.zones.right.collapsed && paint.zones.bottom.collapsed);
+    assert!(
+        !paint.zones.left.collapsed
+            && !paint.zones.right.collapsed
+            && !paint.zones.bottom.collapsed
+    );
+    assert_eq!(paint, default_workspace());
     let script = default_workspace_for("Script");
     assert!(script.zones.bottom.size > default_workspace().zones.bottom.size);
     assert_eq!(script.zones.bottom.groups[0].active, "script");

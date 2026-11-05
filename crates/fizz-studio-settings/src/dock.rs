@@ -99,18 +99,8 @@ pub fn default_workspace() -> Workspace {
 pub fn default_workspace_for(name: &str) -> Workspace {
     let base = base_zones();
     match name {
-        // A big canvas: only the palette stays open; the rest fold to rails.
-        "Paint" => workspace(Zones {
-            right: Zone {
-                collapsed: true,
-                ..base.right.clone()
-            },
-            bottom: Zone {
-                collapsed: true,
-                ..base.bottom.clone()
-            },
-            ..base
-        }),
+        // Every dock open, as in board H1 of the design canvas: the fixed default arrangement.
+        "Paint" => workspace(base),
         // The script docked at the bottom and taller; the palette folds away.
         "Script" => workspace(Zones {
             left: Zone {
