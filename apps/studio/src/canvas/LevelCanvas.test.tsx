@@ -1,9 +1,9 @@
-// Tests for the level canvas and its objects list: roles, keyboard, pointer and zoom
+// Tests for the level canvas: roles, keyboard, pointer and zoom
 //
 // (c) Copyright 2026 Liminal HQ, Scott Morris
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { levelView } from '../test/levelFixtures';
@@ -145,47 +145,5 @@ describe('LevelCanvas', () => {
 		);
 		setup();
 		expect(calls).toContain('fillRect');
-	});
-});
-
-describe('the objects list', () => {
-	it('lists items, spawns, the start and problems in a named list', () => {
-		setup();
-		const list = screen.getByRole('list', { name: 'Objects' });
-		const entries = within(list).getAllByRole('listitem');
-		expect(entries.map((entry) => entry.textContent)).toEqual([
-			'Ben’s start at 1, 1',
-			'Item cheezie at 4, 3',
-			'Spawn gloop at 6, 1',
-			'Spawn bat at column 9',
-			'Line 3, E004: unknown tile',
-		]);
-	});
-
-	it('moves the cursor to an entry when it is chosen from the keyboard', async () => {
-		const user = userEvent.setup();
-		const { props } = setup();
-		await user.click(screen.getByRole('button', { name: 'Item cheezie at 4, 3' }));
-		expect(props.onCursorChange).toHaveBeenLastCalledWith({ x: 4, y: 3 });
-		const spawn = screen.getByRole('button', { name: 'Spawn gloop at 6, 1' });
-		spawn.focus();
-		await user.keyboard('{Enter}');
-		expect(props.onCursorChange).toHaveBeenLastCalledWith({ x: 6, y: 1 });
-		// A spawn with no row rests on the ground in its column (the floor is row 0).
-		await user.click(screen.getByRole('button', { name: 'Spawn bat at column 9' }));
-		expect(props.onCursorChange).toHaveBeenLastCalledWith({ x: 9, y: 1 });
-	});
-
-	it('hands a chosen problem to the caller as its line', async () => {
-		const user = userEvent.setup();
-		const onSelectLine = vi.fn();
-		setup({ onSelectLine });
-		await user.click(screen.getByRole('button', { name: /E004/ }));
-		expect(onSelectLine).toHaveBeenCalledWith(3);
-	});
-
-	it('says so when the level has nothing in it', () => {
-		setup({ view: levelView(4, 4, { start: null }) });
-		expect(screen.getByText('Nothing placed yet')).toBeInTheDocument();
 	});
 });

@@ -5,8 +5,8 @@
 
 use fizz_studio_level::{new_level_text, new_world_text, step_name};
 use fizz_studio_protocol::{
-    LevelEdit, LevelError, LevelSnapshot, LevelTarget, NewLevelRequest, ProjectInfo, ProjectKind,
-    RecoveryEntry,
+    GhostProposal, LevelEdit, LevelError, LevelSnapshot, LevelTarget, NewLevelRequest, ProjectInfo,
+    ProjectKind, RecoveryEntry, WordDoc,
 };
 use fizz_studio_session::{Author, Request};
 use fizz_studio_world::{write_atomic, Project, ProjectKind as FoundKind, WORLD_FILE};
@@ -215,4 +215,34 @@ pub fn level_create<R: Runtime>(
         }
     };
     worlds.open(&app, &text(&path))
+}
+
+/// The words a level script can use, documented, for the Palette and for completion. They come from
+/// the language crate, so the webview keeps no copy.
+#[tauri::command]
+pub fn language_words() -> Vec<WordDoc> {
+    fizz_studio_level::word_docs()
+}
+
+/// The script line (counted from 1) of the last statement that changed the cell `x`, `y` of an
+/// open level, or nothing when no statement did. Reads the level's text as it is now.
+#[tauri::command]
+pub fn level_cell_line(
+    worlds: State<'_, Worlds>,
+    id: String,
+    x: i64,
+    y: i64,
+) -> Result<Option<u32>, LevelError> {
+    worlds.with(&id, |level| Ok(level.session.document().cell_line(x, y)))
+}
+
+/// The proposals Claude left pending for an open level, read from its `<level>.studio.json`
+/// sidecar and spread into cells. Read-only: nothing is accepted, rejected or written. A level
+/// with no sidecar has none.
+#[tauri::command]
+pub fn level_ghosts(
+    worlds: State<'_, Worlds>,
+    id: String,
+) -> Result<Vec<GhostProposal>, LevelError> {
+    worlds.with(&id, |level| Ok(level.ghosts()))
 }

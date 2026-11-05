@@ -36,3 +36,12 @@ export function windowKindFromLabel(label: string): WindowKind | null {
 	}
 	return null;
 }
+
+/**
+ * The panel a panel window's label names (`panel-script-1` is `script`), or `null` for a label that
+ * is not a panel window.
+ */
+export function panelFromLabel(label: string): string | null {
+	if (windowKindFromLabel(label) !== 'panel') return null;
+	return label.slice('panel-'.length, label.lastIndexOf('-'));
+}

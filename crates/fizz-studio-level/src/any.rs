@@ -60,6 +60,15 @@ impl AnyLevelDocument {
             Self::Fizz2(d) => d.view(),
         }
     }
+
+    /// The script line that last changed the cell. Only a Fizz 1 level answers; a Fizz 2 level is
+    /// drawn flat until the game's own view exists.
+    pub fn cell_line(&self, x: i64, y: i64) -> Option<u32> {
+        match self {
+            Self::Fizz1(d) => d.cell_line(x, y),
+            Self::Fizz2(_) => None,
+        }
+    }
 }
 
 impl Document for AnyLevelDocument {

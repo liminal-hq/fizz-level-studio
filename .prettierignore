@@ -39,3 +39,6 @@ plugins/*/permissions/schemas
 # Language documentation data written by `bun run gen:docs`
 crates/fizz-studio-language/data
 plugins/*/api-iife.js
+
+# ts-rs output from the copied plugins, rewritten by their Rust tests
+plugins/*/guest-js/bindings

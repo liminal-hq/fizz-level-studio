@@ -1,0 +1,121 @@
+.panel {
+	position: absolute;
+	left: var(--fls-float-x);
+	top: var(--fls-float-y);
+	z-index: var(--fls-float-z);
+	display: flex;
+	flex-direction: column;
+	box-sizing: border-box;
+	width: var(--fls-float-w);
+	height: var(--fls-float-h);
+	overflow: hidden;
+	color: var(--fls-text-primary);
+	/* Glass: the level shows, blurred, through the panel. */
+	background: var(--fls-glass-bg);
+	backdrop-filter: blur(var(--fls-glass-blur));
+	-webkit-backdrop-filter: blur(var(--fls-glass-blur));
+	border: 1px solid var(--fls-glass-border);
+	border-radius: 12px;
+	box-shadow: var(--fls-glass-shadow);
+}
+
+.panel[data-collapsed] {
+	height: var(--fls-float-header);
+}
+
+.header {
+	display: flex;
+	flex: none;
+	align-items: center;
+	gap: 0.25rem;
+	box-sizing: border-box;
+	height: var(--fls-float-header);
+	padding: 0 0.25rem 0 0.5rem;
+	border-bottom: 1px solid var(--fls-border-subtle);
+	cursor: grab;
+	touch-action: none;
+	user-select: none;
+}
+
+.panel[data-collapsed] .header {
+	border-bottom: 0;
+}
+
+.title {
+	margin: 0;
+	font-size: 0.95rem;
+	font-weight: 700;
+	white-space: nowrap;
+}
+
+.subtitle {
+	max-width: 8rem;
+	overflow: hidden;
+	color: var(--fls-accent-text);
+	font-size: 0.8rem;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.spacer {
+	flex: 1;
+}
+
+.grip,
+.chevron {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-width: var(--fls-hit-target);
+	min-height: var(--fls-hit-target);
+	padding: 0;
+	color: var(--fls-text-muted);
+	background: transparent;
+	border: 0;
+	border-radius: 8px;
+	cursor: inherit;
+}
+
+.chevron {
+	cursor: default;
+}
+
+.grip:hover,
+.chevron:hover {
+	background: var(--fls-control-bg-hover);
+}
+
+.grip:focus-visible,
+.chevron:focus-visible,
+.resize:focus-visible {
+	outline: 2px solid var(--fls-focus-ring);
+	outline-offset: -2px;
+	box-shadow: inset 0 0 0 2px var(--fls-focus-inner);
+}
+
+.body {
+	display: flex;
+	flex: 1;
+	flex-direction: column;
+	min-height: 0;
+	overflow: auto;
+}
+
+.panel[data-collapsed] .body {
+	display: none;
+}
+
+.resize {
+	position: absolute;
+	right: 0;
+	bottom: 0;
+	width: 18px;
+	height: 18px;
+	padding: 0;
+	background:
+		linear-gradient(135deg, transparent 50%, var(--fls-text-muted) 50%, transparent 60%),
+		linear-gradient(135deg, transparent 70%, var(--fls-text-muted) 70%, transparent 80%);
+	border: 0;
+	cursor: nwse-resize;
+	touch-action: none;
+}

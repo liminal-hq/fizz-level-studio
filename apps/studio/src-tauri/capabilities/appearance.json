@@ -1,0 +1,11 @@
+{
+	"$schema": "../gen/schemas/desktop-schema.json",
+	"identifier": "appearance",
+	"description": "Every window follows the system's colour scheme and titlebar preferences, may reach the window manager's own menu, and may ask what the window effects plugin can do here. Applying an effect is the app's alone, never a page's.",
+	"windows": ["main-*", "panel-*", "new-world", "preferences", "about"],
+	"permissions": [
+		"system-appearance:default",
+		"window-manager:default",
+		"window-effects:allow-get-status"
+	]
+}

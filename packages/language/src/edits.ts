@@ -8,7 +8,8 @@ import type { Ast, Body, Node, Range } from './ast.ts';
 export type Edit =
 	| { op: 'paint'; tile: string; xs: Range[]; ys: Range[] }
 	| { op: 'clear'; xs: Range[]; ys: Range[] }
-	| { op: 'place'; kind: string; xs: Range[]; ys: Range[] };
+	| { op: 'place'; kind: string; xs: Range[]; ys: Range[] }
+	| { op: 'row'; kind: string; x: Range; y: number; by: number };
 
 function toBody(e: Edit): Body {
 	switch (e.op) {
@@ -18,6 +19,8 @@ function toBody(e: Edit): Body {
 			return { type: 'clear', xs: e.xs, ys: e.ys };
 		case 'place':
 			return { type: 'place', kind: e.kind, xs: e.xs, ys: e.ys };
+		case 'row':
+			return { type: 'row', kind: e.kind, x: e.x, y: e.y, by: e.by };
 	}
 }
 

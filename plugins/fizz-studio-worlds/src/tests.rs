@@ -130,6 +130,21 @@ fn current(app: &App, id: &str) -> LevelSnapshot {
 }
 
 #[test]
+fn the_words_and_a_cells_line_are_answered_for_an_open_level() {
+    let app = app();
+    let (_dir, path) = project();
+    let snapshot = open(&app, &path);
+    let words = commands::language_words();
+    assert!(words
+        .iter()
+        .any(|w| w.word == "plat" && w.kind == "statement"));
+    let line = commands::level_cell_line(worlds(&app), snapshot.id.clone(), 50, 10).unwrap();
+    assert_eq!(line, Some(17));
+    let missing = commands::level_cell_line(worlds(&app), "nope".into(), 0, 0);
+    assert!(missing.is_err());
+}
+
+#[test]
 fn a_folder_opens_with_its_levels() {
     let (dir, path) = project();
     let info = commands::project_open(dir.path().to_string_lossy().into_owned()).unwrap();
@@ -743,4 +758,39 @@ fn the_new_world_window_may_only_create_a_level() {
         capability["permissions"],
         serde_json::json!(["fizz-studio-worlds:allow-level-create"])
     );
+}
+
+#[test]
+fn the_language_words_come_from_rust() {
+    let words = commands::language_words();
+    let paint = words.iter().find(|w| w.word == "paint").expect("paint");
+    assert_eq!(paint.kind, "statement");
+    assert!(words.iter().any(|w| w.kind == "enemy"));
+}
+
+#[test]
+fn the_ghosts_are_the_pending_proposals_in_the_sidecar() {
+    let app = app();
+    let (_dir, path) = project();
+    let opened = open(&app, &path);
+    let ghosts = |app: &App| commands::level_ghosts(worlds(app), opened.id.clone()).unwrap();
+    assert!(ghosts(&app).is_empty(), "no sidecar, no ghosts");
+
+    let sidecar = path.with_extension("studio.json");
+    std::fs::write(
+        &sidecar,
+        r#"{"version":1,"mode":"propose","nextId":3,"nextNote":1,"notes":[],"history":[
+        {"id":"h1","title":"A ledge","lines":["paint grass x=5..6 y=10"],"status":"pending"},
+        {"id":"h2","title":"Done","lines":["paint grass x=1 y=1"],"status":"accepted"}]}"#,
+    )
+    .unwrap();
+    let found = ghosts(&app);
+    assert_eq!(found.len(), 1);
+    assert_eq!(found[0].id, "h1");
+    assert_eq!(found[0].cells.len(), 2);
+    // Reading changes nothing: the level has not moved.
+    assert_eq!(current(&app, &opened.id).revision, opened.revision);
+
+    let missing = commands::level_ghosts(worlds(&app), "nope".into());
+    assert!(matches!(missing, Err(LevelError::NotOpen { .. })));
 }

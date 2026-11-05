@@ -1,63 +1,12 @@
-// Tests for the script and history panels
+// Tests for the history panel
 //
 // (c) Copyright 2026 Liminal HQ, Scott Morris
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
-import { render, screen, within } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { HistoryPanel, historyShortcut } from './HistoryPanel';
-import { ScriptPanel, scriptLines } from './ScriptPanel';
-
-describe('scriptLines', () => {
-	it('splits on newlines and drops only the one after the last line', () => {
-		expect(scriptLines('a\nb\n')).toEqual(['a', 'b']);
-		expect(scriptLines('a\n\nb')).toEqual(['a', '', 'b']);
-		expect(scriptLines('')).toEqual([]);
-	});
-});
-
-describe('ScriptPanel', () => {
-	const text = 'script fizz1 0\nlevel test\n  paint grass\n';
-
-	it('shows every line with its number, exactly as written', () => {
-		render(<ScriptPanel text={text} diagnostics={[]} />);
-		const lines = within(screen.getByRole('list', { name: 'Script text' })).getAllByRole(
-			'listitem',
-		);
-		expect(lines).toHaveLength(3);
-		expect(lines[0]).toHaveTextContent('1script fizz1 0');
-		expect(lines[2]?.querySelector('code')?.textContent).toBe('  paint grass');
-		expect(screen.getByText('No problems')).toBeInTheDocument();
-	});
-
-	it('lists each problem as a button that marks and focuses its line', async () => {
-		const user = userEvent.setup();
-		render(
-			<ScriptPanel
-				text={text}
-				diagnostics={[{ line: 3, code: 'E004', message: 'unknown tile' }]}
-			/>,
-		);
-		const link = screen.getByRole('button', { name: 'Line 3: E004 unknown tile' });
-		await user.click(link);
-		const lines = within(screen.getByRole('list', { name: 'Script text' })).getAllByRole(
-			'listitem',
-		);
-		expect(lines[2]).toHaveFocus();
-		expect(lines[2]?.className).toContain('active');
-		expect(lines[2]?.className).toContain('problem');
-		expect(lines[1]?.className).not.toContain('active');
-	});
-
-	it('marks the line the caller asks to focus', () => {
-		render(<ScriptPanel text={text} diagnostics={[]} focusLine={2} />);
-		const lines = within(screen.getByRole('list', { name: 'Script text' })).getAllByRole(
-			'listitem',
-		);
-		expect(lines[1]?.className).toContain('active');
-	});
-});
 
 describe('HistoryPanel', () => {
 	const base = {

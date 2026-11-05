@@ -13,7 +13,9 @@
 // (`pixel-{n}`) and behaviour editor (`behaviour-{n}`) windows arrive with their milestones.
 
 pub use fizz_studio_protocol::{WindowId, WindowKind};
-use tauri::{AppHandle, Manager, Runtime, WebviewUrl, WebviewWindow, WebviewWindowBuilder};
+use tauri::{
+    AppHandle, Emitter, Manager, Runtime, WebviewUrl, WebviewWindow, WebviewWindowBuilder,
+};
 
 /// How a kind of window is made, in logical pixels.
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -150,9 +152,49 @@ pub async fn open_window<R: Runtime>(app: AppHandle<R>, id: WindowId) -> Result<
         .map_err(|e| e.to_string())
 }
 
+/// Sent to every window when a panel window goes away, however it closes. The payload is the label,
+/// such as `panel-script-1`, so the main window can dock the panel back.
+pub const PANEL_CLOSED_EVENT: &str = "panel://closed";
+
+/// Tells every window that the window `label` is gone, if it was a panel window.
+pub fn announce_panel_closed<R: Runtime>(app: &AppHandle<R>, label: &str) {
+    if matches!(WindowId::parse(label), Some(WindowId::Panel { .. })) {
+        if let Err(e) = app.emit(PANEL_CLOSED_EVENT, label) {
+            log::warn!("could not announce that {label} closed: {e}");
+        }
+    }
+}
+
+/// The labels of the panel windows that are open, sorted, so a window that starts late can tell
+/// which panels are torn off.
+#[tauri::command]
+pub fn open_panels<R: Runtime>(app: AppHandle<R>) -> Vec<String> {
+    let mut labels: Vec<String> = app
+        .webview_windows()
+        .into_keys()
+        .filter(|label| matches!(WindowId::parse(label), Some(WindowId::Panel { .. })))
+        .collect();
+    labels.sort();
+    labels
+}
+
+/// Closes a panel window, which docks the panel back. Only panel windows may be closed this way, and
+/// closing one that is not open is not an error.
+#[tauri::command]
+pub async fn close_panel<R: Runtime>(app: AppHandle<R>, id: WindowId) -> Result<(), String> {
+    if !matches!(id, WindowId::Panel { .. }) {
+        return Err(format!("{} is not a panel window", id.label()));
+    }
+    match app.get_webview_window(&id.label()) {
+        Some(window) => window.destroy().map_err(|e| e.to_string()),
+        None => Ok(()),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    use tauri::Listener;
 
     fn every_id() -> Vec<WindowId> {
         vec![
@@ -214,6 +256,63 @@ mod tests {
             assert!(app.get_webview_window(&id.label()).is_some(), "{id:?}");
         }
         assert_eq!(app.webview_windows().len(), every_id().len());
+    }
+
+    fn script_panel() -> WindowId {
+        WindowId::Panel {
+            panel: "script".into(),
+            n: 1,
+        }
+    }
+
+    #[test]
+    fn open_panels_lists_only_panel_windows() {
+        let app = tauri::test::mock_app();
+        assert!(open_panels(app.handle().clone()).is_empty());
+        build_window(app.handle(), &WindowId::Main { n: 1 }).expect("builds");
+        build_window(app.handle(), &script_panel()).expect("builds");
+        assert_eq!(open_panels(app.handle().clone()), vec!["panel-script-1"]);
+    }
+
+    #[test]
+    fn close_panel_refuses_a_window_that_is_not_a_panel() {
+        let app = tauri::test::mock_app();
+        build_window(app.handle(), &WindowId::Main { n: 1 }).expect("builds");
+        build_window(app.handle(), &script_panel()).expect("builds");
+        tauri::async_runtime::block_on(close_panel(app.handle().clone(), script_panel()))
+            .expect("closes");
+        // The mock runtime has no event loop to finish the removal, so the window going away is
+        // checked in the running app (`tools/app-checks`). Closing a panel that was never opened is
+        // fine; a main window is refused and stays open.
+        tauri::async_runtime::block_on(close_panel(
+            app.handle().clone(),
+            WindowId::Panel {
+                panel: "game-view".into(),
+                n: 1,
+            },
+        ))
+        .expect("nothing to close");
+        let refused = tauri::async_runtime::block_on(close_panel(
+            app.handle().clone(),
+            WindowId::Main { n: 1 },
+        ));
+        assert!(refused.is_err());
+        assert!(app.get_webview_window("main-1").is_some());
+    }
+
+    #[test]
+    fn a_panel_closing_is_announced_and_a_main_window_closing_is_not() {
+        use std::sync::{Arc, Mutex};
+        let app = tauri::test::mock_app();
+        let heard = Arc::new(Mutex::new(Vec::<String>::new()));
+        let sink = heard.clone();
+        app.listen(PANEL_CLOSED_EVENT, move |event| {
+            sink.lock().unwrap().push(event.payload().to_owned());
+        });
+        announce_panel_closed(app.handle(), "panel-script-1");
+        announce_panel_closed(app.handle(), "main-1");
+        announce_panel_closed(app.handle(), "panel-bad");
+        assert_eq!(*heard.lock().unwrap(), vec!["\"panel-script-1\""]);
     }
 
     #[test]

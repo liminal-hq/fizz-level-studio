@@ -11,7 +11,7 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 
 export const root = resolve(import.meta.dir, '../..');
-export const binary = join(root, 'target/debug/fizz-level-studio');
+export const binary = process.env.FIZZ_APP_BINARY ?? join(root, 'target/debug/fizz-level-studio');
 
 /** An isolated profile: the app's config and data live here, never in the person's own. */
 export interface Profile {
@@ -119,11 +119,11 @@ export class Bridge {
 	}
 
 	/** Runs an async function body in the window and returns its JSON-serialisable result. */
-	async js<T>(body: string, windowId = 'main-1'): Promise<T> {
+	async js<T>(body: string, windowId = 'main-1', timeout = 10_000): Promise<T> {
 		const text = await this.call('webview_execute_js', {
 			windowId,
 			script: `(async () => { ${body} })()`,
-			timeout: 10_000,
+			timeout,
 		});
 		const json = text.split('\n\n[Executed')[0] ?? '';
 		return JSON.parse(json) as T;

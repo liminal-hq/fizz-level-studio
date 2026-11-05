@@ -124,6 +124,7 @@ fn all_words(section: SectionName) -> Vec<&'static str> {
         SectionName::Enemies => words(KINDS),
         SectionName::Edits => {
             let mut list: Vec<&'static str> = EDIT_WORDS.to_vec();
+            list.push("row");
             list.extend(words(KINDS));
             list.extend(["hover", "channel", "room", "secret-room"]);
             list

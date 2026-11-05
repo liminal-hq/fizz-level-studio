@@ -5,9 +5,14 @@
 
 import { invoke } from '@tauri-apps/api/core';
 import { listen, type UnlistenFn } from '@tauri-apps/api/event';
+import type { AccentChoice } from '@liminal-hq/fizz-studio-protocol/generated/AccentChoice';
 import type { ColourMode } from '@liminal-hq/fizz-studio-protocol/generated/ColourMode';
+import type { GlassMode } from '@liminal-hq/fizz-studio-protocol/generated/GlassMode';
+import type { PanelLayout } from '@liminal-hq/fizz-studio-protocol/generated/PanelLayout';
+import type { PanelPlacement } from '@liminal-hq/fizz-studio-protocol/generated/PanelPlacement';
 import type { Settings } from '@liminal-hq/fizz-studio-protocol/generated/Settings';
 import type { SettingsError } from '@liminal-hq/fizz-studio-protocol/generated/SettingsError';
+import type { SettingsField } from '@liminal-hq/fizz-studio-protocol/generated/SettingsField';
 import type { SettingsPatch } from '@liminal-hq/fizz-studio-protocol/generated/SettingsPatch';
 import type { SettingsSnapshot } from '@liminal-hq/fizz-studio-protocol/generated/SettingsSnapshot';
 
@@ -46,6 +51,24 @@ export function clearRecent(): Promise<SettingsSnapshot> {
 }
 
 /**
+ * The floating-panel layout for a kind of window (`main` for the editor): what was saved, laid over
+ * the defaults Rust owns, so a panel added since the layout was saved still has a place.
+ */
+export function getPanelLayout(kind: string): Promise<PanelLayout> {
+	return cmd<PanelLayout>('layout_get', { kind });
+}
+
+/** Saves the layout of a kind of window. The newest save wins. Resolves with what is now in force. */
+export function savePanelLayout(kind: string, layout: PanelLayout): Promise<PanelLayout> {
+	return cmd<PanelLayout>('layout_set', { kind, layout });
+}
+
+/** Forgets the saved layout of a kind of window and resolves with the defaults. */
+export function resetPanelLayout(kind: string): Promise<PanelLayout> {
+	return cmd<PanelLayout>('layout_reset', { kind });
+}
+
+/**
  * Wraps `listener` so it hears only snapshots newer than everything it has already heard. Events
  * can arrive out of order or twice (a window's own change comes back as an event), and a lower or
  * equal revision is older news than what the window has applied: it is ignored. `since` is the
@@ -78,4 +101,15 @@ export function onSettingsChanged(
 	return listen<SettingsSnapshot>(SETTINGS_EVENT, (event) => hear(event.payload));
 }
 
-export type { ColourMode, Settings, SettingsError, SettingsPatch, SettingsSnapshot };
+export type {
+	AccentChoice,
+	ColourMode,
+	GlassMode,
+	PanelLayout,
+	PanelPlacement,
+	Settings,
+	SettingsError,
+	SettingsField,
+	SettingsPatch,
+	SettingsSnapshot,
+};

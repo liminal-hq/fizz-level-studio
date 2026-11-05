@@ -42,20 +42,49 @@ export const enMessages = {
 	'chrome.windowControls': 'Window controls',
 	// translator: The accessible name of the group of editing tools.
 	'tools.group': 'Tools',
-	// translator: Verb. A tool that lays the chosen tile down where the pointer drags.
+	// translator: Verb. A tool that lays the brush down where the pointer drags: a tile, a row of items or one enemy.
 	'tools.paint': 'Paint',
-	// translator: Verb. A tool that clears the cells the pointer drags over.
+	// translator: Verb. A tool that clears the tiles of the cells the pointer drags over.
 	'tools.erase': 'Erase',
-	// translator: Verb. A tool that copies the tile under the pointer into the tile chooser.
+	// translator: Verb. A tool that copies what is on the cell under the pointer into the brush.
 	'tools.pick': 'Pick',
 	// translator: Verb. A tool that outlines a rectangle of cells.
 	'tools.select': 'Select',
-	// translator: Verb. A tool that places the chosen item on a cell, like a rubber stamp.
+	// translator: Verb. A tool that pastes the outlined rectangle, copied when the tool is chosen, where the pointer presses, like a rubber stamp.
 	'tools.stamp': 'Stamp',
-	// translator: Label of the chooser for the tile the Paint tool lays down.
-	'tools.tile': 'Tile',
-	// translator: Label of the chooser for the item the Stamp tool places (a collectable, such as a key).
-	'tools.item': 'Item',
+	// translator: A hint shown while the Stamp tool has nothing copied yet.
+	'tools.stampEmpty': 'Outline an area with Select, then choose Stamp to paste it.',
+	// translator: The brush chip in the toolbar. {kind} is the name of the tile, item or enemy that Paint lays down, such as “cheezie”.
+	'brush.chip': 'Brush: {kind}',
+	// translator: The brush chip when the brush is an item that is spaced out. {kind} is the item; {spacing} says how far apart, such as “Every 3 cells”.
+	'brush.chipSpaced': 'Brush: {kind}, {spacing}',
+	// translator: The kind of thing the brush lays down: a tile of the grid.
+	'brush.group.tile': 'Tile',
+	// translator: The kind of thing the brush lays down: an item, a collectable such as a cheezie or a key.
+	'brush.group.item': 'Item',
+	// translator: The kind of thing the brush lays down: an enemy, or a prop the game places like one (a switch, a terminal).
+	'brush.group.enemy': 'Enemy',
+	// translator: Accessible name of the group holding the item spacing control.
+	'spacing.group': 'Item spacing',
+	// translator: Label before the control that sets how many cells apart a dragged row of items is placed.
+	'spacing.label': 'Spacing',
+	// translator: The spacing when every cell gets an item.
+	'spacing.everyCell': 'Every cell',
+	// translator: The spacing when only some cells get an item. {n} is a whole number from 2 to 8, such as “Every 3 cells”.
+	'spacing.everyN': 'Every {n} cells',
+	// translator: Visible text of the button that puts dragged items closer together: a minus sign.
+	'spacing.lessGlyph': '−',
+	// translator: Visible text of the button that puts dragged items further apart: a plus sign.
+	'spacing.moreGlyph': '+',
+	// translator: Accessible name of the button that puts dragged items closer together.
+	'spacing.less': 'Place items closer together',
+	// translator: Accessible name of the button that puts dragged items further apart.
+	'spacing.more': 'Place items further apart',
+
+	// translator: Accessible name of the row of tabs that switch the palette between tiles, items and enemies.
+	'palette.groups': 'Palette groups',
+	// translator: Accessible name of the list of choices in the palette. {group} is the tab’s name.
+	'palette.list': '{group} to paint',
 
 	// translator: Accessible name of the level canvas. {name} is the level’s name; the size is in cells.
 	'canvas.label': 'Level canvas, {name}, {width} by {height} cells',
@@ -95,6 +124,158 @@ export const enMessages = {
 	'script.noProblems': 'No problems',
 	// translator: A link to a script line that has a problem: line number, code and message.
 	'script.problem': 'Line {line}: {code} {message}',
+	// translator: The text of a problem marked in the script: error code, then the message.
+	'script.lint': '{code} {message}',
+	// translator: Label above the way a script word is written, in its documentation popup.
+	'script.docSyntax': 'Syntax',
+	// translator: Label above an example line, in a script word’s documentation popup.
+	'script.docExample': 'Example',
+	// translator: Accessible name of the popup that documents the script word under the cursor.
+	'script.docPopup': 'Documentation',
+	// translator: Short label of what a completion is, shown beside it: a statement word.
+	'script.kind.statement': 'statement',
+	// translator: Short label of what a completion is: a section heading such as “blocks”.
+	'script.kind.section': 'section',
+	// translator: Short label of what a completion is: a piece of terrain.
+	'script.kind.segment': 'terrain',
+	// translator: Short label of what a completion is: a kind of tile.
+	'script.kind.tile': 'tile',
+	// translator: Short label of what a completion is: a collectable item.
+	'script.kind.item': 'item',
+	// translator: Short label of what a completion is: an enemy.
+	'script.kind.enemy': 'enemy',
+	// translator: Short label of what a completion is: a named field of a statement, such as “x”.
+	'script.kind.field': 'field',
+	// translator: The editor’s own wording, “Fold line”: a tooltip on the gutter button that hides a section.
+	'script.cm.foldLine': 'Fold line',
+	// translator: Tooltip on the gutter button that shows a hidden section again.
+	'script.cm.unfoldLine': 'Unfold line',
+	// translator: Announced when lines are hidden by folding.
+	'script.cm.foldedLines': 'Folded lines',
+	// translator: Announced when hidden lines are shown again.
+	'script.cm.unfoldedLines': 'Unfolded lines',
+	// translator: Text standing in for the lines a fold hides.
+	'script.cm.foldedCode': 'folded code',
+	// translator: Tooltip on the marker that shows a folded section again.
+	'script.cm.unfold': 'unfold',
+	// translator: Joins two line numbers in an announcement, such as “1 to 5”.
+	'script.cm.to': 'to',
+	// translator: Heading of the box that jumps to a line number.
+	'script.cm.gotoLine': 'Go to line',
+	// translator: Button that jumps to the typed line number.
+	'script.cm.go': 'go',
+	// translator: Label of the search field.
+	'script.cm.find': 'Find',
+	// translator: Label of the replace field.
+	'script.cm.replaceLabel': 'Replace',
+	// translator: Button that finds the next match.
+	'script.cm.next': 'next',
+	// translator: Button that finds the previous match.
+	'script.cm.previous': 'previous',
+	// translator: Button that selects every match.
+	'script.cm.all': 'all',
+	// translator: Option that makes a search care about capital letters.
+	'script.cm.matchCase': 'match case',
+	// translator: Option that reads the search as a regular expression.
+	'script.cm.regexp': 'regexp',
+	// translator: Option that matches whole words only.
+	'script.cm.byWord': 'by word',
+	// translator: Button that replaces the current match.
+	'script.cm.replace': 'replace',
+	// translator: Button that replaces every match.
+	'script.cm.replaceAll': 'replace all',
+	// translator: Button that closes a search or other small panel.
+	'script.cm.close': 'close',
+	// translator: Announced for the match the search is on.
+	'script.cm.currentMatch': 'current match',
+	// translator: Announced after “match” to say which line it is on, such as “match on line 4”.
+	'script.cm.onLine': 'on line',
+	// translator: Announced after one match is replaced. The $ stands for the line number.
+	'script.cm.replacedMatchOnLine': 'replaced match on line $',
+	// translator: Announced after every match is replaced. The $ stands for how many.
+	'script.cm.replacedMatches': 'replaced $ matches',
+	// translator: Name of the list of problems that the editor can show.
+	'script.cm.diagnostics': 'Diagnostics',
+	// translator: Shown in that list when the script has no problems.
+	'script.cm.noDiagnostics': 'No diagnostics',
+	// translator: Accessible name of the list of suggested words that opens while typing.
+	'script.cm.completions': 'Completions',
+	// translator: Announced when a selection is removed by an editing command.
+	'script.cm.selectionDeleted': 'Selection deleted',
+	// translator: Announced for a control character that the editor shows as a symbol.
+	'script.cm.controlCharacter': 'Control character',
+
+	// translator: Heading of the panel that lists the words the person can paint or place with.
+	'palette.title': 'Palette',
+	// translator: Heading of the Palette’s list of tile words (the kinds of ground and wall).
+	'palette.tiles': 'Tiles',
+	// translator: Heading of the Palette’s list of item words (collectables, such as a key).
+	'palette.items': 'Items',
+	// translator: Heading of the Palette’s list of enemy words.
+	'palette.enemies': 'Enemies',
+	// translator: Shown in place of the Palette’s item and enemy lists while the words are loading or unavailable.
+	'palette.unavailable': 'The word list is not available.',
+
+	// translator: Label of the text field in which a line of script is typed, with word completion.
+	'compose.label': 'Script line',
+	// translator: Hint for the script line field. “Tab” and “Enter” are key names.
+	'compose.hint': 'Type a word, then press Tab or Enter to complete it.',
+	// translator: Accessible name of the list of suggested words under the script line field.
+	'compose.suggestions': 'Word suggestions',
+	// translator: Spoken when suggestions appear. {count} is how many.
+	'compose.count.one': '{count} suggestion',
+	// translator: Spoken when suggestions appear. {count} is how many.
+	'compose.count.other': '{count} suggestions',
+	// translator: What kind of word a suggestion is. A statement is a line of the script, such as “paint”.
+	'compose.kind.statement': 'statement',
+	// translator: What kind of word a suggestion is. A section is a heading in the script, such as “edits”.
+	'compose.kind.section': 'section',
+	// translator: What kind of word a suggestion is. A segment is a kind of terrain.
+	'compose.kind.segment': 'terrain',
+	// translator: What kind of word a suggestion is. A tile is a kind of ground or wall.
+	'compose.kind.tile': 'tile',
+	// translator: What kind of word a suggestion is. An item is a collectable.
+	'compose.kind.item': 'item',
+	// translator: What kind of word a suggestion is.
+	'compose.kind.enemy': 'enemy',
+
+	// translator: Heading of the panel that shows what Claude has proposed and the person has not yet answered.
+	'ghosts.title': 'Proposals',
+	// translator: Label of the switch that shows or hides Claude’s proposed changes as faint cells on the canvas.
+	'ghosts.show': 'Show Claude’s proposals on the canvas',
+	// translator: Button that reads Claude’s proposals again.
+	'ghosts.refresh': 'Refresh',
+	// translator: Shown when Claude has no pending proposals.
+	'ghosts.none': 'Nothing proposed',
+	// translator: How many cells a pending proposal changes, shown beside its title.
+	'ghosts.cells.one': '{count} cell',
+	// translator: How many cells a pending proposal changes, shown beside its title.
+	'ghosts.cells.other': '{count} cells',
+	// translator: Note that the proposals can be seen but not yet accepted or rejected here.
+	'ghosts.readOnly': 'You can see proposals here. Accepting and rejecting them comes later.',
+
+	// translator: Verb phrase on a button. Moves the Script panel out of the main window into a window of its own.
+	'panel.tearOff': 'Tear off',
+	// translator: Verb phrase on a button. Closes a panel’s own window and puts the panel back in the main window.
+	'panel.dockBack': 'Dock back',
+	// translator: Shown in the main window in place of the Script panel while the panel is in its own window.
+	'panel.scriptTornOff': 'The Script panel is open in its own window.',
+	// translator: Label of the grip a person drags, or moves with the arrow keys, to move a floating panel. {title} is the panel’s name.
+	'float.move': 'Move {title}',
+	// translator: Label of the corner grip a person drags, or presses the arrow keys on, to resize a floating panel. {title} is the panel’s name.
+	'float.resize': 'Resize {title}',
+	// translator: Verb phrase on a button. Shrinks a floating panel to just its title bar. {title} is the panel’s name.
+	'float.collapse': 'Collapse {title}',
+	// translator: Verb phrase on a button. Opens a collapsed floating panel again. {title} is the panel’s name.
+	'float.expand': 'Expand {title}',
+	// translator: Label of the button that opens the list of floating panels, where each can be shown or hidden.
+	'panels.menu': 'Panels',
+	// translator: Verb phrase on a menu item. Puts every floating panel back where it starts.
+	'panels.reset': 'Reset layout',
+	// translator: The title of the Script panel’s own window.
+	'window.panelScript.title': 'Script',
+	// translator: A line shown in the Script panel’s own window until it is built.
+	'placeholder.panelScript': 'The script will appear here.',
 
 	// translator: Heading of the panel with the undo and redo buttons.
 	'history.title': 'History',
@@ -181,8 +362,76 @@ export const enMessages = {
 	'newLevel.error.folder': 'Choose a folder.',
 	// translator: An error line shown when the level could not be made. {message} says why, in English.
 	'newLevel.createFailed': 'The level could not be created: {message}',
-	// translator: A line shown in the Preferences window until it is built.
-	'placeholder.preferences': 'Preferences are coming.',
+	// translator: Accessible name of the list of pages in the Preferences window.
+	'preferences.navigation': 'Preferences pages',
+	// translator: The name of a Preferences page about how the app looks. It is the page’s heading and its entry in the list of pages.
+	'preferences.page.appearance': 'Appearance',
+	// translator: The title of a group of settings about colour.
+	'preferences.group.colours': 'Colours',
+	// translator: The title of a group of settings about visual effects such as blur.
+	'preferences.group.effects': 'Effects',
+	// translator: A choice meaning “use whatever the operating system is set to”. Shown on several settings.
+	'preferences.follow': 'Follow the system',
+	// translator: The name of the setting that picks the light or dark colour scheme.
+	'preferences.mode.label': 'Colour mode',
+	// translator: Explains the Colour mode setting.
+	'preferences.mode.description': 'Light or dark windows, or the same as the system.',
+	// translator: A choice for Colour mode: light windows.
+	'preferences.mode.light': 'Light',
+	// translator: A choice for Colour mode: dark windows.
+	'preferences.mode.dark': 'Dark',
+	// translator: The name of the setting that picks the highlight colour used for the active tool and other lit controls.
+	'preferences.accent.label': 'Accent',
+	// translator: Explains the Accent setting.
+	'preferences.accent.description': 'The colour of the active tool and other lit controls.',
+	// translator: A choice for Accent: the studio’s own cyan (a blue-green).
+	'preferences.accent.studio': 'Studio cyan',
+	// translator: A choice for Accent: a warm orange called Afterglow orange.
+	'preferences.accent.orange': 'Afterglow orange',
+	// translator: A choice for Accent: a soft purple called Afterglow purple.
+	'preferences.accent.purple': 'Afterglow purple',
+	// translator: A choice for Accent: the person picks any colour themselves.
+	'preferences.accent.custom': 'Choose a colour',
+	// translator: The name of a colour picker for the custom accent.
+	'preferences.accentColour.label': 'Custom accent',
+	// translator: Explains the colour picker for the custom accent.
+	'preferences.accentColour.description': 'Pick the accent colour.',
+	// translator: The name of a text field where a colour is typed as a hex code such as #00e5ff.
+	'preferences.accentHex.label': 'Custom accent code',
+	// translator: Explains the hex code field. The format shown is six lowercase hexadecimal digits after a number sign.
+	'preferences.accentHex.description': 'A colour as # followed by six lowercase hex digits.',
+	// translator: An error beside the hex code field when the text is not a colour in that format.
+	'preferences.error.hex': 'Use # followed by six lowercase hex digits, such as #00e5ff.',
+	// translator: An error beside a setting when the change could not be saved.
+	'preferences.error.save': 'The change could not be saved.',
+	// translator: An error shown when the settings could not be read at all.
+	'preferences.unavailable': 'The settings could not be read.',
+	// translator: The name of the setting that turns the frosted-glass look of panels on or off.
+	'preferences.glass.label': 'Glass panels',
+	// translator: Explains Glass panels. “Off” draws panels in a solid colour, which is easier on slower graphics.
+	'preferences.glass.description':
+		'Off draws solid panels, which is easier on slower graphics. Following the system turns glass off when the system asks for less transparency.',
+	// translator: A choice for Glass panels: always frosted glass.
+	'preferences.glass.on': 'On',
+	// translator: A choice for Glass panels: solid panels.
+	'preferences.glass.off': 'Off',
+	// translator: Accessible name of the small live sample of the chosen accent and glass.
+	'preferences.preview.label': 'Preview',
+	// translator: The label on a sample lit key in the preview.
+	'preferences.preview.key': 'Paint',
+	// translator: Text on a sample glass panel in the preview, drawn in the accent colour.
+	'preferences.preview.strip': 'Accent text on a panel',
+	// translator: Says how readable the lit key’s label is. {ink} is the label colour as a hex code; {ratio} is the contrast ratio, such as 8.2.
+	'preferences.preview.contrast': 'Key label {ink}, contrast {ratio} to 1.',
+	// translator: Added after the contrast line when the key’s colour was made darker than the chosen accent so its label stays readable.
+	'preferences.preview.darkened': 'The key was darkened to stay readable.',
+	// translator: The name of the setting row that puts the Appearance page back to its starting choices.
+	'preferences.reset.label': 'Reset this page',
+	// translator: Explains the reset action on the Appearance page.
+	'preferences.reset.description':
+		'Puts colour mode, accent and glass back to following the system.',
+	// translator: Verb phrase on a button. Puts the page’s settings back to their defaults.
+	'preferences.reset.action': 'Reset to defaults',
 	// translator: A line shown in the About window until it is built.
 	'placeholder.about': 'About is coming.',
 

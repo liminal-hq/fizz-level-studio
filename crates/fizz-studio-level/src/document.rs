@@ -8,7 +8,7 @@ use fizz_studio_language::edits::{append_edits, Edit as ScriptEdit};
 use fizz_studio_language::parser::parse;
 use fizz_studio_language::printer::print;
 use fizz_studio_language::raster::rasterise;
-use fizz_studio_language::tables::{has, ITEMS, TILES};
+use fizz_studio_language::tables::{has, ITEMS, KINDS, TILES};
 use fizz_studio_protocol::{CellRange, LevelEdit};
 use fizz_studio_session::{Document, DocumentError, Edit};
 
@@ -51,6 +51,11 @@ pub fn step_name(edit: &LevelEdit) -> String {
         LevelEdit::Paint { tile, .. } => format!("Paint {tile}"),
         LevelEdit::Clear { .. } => "Clear".to_string(),
         LevelEdit::Place { item, .. } => format!("Place {item}"),
+        LevelEdit::Row { item, x, by, .. } => {
+            let count = (x[1].saturating_sub(x[0])) / (*by).max(1) + 1;
+            format!("Place {count} {item}")
+        }
+        LevelEdit::Spawn { enemy, .. } => format!("Place {enemy}"),
     }
 }
 
@@ -149,6 +154,40 @@ impl Document for LevelDocument {
                     kind: item.clone(),
                     xs: ranges("x", x, world.w)?,
                     ys: ranges("y", y, world.h)?,
+                }
+            }
+            LevelEdit::Row { item, x, y, by } => {
+                if !has(ITEMS, item) {
+                    return Err(refuse(format!("`{item}` is not an item")));
+                }
+                if *by == 0 {
+                    return Err(refuse("a row steps by at least 1 cell"));
+                }
+                let [from, to] = *x;
+                if (to.saturating_sub(from)) % by != 0 {
+                    return Err(refuse(format!(
+                        "the row x={from}..{to} does not end on a step of {by} from {from}"
+                    )));
+                }
+                let xs = ranges("x", &[[from, to]], world.w)?;
+                ranges("y", &[[*y, *y]], world.h)?;
+                ScriptEdit::Row {
+                    kind: item.clone(),
+                    x: xs[0],
+                    y: f64::from(*y),
+                    by: f64::from(*by),
+                }
+            }
+            LevelEdit::Spawn { enemy, x, y } => {
+                if !has(KINDS, enemy) {
+                    return Err(refuse(format!("`{enemy}` is not an enemy")));
+                }
+                ranges("x", &[[*x, *x]], world.w)?;
+                ranges("y", &[[*y, *y]], world.h)?;
+                ScriptEdit::Spawn {
+                    kind: enemy.clone(),
+                    x: *x,
+                    y: *y,
                 }
             }
         };

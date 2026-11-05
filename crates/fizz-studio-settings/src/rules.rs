@@ -3,7 +3,9 @@
 // (c) Copyright 2026 Liminal HQ, Scott Morris
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
-use fizz_studio_protocol::{Settings, SettingsError, SettingsPatch, RECENT_WORLDS_CAP};
+use fizz_studio_protocol::{
+    AccentChoice, Settings, SettingsError, SettingsField, SettingsPatch, RECENT_WORLDS_CAP,
+};
 
 fn invalid(message: impl Into<String>) -> SettingsError {
     SettingsError::Invalid {
@@ -11,18 +13,50 @@ fn invalid(message: impl Into<String>) -> SettingsError {
     }
 }
 
-/// Checks the values a patch can set: a locale is not empty and a layout is a JSON document under
-/// a non-empty window label.
+/// The largest size or coordinate a panel may be given; anything beyond is not a real screen.
+const MAX_EXTENT: i32 = 20_000;
+
+/// Whether `text` is a colour written as `#` and six lowercase hex digits.
+fn is_hex_colour(text: &str) -> bool {
+    let bytes = text.as_bytes();
+    bytes.len() == 7
+        && bytes[0] == b'#'
+        && bytes[1..]
+            .iter()
+            .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(b))
+}
+
+/// Checks the values a patch can set: a custom accent is a lowercase `#rrggbb`, a locale is not empty, a layout has a window kind and each
+/// of its panels has an id, a place on screen and room to show.
 pub fn validate(settings: &Settings) -> Result<(), SettingsError> {
     if settings.locale.trim().is_empty() {
         return Err(invalid("locale must not be empty"));
     }
+    if let AccentChoice::Custom { hex } = &settings.accent {
+        if !is_hex_colour(hex) {
+            return Err(SettingsError::InvalidField {
+                field: SettingsField::AccentHex,
+                message: format!("the accent colour {hex:?} is not a lowercase #rrggbb colour"),
+            });
+        }
+    }
     for (label, layout) in &settings.layout {
         if label.is_empty() {
-            return Err(invalid("a layout needs a window label"));
+            return Err(invalid("a layout needs a window kind"));
         }
-        if serde_json::from_str::<serde_json::Value>(layout).is_err() {
-            return Err(invalid(format!("the layout for {label} is not JSON")));
+        for (id, place) in &layout.panels {
+            if id.is_empty() {
+                return Err(invalid(format!("a panel in the {label} layout has no id")));
+            }
+            let room =
+                place.w >= 1 && place.h >= 1 && place.w <= MAX_EXTENT && place.h <= MAX_EXTENT;
+            let on_screen =
+                (0..=MAX_EXTENT).contains(&place.x) && (0..=MAX_EXTENT).contains(&place.y);
+            if !room || !on_screen {
+                return Err(invalid(format!(
+                    "the {id} panel in the {label} layout has no room or is off screen"
+                )));
+            }
         }
     }
     Ok(())
@@ -34,6 +68,12 @@ pub fn apply_patch(settings: &Settings, patch: &SettingsPatch) -> Result<Setting
     if let Some(mode) = patch.colour_mode {
         next.colour_mode = mode;
     }
+    if let Some(accent) = &patch.accent {
+        next.accent = accent.clone();
+    }
+    if let Some(glass) = patch.glass {
+        next.glass = glass;
+    }
     if let Some(larger) = patch.larger_controls {
         next.larger_controls = larger;
     }
@@ -43,8 +83,8 @@ pub fn apply_patch(settings: &Settings, patch: &SettingsPatch) -> Result<Setting
     if let Some(layout) = &patch.layout {
         for (label, value) in layout {
             match value {
-                Some(json) => {
-                    next.layout.insert(label.clone(), json.clone());
+                Some(layout) => {
+                    next.layout.insert(label.clone(), layout.clone());
                 }
                 None => {
                     next.layout.remove(label);

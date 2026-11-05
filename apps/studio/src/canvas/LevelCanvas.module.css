@@ -1,12 +1,14 @@
 .root {
-	display: grid;
-	grid-template-columns: minmax(0, 1fr) 16rem;
+	display: flex;
+	flex-direction: column;
+	height: 100%;
 	min-height: 0;
 	min-width: 0;
 }
 
 .stage {
 	display: flex;
+	flex: 1;
 	flex-direction: column;
 	min-height: 0;
 	min-width: 0;
@@ -52,25 +54,5 @@
 }
 
 .button {
-	min-height: var(--fls-hit-target);
-	padding: 0 0.6rem;
-	color: var(--fls-text-primary);
-	background: var(--fls-control-bg);
-	border: 1px solid var(--fls-border-subtle);
-	border-radius: 6px;
-	font: inherit;
-	cursor: default;
-}
-
-.button:hover:not(:disabled) {
-	background: var(--fls-control-bg-hover);
-}
-
-.button:disabled {
-	color: var(--fls-text-muted);
-}
-
-.button:focus-visible {
-	outline: 2px solid var(--fls-focus-ring);
-	outline-offset: 2px;
+	composes: keycap from '../theme/keycap.module.css';
 }

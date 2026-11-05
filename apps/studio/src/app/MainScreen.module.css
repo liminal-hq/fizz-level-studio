@@ -22,44 +22,21 @@
 	color: var(--fls-text-muted);
 }
 
-.button,
+.button {
+	composes: keycap from '../theme/keycap.module.css';
+}
+
 .entry {
-	min-height: var(--fls-hit-target);
-	padding: 0 0.75rem;
-	color: var(--fls-text-primary);
-	background: var(--fls-control-bg);
-	border: 1px solid var(--fls-border-subtle);
-	border-radius: 6px;
-	font: inherit;
-	cursor: default;
+	composes: keycap from '../theme/keycap.module.css';
 }
 
-.button:hover:not(:disabled),
-.entry:hover:not(:disabled) {
-	background: var(--fls-control-bg-hover);
-}
-
-.button:focus-visible,
-.entry:focus-visible,
 .marked:focus-visible {
 	outline: 2px solid var(--fls-focus-ring);
 	outline-offset: 2px;
 }
 
-.button:disabled,
-.entry:disabled {
-	opacity: 0.6;
-}
-
 .primary {
-	color: var(--fls-accent-contrast);
-	background: var(--fls-accent);
-	border-color: var(--fls-accent);
-}
-
-.primary:hover:not(:disabled) {
-	background: var(--fls-accent);
-	filter: brightness(1.1);
+	composes: keycap lit from '../theme/keycap.module.css';
 }
 
 .recent {
@@ -89,6 +66,8 @@
 	flex-direction: column;
 	align-items: flex-start;
 	width: 100%;
+	height: auto;
+	min-height: var(--fls-key-height);
 	padding: 0.3rem 0.75rem;
 	text-align: left;
 }
@@ -161,7 +140,7 @@
 	padding: 0.5rem 0.75rem;
 	overflow: auto;
 	background: var(--fls-bg-raised);
-	font-family: ui-monospace, monospace;
+	font-family: var(--fls-font-mono);
 	font-size: 0.85rem;
 	user-select: text;
 }

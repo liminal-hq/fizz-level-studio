@@ -1,14 +1,13 @@
 .panel {
 	display: flex;
+	flex: 1;
 	flex-direction: column;
 	min-height: 0;
 	padding: 0.5rem 0.75rem;
-	overflow: auto;
-	background: var(--fls-bg-content);
 }
 
-.title,
 .subtitle {
+	flex: none;
 	margin: 0 0 0.4rem;
 	font-size: 0.95rem;
 }
@@ -17,46 +16,13 @@
 	margin-top: 0.75rem;
 }
 
-.text {
-	margin: 0;
-	padding: 0;
-	overflow: auto;
-	list-style: none;
-	font-family: ui-monospace, monospace;
-	font-size: 0.85rem;
-	user-select: text;
-}
-
-.line {
-	display: grid;
-	grid-template-columns: 3ch 1fr;
-	gap: 1ch;
-	padding: 0 0.25rem;
-	border-radius: 3px;
-}
-
-.line:focus-visible {
-	outline: 2px solid var(--fls-focus-ring);
-}
-
-.number {
-	color: var(--fls-text-muted);
-	text-align: right;
-	font-variant-numeric: tabular-nums;
-}
-
-.code {
-	font: inherit;
-	white-space: pre-wrap;
-	overflow-wrap: anywhere;
-}
-
-.problem {
-	background: color-mix(in srgb, var(--fls-danger) 14%, transparent);
-}
-
-.active {
-	background: var(--fls-bg-selected);
+.editor {
+	flex: 1 1 6rem;
+	min-width: 0;
+	min-height: 0;
+	border: 1px solid var(--fls-border-subtle);
+	border-radius: 4px;
+	overflow: hidden;
 }
 
 .none {
@@ -65,7 +31,10 @@
 }
 
 .problems {
+	flex: none;
+	max-height: 6rem;
 	margin: 0;
+	overflow: auto;
 	padding: 0;
 	list-style: none;
 }
@@ -90,4 +59,15 @@
 .link:focus-visible {
 	outline: 2px solid var(--fls-focus-ring);
 	outline-offset: -2px;
+}
+
+.header {
+	display: flex;
+	flex: none;
+	justify-content: flex-end;
+	margin-bottom: 0.4rem;
+}
+
+.tearOff {
+	composes: keycap from '../theme/keycap.module.css';
 }

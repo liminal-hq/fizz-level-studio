@@ -5,4 +5,7 @@ permissions = [
 	"allow-settings-update",
 	"allow-recent-touch",
 	"allow-recent-clear",
+	"allow-layout-get",
+	"allow-layout-set",
+	"allow-layout-reset",
 ]

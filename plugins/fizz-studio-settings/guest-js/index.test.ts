@@ -18,8 +18,17 @@ vi.mock('@tauri-apps/api/event', () => ({
 	},
 }));
 
-const { clearRecent, getSettings, newerOnly, onSettingsChanged, touchRecent, updateSettings } =
-	await import('./index');
+const {
+	clearRecent,
+	getPanelLayout,
+	getSettings,
+	newerOnly,
+	onSettingsChanged,
+	resetPanelLayout,
+	savePanelLayout,
+	touchRecent,
+	updateSettings,
+} = await import('./index');
 
 function snapshot(revision: number): SettingsSnapshot {
 	return {
@@ -95,5 +104,28 @@ describe('commands', () => {
 			['plugin:fizz-studio-settings|recent_touch', { path: '/worlds/a' }],
 			['plugin:fizz-studio-settings|recent_clear', undefined],
 		]);
+	});
+});
+
+describe('the panel layout commands', () => {
+	const layout = {
+		panels: { script: { x: 1, y: 2, w: 300, h: 200, collapsed: false, visible: true, z: 1 } },
+	};
+
+	it('reads, saves and resets a layout by window kind', async () => {
+		invoke.mockResolvedValue(layout);
+		await expect(getPanelLayout('main')).resolves.toEqual(layout);
+		expect(invoke).toHaveBeenLastCalledWith('plugin:fizz-studio-settings|layout_get', {
+			kind: 'main',
+		});
+		await savePanelLayout('main', layout);
+		expect(invoke).toHaveBeenLastCalledWith('plugin:fizz-studio-settings|layout_set', {
+			kind: 'main',
+			layout,
+		});
+		await resetPanelLayout('main');
+		expect(invoke).toHaveBeenLastCalledWith('plugin:fizz-studio-settings|layout_reset', {
+			kind: 'main',
+		});
 	});
 });

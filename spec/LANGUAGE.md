@@ -62,7 +62,8 @@ enemy-line  = KIND "x=" NUMLIST [ "y=" NUM ] [ "dir=" NUM ] [ "ride" ] ;
 
 edit-line   = "paint" TILE "x=" RANGELIST "y=" RANGELIST
             | "clear" "x=" RANGELIST "y=" RANGELIST
-            | "place" ITEM "x=" RANGELIST "y=" RANGELIST ;
+            | "place" ITEM "x=" RANGELIST "y=" RANGELIST
+            | "row" ITEM "x=" RANGE "y=" INT [ "by=" INT ] ;
 
 RANGELIST   = RANGE { "," RANGE } ;
 NUMLIST     = NUM { "," NUM } ;
@@ -135,6 +136,7 @@ edits   // painted in the studio, by you or Claude
   paint one-way x=26,28,30 y=9
   clear         x=12..14 y=8
   place cheezie x=26,28,30 y=10
+  row cheezie   x=40..52 y=10 by=4
 ```
 
 The edits block is where the studio and Claude record changes made by hand on the canvas, so the hand-written script is never rewritten.
@@ -145,8 +147,9 @@ The edits block is where the studio and Claude record changes made by hand on th
 4. **`paint TILE x=LIST y=LIST`** sets every cell in the x-list by y-list product to the tile, as `b.fill(x0, x1, y0, y1, TILE)` per pair of ranges. It is a tile word only (see below).
 5. **`clear x=LIST y=LIST`** sets those cells to `EMPTY` (`b.fill(..., EMPTY)`). It clears tiles only: it does not remove items, enemies, platforms or rooms.
 6. **`place ITEM x=LIST y=LIST`** appends items, one `b.item` call per cell, x first then y, after every hand-written item.
-7. The block takes `paint`, `clear` and `place`, any enemy statement (such as `drone x=88.5 y=7.5`), `hover`, `channel`, `room` and `secret-room`. Anything else after the `edits` header is E008.
-8. Edits are undone by deleting or editing their lines; the studio treats the block as an append-only log, and a person may tidy it.
+7. **`row ITEM x=A..B y=N [by=S]`** is the same run as in `treats` (`b.row`), for a drag of items the studio spaces every `S` cells; it follows the `row` rules above (E012 when `B` is off the step).
+8. The block takes `paint`, `clear`, `place` and `row`, any enemy statement (such as `drone x=88.5 y=7.5`), `hover`, `channel`, `room` and `secret-room`. Anything else after the `edits` header is E008.
+9. Edits are undone by deleting or editing their lines; the studio treats the block as an append-only log, and a person may tidy it.
 
 Items are not tiles. Adding an enemy, a lift, a room or a switch channel is an edit. Removing a hand-written item, moving an enemy or changing terrain is not an edit in v0: change the hand-written line (that is a deliberate rewrite, made by a person or by Claude on request, not by the studio's append).
 

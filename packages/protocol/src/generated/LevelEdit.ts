@@ -4,4 +4,4 @@
  * What the person asks of a level. Each is appended to the script's `edits` block; no line already
  * written is ever rewritten. `x` by `y` is a cross product, as in the language.
  */
-export type LevelEdit = { "kind": "paint", tile: string, x: Array<[number, number]>, y: Array<[number, number]>, } | { "kind": "clear", x: Array<[number, number]>, y: Array<[number, number]>, } | { "kind": "place", item: string, x: Array<[number, number]>, y: Array<[number, number]>, };
+export type LevelEdit = { "kind": "paint", tile: string, x: Array<[number, number]>, y: Array<[number, number]>, } | { "kind": "clear", x: Array<[number, number]>, y: Array<[number, number]>, } | { "kind": "place", item: string, x: Array<[number, number]>, y: Array<[number, number]>, } | { "kind": "row", item: string, x: [number, number], y: number, by: number, } | { "kind": "spawn", enemy: string, x: number, y: number, };

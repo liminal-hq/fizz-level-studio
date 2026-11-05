@@ -1,10 +1,7 @@
 .list {
 	margin: 0;
 	padding: 0.25rem;
-	overflow: auto;
 	list-style: none;
-	background: var(--fls-bg-content);
-	border-left: 1px solid var(--fls-border-subtle);
 }
 
 .entry {

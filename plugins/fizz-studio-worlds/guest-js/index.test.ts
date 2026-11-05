@@ -23,12 +23,15 @@ const {
 	closeLevel,
 	createLevel,
 	discardRecovery,
+	levelCellLine,
 	endStep,
 	newerOnly,
 	onLevelChanged,
 	onLevelConflict,
 	openLevel,
 	openProject,
+	languageWords,
+	levelGhosts,
 	listRecovery,
 	redo,
 	restoreRecovery,
@@ -114,6 +117,19 @@ describe('recovery', () => {
 	});
 });
 
+describe('language words and cell lines', () => {
+	it('asks for the words and for the line of a cell', async () => {
+		invoke.mockResolvedValue(null);
+		await languageWords();
+		await levelCellLine('level-1', 50, 10);
+		const prefix = 'plugin:fizz-studio-worlds|';
+		expect(invoke.mock.calls).toEqual([
+			[`${prefix}language_words`, undefined],
+			[`${prefix}level_cell_line`, { id: 'level-1', x: 50, y: 10 }],
+		]);
+	});
+});
+
 describe('commands', () => {
 	it('sends each command under the plugin prefix with camelCase arguments', async () => {
 		invoke.mockResolvedValue(null);
@@ -138,6 +154,19 @@ describe('commands', () => {
 			[`${prefix}level_redo`, { id: 'a', basedOn: 7 }],
 			[`${prefix}level_save`, { id: 'a' }],
 			[`${prefix}level_close`, { id: 'a' }],
+		]);
+	});
+});
+
+describe('words and ghosts', () => {
+	it('reads the language words and the ghosts under the plugin prefix', async () => {
+		invoke.mockResolvedValue([]);
+		await languageWords();
+		await levelGhosts('a');
+		const prefix = 'plugin:fizz-studio-worlds|';
+		expect(invoke.mock.calls).toEqual([
+			[`${prefix}language_words`, undefined],
+			[`${prefix}level_ghosts`, { id: 'a' }],
 		]);
 	});
 });

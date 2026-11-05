@@ -1,0 +1,27 @@
+.layer {
+	position: absolute;
+	inset: 0;
+	z-index: 9999;
+	overflow: hidden;
+	pointer-events: none;
+}
+
+.vertical,
+.horizontal {
+	position: absolute;
+	background: var(--fls-snap-guide);
+}
+
+.vertical {
+	top: 0;
+	bottom: 0;
+	left: var(--fls-guide-at);
+	width: 1px;
+}
+
+.horizontal {
+	left: 0;
+	right: 0;
+	top: var(--fls-guide-at);
+	height: 1px;
+}

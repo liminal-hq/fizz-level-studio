@@ -66,7 +66,7 @@ function allWords(section: SectionName): string[] {
 		case 'enemies':
 			return Object.keys(KINDS);
 		case 'edits':
-			return [...EDIT_WORDS, ...Object.keys(KINDS), 'hover', 'channel', 'room', 'secret-room'];
+			return [...EDIT_WORDS, 'row', ...Object.keys(KINDS), 'hover', 'channel', 'room', 'secret-room'];
 	}
 }
 
@@ -403,7 +403,7 @@ function parseBody(code: string, st: State): Body {
 			return parseStatement(word, rest, st);
 		}
 		if (st.section === 'edits') {
-			fail('E008', `\`${word}\` cannot appear in the edits block`, 'the edits block holds paint, clear, place, enemies, hover, channel, room and secret-room; move this line above `edits`');
+			fail('E008', `\`${word}\` cannot appear in the edits block`, 'the edits block holds paint, clear, place, row, enemies, hover, channel, room and secret-room; move this line above `edits`');
 		}
 		if (word !== 'walls' && st.seen.has(word)) {
 			fail('E006', `a second \`${word}\` line`, `keep one \`${word}\` line`);

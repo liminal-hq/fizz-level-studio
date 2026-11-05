@@ -24,6 +24,10 @@ fizz-studio-settings = { path = "../../../crates/fizz-studio-settings" }
 tauri-plugin-fizz-studio-settings = { path = "../../../plugins/fizz-studio-settings" }
 tauri-plugin-fizz-studio-host = { path = "../../../plugins/fizz-studio-host" }
 tauri-plugin-fizz-studio-worlds = { path = "../../../plugins/fizz-studio-worlds" }
+tauri-plugin-window-tearoff = { path = "../../../plugins/window-tearoff" }
+tauri-plugin-window-effects = { path = "../../../plugins/window-effects" }
+tauri-plugin-system-appearance = "0.1"
+tauri-plugin-window-manager = "0.1"
 chrono = { workspace = true }
 tauri-plugin-log = "2"
 tauri-plugin-os = "2"

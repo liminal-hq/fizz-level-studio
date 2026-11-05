@@ -1,0 +1,60 @@
+.panel {
+	padding: 0.5rem 0.75rem;
+}
+
+.bar {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.5rem;
+}
+
+.toggle {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.4rem;
+}
+
+.toggle input:focus-visible {
+	outline: 2px solid var(--fls-focus-ring);
+	outline-offset: 2px;
+}
+
+.button {
+	composes: keycap from '../theme/keycap.module.css';
+}
+
+.list {
+	margin: 0.5rem 0 0;
+	padding: 0;
+	list-style: none;
+}
+
+.entry {
+	display: grid;
+	grid-template-columns: 1fr auto;
+	gap: 0 0.5rem;
+	padding: 0.25rem 0;
+}
+
+.name {
+	font-weight: 600;
+}
+
+.count {
+	color: var(--fls-text-muted);
+	font-size: 0.85rem;
+}
+
+.why {
+	grid-column: 1 / -1;
+	color: var(--fls-text-secondary);
+	font-size: 0.85rem;
+}
+
+.note {
+	margin: 0.4rem 0 0;
+	color: var(--fls-text-muted);
+	font-size: 0.8rem;
+}

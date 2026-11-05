@@ -32,6 +32,17 @@ edits   // painted in the studio
 		expect(ast.nodes.find((n) => n.type === 'section' && n.name === 'edits')).toBeTruthy();
 	});
 
+	test('takes a spaced row of items and an enemy on a cell', () => {
+		const ast = appendEdits(parseOrThrow(BASE), [
+			{ op: 'row', kind: 'cheezie', x: { lo: 5, hi: 11 }, y: 7, by: 3 },
+			{ op: 'row', kind: 'choc', x: { lo: 2, hi: 4 }, y: 6, by: 1 },
+		]);
+		const text = print(ast);
+		expect(text.endsWith('edits\n  row cheezie x=5..11 y=7 by=3\n  row choc x=2..4 y=6\n')).toBe(true);
+		expect(parse(text).errors).toEqual([]);
+		expect(parse(`${text}  row cheezie x=5..10 y=7 by=3\n`).errors.map((e) => e.code)).toEqual(['E012']);
+	});
+
 	test('appending creates the block after one blank line and keeps the final newline', () => {
 		const ast = appendEdits(parseOrThrow(BASE), [{ op: 'paint', tile: 'one-way', xs: [{ lo: 26, hi: 26 }, { lo: 28, hi: 28 }], ys: [{ lo: 9, hi: 9 }] }]);
 		expect(print(ast)).toBe(`${BASE}\nedits\n  paint one-way x=26,28 y=9\n`);

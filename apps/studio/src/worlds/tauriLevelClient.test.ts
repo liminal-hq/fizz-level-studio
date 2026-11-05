@@ -10,6 +10,9 @@ const plugin = vi.hoisted(() => ({
 	applyEdit: vi.fn(),
 	closeLevel: vi.fn(),
 	endStep: vi.fn(),
+	languageWords: vi.fn(),
+	levelCellLine: vi.fn(),
+	levelGhosts: vi.fn(),
 	onLevelChanged: vi.fn(),
 	onLevelConflict: vi.fn(),
 	openLevel: vi.fn(),
@@ -160,5 +163,25 @@ describe('levelConflicts', () => {
 		expect(heard).toHaveBeenCalledWith({ id: 'level-1', marked: '<<<<' });
 		stop();
 		expect(unlisten).toHaveBeenCalled();
+	});
+});
+
+describe('cell lines', () => {
+	it('asks the plugin for the line of a cell', async () => {
+		plugin.levelCellLine.mockResolvedValue(17);
+		expect(await new TauriLevelClient().cellLine('level-1', 50, 10)).toBe(17);
+		expect(plugin.levelCellLine).toHaveBeenCalledWith('level-1', 50, 10);
+	});
+});
+
+describe('words and ghosts', () => {
+	it('reads both through the plugin', async () => {
+		const doc = { word: 'paint', kind: 'statement', syntax: 's', example: 'e', note: 'n' };
+		plugin.languageWords.mockResolvedValue([doc]);
+		plugin.levelGhosts.mockResolvedValue([]);
+		const client = new TauriLevelClient();
+		await expect(client.words()).resolves.toEqual([doc]);
+		await expect(client.ghosts('a')).resolves.toEqual([]);
+		expect(plugin.levelGhosts).toHaveBeenCalledWith('a');
 	});
 });

@@ -1,0 +1,86 @@
+/*
+ * The keycap: everything you press is a raised key. It stands on a 3px dark edge, then presses down
+ * 2px and the edge thins to 1px. The height is fixed and the label is padded to match, so the edge
+ * changing never moves the key's neighbours or its label. The active choice (`aria-pressed`,
+ * `aria-selected`, `data-lit` or the `lit` class) is the lit key: the accent, with a glow. A
+ * component takes this with `composes: keycap from '../theme/keycap.module.css'`.
+ */
+/* Zero specificity, so a component's own padding or height always wins over the base. */
+:where(.keycap) {
+	box-sizing: border-box;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 0.4rem;
+	height: var(--fls-key-height);
+	padding: 0 0.75rem;
+	color: var(--fls-key-ink);
+	background: linear-gradient(180deg, var(--fls-key-top) 0%, var(--fls-key-bottom) 100%);
+	border: 1px solid var(--fls-key-border);
+	border-bottom: 3px solid var(--fls-key-border-bottom);
+	border-radius: 8px;
+	box-shadow: var(--fls-key-shadow);
+	font: inherit;
+	font-weight: 500;
+	white-space: nowrap;
+	cursor: default;
+	transition: all 0.12s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.keycap:hover:not(:disabled) {
+	background: linear-gradient(
+		180deg,
+		var(--fls-key-hover-top) 0%,
+		var(--fls-key-hover-bottom) 100%
+	);
+}
+
+.keycap:disabled {
+	opacity: 0.4;
+}
+
+/* Held down, or the latched tool: the key drops and its edge thins; the padding keeps the label. */
+.keycap:active:not(:disabled),
+.keycap:is([aria-pressed='true'], [aria-selected='true'], [data-lit]):not(:disabled),
+.keycap.lit:not(:disabled) {
+	padding-bottom: var(--fls-key-travel);
+	border-bottom-width: 1px;
+	transform: translateY(var(--fls-key-travel));
+}
+
+/* The lit key. It follows the hover rule so a lit key stays lit under the pointer. */
+.keycap:is([aria-pressed='true'], [aria-selected='true'], [data-lit]):not(:disabled),
+.keycap.lit:not(:disabled) {
+	color: var(--fls-lit-key-ink);
+	background: linear-gradient(180deg, var(--fls-lit-key-top) 0%, var(--fls-lit-key-bottom) 100%);
+	border-color: var(--fls-lit-key-edge);
+	box-shadow: var(--fls-lit-key-glow);
+}
+
+/* A 2px accent ring held off the key, with a contrasting inner ring so it reads on any ground. */
+.keycap:focus-visible {
+	outline: 2px solid var(--fls-focus-ring);
+	outline-offset: 2px;
+	box-shadow:
+		var(--fls-key-shadow),
+		0 0 0 2px var(--fls-focus-inner);
+}
+
+.keycap:is([aria-pressed='true'], [aria-selected='true'], [data-lit], .lit):focus-visible:not(
+		:disabled
+	) {
+	box-shadow:
+		var(--fls-lit-key-glow),
+		0 0 0 2px var(--fls-focus-inner);
+}
+
+/* A key that only shows a value: it keeps the look at rest and does not answer the pointer. */
+.keycap.static {
+	pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.keycap {
+		transition: none;
+	}
+}

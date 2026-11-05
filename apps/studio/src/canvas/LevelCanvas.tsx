@@ -3,13 +3,13 @@
 // (c) Copyright 2026 Liminal HQ, Scott Morris
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
+import type { GhostCell } from '@liminal-hq/fizz-studio-protocol/generated/GhostCell';
 import type { LevelView } from '@liminal-hq/fizz-studio-protocol/generated/LevelView';
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent } from 'react';
 import { t } from '../i18n/messages';
 import type { Cell, PointerPhase, Rect } from '../tools/tool';
 import { drawLevel, readCanvasColours, type DrawContext } from './drawLevel';
 import styles from './LevelCanvas.module.css';
-import { ObjectList } from './ObjectList';
 import { resolveTileColours } from './tileColours';
 import { wheelAction } from './wheel';
 import {
@@ -35,13 +35,25 @@ export interface LevelCanvasProps {
 	onToolEvent: (phase: PointerPhase, cell: Cell) => void;
 	/** Cells a stroke in progress covers, drawn as a wash. */
 	preview?: readonly Cell[];
+	/** `item` draws the preview as ghost discs at the cells an item stroke will write. */
+	previewShape?: 'cell' | 'item';
+	/** Where a paste would land, drawn dashed. */
+	paste?: Rect | null;
 	/** Select's rectangle, drawn as an outline. */
 	selection?: Rect | null;
-	/** Called when a problem in the objects list is chosen. */
-	onSelectLine?: (line: number) => void;
+	/** Claude's pending proposals to draw as ghosts; leave out to draw none. */
+	ghosts?: readonly GhostCell[];
+	/** Called when the person clicks a cell of the grid. */
+	onCellChosen?: (cell: Cell, source: 'grid') => void;
+	/**
+	 * Asks the canvas to bring a cell into view, such as one chosen in the objects list. A new
+	 * `serial` asks again for the same cell.
+	 */
+	reveal?: { cell: Cell; serial: number } | null;
 }
 
 const NO_CELLS: readonly Cell[] = [];
+const NO_GHOSTS: readonly GhostCell[] = [];
 const FALLBACK_SIZE: Size = { width: 640, height: 384 };
 
 /** The canvas is not themed: the colours come from the `--fls-tile-*` and `--fls-canvas-*` tokens. */
@@ -51,8 +63,12 @@ export function LevelCanvas({
 	onCursorChange,
 	onToolEvent,
 	preview = NO_CELLS,
+	previewShape = 'cell',
+	paste = null,
 	selection = null,
-	onSelectLine,
+	ghosts = NO_GHOSTS,
+	reveal = null,
+	onCellChosen,
 }: LevelCanvasProps) {
 	const canvasRef = useRef<HTMLCanvasElement>(null);
 	const frameRef = useRef<HTMLDivElement>(null);
@@ -135,8 +151,11 @@ export function LevelCanvas({
 			cursor,
 			selection,
 			preview,
+			ghosts,
+			previewShape,
+			paste,
 		});
-	}, [view, viewport, size, cursor, selection, preview]);
+	}, [view, viewport, size, cursor, selection, preview, ghosts, previewShape, paste]);
 
 	const cellAt = (event: PointerEvent<HTMLCanvasElement>): Cell => {
 		const rect = event.currentTarget.getBoundingClientRect();
@@ -151,6 +170,14 @@ export function LevelCanvas({
 		setCamera(revealCell(viewport, cell, size, view));
 	};
 
+	// A cell chosen elsewhere is brought into view; each new serial asks once.
+	const lastReveal = useRef(0);
+	useEffect(() => {
+		if (!reveal || reveal.serial === lastReveal.current) return;
+		lastReveal.current = reveal.serial;
+		setCamera((current) => revealCell(current, reveal.cell, size, view));
+	}, [reveal, size, view]);
+
 	const onPointerDown = (event: PointerEvent<HTMLCanvasElement>) => {
 		if (event.button !== 0) return;
 		event.currentTarget.focus();
@@ -158,6 +185,7 @@ export function LevelCanvas({
 		pressed.current = true;
 		const cell = cellAt(event);
 		if (inside(cell)) onCursorChange(cell);
+		if (inside(cell)) onCellChosen?.(cell, 'grid');
 		onToolEvent('down', cell);
 	};
 
@@ -246,7 +274,6 @@ export function LevelCanvas({
 					</div>
 				</div>
 			</div>
-			<ObjectList view={view} onSelectCell={moveTo} onSelectLine={onSelectLine} />
 		</div>
 	);
 }
