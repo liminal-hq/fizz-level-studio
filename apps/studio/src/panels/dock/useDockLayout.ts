@@ -14,6 +14,7 @@ import type { Workspace } from '@liminal-hq/fizz-studio-protocol/generated/Works
 import type { ZoneId } from '@liminal-hq/fizz-studio-protocol/generated/ZoneId';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { DockClient } from '../../services/dockClient';
+import { registerFlush } from '../../services/pendingWrites';
 import { SAVE_DELAY_MS, type PanelView } from '../float/usePanelLayout';
 import { clampRect, isMeasured, type Rect, type Size } from '../float/panelGeometry';
 import { PANEL_SPECS, type PanelId } from '../float/panelSpecs';
@@ -91,13 +92,18 @@ export function useDockLayout(client: DockClient, windowSize: Size, area: Size):
 	const dirty = useRef(false);
 	const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-	const write = useCallback(() => {
+	/** Writes the waiting change now; the promise settles when Rust has it (a failure is swallowed). */
+	const flush = useCallback((): Promise<void> => {
 		if (timer.current) clearTimeout(timer.current);
 		timer.current = null;
-		if (!dirty.current) return;
+		if (!dirty.current) return Promise.resolve();
 		dirty.current = false;
-		void client.save(latest.current).catch(() => {});
+		return client.save(latest.current).catch(() => {});
 	}, [client]);
+	const write = useCallback(() => void flush(), [flush]);
+
+	// A window that is closing awaits this, so a change made just before is not lost.
+	useEffect(() => registerFlush(flush), [flush]);
 
 	const commit = useCallback(
 		(next: DockSettings) => {

@@ -360,16 +360,20 @@ async function main(): Promise<void> {
 			);
 		const paletteBox = () =>
 			bridge.js<{ w: number; h: number; options: number; listH: number } | null>(
-				`const d = document.querySelector('[role=dialog][aria-modal=true]'); if (!d) return null;
+				`const d = document.querySelector('dialog[open], [role=dialog][aria-modal=true]'); if (!d) return null;
 				 const r = d.getBoundingClientRect(); const list = d.querySelector('[role=listbox]');
 				 return { w: r.width, h: r.height, options: d.querySelectorAll('[role=option]').length, listH: list ? list.getBoundingClientRect().height : 0 };`,
 			);
-		const typeInPalette = (text: string) =>
-			bridge.js<boolean>(
-				`const i = document.querySelector('[role=dialog] input'); if (!i) return false;
+		const typeInPalette = async (text: string) =>
+			(await within(5000, () =>
+				bridge
+					.js<boolean>(
+						`const i = document.querySelector('[role=dialog] input'); if (!(i instanceof HTMLInputElement)) return false;
 				 const set = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set;
 				 set.call(i, ${JSON.stringify(text)}); i.dispatchEvent(new Event('input', { bubbles: true })); return true;`,
-			);
+					)
+					.catch(() => false),
+			)) !== null;
 		const toolPressed = async () =>
 			(
 				await bridge.js<{ v: string }>(
@@ -404,7 +408,7 @@ async function main(): Promise<void> {
 		});
 		check('typing narrows the command palette', narrowed !== null, JSON.stringify(narrowed));
 		await bridge.js<boolean>(
-			`const i = document.querySelector('[role=dialog] input'); i.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true })); return true;`,
+			`const i = document.querySelector('dialog[open], [role=dialog] input'); i.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true })); return true;`,
 		);
 		const chipText = await within(3000, () =>
 			bridge.js<boolean>(`return document.body.innerText.includes('Brush: gloop');`),
@@ -415,14 +419,14 @@ async function main(): Promise<void> {
 		await within(3000, async () => (await paletteBox()) !== null);
 		await typeInPalette('erase');
 		await bridge.js<boolean>(
-			`const i = document.querySelector('[role=dialog] input'); i.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true })); return true;`,
+			`const i = document.querySelector('dialog[open], [role=dialog] input'); i.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true })); return true;`,
 		);
 		const erasing = await within(3000, async () => (await toolPressed()).startsWith('Erase'));
 		check('Enter on Erase presses the Erase tool', erasing !== null, String(await toolPressed()));
 		await keyOnWindow('P');
 		await within(3000, async () => (await paletteBox()) !== null);
 		await bridge.js<boolean>(
-			`document.querySelector('[role=dialog] input').dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true })); return true;`,
+			`document.querySelector('dialog[open], [role=dialog] input').dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true })); return true;`,
 		);
 		check('Escape closes the command palette', (await paletteBox()) === null);
 		const canvasAfter = await bridge.js<number>(
@@ -693,6 +697,197 @@ async function main(): Promise<void> {
 		);
 		const exited = await within(8000, () => !app!.alive);
 		check('Ctrl+Q quits a clean app without a kill', exited !== null && app.child.exitCode === 0);
+		await bridge.stop();
+
+		// Closing a window goes through the same path as Quit, from either origin. A click on our
+		// own title bar's real Close button is our own origin, driven end to end. The Tauri window
+		// close call (`plugin:window|close`, which the title bar's button makes too) stands in for a
+		// shell-originated close (window manager, compositor, Alt+F4): both arrive in Rust as the
+		// window's CloseRequested. A real compositor-sent close is not driven here.
+		const closeCall = (label: string) =>
+			bridge
+				.js<boolean>(
+					`await window.__TAURI_INTERNALS__.invoke('plugin:window|close', { label: ${JSON.stringify(label)} }); return true;`,
+					label,
+				)
+				.catch(() => false);
+		const dialogText = (label = 'main-1') =>
+			bridge
+				.js<{
+					text: string;
+				} | null>(
+					`const d = document.querySelector('dialog[open], [role=dialog]'); return d ? { text: d.textContent } : null;`,
+					label,
+				)
+				.then((found) => found?.text ?? null);
+
+		// A. A dirty main window: our own Close button asks Save, Discard or Cancel.
+		const dirtyPath = join(levels, 'dirty.fizz');
+		copyFileSync(join(root, 'levels/crater.fizz'), dirtyPath);
+		app = new App(profile, [dirtyPath]);
+		await bridge.start();
+		check('close checks: the app starts with a level', await bridge.ready());
+		await within(10_000, () =>
+			bridge
+				.js<boolean>(`return document.body.innerText.includes('Crater Fields');`)
+				.catch(() => false),
+		);
+		const base = await openLevel(bridge, dirtyPath);
+		await levelCall(bridge, 'level_apply', {
+			id: 'level-1',
+			edit: { kind: 'paint', tile: 'fill', x: [[20, 22]], y: [[14, 14]] },
+			basedOn: base.revision,
+			mergeKey: 'close-check',
+		});
+		check('the title bar has a Close button', await clickLabelled(bridge, 'Close'));
+		const asked = await within(5000, async () =>
+			(await dialogText())?.includes('Save changes to') ? true : null,
+		);
+		check('closing a window with unsaved changes asks Save, Discard or Cancel', asked !== null);
+		check(
+			'the question offers all three answers',
+			(await bridge.js<boolean>(
+				`const names = [...document.querySelectorAll('dialog[open] button, [role=dialog] button')].map((b) => b.textContent.trim()); return ['Cancel', 'Discard', 'Save'].every((n) => names.includes(n));`,
+			)) === true,
+		);
+		await bridge.js<boolean>(
+			`const b = [...document.querySelectorAll('dialog[open] button, [role=dialog] button')].find((x) => x.textContent.trim() === 'Cancel'); b.click(); return true;`,
+		);
+		await sleep(800);
+		check(
+			'Cancel keeps the window and the app open',
+			app.alive && (await bridge.windows()).includes('main-1'),
+		);
+		check('the question goes away on Cancel', (await dialogText()) === null);
+		// Discard carries the close through: the last main window means the whole app exits.
+		await clickLabelled(bridge, 'Close');
+		await within(5000, async () => ((await dialogText())?.includes('Save changes') ? true : null));
+		await bridge
+			.js<boolean>(
+				`const b = [...document.querySelectorAll('dialog[open] button, [role=dialog] button')].find((x) => x.textContent.trim() === 'Discard'); b.click(); return true;`,
+			)
+			.catch(() => false);
+		const discarded = await within(8000, () => !app!.alive);
+		check(
+			'Discard on the last main window exits the app with code 0',
+			discarded !== null && app.child.exitCode === 0,
+		);
+		await bridge.stop();
+
+		// B. The child windows close alone; the clean main window ends the app.
+		const cleanPath = join(levels, 'clean.fizz');
+		copyFileSync(join(root, 'levels/crater.fizz'), cleanPath);
+		app = new App(profile, [cleanPath]);
+		await bridge.start();
+		check('close checks: the app starts clean', await bridge.ready());
+		await within(10_000, () =>
+			bridge
+				.js<boolean>(`return document.body.innerText.includes('Crater Fields');`)
+				.catch(() => false),
+		);
+		await bridge.js(
+			`await window.__TAURI_INTERNALS__.invoke('open_window', { id: { kind: 'preferences' } });`,
+		);
+		check('close checks: Preferences opens', await bridge.ready('preferences'));
+		await closeCall('preferences');
+		const prefsGone = await within(
+			5000,
+			async () => !(await bridge.windows()).includes('preferences'),
+		);
+		check('closing the Preferences window leaves the app up', prefsGone !== null && app.alive);
+
+		await clickByText('Tear off');
+		const tornAgain = await within(10_000, async () =>
+			(await bridge.windows()).includes('panel-script-1') ? true : null,
+		);
+		check('close checks: the Script panel tears off', tornAgain !== null);
+		await bridge.ready('panel-script-1');
+		await closeCall('panel-script-1');
+		const panelGone = await within(
+			5000,
+			async () => !(await bridge.windows()).includes('panel-script-1'),
+		);
+		check('closing the torn-off panel window leaves the app up', panelGone !== null && app.alive);
+		await bridge.stop();
+		await bridge.start();
+		const redocked = await within(5000, () =>
+			bridge.js<boolean>(
+				`return [...document.querySelectorAll('button')].some((b) => b.textContent === 'Tear off');`,
+			),
+		);
+		if (redocked === null)
+			console.error(
+				await bridge
+					.js<{ t: string }>(`return { t: document.body.innerText.slice(0, 600) };`)
+					.then((x) => x.t, String),
+			);
+		check('closing the panel window docks the Script panel back', redocked !== null);
+
+		// The New level window: untouched closes at once; with input it asks, and Keep editing stays.
+		await bridge.js(
+			`await window.__TAURI_INTERNALS__.invoke('open_window', { id: { kind: 'new-world' } });`,
+		);
+		check('close checks: New level opens', await bridge.ready('new-world'));
+		await closeCall('new-world');
+		const untouchedGone = await within(
+			5000,
+			async () => !(await bridge.windows()).includes('new-world'),
+		);
+		check('an untouched New level window closes at once', untouchedGone !== null && app.alive);
+		await bridge.js(
+			`await window.__TAURI_INTERNALS__.invoke('open_window', { id: { kind: 'new-world' } });`,
+		);
+		await bridge.ready('new-world');
+		// The page is "ready" once it has loaded, which can be a moment before React draws the form,
+		// so wait for the field rather than typing into nothing.
+		const typedInForm = await within(10_000, () =>
+			bridge
+				.js<boolean>(
+					`const i = document.querySelector('input'); if (!(i instanceof HTMLInputElement)) return false; const set = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set; set.call(i, 'Typed'); i.dispatchEvent(new Event('input', { bubbles: true })); return true;`,
+					'new-world',
+				)
+				.catch(() => false),
+		);
+		check('close checks: the New level form takes input', typedInForm !== null);
+		await closeCall('new-world');
+		const discardAsked = await within(5000, async () =>
+			(await dialogText('new-world'))?.includes('Discard this new level?') ? true : null,
+		);
+		check('a New level window with input asks before it closes', discardAsked !== null);
+		await bridge.js<boolean>(
+			`const b = [...document.querySelectorAll('dialog[open] button, [role=dialog] button')].find((x) => x.textContent.trim() === 'Keep editing'); b.click(); return true;`,
+			'new-world',
+		);
+		await sleep(800);
+		check(
+			'Keep editing leaves the New level window open',
+			(await bridge.windows()).includes('new-world'),
+		);
+		await closeCall('new-world');
+		await within(5000, () =>
+			bridge
+				.js<boolean>(`return !!document.querySelector('dialog[open], [role=dialog]');`, 'new-world')
+				.catch(() => false),
+		);
+		await bridge
+			.js<boolean>(
+				`const b = [...document.querySelectorAll('dialog[open] button, [role=dialog] button')].find((x) => x.textContent.trim() === 'Discard'); b.click(); return true;`,
+				'new-world',
+			)
+			.catch(() => false);
+		const newGone = await within(5000, async () => !(await bridge.windows()).includes('new-world'));
+		check(
+			'Discard closes the New level window and the app stays up',
+			newGone !== null && app.alive,
+		);
+
+		// Last, because it ends the app: a clean main window closed by the plain window close.
+		await closeCall('main-1');
+		const closedClean = await within(8000, () => !app!.alive);
+		check(
+			'closing a clean main window exits the app with code 0',
+			closedClean !== null && app.child.exitCode === 0,
+		);
 	} finally {
 		await bridge.close();
 		await app?.quit();

@@ -9,6 +9,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fakeDockClient } from '../../test/dockFixtures';
 import { SAVE_DELAY_MS } from '../float/usePanelLayout';
 import { dockedIn, defaultDock } from './dockModel';
+import { flushPendingWrites } from '../../services/pendingWrites';
 import { FALLBACK_WINDOW, useDockLayout } from './useDockLayout';
 
 const windowSize = { w: 1440, h: 900 };
@@ -54,6 +55,24 @@ describe('useDockLayout', () => {
 		expect(client.save).toHaveBeenCalledTimes(1);
 		const saved = vi.mocked(client.save).mock.calls[0]![0];
 		expect(dockedIn(saved.workspaces[saved.active]!, 'bottom')).toContain('history');
+	});
+
+	it('writes a waiting change at once when the window flushes before closing', async () => {
+		const client = fakeDockClient();
+		const { result } = renderHook(() => useDockLayout(client, windowSize, area));
+		await waitFor(() => expect(client.get).toHaveBeenCalled());
+		act(() => result.current.dockTo('history', 'bottom'));
+		expect(client.save).not.toHaveBeenCalled();
+		await act(async () => {
+			await flushPendingWrites();
+		});
+		expect(client.save).toHaveBeenCalledTimes(1);
+		// Nothing is left for the pause to write, and a flush with nothing waiting writes nothing.
+		await act(async () => {
+			await flushPendingWrites();
+			await vi.advanceTimersByTimeAsync(SAVE_DELAY_MS + 10);
+		});
+		expect(client.save).toHaveBeenCalledTimes(1);
 	});
 
 	it('docks, floats, hides and shows panels', async () => {

@@ -13,6 +13,11 @@
 // confirmed. A failed save leaves the windows that already saved as saved and everything open.
 // Each round has an id, so an answer to an earlier round, or from a window that was not asked, is
 // ignored.
+//
+// A round has a scope. The whole-app scope (File > Quit, and closing the last main window) asks
+// every main window and ends in `Exit`. The window scope (closing one main window while others are
+// open) asks just that window and ends in `CloseWindow`, so the app keeps running. Everything else
+// about the two is the same.
 
 use std::collections::VecDeque;
 
@@ -41,6 +46,15 @@ pub enum Outcome {
     Failed,
 }
 
+/// What a round does when every window has agreed.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Scope {
+    /// Exit the app.
+    App,
+    /// Close this one main window (and the panel windows torn off it); the app keeps running.
+    Window(String),
+}
+
 /// What the app does next.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Step {
@@ -52,8 +66,10 @@ pub enum Step {
         label: String,
         decision: Decision,
     },
-    /// Every window has confirmed: exit the app.
+    /// Every window has confirmed, in a whole-app round: exit the app.
     Exit,
+    /// Every window has confirmed, in a window round: close this window and its panels.
+    CloseWindow(String),
     /// The round ended without quitting (a Cancel, a failure, or a request that was replaced).
     Stop,
     /// Nothing changes: the answer was stale or from a window that was not being asked.
@@ -70,6 +86,7 @@ pub struct QuitRounds {
 #[derive(Debug)]
 struct Active {
     round: u64,
+    scope: Scope,
     phase: Phase,
 }
 
@@ -89,9 +106,24 @@ enum Phase {
 }
 
 impl QuitRounds {
-    /// Starts a round over `labels`, asked in the order given. A round already running is replaced,
-    /// so a window that never answers cannot lock the quit out. With nobody to ask, the app exits.
+    /// Starts a whole-app round over `labels`, asked in the order given. A round already running is
+    /// replaced, so a window that never answers cannot lock the quit out. With nobody to ask, the
+    /// app exits.
     pub fn begin<I, S>(&mut self, labels: I) -> Step
+    where
+        I: IntoIterator<Item = S>,
+        S: Into<String>,
+    {
+        self.begin_scoped(labels, Scope::App)
+    }
+
+    /// Starts a window round: only `label` is asked, and only it closes when it is done. A round
+    /// already running is replaced.
+    pub fn begin_window(&mut self, label: &str) -> Step {
+        self.begin_scoped([label], Scope::Window(label.to_owned()))
+    }
+
+    fn begin_scoped<I, S>(&mut self, labels: I, scope: Scope) -> Step
     where
         I: IntoIterator<Item = S>,
         S: Into<String>,
@@ -101,12 +133,13 @@ impl QuitRounds {
         match waiting.pop_front() {
             None => {
                 self.active = None;
-                Step::Exit
+                finished(scope)
             }
             Some(first) => {
                 let round = self.last_round;
                 self.active = Some(Active {
                     round,
+                    scope,
                     phase: Phase::Asking {
                         asking: first.clone(),
                         waiting,
@@ -127,6 +160,7 @@ impl QuitRounds {
             Some(Active {
                 round: r,
                 phase: Phase::Asking { asking, .. },
+                ..
             }) if *r == round && asking == label => {}
             _ => return Step::Ignore,
         }
@@ -143,6 +177,7 @@ impl QuitRounds {
             Some(Active {
                 round: r,
                 phase: Phase::Committing { current, .. },
+                ..
             }) if *r == round && current == label => {}
             _ => return Step::Ignore,
         }
@@ -240,10 +275,24 @@ impl QuitRounds {
                 }
             }
             None => {
+                let scope = active.scope.clone();
                 self.active = None;
-                Step::Exit
+                finished(scope)
             }
         }
+    }
+
+    /// True while a round is running, for tests and for callers that must not act meanwhile.
+    pub fn is_running(&self) -> bool {
+        self.active.is_some()
+    }
+}
+
+/// The step that ends a round which every window agreed to.
+fn finished(scope: Scope) -> Step {
+    match scope {
+        Scope::App => Step::Exit,
+        Scope::Window(label) => Step::CloseWindow(label),
     }
 }
 
@@ -411,6 +460,85 @@ mod tests {
         rounds.answer(1, "main-2", Discard);
         assert_eq!(rounds.gone("main-2"), Step::Ignore);
         assert_eq!(rounds.gone("main-1"), Step::Exit);
+    }
+
+    fn close(label: &str) -> Step {
+        Step::CloseWindow(label.into())
+    }
+
+    #[test]
+    fn a_clean_window_round_closes_just_that_window() {
+        let mut rounds = QuitRounds::default();
+        assert_eq!(rounds.begin_window("main-2"), ask(1, "main-2"));
+        assert_eq!(rounds.answer(1, "main-2", Ready), close("main-2"));
+        assert!(!rounds.is_running());
+    }
+
+    #[test]
+    fn a_dirty_window_round_cancels_cleanly_and_closes_nothing() {
+        let mut rounds = QuitRounds::default();
+        rounds.begin_window("main-2");
+        assert_eq!(rounds.answer(1, "main-2", Cancel), Step::Stop);
+        assert!(!rounds.is_running());
+        assert_eq!(rounds.confirm(1, "main-2", Outcome::Done), Step::Ignore);
+        assert_eq!(rounds.gone("main-2"), Step::Ignore);
+    }
+
+    #[test]
+    fn a_window_round_commits_its_save_then_closes_the_window() {
+        let mut rounds = QuitRounds::default();
+        rounds.begin_window("main-2");
+        assert_eq!(rounds.answer(1, "main-2", Save), commit(1, "main-2", Save));
+        assert_eq!(rounds.confirm(1, "main-2", Outcome::Done), close("main-2"));
+    }
+
+    #[test]
+    fn a_failed_save_in_a_window_round_keeps_the_window() {
+        let mut rounds = QuitRounds::default();
+        rounds.begin_window("main-2");
+        rounds.answer(1, "main-2", Discard);
+        assert_eq!(rounds.confirm(1, "main-2", Outcome::Failed), Step::Stop);
+    }
+
+    #[test]
+    fn a_window_round_never_asks_other_windows() {
+        let mut rounds = QuitRounds::default();
+        rounds.begin_window("main-2");
+        assert_eq!(rounds.answer(1, "main-1", Ready), Step::Ignore);
+        assert_eq!(rounds.gone("main-1"), Step::Ignore);
+        assert_eq!(rounds.answer(1, "main-2", Ready), close("main-2"));
+    }
+
+    #[test]
+    fn a_window_that_closes_during_its_own_round_counts_as_ready() {
+        let mut rounds = QuitRounds::default();
+        rounds.begin_window("main-2");
+        assert_eq!(rounds.gone("main-2"), close("main-2"));
+    }
+
+    #[test]
+    fn a_close_request_replaces_a_running_round_whatever_its_scope() {
+        let mut rounds = QuitRounds::default();
+        rounds.begin(["main-1", "main-2"]);
+        // The person closes one window while the whole-app round waits: the window round wins.
+        assert_eq!(rounds.begin_window("main-2"), ask(2, "main-2"));
+        assert_eq!(rounds.answer(1, "main-1", Ready), Step::Ignore);
+        assert_eq!(rounds.answer(2, "main-2", Ready), close("main-2"));
+        // And a whole-app request replaces a window round.
+        rounds.begin_window("main-2");
+        assert_eq!(rounds.begin(["main-1"]), ask(4, "main-1"));
+        assert_eq!(rounds.answer(3, "main-2", Ready), Step::Ignore);
+        assert_eq!(rounds.answer(4, "main-1", Ready), Step::Exit);
+    }
+
+    #[test]
+    fn a_whole_app_round_still_ends_in_exit_after_a_window_round() {
+        let mut rounds = QuitRounds::default();
+        rounds.begin_window("main-2");
+        rounds.answer(1, "main-2", Cancel);
+        rounds.begin(["main-1", "main-2"]);
+        rounds.answer(2, "main-1", Ready);
+        assert_eq!(rounds.answer(2, "main-2", Ready), Step::Exit);
     }
 
     #[test]

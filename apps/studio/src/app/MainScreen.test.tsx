@@ -9,6 +9,7 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { resetActiveLocale } from '../i18n/active';
 import { activateLocale } from '../i18n/loadCatalogue';
+import { registerFlush } from '../services/pendingWrites';
 import type { LaunchClient } from '../services/launchClient';
 import type {
 	QuitAnswer,
@@ -718,10 +719,26 @@ describe('quitting the app', () => {
 		return { user, dialog, ...ctx };
 	}
 
-	it('is ready at once on the start screen', () => {
+	it('writes the settings waiting on a pause before it says ready, and before it confirms a commit', async () => {
+		const user = userEvent.setup();
+		const { quit, client } = setup();
+		client.dirty = true;
+		await openFromDialog(user);
+		const flush = vi.fn(() => Promise.resolve());
+		const unregister = registerFlush(flush);
+		quit.ask(1);
+		await screen.findByRole('dialog', { name: 'Save changes to Crater Fields?' });
+		await user.click(screen.getByRole('button', { name: 'Discard' }));
+		quit.commit(1, 'discard');
+		await waitFor(() => expect(quit.confirms).toEqual([{ round: 1, outcome: 'done' }]));
+		expect(flush).toHaveBeenCalledTimes(1);
+		unregister();
+	});
+
+	it('is ready at once on the start screen', async () => {
 		const { quit } = setup();
 		quit.ask(1);
-		expect(quit.answers).toEqual([{ round: 1, answer: 'ready' }]);
+		await waitFor(() => expect(quit.answers).toEqual([{ round: 1, answer: 'ready' }]));
 		expect(screen.queryByRole('dialog')).toBeNull();
 	});
 
@@ -730,7 +747,7 @@ describe('quitting the app', () => {
 		const { quit, client } = setup();
 		await openFromDialog(user);
 		quit.ask(2);
-		expect(quit.answers).toEqual([{ round: 2, answer: 'ready' }]);
+		await waitFor(() => expect(quit.answers).toEqual([{ round: 2, answer: 'ready' }]));
 		expect(screen.queryByRole('dialog')).toBeNull();
 		expect(client.closed).toEqual([]);
 		expect(client.saves).toBe(0);

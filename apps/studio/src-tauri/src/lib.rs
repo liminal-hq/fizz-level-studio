@@ -3,6 +3,7 @@
 // (c) Copyright 2026 Liminal HQ, Scott Morris
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
+pub mod close_gate;
 pub mod launch;
 pub mod logging;
 pub mod quit;
@@ -90,11 +91,20 @@ pub fn run() {
             launch::app_launch_paths,
             quit::app_quit,
             quit::app_quit_answer,
-            quit::app_quit_confirm
+            quit::app_quit_confirm,
+            quit::window_close_answer
         ])
-        // A panel window closing, by its own close button or by docking, is announced to every
-        // window, so the main window can show the panel in its place again.
+        // Every close request goes through the one common path (`quit.rs`). A close request has two
+        // origins and both arrive here as `WindowEvent::CloseRequested`: our own title bar (the
+        // frameless window's chrome calls `getCurrentWindow().close()` from its X button, its
+        // window menu's Close row, or a configured title bar action), and the shell asking the
+        // window to close from its side (the window manager or compositor's own close, Alt+F4,
+        // the taskbar, the compositor's window menu). A main window is held back and put through
+        // the quit round, the others close at once. A panel window closing,
+        // by its own close button or by docking, is announced to every window, so the main window
+        // can show the panel in its place again.
         .on_window_event(|window, event| {
+            quit::request_close(window, event);
             if matches!(event, tauri::WindowEvent::Destroyed) {
                 windows::announce_panel_closed(window.app_handle(), window.label());
                 quit::window_gone(window.app_handle(), window.label());
@@ -121,7 +131,12 @@ pub fn run() {
     builder
         .build(tauri::generate_context!())
         .expect("error while building the Fizz Level Studio application")
-        .run(|_app, _event| {});
+        .run(|app, event| {
+            // An exit that did not come from a finished quit round is held back and asked first.
+            if let tauri::RunEvent::ExitRequested { code, api, .. } = event {
+                quit::exit_requested(app, code, &api);
+            }
+        });
 }
 
 #[cfg(test)]

@@ -51,6 +51,19 @@ export const initialForm: NewLevelForm = {
 	folder: '',
 };
 
+/** True when the person has changed any field from its starting value, or chosen a folder. */
+export function isEdited(form: NewLevelForm): boolean {
+	return (
+		form.name !== initialForm.name ||
+		form.id !== initialForm.id ||
+		form.width !== initialForm.width ||
+		form.height !== initialForm.height ||
+		form.target !== initialForm.target ||
+		form.theme !== initialForm.theme ||
+		form.folder !== initialForm.folder
+	);
+}
+
 /** A name as a slug: lowercase letters, digits, and single hyphens, with accents dropped. */
 export function slugify(name: string): string {
 	return name

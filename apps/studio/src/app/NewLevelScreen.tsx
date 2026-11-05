@@ -4,10 +4,12 @@
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
 import { getCurrentWindow } from '@tauri-apps/api/window';
-import { useId, useState, type FormEvent } from 'react';
+import { ConfirmDialog } from '@liminal-hq/fizz-studio-chrome/Dialog/ConfirmDialog';
+import { useEffect, useId, useRef, useState, type FormEvent } from 'react';
 import { t } from '../i18n/messages';
 import {
 	initialForm,
+	isEdited,
 	THEMES,
 	toRequest,
 	validateForm,
@@ -16,6 +18,7 @@ import {
 	type FormErrors,
 	type NewLevelForm,
 } from '../new-world/newLevelForm';
+import { closeGateClient, type CloseGateClient } from '../services/closeGateClient';
 import { pickFolder, type PickFolder } from '../services/folderPicker';
 import { requestOpen, type RequestOpen } from '../services/openRequestClient';
 import { newLevelClient, type NewLevelClient } from '../worlds/newLevelClient';
@@ -31,6 +34,8 @@ export interface NewLevelScreenProps {
 	openInMain?: RequestOpen;
 	/** Closes this window; defaults to the current window. */
 	closeWindow?: () => Promise<void>;
+	/** Hears Rust asking whether this window may close; defaults to the app's events. */
+	closeGate?: CloseGateClient;
 }
 
 /** The message a refusal from Rust carries, or a plain word for anything else. */
@@ -46,12 +51,45 @@ export function NewLevelScreen({
 	pickDirectory = pickFolder,
 	openInMain = requestOpen,
 	closeWindow = () => getCurrentWindow().close(),
+	closeGate = closeGateClient,
 }: NewLevelScreenProps) {
 	const [form, setForm] = useState<NewLevelForm>(initialForm);
 	const [errors, setErrors] = useState<FormErrors>({});
 	const [failure, setFailure] = useState<string | null>(null);
 	const [busy, setBusy] = useState(false);
+	/** The close request waiting on the person's answer to the discard question. */
+	const [closeToken, setCloseToken] = useState<number | null>(null);
+	/** Set by Cancel and a finished Create, which close the window without asking. */
+	const closing = useRef(false);
+	const formRef = useRef(form);
+	formRef.current = form;
 	const ids = useId();
+
+	// However the window is asked to close (the title bar, the shell, Cancel, Create), Rust holds
+	// the close back until this page answers: close at once when nothing was entered, or ask.
+	useEffect(
+		() =>
+			closeGate.onRequested((token) => {
+				if (closing.current || !isEdited(formRef.current)) {
+					void closeGate.answer(token, 'close').catch(() => {});
+					return;
+				}
+				setCloseToken(token);
+				void closeGate.answer(token, 'asking').catch(() => {});
+			}),
+		[closeGate],
+	);
+
+	const answerClose = (answer: 'close' | 'stay') => {
+		const token = closeToken;
+		setCloseToken(null);
+		if (token !== null) void closeGate.answer(token, answer).catch(() => {});
+	};
+
+	const leave = async () => {
+		closing.current = true;
+		await closeWindow();
+	};
 	const field = (name: string) => `${ids}-${name}`;
 
 	const choose = async () => {
@@ -72,7 +110,7 @@ export function NewLevelScreen({
 		try {
 			const snapshot = await client.create(toRequest(form));
 			await openInMain(snapshot.path);
-			await closeWindow();
+			await leave();
 		} catch (error) {
 			setFailure(reasonOf(error));
 			setBusy(false);
@@ -226,7 +264,7 @@ export function NewLevelScreen({
 						type="button"
 						className={styles.button}
 						disabled={busy}
-						onClick={() => void closeWindow()}
+						onClick={() => void leave()}
 					>
 						{t('newLevel.cancel')}
 					</button>
@@ -235,6 +273,16 @@ export function NewLevelScreen({
 					</button>
 				</div>
 			</form>
+			<ConfirmDialog
+				open={closeToken !== null}
+				title={t('newLevel.discardTitle')}
+				message={t('newLevel.discardMessage')}
+				confirmLabel={t('newLevel.discard')}
+				cancelLabel={t('newLevel.keepEditing')}
+				danger
+				onConfirm={() => answerClose('close')}
+				onCancel={() => answerClose('stay')}
+			/>
 		</AppWindow>
 	);
 }
