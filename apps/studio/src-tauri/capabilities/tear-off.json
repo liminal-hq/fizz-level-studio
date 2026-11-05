@@ -1,0 +1,7 @@
+{
+	"$schema": "../gen/schemas/desktop-schema.json",
+	"identifier": "tear-off",
+	"description": "Lets the main and panel windows tear a panel out through the tear-off plugin (the ghost, the compositor's window drag, the drop regions) and lets the ghost window read the drag's payload.",
+	"windows": ["main-*", "panel-*", "tear-ghost"],
+	"permissions": ["window-tearoff:default"]
+}
