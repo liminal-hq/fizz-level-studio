@@ -53,6 +53,7 @@ pub fn run() {
                 .build(),
         )
         // The settings: one store in Rust for every window, saved in the app's config directory.
+        .plugin(tauri_plugin_fizz_studio_host::init())
         .plugin(tauri_plugin_fizz_studio_settings::init_with(
             settings_storage,
         ))

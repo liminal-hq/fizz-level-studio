@@ -31,3 +31,8 @@ createRoot(root).render(
 );
 
 console.info('The window is ready.');
+
+// A developer measurement of the frame stream; never started in a release build.
+if (import.meta.env.DEV && import.meta.env.VITE_FIZZ_PROBE === 'frames') {
+	void import('./dev/frameProbe').then((probe) => probe.runFrameProbe());
+}

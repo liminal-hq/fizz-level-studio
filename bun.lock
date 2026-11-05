@@ -15,6 +15,7 @@
       "version": "0.1.0",
       "dependencies": {
         "@liminal-hq/fizz-studio-chrome": "workspace:*",
+        "@liminal-hq/fizz-studio-plugin-host": "workspace:*",
         "@liminal-hq/fizz-studio-plugin-settings": "workspace:*",
         "@liminal-hq/fizz-studio-protocol": "workspace:*",
         "@tauri-apps/api": "^2.10.1",
@@ -66,6 +67,21 @@
     "packages/protocol": {
       "name": "@liminal-hq/fizz-studio-protocol",
       "version": "0.0.0",
+    },
+    "plugins/fizz-studio-host": {
+      "name": "@liminal-hq/fizz-studio-plugin-host",
+      "version": "0.0.0",
+      "dependencies": {
+        "@liminal-hq/fizz-studio-protocol": "workspace:*",
+        "@tauri-apps/api": "^2.10.1",
+      },
+      "devDependencies": {
+        "@rollup/plugin-typescript": "^12.1.4",
+        "rollup": "^4.59.1",
+        "tslib": "^2.8.1",
+        "typescript": "~5.8.3",
+        "vitest": "^4.1.9",
+      },
     },
     "plugins/fizz-studio-settings": {
       "name": "@liminal-hq/fizz-studio-plugin-settings",
@@ -191,6 +207,8 @@
     "@liminal-hq/fizz-level-studio": ["@liminal-hq/fizz-level-studio@workspace:apps/studio"],
 
     "@liminal-hq/fizz-studio-chrome": ["@liminal-hq/fizz-studio-chrome@workspace:packages/chrome"],
+
+    "@liminal-hq/fizz-studio-plugin-host": ["@liminal-hq/fizz-studio-plugin-host@workspace:plugins/fizz-studio-host"],
 
     "@liminal-hq/fizz-studio-plugin-settings": ["@liminal-hq/fizz-studio-plugin-settings@workspace:plugins/fizz-studio-settings"],
 

@@ -8,6 +8,7 @@ members = [
 	"crates/fizz-studio-protocol",
 	"crates/fizz-studio-session",
 	"crates/fizz-studio-settings",
+	"plugins/fizz-studio-host",
 	"plugins/fizz-studio-settings",
 	"crates/fizz-studio-world",
 ]
