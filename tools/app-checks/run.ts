@@ -158,6 +158,88 @@ async function main(): Promise<void> {
 			menuHeading !== null,
 			JSON.stringify(menuHeading),
 		);
+		// The command palette opens with Ctrl+Shift+P on the window, draws with a real size and a list,
+		// narrows as the query is typed, runs a brush or tool command, and closes on Escape. Sizes are
+		// measured here because a jsdom test cannot see a panel laid out zero tall.
+		const keyOnWindow = (key: string, init = 'ctrlKey: true, shiftKey: true') =>
+			bridge.js<boolean>(
+				`window.dispatchEvent(new KeyboardEvent('keydown', { key: ${JSON.stringify(key)}, ${init}, bubbles: true, cancelable: true })); return true;`,
+			);
+		const paletteBox = () =>
+			bridge.js<{ w: number; h: number; options: number; listH: number } | null>(
+				`const d = document.querySelector('[role=dialog][aria-modal=true]'); if (!d) return null;
+				 const r = d.getBoundingClientRect(); const list = d.querySelector('[role=listbox]');
+				 return { w: r.width, h: r.height, options: d.querySelectorAll('[role=option]').length, listH: list ? list.getBoundingClientRect().height : 0 };`,
+			);
+		const typeInPalette = (text: string) =>
+			bridge.js<boolean>(
+				`const i = document.querySelector('[role=dialog] input'); if (!i) return false;
+				 const set = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set;
+				 set.call(i, ${JSON.stringify(text)}); i.dispatchEvent(new Event('input', { bubbles: true })); return true;`,
+			);
+		const toolPressed = async () =>
+			(
+				await bridge.js<{ v: string }>(
+					`const b = [...document.querySelectorAll('[aria-pressed=true]')].find((x) => x.closest('[role=group][aria-label=Tools]')); return { v: b ? b.textContent : '' };`,
+				)
+			).v;
+		await keyOnWindow('P');
+		let palette: Awaited<ReturnType<typeof paletteBox>> = null;
+		await within(3000, async () => {
+			const box = await paletteBox();
+			palette = box && box.w > 0 && box.h > 0 ? box : null;
+			return palette !== null;
+		});
+		check(
+			'Ctrl+Shift+P opens the command palette with a size and a list',
+			palette !== null && palette.options > 5 && palette.listH > 100,
+			JSON.stringify(palette),
+		);
+		const wide = await bridge.js<number>(`return window.innerWidth;`);
+		check(
+			'the command palette fits inside the window',
+			palette !== null && palette.w <= wide,
+			`${palette?.w} of ${wide}`,
+		);
+		const before = palette?.options ?? 0;
+		await typeInPalette('brush: gloop');
+		let narrowed: Awaited<ReturnType<typeof paletteBox>> = null;
+		await within(2000, async () => {
+			const box = await paletteBox();
+			narrowed = box && box.options > 0 && box.options < before ? box : null;
+			return narrowed !== null;
+		});
+		check('typing narrows the command palette', narrowed !== null, JSON.stringify(narrowed));
+		await bridge.js<boolean>(
+			`const i = document.querySelector('[role=dialog] input'); i.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true })); return true;`,
+		);
+		const chipText = await within(3000, () =>
+			bridge.js<boolean>(`return document.body.innerText.includes('Brush: gloop');`),
+		);
+		check('Enter on Brush: gloop sets the brush', chipText !== null);
+		check('the command palette closes after running a command', (await paletteBox()) === null);
+		await keyOnWindow('P');
+		await within(3000, async () => (await paletteBox()) !== null);
+		await typeInPalette('erase');
+		await bridge.js<boolean>(
+			`const i = document.querySelector('[role=dialog] input'); i.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true })); return true;`,
+		);
+		const erasing = await within(3000, async () => (await toolPressed()).startsWith('Erase'));
+		check('Enter on Erase presses the Erase tool', erasing !== null, String(await toolPressed()));
+		await keyOnWindow('P');
+		await within(3000, async () => (await paletteBox()) !== null);
+		await bridge.js<boolean>(
+			`document.querySelector('[role=dialog] input').dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true })); return true;`,
+		);
+		check('Escape closes the command palette', (await paletteBox()) === null);
+		const canvasAfter = await bridge.js<number>(
+			`return document.querySelector('canvas')?.getBoundingClientRect().height ?? 0;`,
+		);
+		check('the canvas keeps its room after the palette', canvasAfter > 300, String(canvasAfter));
+		await bridge.js<boolean>(
+			`const b = [...document.querySelectorAll('[role=group][aria-label=Tools] button')].find((x) => x.textContent.startsWith('Paint')); b?.click(); return true;`,
+		);
+
 		const opened = await openLevel(bridge, path);
 		check('the open level has its 5,376 cells', opened.cells === 5376, String(opened.cells));
 		check('a fresh level has nothing to undo', !opened.canUndo && opened.revision === 0);
