@@ -49,7 +49,7 @@ import { useElementSize } from '../panels/float/useElementSize';
 import type { Guide } from '../panels/float/snap';
 import { historyShortcut } from '../panels/HistoryPanel';
 import { TornOffNotice } from '../panels/TornOffNotice';
-import { awayFloating, withAwayTabs } from '../panels/windows/awayTabs';
+import { withAwayTabs } from '../panels/windows/awayTabs';
 import { type EditorShare, type PanelBridge } from '../panels/windows/panelBridge';
 import { useEditorBridgeHost } from '../panels/windows/useEditorBridgeHost';
 import { usePanelWindows } from '../panels/windows/usePanelWindows';
@@ -634,13 +634,8 @@ export function EditorScreen({
 				</DockShell>
 				{PANEL_SPECS.map((spec) => {
 					const floating = dock.floating[spec.id];
-					// A panel torn off from floating stays here as its notice, at the same place.
-					const awayHere =
-						windows.away[spec.id] &&
-						awayFloating(dock.workspace, spec.id) &&
-						dock.workspace.panels[spec.id]!.float.visible &&
-						!dock.session.levelFirst;
-					const view = awayHere ? { ...floating, visible: true } : floating;
+					// A panel torn off never floats here: it is a tab in its home dock until it is back.
+					const view = floating;
 					if (!view.visible) return null;
 					return (
 						<FloatingPanel

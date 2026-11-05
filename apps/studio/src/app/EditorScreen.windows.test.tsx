@@ -150,22 +150,48 @@ describe('the Tear off and Dock back commands', () => {
 	});
 });
 
+/** A floating panel's rectangle as its style holds it, without the stacking order. */
+const rectOf = (el: HTMLElement) =>
+	(el.getAttribute('style') ?? '').replace(/--fls-float-z:[^;]*;?/, '');
+
 describe('a torn-off panel from floating', () => {
-	it('stays in the main window as a floating notice', async () => {
+	it('leaves nothing floating, shows an away tab in its home dock and floats back where it was', async () => {
 		const user = userEvent.setup();
 		const { windows } = await mount({ dock: defaultDock() });
 		const left = await screen.findByRole('region', { name: 'Left dock' });
 		await user.click(within(left).getByRole('button', { name: 'Float Palette' }));
 		const floating = screen.getByRole('region', { name: 'Palette' });
+		const placed = rectOf(floating);
 		await user.click(
 			within(floating).getByRole('button', { name: 'Tear off Palette into its own window' }),
 		);
 		await waitFor(() => expect(windows.open.has('panel-palette-1')).toBe(true));
-		expect(
-			await within(screen.getByRole('region', { name: 'Palette' })).findByText(
-				'The Palette panel is open in its own window.',
-			),
-		).toBeVisible();
+		// No floating panel over the level; the panel is an away entry in its home (left) dock.
+		await waitFor(() => expect(screen.queryByRole('region', { name: 'Palette' })).toBeNull());
+		const dock = await screen.findByRole('region', { name: 'Left dock' });
+		expect(within(dock).getByRole('tab', { name: 'Palette (own window)' })).toBeVisible();
+		expect(within(dock).getByText('The Palette panel is open in its own window.')).toBeVisible();
+
+		await user.click(within(dock).getByRole('button', { name: 'Dock back' }));
+		const back = await screen.findByRole('region', { name: 'Palette' });
+		expect(rectOf(back)).toBe(placed);
+		expect(screen.queryByRole('tab', { name: 'Palette (own window)' })).toBeNull();
+	});
+
+	it('floats back where it was when its window closes by itself', async () => {
+		const user = userEvent.setup();
+		const { windows } = await mount({ dock: defaultDock() });
+		const left = await screen.findByRole('region', { name: 'Left dock' });
+		await user.click(within(left).getByRole('button', { name: 'Float Palette' }));
+		const floating = screen.getByRole('region', { name: 'Palette' });
+		const placed = rectOf(floating);
+		await user.click(
+			within(floating).getByRole('button', { name: 'Tear off Palette into its own window' }),
+		);
+		await screen.findByRole('tab', { name: 'Palette (own window)' });
+		act(() => windows.close('panel-palette-1'));
+		const back = await screen.findByRole('region', { name: 'Palette' });
+		expect(rectOf(back)).toBe(placed);
 	});
 });
 

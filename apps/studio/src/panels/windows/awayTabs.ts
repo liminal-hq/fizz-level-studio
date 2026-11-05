@@ -17,22 +17,14 @@ export function awayPanels(workspace: Workspace): string[] {
 }
 
 /**
- * Whether a panel in a window of its own should still be drawn in the main window as floating: it
- * came from floating, so its notice stays where it floated.
- */
-export function awayFloating(workspace: Workspace, id: string): boolean {
-	const entry = workspace.panels[id];
-	return entry?.place === 'window' && entry.window_from === 'floating';
-}
-
-/**
- * `workspace` with each panel away in a window that came from a dock added as the last tab of the
- * last group of its home zone (a group of its own when the zone has none). A panel that came from
- * floating is left out: it shows as a floating notice instead. An away panel named in `shown` is
+ * `workspace` with each panel away in a window added as the last tab of the last group of its home
+ * zone (a group of its own when the zone has none), whether it came from a dock or from floating:
+ * a torn-off panel never leaves a floating panel over the level, and a floating panel's remembered
+ * rectangle stays in the saved workspace for when it comes back. An away panel named in `shown` is
  * the showing tab of its group, since the saved workspace cannot say which tab an away panel had.
  */
 export function withAwayTabs(workspace: Workspace, shown: readonly string[] = []): Workspace {
-	const away = awayPanels(workspace).filter((id) => workspace.panels[id]!.window_from === 'docked');
+	const away = awayPanels(workspace);
 	if (away.length === 0) return workspace;
 	const next = structuredClone(workspace);
 	for (const id of away) {
