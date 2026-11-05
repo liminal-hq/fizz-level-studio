@@ -5,6 +5,7 @@
 
 import { createContext, useContext, useSyncExternalStore } from 'react';
 import type { PanelId } from '../panels/float/panelSpecs';
+import type { Brush } from '../tools/brush';
 
 /** What the menu needs to know to enable, disable and check its rows. */
 export interface CommandFacts {
@@ -14,8 +15,14 @@ export interface CommandFacts {
 	editorOpen: boolean;
 	canUndo: boolean;
 	canRedo: boolean;
-	/** Whether each floating panel is shown. */
+	/** Every docked and floating panel is hidden so the level has the room. */
+	levelFirst: boolean;
+	/** Whether each panel is shown. */
 	panels: Record<PanelId, boolean>;
+	/** The brushes the palette offers (tiles of the open level, items and enemies), for the command palette. */
+	brushes: readonly Brush[];
+	/** How many lines the open level's script has; Go to line accepts 1 to this. */
+	lineCount: number;
 }
 
 export const NO_FACTS: CommandFacts = {
@@ -23,11 +30,17 @@ export const NO_FACTS: CommandFacts = {
 	editorOpen: false,
 	canUndo: false,
 	canRedo: false,
+	levelFirst: false,
 	panels: { palette: false, objects: false, history: false, proposals: false, script: false },
+	brushes: [],
+	lineCount: 0,
 };
 
-/** The actions the screens own, by command id. A command with no handler published cannot run. */
-export type CommandHandlers = Readonly<Record<string, () => void>>;
+/**
+ * The actions the screens own, by command id. A command with no handler published cannot run. A
+ * command that asks for a value (Go to line) receives it as the argument.
+ */
+export type CommandHandlers = Readonly<Record<string, (argument?: string) => void>>;
 
 export interface BridgeSnapshot {
 	facts: CommandFacts;
@@ -46,6 +59,11 @@ export interface CommandBridge {
 function samePanels(a: CommandFacts['panels'], b: CommandFacts['panels']): boolean {
 	return (Object.keys(a) as PanelId[]).every((id) => a[id] === b[id]);
 }
+
+const sameBrushes = (a: readonly Brush[], b: readonly Brush[]) =>
+	a === b ||
+	(a.length === b.length &&
+		a.every((brush, i) => brush.group === b[i]!.group && brush.kind === b[i]!.kind));
 
 export function createCommandBridge(): CommandBridge {
 	let snapshot: BridgeSnapshot = { facts: NO_FACTS, handlers: {} };
@@ -68,6 +86,9 @@ export function createCommandBridge(): CommandBridge {
 				next.editorOpen === was.editorOpen &&
 				next.canUndo === was.canUndo &&
 				next.canRedo === was.canRedo &&
+				next.lineCount === was.lineCount &&
+				sameBrushes(next.brushes, was.brushes) &&
+				next.levelFirst === was.levelFirst &&
 				samePanels(next.panels, was.panels);
 			if (!same) set({ ...snapshot, facts: next });
 		},

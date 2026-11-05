@@ -273,6 +273,114 @@ export const enMessages = {
 	// translator: Verb phrase on a menu item. Puts every floating panel back where it starts.
 	'panels.reset': 'Reset layout',
 
+	// translator: Verb phrase on a menu item. Opens the command palette, a search box that finds and runs any command. The three dots mean it asks for more input.
+	'appMenu.commandPalette': 'Command palette…',
+	// translator: The name of the command palette dialog, read aloud by a screen reader. It is a search box listing every command.
+	'cmdPalette.title': 'Command palette',
+	// translator: Accessible name of the search field in the command palette.
+	'cmdPalette.search': 'Search commands',
+	// translator: Placeholder in the command palette’s search field.
+	'cmdPalette.placeholder': 'Type a command…',
+	// translator: Accessible name of the list of commands in the command palette.
+	'cmdPalette.list': 'Commands',
+	// translator: Heading above the commands the person ran most recently, in the command palette.
+	'cmdPalette.recent': 'Recent',
+	// translator: Shown in the command palette when nothing matches what was typed.
+	'cmdPalette.empty': 'No matching commands',
+	// translator: Heading in the command palette above the editing tools (Paint, Erase and the rest). Plural noun.
+	'cmdPalette.group.tools': 'Tools',
+	// translator: Heading in the command palette above the brushes: the tiles, items and enemies Paint can lay down. Plural noun.
+	'cmdPalette.group.brushes': 'Brushes',
+	// translator: Heading in the command palette above the commands that show, hide and arrange the editor’s panels. Plural noun.
+	'cmdPalette.group.panels': 'Panels',
+	// translator: Heading in the command palette above the commands from the File menu.
+	'cmdPalette.group.file': 'File',
+	// translator: Heading in the command palette above the commands from the Edit menu.
+	'cmdPalette.group.edit': 'Edit',
+	// translator: Heading in the command palette above the commands from the View menu.
+	'cmdPalette.group.view': 'View',
+	// translator: Heading in the command palette above the commands from the Window menu.
+	'cmdPalette.group.window': 'Window',
+	// translator: Heading in the command palette above the commands that move to a place in the level, such as a line of its script.
+	'cmdPalette.group.goto': 'Go to',
+	// translator: Why a command in the command palette is dimmed: no level is open yet.
+	'cmdPalette.needsLevel': 'Open a level first',
+	// translator: Why a command in the command palette is dimmed: it cannot run at the moment.
+	'cmdPalette.unavailableNow': 'Not available right now',
+	// translator: A command in the command palette. {panel} is the name of a panel, such as “Script”. Verb phrase.
+	'cmdPalette.showPanel': 'Show {panel}',
+	// translator: A command in the command palette. {panel} is the name of a panel, such as “Script”. Verb phrase.
+	'cmdPalette.hidePanel': 'Hide {panel}',
+	// translator: A command in the command palette that chooses the brush. {name} is the tile, item or enemy, such as “cheezie”.
+	'cmdPalette.brush': 'Brush: {name}',
+	// translator: A command in the command palette. It asks for a line number, then shows that line of the level’s script. The three dots mean it asks for more input.
+	'cmdPalette.gotoLine': 'Go to line…',
+	// translator: Accessible name of the field where a line number is typed, after choosing “Go to line…” in the command palette.
+	'cmdPalette.lineField': 'Line number',
+	// translator: Placeholder of the line number field. {count} is how many lines the script has.
+	'cmdPalette.linePlaceholder': 'Line number, 1 to {count}',
+	// translator: Error under the line number field. {count} is how many lines the script has.
+	'cmdPalette.lineInvalid': 'Enter a line from 1 to {count}.',
+	// translator: Footer hint of the command palette. Follows the up and down arrow keys. Verb: moves the highlight.
+	'cmdPalette.hintMove': 'Move',
+	// translator: Footer hint of the command palette. Follows the Enter key. Verb: runs the highlighted command.
+	'cmdPalette.hintRun': 'Run',
+	// translator: Footer hint of the command palette. Follows the Escape key. Verb: closes the palette.
+	'cmdPalette.hintClose': 'Close',
+	// translator: The name of the Enter key, written on a keycap.
+	'cmdPalette.keyEnter': 'Enter',
+	// translator: The name of the Escape key, written on a keycap. Keep it short.
+	'cmdPalette.keyEscape': 'Esc',
+
+	// translator: Name of the dock on the left of the level, where panels sit as tabs. Used as a region name.
+	'dock.zone.left': 'Left dock',
+	// translator: Name of the dock on the right of the level, where panels sit as tabs. Used as a region name.
+	'dock.zone.right': 'Right dock',
+	// translator: Name of the dock below the level, where panels sit as tabs. Used as a region name.
+	'dock.zone.bottom': 'Bottom dock',
+	// translator: Verb phrase on an icon button. Moves a panel into the dock on the left of the level. {title} is the panel’s name.
+	'dock.dockLeft': 'Dock {title} left',
+	// translator: Verb phrase on an icon button. Moves a panel into the dock on the right of the level. {title} is the panel’s name.
+	'dock.dockRight': 'Dock {title} right',
+	// translator: Verb phrase on an icon button. Moves a panel into the dock below the level. {title} is the panel’s name.
+	'dock.dockBottom': 'Dock {title} bottom',
+	// translator: Verb phrase on an icon button. Lets a docked panel float over the level. {title} is the panel’s name.
+	'dock.float': 'Float {title}',
+
+	// translator: Verb phrase on an icon button. Folds the open left dock into a thin rail that shows each panel’s icon and title.
+	'dock.fold.left': 'Fold the left dock',
+	// translator: Verb phrase on an icon button. Opens the folded left dock again.
+	'dock.unfold.left': 'Unfold the left dock',
+	// translator: Name of the thin strip along the left edge that a folded dock leaves. It holds one button for each panel in the dock.
+	'dock.rail.left': 'Left rail',
+	// translator: Verb phrase on an icon button. Folds the open right dock into a thin rail that shows each panel’s icon and title.
+	'dock.fold.right': 'Fold the right dock',
+	// translator: Verb phrase on an icon button. Opens the folded right dock again.
+	'dock.unfold.right': 'Unfold the right dock',
+	// translator: Name of the thin strip along the right edge that a folded dock leaves. It holds one button for each panel in the dock.
+	'dock.rail.right': 'Right rail',
+	// translator: Verb phrase on an icon button. Folds the open bottom dock into a thin rail that shows each panel’s icon and title.
+	'dock.fold.bottom': 'Fold the bottom dock',
+	// translator: Verb phrase on an icon button. Opens the folded bottom dock again.
+	'dock.unfold.bottom': 'Unfold the bottom dock',
+	// translator: Name of the thin strip along the bottom edge that a folded dock leaves. It holds one button for each panel in the dock.
+	'dock.rail.bottom': 'Bottom rail',
+	// translator: Name of a panel shown briefly over the level from a folded dock’s rail. {title} is the panel’s name.
+	'dock.peek': '{title}, peeking',
+	// translator: Verb phrase on an icon button. Turns a panel peeking over the level into a real dock again. {title} is the panel’s name.
+	'dock.pin': 'Pin {title}',
+
+	// translator: Label of the draggable edge between the level and the left dock. A person drags it, or presses the arrow keys on it, to make the dock wider or narrower.
+	'dock.resize.left': 'Resize the left dock',
+	// translator: Label of the draggable edge between the level and the right dock. A person drags it, or presses the arrow keys on it, to make the dock wider or narrower.
+	'dock.resize.right': 'Resize the right dock',
+	// translator: Label of the draggable edge between the level and the bottom dock. A person drags it, or presses the arrow keys on it, to make the dock taller or shorter.
+	'dock.resize.bottom': 'Resize the bottom dock',
+	// translator: The size of a dock shown while it is dragged. {size} is a number of pixels, so “264 px”.
+	'dock.size': '{size} px',
+	// translator: Menu item in the View menu. Hides every docked and floating panel so the level has the whole window, and brings the same panels back when chosen again.
+	'view.levelFirst': 'Show the level only',
+
 	// translator: The name of the File menu in the application menu. Level files are opened, saved and closed from it.
 	'appMenu.file': 'File',
 	// translator: The name of the Edit menu in the application menu. Undo and Redo are in it.
@@ -283,8 +391,6 @@ export const enMessages = {
 	'appMenu.window': 'Window',
 	// translator: Verb on a File menu item. Closes the whole app.
 	'appMenu.quit': 'Quit',
-	// translator: The tooltip of the disabled Quit menu item: it explains why the item cannot be chosen yet.
-	'appMenu.quitUnavailable': 'Quit is not available yet. Close the window instead.',
 	// translator: Menu item that opens the Preferences window. The dots mean it opens a window.
 	'appMenu.preferences': 'Preferences…',
 	// translator: Menu item that opens the About window, which names the app and its version.

@@ -1,0 +1,41 @@
+/* The level in the middle; the left and right docks beside it; the bottom dock under all three. */
+.shell {
+	position: absolute;
+	inset: 0;
+	display: grid;
+	grid-template-columns: var(--fls-dock-left) minmax(0, 1fr) var(--fls-dock-right);
+	grid-template-rows: minmax(0, 1fr) var(--fls-dock-bottom);
+	grid-template-areas:
+		'left level right'
+		'bottom bottom bottom';
+}
+
+.level {
+	position: relative;
+	grid-area: level;
+	min-width: 0;
+	min-height: 0;
+}
+
+.slot {
+	position: relative;
+	display: flex;
+	min-width: 0;
+	min-height: 0;
+}
+
+.slot > * {
+	flex: 1;
+}
+
+.slot[data-slot='left'] {
+	grid-area: left;
+}
+
+.slot[data-slot='right'] {
+	grid-area: right;
+}
+
+.slot[data-slot='bottom'] {
+	grid-area: bottom;
+}

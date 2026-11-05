@@ -6,23 +6,19 @@
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
-import { fallbackLayout } from '../panels/float/panelSpecs';
-import type { LayoutClient } from '../services/layoutClient';
+import { setPanelVisible } from '../panels/dock/dockLayout';
+import type { DockClient } from '../services/dockClient';
+import { fakeDockClient, floatingDock } from '../test/dockFixtures';
 import { levelSnapshot } from '../test/levelFixtures';
 import { FakeLevelClient } from '../worlds/fakeLevelClient';
 import { EditorScreen } from './EditorScreen';
 
-function mount(layouts?: Partial<LayoutClient>) {
+function mount(dock = floatingDock()) {
 	const snapshot = levelSnapshot();
 	const client = new FakeLevelClient(snapshot);
-	const layoutClient: LayoutClient = {
-		get: vi.fn(async () => fallbackLayout()),
-		save: vi.fn(async (_kind, layout) => layout),
-		reset: vi.fn(async () => fallbackLayout()),
-		...layouts,
-	};
-	render(<EditorScreen snapshot={snapshot} client={client} layouts={layoutClient} />);
-	return { layoutClient };
+	const docks: DockClient = fakeDockClient(dock);
+	render(<EditorScreen snapshot={snapshot} client={client} docks={docks} />);
+	return { docks };
 }
 
 describe('the editor’s floating panels', () => {
@@ -61,57 +57,69 @@ describe('the editor’s floating panels', () => {
 
 	it('moves a panel with the keyboard and saves its place', async () => {
 		const user = userEvent.setup();
-		const { layoutClient } = mount();
+		const { docks } = mount();
 		const history = await screen.findByRole('region', { name: 'History' });
 		const start = Number(history.style.getPropertyValue('--fls-float-x').replace('px', ''));
 		within(history).getByRole('button', { name: 'Move History' }).focus();
 		await user.keyboard('{ArrowRight}');
 		expect(history.style.getPropertyValue('--fls-float-x')).toBe(`${start + 8}px`);
-		await waitFor(() => expect(layoutClient.save).toHaveBeenCalled(), { timeout: 2000 });
-		const saved = vi.mocked(layoutClient.save).mock.calls.at(-1)![1];
-		expect(saved.panels.history!.x).toBe(start + 8);
+		await waitFor(() => expect(docks.save).toHaveBeenCalled(), { timeout: 2000 });
+		const saved = vi.mocked(docks.save).mock.calls.at(-1)![0];
+		expect(saved.workspaces[saved.active]!.panels.history!.float.x).toBe(start + 8);
 	});
 
 	it('puts the panels back with Ctrl+Shift+0', async () => {
 		const user = userEvent.setup();
-		const { layoutClient } = mount();
+		mount();
 		const history = await screen.findByRole('region', { name: 'History' });
 		const start = history.style.getPropertyValue('--fls-float-x');
 		within(history).getByRole('button', { name: 'Move History' }).focus();
 		await user.keyboard('{ArrowRight}');
 		expect(history.style.getPropertyValue('--fls-float-x')).not.toBe(start);
 		await user.keyboard('{Control>}{Shift>}0{/Shift}{/Control}');
-		await waitFor(() => expect(history.style.getPropertyValue('--fls-float-x')).toBe(start));
-		expect(layoutClient.reset).toHaveBeenCalledWith('main');
+		// Resetting returns the panels to the docks.
+		await waitFor(() =>
+			expect(screen.getByRole('region', { name: 'Left dock' })).toBeInTheDocument(),
+		);
 	});
 
 	it('does not show a panel that is hidden in the saved layout', async () => {
-		const layout = fallbackLayout();
-		layout.panels.proposals!.visible = false;
-		mount({ get: async () => layout });
+		const dock = floatingDock();
+		dock.workspaces[dock.active] = setPanelVisible(
+			dock.workspaces[dock.active]!,
+			'proposals',
+			false,
+		);
+		mount(dock);
 		await screen.findByRole('region', { name: 'Script' });
 		await waitFor(() => expect(screen.queryByRole('region', { name: 'Proposals' })).toBeNull());
 	});
 
 	it('hides and shows a panel from the Panels menu, and saves the choice', async () => {
 		const user = userEvent.setup();
-		const { layoutClient } = mount();
+		const { docks } = mount();
 		await screen.findByRole('region', { name: 'History' });
 		await user.click(screen.getByRole('button', { name: 'Panels' }));
 		await user.click(screen.getByRole('menuitemcheckbox', { name: 'History' }));
 		expect(screen.queryByRole('region', { name: 'History' })).toBeNull();
-		await waitFor(() => expect(layoutClient.save).toHaveBeenCalled(), { timeout: 2000 });
-		expect(vi.mocked(layoutClient.save).mock.calls.at(-1)![1].panels.history!.visible).toBe(false);
+		await waitFor(() => expect(docks.save).toHaveBeenCalled(), { timeout: 2000 });
+		const saved = vi.mocked(docks.save).mock.calls.at(-1)![0];
+		expect(saved.workspaces[saved.active]!.panels.history!.float.visible).toBe(false);
 		await user.click(screen.getByRole('menuitemcheckbox', { name: 'History' }));
 		expect(screen.getByRole('region', { name: 'History' })).toBeInTheDocument();
 	});
 
-	it('resets from the Panels menu', async () => {
+	it('resets from the Panels menu to the docked default', async () => {
 		const user = userEvent.setup();
-		const { layoutClient } = mount();
+		const { docks } = mount();
 		await screen.findByRole('region', { name: 'History' });
 		await user.click(screen.getByRole('button', { name: 'Panels' }));
 		await user.click(screen.getByRole('menuitem', { name: 'Reset layout' }));
-		expect(layoutClient.reset).toHaveBeenCalledWith('main');
+		expect(screen.queryByRole('region', { name: 'History' })).toBeNull();
+		expect(screen.getByRole('region', { name: 'Left dock' })).toBeInTheDocument();
+		await waitFor(() => expect(docks.save).toHaveBeenCalled(), { timeout: 2000 });
+		const saved = vi.mocked(docks.save).mock.calls.at(-1)![0];
+		const places = Object.values(saved.workspaces[saved.active]!.panels).map((e) => e.place);
+		expect(places.every((place) => place === 'docked')).toBe(true);
 	});
 });

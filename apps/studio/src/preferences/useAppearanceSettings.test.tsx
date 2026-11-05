@@ -19,6 +19,7 @@ const BASE: Settings = {
 	locale: 'en-CA',
 	recent_worlds: [],
 	layout: {},
+	dock: { active: '', workspaces: {} },
 };
 
 function snapshot(revision: number, over: Partial<Settings> = {}): SettingsSnapshot {

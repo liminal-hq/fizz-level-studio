@@ -65,7 +65,7 @@ describe('the application menu', () => {
 		});
 		await user.click(button);
 		await user.click(screen.getByRole('menuitem', { name: 'File' }));
-		expect(screen.getByRole('menuitem', { name: /Quit/ })).toHaveAttribute('aria-disabled', 'true');
+		expect(screen.getByRole('menuitem', { name: /Quit/ })).not.toHaveAttribute('aria-disabled');
 		expect(screen.getByRole('menuitem', { name: /Close level/ })).toHaveAttribute(
 			'aria-disabled',
 			'true',

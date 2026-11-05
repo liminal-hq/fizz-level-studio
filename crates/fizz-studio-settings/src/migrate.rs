@@ -8,6 +8,9 @@
 // current one.
 
 use fizz_studio_protocol::PanelLayout;
+
+use crate::dock::default_dock;
+use crate::layout::MAIN_KIND;
 use serde_json::{json, Value};
 
 /// One step: turns the `settings` value of version `from` into that of version `from + 1`.
@@ -27,7 +30,49 @@ pub const MIGRATIONS: &[Migration] = &[
         from: 2,
         apply: add_accent_and_glass,
     },
+    Migration {
+        from: 3,
+        apply: add_dock,
+    },
 ];
+
+/// Version 4 adds the dock: named workspaces of docked, floating and torn-off panels.
+///
+/// Version 3 saved only floating rectangles, and the new default arrangement docks every panel, so
+/// the old arrangement is not carried over as one; the dock starts from the defaults and no panel
+/// can be lost. What is kept is the rectangles: when the owner had saved floating positions for
+/// the editor window, each panel's remembered floating rectangle in every default workspace is
+/// that saved one, so floating a panel puts it where the owner had left it. With no saved
+/// positions the dock is left empty, which means the defaults (`resolve_dock`). A file that
+/// already has a dock keeps it.
+fn add_dock(mut settings: Value) -> Result<Value, String> {
+    let object = settings
+        .as_object_mut()
+        .ok_or("settings is not an object")?;
+    if object.contains_key("dock") {
+        return Ok(settings);
+    }
+    let saved = object
+        .get("layout")
+        .and_then(|layouts| layouts.get(MAIN_KIND))
+        .and_then(|main| serde_json::from_value::<PanelLayout>(main.clone()).ok());
+    let Some(saved) = saved.filter(|layout| !layout.panels.is_empty()) else {
+        return Ok(settings);
+    };
+    let mut dock = default_dock();
+    for workspace in dock.workspaces.values_mut() {
+        for (id, entry) in &mut workspace.panels {
+            if let Some(place) = saved.panels.get(id) {
+                entry.float = *place;
+            }
+        }
+    }
+    object.insert(
+        "dock".to_owned(),
+        serde_json::to_value(dock).map_err(|e| e.to_string())?,
+    );
+    Ok(settings)
+}
 
 /// Version 3 adds the accent choice and the glass setting. A file that already has either keeps
 /// it; otherwise each takes its default, the system's.

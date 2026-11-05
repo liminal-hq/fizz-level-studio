@@ -6,7 +6,7 @@
 import type { WordDoc } from '@liminal-hq/fizz-studio-protocol/generated/WordDoc';
 import { useState, type KeyboardEvent } from 'react';
 import { t, type MessageId } from '../i18n/messages';
-import { BRUSH_GROUPS, sameBrush, wordsOf, type Brush, type BrushGroup } from '../tools/brush';
+import { BRUSH_GROUPS, brushWords, sameBrush, type Brush, type BrushGroup } from '../tools/brush';
 import { brushSwatch } from '../tools/swatch';
 import styles from './PalettePanel.module.css';
 
@@ -44,11 +44,7 @@ export function PalettePanel({ tiles, words: docs, brush, onBrush }: PalettePane
 		setLastGroup(brush.group);
 		setShown(brush.group);
 	}
-	// The documented items and enemies lead when the backend has sent them; the built-in lists
-	// stand in until then, so the palette is never empty.
-	const documented = docs.filter((doc) => doc.kind === shown).map((doc) => doc.word);
-	const words =
-		shown !== 'tile' && documented.length > 0 ? documented : wordsOf(shown, { palette: tiles });
+	const words = brushWords(shown, tiles, docs);
 	const noteOf = (word: string) =>
 		docs.find((doc) => doc.word === word && doc.kind === (shown === 'tile' ? 'tile' : shown))
 			?.note || undefined;

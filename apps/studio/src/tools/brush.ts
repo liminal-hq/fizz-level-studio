@@ -78,3 +78,18 @@ export function wordsOf(
 	if (group === 'enemy') return ENEMY_WORDS;
 	return view.palette.filter((word) => word !== 'empty');
 }
+
+/**
+ * The words the palette offers for a group: the documented items and enemies lead when the
+ * backend has sent them, and the built-in lists stand in until then, so the list is never empty.
+ */
+export function brushWords(
+	group: BrushGroup,
+	tiles: readonly string[],
+	docs: readonly { word: string; kind: string }[],
+): readonly string[] {
+	const documented = docs.filter((doc) => doc.kind === group).map((doc) => doc.word);
+	return group !== 'tile' && documented.length > 0
+		? documented
+		: wordsOf(group, { palette: tiles });
+}

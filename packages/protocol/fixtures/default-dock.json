@@ -1,0 +1,489 @@
+{
+	"limits": {
+		"side_min": 160,
+		"bottom_min": 96,
+		"cap_percent": 30,
+		"rail": 36,
+		"tool_column": 64,
+		"top_chrome": 124
+	},
+	"active": "Paint",
+	"default": {
+		"panels": {
+			"palette": {
+				"place": "docked",
+				"home": "left",
+				"float": {
+					"x": 76,
+					"y": 8,
+					"w": 252,
+					"h": 300,
+					"collapsed": false,
+					"visible": true,
+					"z": 1
+				},
+				"window": null,
+				"window_from": "docked"
+			},
+			"objects": {
+				"place": "docked",
+				"home": "right",
+				"float": {
+					"x": 336,
+					"y": 126,
+					"w": 260,
+					"h": 300,
+					"collapsed": false,
+					"visible": true,
+					"z": 2
+				},
+				"window": null,
+				"window_from": "docked"
+			},
+			"history": {
+				"place": "docked",
+				"home": "right",
+				"float": {
+					"x": 336,
+					"y": 8,
+					"w": 380,
+					"h": 110,
+					"collapsed": false,
+					"visible": true,
+					"z": 3
+				},
+				"window": null,
+				"window_from": "docked"
+			},
+			"proposals": {
+				"place": "docked",
+				"home": "bottom",
+				"float": {
+					"x": 76,
+					"y": 316,
+					"w": 252,
+					"h": 200,
+					"collapsed": true,
+					"visible": true,
+					"z": 4
+				},
+				"window": null,
+				"window_from": "docked"
+			},
+			"script": {
+				"place": "docked",
+				"home": "bottom",
+				"float": {
+					"x": 812,
+					"y": 8,
+					"w": 460,
+					"h": 420,
+					"collapsed": false,
+					"visible": true,
+					"z": 5
+				},
+				"window": null,
+				"window_from": "docked"
+			}
+		},
+		"zones": {
+			"left": {
+				"size": 196,
+				"collapsed": false,
+				"groups": [
+					{
+						"tabs": [
+							"palette"
+						],
+						"active": "palette"
+					}
+				]
+			},
+			"right": {
+				"size": 264,
+				"collapsed": false,
+				"groups": [
+					{
+						"tabs": [
+							"objects",
+							"history"
+						],
+						"active": "objects"
+					}
+				]
+			},
+			"bottom": {
+				"size": 180,
+				"collapsed": false,
+				"groups": [
+					{
+						"tabs": [
+							"script",
+							"proposals"
+						],
+						"active": "script"
+					}
+				]
+			}
+		}
+	},
+	"workspaces": {
+		"Paint": {
+			"panels": {
+				"palette": {
+					"place": "docked",
+					"home": "left",
+					"float": {
+						"x": 76,
+						"y": 8,
+						"w": 252,
+						"h": 300,
+						"collapsed": false,
+						"visible": true,
+						"z": 1
+					},
+					"window": null,
+					"window_from": "docked"
+				},
+				"objects": {
+					"place": "docked",
+					"home": "right",
+					"float": {
+						"x": 336,
+						"y": 126,
+						"w": 260,
+						"h": 300,
+						"collapsed": false,
+						"visible": true,
+						"z": 2
+					},
+					"window": null,
+					"window_from": "docked"
+				},
+				"history": {
+					"place": "docked",
+					"home": "right",
+					"float": {
+						"x": 336,
+						"y": 8,
+						"w": 380,
+						"h": 110,
+						"collapsed": false,
+						"visible": true,
+						"z": 3
+					},
+					"window": null,
+					"window_from": "docked"
+				},
+				"proposals": {
+					"place": "docked",
+					"home": "bottom",
+					"float": {
+						"x": 76,
+						"y": 316,
+						"w": 252,
+						"h": 200,
+						"collapsed": true,
+						"visible": true,
+						"z": 4
+					},
+					"window": null,
+					"window_from": "docked"
+				},
+				"script": {
+					"place": "docked",
+					"home": "bottom",
+					"float": {
+						"x": 812,
+						"y": 8,
+						"w": 460,
+						"h": 420,
+						"collapsed": false,
+						"visible": true,
+						"z": 5
+					},
+					"window": null,
+					"window_from": "docked"
+				}
+			},
+			"zones": {
+				"left": {
+					"size": 196,
+					"collapsed": false,
+					"groups": [
+						{
+							"tabs": [
+								"palette"
+							],
+							"active": "palette"
+						}
+					]
+				},
+				"right": {
+					"size": 264,
+					"collapsed": false,
+					"groups": [
+						{
+							"tabs": [
+								"objects",
+								"history"
+							],
+							"active": "objects"
+						}
+					]
+				},
+				"bottom": {
+					"size": 180,
+					"collapsed": false,
+					"groups": [
+						{
+							"tabs": [
+								"script",
+								"proposals"
+							],
+							"active": "script"
+						}
+					]
+				}
+			}
+		},
+		"Review": {
+			"panels": {
+				"palette": {
+					"place": "docked",
+					"home": "left",
+					"float": {
+						"x": 76,
+						"y": 8,
+						"w": 252,
+						"h": 300,
+						"collapsed": false,
+						"visible": true,
+						"z": 1
+					},
+					"window": null,
+					"window_from": "docked"
+				},
+				"objects": {
+					"place": "docked",
+					"home": "right",
+					"float": {
+						"x": 336,
+						"y": 126,
+						"w": 260,
+						"h": 300,
+						"collapsed": false,
+						"visible": true,
+						"z": 2
+					},
+					"window": null,
+					"window_from": "docked"
+				},
+				"history": {
+					"place": "docked",
+					"home": "right",
+					"float": {
+						"x": 336,
+						"y": 8,
+						"w": 380,
+						"h": 110,
+						"collapsed": false,
+						"visible": true,
+						"z": 3
+					},
+					"window": null,
+					"window_from": "docked"
+				},
+				"proposals": {
+					"place": "docked",
+					"home": "right",
+					"float": {
+						"x": 76,
+						"y": 316,
+						"w": 252,
+						"h": 200,
+						"collapsed": true,
+						"visible": true,
+						"z": 4
+					},
+					"window": null,
+					"window_from": "docked"
+				},
+				"script": {
+					"place": "docked",
+					"home": "bottom",
+					"float": {
+						"x": 812,
+						"y": 8,
+						"w": 460,
+						"h": 420,
+						"collapsed": false,
+						"visible": true,
+						"z": 5
+					},
+					"window": null,
+					"window_from": "docked"
+				}
+			},
+			"zones": {
+				"left": {
+					"size": 196,
+					"collapsed": true,
+					"groups": [
+						{
+							"tabs": [
+								"palette"
+							],
+							"active": "palette"
+						}
+					]
+				},
+				"right": {
+					"size": 340,
+					"collapsed": false,
+					"groups": [
+						{
+							"tabs": [
+								"proposals",
+								"objects",
+								"history"
+							],
+							"active": "proposals"
+						}
+					]
+				},
+				"bottom": {
+					"size": 180,
+					"collapsed": true,
+					"groups": [
+						{
+							"tabs": [
+								"script"
+							],
+							"active": "script"
+						}
+					]
+				}
+			}
+		},
+		"Script": {
+			"panels": {
+				"palette": {
+					"place": "docked",
+					"home": "left",
+					"float": {
+						"x": 76,
+						"y": 8,
+						"w": 252,
+						"h": 300,
+						"collapsed": false,
+						"visible": true,
+						"z": 1
+					},
+					"window": null,
+					"window_from": "docked"
+				},
+				"objects": {
+					"place": "docked",
+					"home": "right",
+					"float": {
+						"x": 336,
+						"y": 126,
+						"w": 260,
+						"h": 300,
+						"collapsed": false,
+						"visible": true,
+						"z": 2
+					},
+					"window": null,
+					"window_from": "docked"
+				},
+				"history": {
+					"place": "docked",
+					"home": "right",
+					"float": {
+						"x": 336,
+						"y": 8,
+						"w": 380,
+						"h": 110,
+						"collapsed": false,
+						"visible": true,
+						"z": 3
+					},
+					"window": null,
+					"window_from": "docked"
+				},
+				"proposals": {
+					"place": "docked",
+					"home": "bottom",
+					"float": {
+						"x": 76,
+						"y": 316,
+						"w": 252,
+						"h": 200,
+						"collapsed": true,
+						"visible": true,
+						"z": 4
+					},
+					"window": null,
+					"window_from": "docked"
+				},
+				"script": {
+					"place": "docked",
+					"home": "bottom",
+					"float": {
+						"x": 812,
+						"y": 8,
+						"w": 460,
+						"h": 420,
+						"collapsed": false,
+						"visible": true,
+						"z": 5
+					},
+					"window": null,
+					"window_from": "docked"
+				}
+			},
+			"zones": {
+				"left": {
+					"size": 196,
+					"collapsed": true,
+					"groups": [
+						{
+							"tabs": [
+								"palette"
+							],
+							"active": "palette"
+						}
+					]
+				},
+				"right": {
+					"size": 264,
+					"collapsed": false,
+					"groups": [
+						{
+							"tabs": [
+								"objects",
+								"history"
+							],
+							"active": "objects"
+						}
+					]
+				},
+				"bottom": {
+					"size": 260,
+					"collapsed": false,
+					"groups": [
+						{
+							"tabs": [
+								"script",
+								"proposals"
+							],
+							"active": "script"
+						}
+					]
+				}
+			}
+		}
+	}
+}

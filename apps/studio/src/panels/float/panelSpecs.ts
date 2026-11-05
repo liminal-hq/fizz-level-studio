@@ -5,6 +5,7 @@
 
 import type { PanelLayout } from '@liminal-hq/fizz-studio-protocol/generated/PanelLayout';
 import type { MessageId } from '../../i18n/messages';
+import { defaultWorkspace } from '../dock/dockModel';
 import type { Size } from './panelGeometry';
 
 /** The window kind whose layout the editor saves. */
@@ -29,26 +30,12 @@ export const PANEL_SPECS: readonly PanelSpec[] = [
 
 /**
  * The arrangement used until Rust answers, and where the settings plugin does not exist (the
- * webview served alone). It matches `default_layout("main")` in the settings crate, which is the
- * one that is saved and reset.
+ * webview served alone): the floating rectangles of the fixed default workspace. They come from
+ * the fixture that the settings crate's `default_layout("main")` is tested against, so the two
+ * cannot drift apart.
  */
 export function fallbackLayout(): PanelLayout {
-	const place = (x: number, y: number, w: number, h: number, collapsed: boolean, z: number) => ({
-		x,
-		y,
-		w,
-		h,
-		collapsed,
-		visible: true,
-		z,
-	});
-	return {
-		panels: {
-			palette: place(76, 8, 252, 300, false, 1),
-			objects: place(336, 126, 260, 300, false, 2),
-			history: place(336, 8, 380, 110, false, 3),
-			proposals: place(76, 316, 252, 200, true, 4),
-			script: place(812, 8, 460, 420, false, 5),
-		},
-	};
+	const panels: PanelLayout['panels'] = {};
+	for (const [id, entry] of Object.entries(defaultWorkspace().panels)) panels[id] = entry.float;
+	return { panels };
 }

@@ -10,7 +10,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { resetActiveLocale } from '../i18n/active';
 import { activateLocale } from '../i18n/loadCatalogue';
 import type { LaunchClient } from '../services/launchClient';
+import type {
+	QuitAnswer,
+	QuitClient,
+	QuitCommitDecision,
+	QuitOutcome,
+} from '../services/quitClient';
 import type { RecentClient } from '../services/recentClient';
+import { fakeDockClient, floatingDock } from '../test/dockFixtures';
 import { levelSnapshot, levelView } from '../test/levelFixtures';
 import { FakeLevelClient } from '../worlds/fakeLevelClient';
 import { FakeRecoveryClient } from '../worlds/fakeRecoveryClient';
@@ -101,6 +108,42 @@ class FakeRecents implements RecentClient {
 	}
 }
 
+/** A quit backend: the test plays Rust by calling `ask`, and reads the answers back. */
+class FakeQuit implements QuitClient {
+	requests = 0;
+	answers: { round: number; answer: QuitAnswer }[] = [];
+	listener: ((round: number) => void) | null = null;
+	async request() {
+		this.requests += 1;
+	}
+	onRequested(listener: (round: number) => void) {
+		this.listener = listener;
+		return () => {
+			this.listener = null;
+		};
+	}
+	commitListener: ((round: number, decision: QuitCommitDecision) => void) | null = null;
+	confirms: { round: number; outcome: QuitOutcome }[] = [];
+	onCommit(listener: (round: number, decision: QuitCommitDecision) => void) {
+		this.commitListener = listener;
+		return () => {
+			this.commitListener = null;
+		};
+	}
+	async answer(round: number, answer: QuitAnswer) {
+		this.answers.push({ round, answer });
+	}
+	async confirm(round: number, outcome: QuitOutcome) {
+		this.confirms.push({ round, outcome });
+	}
+	ask(round: number) {
+		act(() => this.listener?.(round));
+	}
+	commit(round: number, decision: QuitCommitDecision) {
+		act(() => this.commitListener?.(round, decision));
+	}
+}
+
 function setup(
 	options: {
 		recent?: string[];
@@ -124,6 +167,7 @@ function setup(
 		options.pick === undefined ? '/levels/a.fizz' : options.pick,
 	);
 	const recovery = options.recovery ?? new FakeRecoveryClient();
+	const quit = new FakeQuit();
 	render(
 		<MainScreen
 			client={client}
@@ -131,10 +175,13 @@ function setup(
 			launch={launch}
 			pickFile={pickFile}
 			recovery={recovery}
+			docks={fakeDockClient(floatingDock())}
+			quit={quit}
 		/>,
 	);
 	return {
 		client,
+		quit,
 		recents,
 		pickFile,
 		recovery,
@@ -545,5 +592,209 @@ describe('the application menu', () => {
 		await user.click(screen.getByRole('menuitem', { name: /Close level/ }));
 		await waitFor(() => expect(client.closed.length).toBe(1));
 		await screen.findByRole('heading', { name: 'Fizz Level Studio' });
+	});
+});
+
+describe('the command palette', () => {
+	const pressShortcut = () =>
+		act(() => {
+			window.dispatchEvent(
+				new KeyboardEvent('keydown', {
+					key: 'P',
+					ctrlKey: true,
+					shiftKey: true,
+					bubbles: true,
+					cancelable: true,
+				}),
+			);
+		});
+
+	it('opens and closes with Ctrl+Shift+P on the start screen', async () => {
+		const user = userEvent.setup();
+		setup();
+		await user.keyboard('{Control>}{Shift>}P{/Shift}{/Control}');
+		expect(screen.getByRole('dialog', { name: 'Command palette' })).toBeInTheDocument();
+		await user.keyboard('{Control>}{Shift>}P{/Shift}{/Control}');
+		expect(screen.queryByRole('dialog')).toBeNull();
+	});
+
+	it('opens even when the focused element stops key events from bubbling', async () => {
+		const user = userEvent.setup();
+		setup();
+		await openFromDialog(user);
+		const field = document.createElement('div');
+		field.tabIndex = 0;
+		field.addEventListener('keydown', (event) => event.stopPropagation());
+		document.body.append(field);
+		field.focus();
+		pressShortcut();
+		expect(screen.getByRole('dialog', { name: 'Command palette' })).toBeInTheDocument();
+		field.remove();
+	});
+
+	it('is offered by the View menu with its keys', async () => {
+		const user = userEvent.setup();
+		setup();
+		await user.click(
+			within(screen.getByRole('menubar', { name: 'Application menu' })).getByRole('menuitem', {
+				name: 'View',
+			}),
+		);
+		const row = screen.getByRole('menuitem', { name: /Command palette…/ });
+		expect(row).toHaveTextContent('Ctrl+Shift+P');
+		await user.click(row);
+		expect(screen.getByRole('dialog', { name: 'Command palette' })).toBeInTheDocument();
+	});
+
+	it('runs Preferences from the palette', async () => {
+		const user = userEvent.setup();
+		openWindow.mockClear();
+		setup();
+		pressShortcut();
+		await user.type(screen.getByRole('combobox'), 'prefer{Enter}');
+		expect(openWindow).toHaveBeenCalledWith({ kind: 'preferences' });
+		expect(screen.queryByRole('dialog')).toBeNull();
+	});
+
+	it('chooses a tool and a brush in the editor', async () => {
+		const user = userEvent.setup();
+		setup();
+		await openFromDialog(user);
+		pressShortcut();
+		await user.type(screen.getByRole('combobox'), 'erase{Enter}');
+		await waitFor(() =>
+			expect(screen.getByRole('button', { name: /^Erase/ })).toHaveAttribute(
+				'aria-pressed',
+				'true',
+			),
+		);
+		pressShortcut();
+		await user.type(screen.getByRole('combobox'), 'brush: gloop{Enter}');
+		await waitFor(() => expect(screen.getByText('Brush: gloop')).toBeInTheDocument());
+		expect(screen.getByRole('button', { name: /^Paint/ })).toHaveAttribute('aria-pressed', 'true');
+	});
+
+	it('hides a panel from the palette', async () => {
+		const user = userEvent.setup();
+		setup();
+		await openFromDialog(user);
+		expect(screen.getByRole('region', { name: 'History' })).toBeInTheDocument();
+		pressShortcut();
+		await user.type(screen.getByRole('combobox'), 'hide history{Enter}');
+		await waitFor(() => expect(screen.queryByRole('region', { name: 'History' })).toBeNull());
+	});
+
+	it('goes to a line, showing the Script panel if it was hidden', async () => {
+		const user = userEvent.setup();
+		setup();
+		await openFromDialog(user);
+		pressShortcut();
+		await user.type(screen.getByRole('combobox'), 'hide script{Enter}');
+		await waitFor(() => expect(screen.queryByRole('region', { name: 'Script' })).toBeNull());
+		pressShortcut();
+		await user.type(screen.getByRole('combobox'), 'go to line{Enter}');
+		await user.type(screen.getByRole('textbox', { name: 'Line number' }), '1{Enter}');
+		expect(await screen.findByRole('region', { name: 'Script' })).toBeInTheDocument();
+		expect(screen.queryByRole('dialog')).toBeNull();
+	});
+
+	it('dims editor commands on the start screen', async () => {
+		const user = userEvent.setup();
+		setup();
+		pressShortcut();
+		await user.type(screen.getByRole('combobox'), 'erase');
+		expect(screen.getByRole('option', { name: /Erase/ })).toHaveAttribute('aria-disabled', 'true');
+	});
+});
+
+describe('quitting the app', () => {
+	async function askDirty() {
+		const user = userEvent.setup();
+		const ctx = setup();
+		ctx.client.dirty = true;
+		await openFromDialog(user);
+		ctx.quit.ask(1);
+		const dialog = await screen.findByRole('dialog', { name: 'Save changes to Crater Fields?' });
+		return { user, dialog, ...ctx };
+	}
+
+	it('is ready at once on the start screen', () => {
+		const { quit } = setup();
+		quit.ask(1);
+		expect(quit.answers).toEqual([{ round: 1, answer: 'ready' }]);
+		expect(screen.queryByRole('dialog')).toBeNull();
+	});
+
+	it('is ready at once with a level that has no unsaved changes, and does nothing at commit', async () => {
+		const user = userEvent.setup();
+		const { quit, client } = setup();
+		await openFromDialog(user);
+		quit.ask(2);
+		expect(quit.answers).toEqual([{ round: 2, answer: 'ready' }]);
+		expect(screen.queryByRole('dialog')).toBeNull();
+		expect(client.closed).toEqual([]);
+		expect(client.saves).toBe(0);
+	});
+
+	it('Cancel answers cancel and leaves the level untouched', async () => {
+		const { user, dialog, quit, client } = await askDirty();
+		expect(quit.answers).toEqual([]);
+		await user.click(within(dialog).getByRole('button', { name: 'Cancel' }));
+		expect(quit.answers).toEqual([{ round: 1, answer: 'cancel' }]);
+		expect(screen.queryByRole('dialog')).toBeNull();
+		expect(client.saves).toBe(0);
+		expect(client.closed).toEqual([]);
+		expect(screen.getByRole('group', { name: 'Level editor' })).toBeInTheDocument();
+	});
+
+	it('Save is only recorded when chosen, and the level is saved at commit', async () => {
+		const { user, dialog, quit, client } = await askDirty();
+		await user.click(within(dialog).getByRole('button', { name: 'Save' }));
+		expect(quit.answers).toEqual([{ round: 1, answer: 'save' }]);
+		expect(client.saves).toBe(0);
+		expect(screen.queryByRole('dialog')).toBeNull();
+		quit.commit(1, 'save');
+		await waitFor(() => expect(quit.confirms).toEqual([{ round: 1, outcome: 'done' }]));
+		expect(client.saves).toBe(1);
+		expect(client.closed).toEqual([]);
+	});
+
+	it('a failed save at commit reports failed, shows the error and leaves the level open', async () => {
+		const { user, dialog, quit, client } = await askDirty();
+		client.failSave = true;
+		await user.click(within(dialog).getByRole('button', { name: 'Save' }));
+		expect(client.saves).toBe(0);
+		quit.commit(1, 'save');
+		await waitFor(() => expect(quit.confirms).toEqual([{ round: 1, outcome: 'failed' }]));
+		expect(await screen.findByText('The level could not be saved.')).toBeInTheDocument();
+		expect(screen.getByRole('group', { name: 'Level editor' })).toBeInTheDocument();
+	});
+
+	it('Discard is only recorded when chosen, and the level is closed at commit', async () => {
+		const { user, dialog, quit, client } = await askDirty();
+		await user.click(within(dialog).getByRole('button', { name: 'Discard' }));
+		expect(quit.answers).toEqual([{ round: 1, answer: 'discard' }]);
+		expect(client.closed).toEqual([]);
+		expect(screen.getByRole('group', { name: 'Level editor' })).toBeInTheDocument();
+		quit.commit(1, 'discard');
+		await waitFor(() => expect(quit.confirms).toEqual([{ round: 1, outcome: 'done' }]));
+		expect(client.saves).toBe(0);
+		expect(client.closed).toEqual(['level-1']);
+	});
+
+	it('answers a newer request with its own round', async () => {
+		const { user, quit } = await askDirty();
+		quit.ask(8);
+		await user.click(
+			within(await screen.findByRole('dialog')).getByRole('button', { name: 'Cancel' }),
+		);
+		expect(quit.answers).toEqual([{ round: 8, answer: 'cancel' }]);
+	});
+
+	it('asks the app to quit with Ctrl+Q', async () => {
+		const user = userEvent.setup();
+		const { quit } = setup();
+		await user.keyboard('{Control>}q{/Control}');
+		expect(quit.requests).toBe(1);
 	});
 });

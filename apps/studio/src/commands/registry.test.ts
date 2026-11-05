@@ -13,7 +13,21 @@ vi.mock('../services/windowsClient', () => ({ openWindow }));
 
 import { appMenuItems, APP_MENU_MNEMONICS } from './appMenuModel';
 import { createCommandBridge, NO_FACTS, type BridgeSnapshot } from './commandBridge';
-import { COMMANDS, runCommand, viewOf } from './registry';
+import {
+	COMMANDS,
+	PALETTE_COMMANDS,
+	PALETTE_GROUPS,
+	allCommands,
+	brushCommandId,
+	brushCommands,
+	commandLabel,
+	paletteGroupOf,
+	runCommand,
+	toolCommandId,
+	viewOf,
+} from './registry';
+import { paletteEntries } from './paletteModel';
+import { TOOL_IDS } from '../tools/tool';
 
 const snapshot = (
 	facts: Partial<BridgeSnapshot['facts']> = {},
@@ -44,6 +58,20 @@ describe('the registry', () => {
 		}
 	});
 
+	it('lists Show the level only in the View menu with the Tab key, checked while it is on', () => {
+		const handlers = { 'view.levelFirst': () => {} };
+		const rows = rowsOf(
+			appMenuItems(snapshot({ editorOpen: true, levelFirst: true }, handlers)),
+			'menu:view',
+		);
+		const row = rows.find((item) => 'label' in item && item.label === 'Show the level only');
+		expect(row).toMatchObject({ shortcut: 'Tab', checked: true });
+		const off = rowsOf(appMenuItems(snapshot({ editorOpen: false }, handlers)), 'menu:view');
+		expect(
+			off.find((item) => 'label' in item && item.label === 'Show the level only'),
+		).toHaveProperty('disabled', true);
+	});
+
 	it('enables the level commands only with a level open and a handler', () => {
 		const handlers = { 'file.save': () => {}, 'file.close': () => {} };
 		const save = COMMANDS.find((command) => command.id === 'file.save')!;
@@ -61,11 +89,11 @@ describe('the registry', () => {
 		expect(redo).toMatchObject({ label: 'Redo', disabled: true });
 	});
 
-	it('never enables Quit, and says why', () => {
-		const items = appMenuItems(snapshot({ hasLevel: true }, { 'file.quit': () => {} }));
+	it('always enables Quit, with its shortcut', () => {
+		const items = appMenuItems(snapshot({}, {}));
 		const quit = rowsOf(items, 'menu:file').find((item) => item.id === 'file.quit');
-		expect(quit).toMatchObject({ disabled: true, title: expect.stringContaining('not available') });
-		expect(runCommand('file.quit', snapshot({}, { 'file.quit': () => {} }))).toBe(false);
+		expect(quit).toMatchObject({ label: 'Quit', shortcut: 'Ctrl+Q' });
+		expect(quit).not.toHaveProperty('disabled');
 	});
 
 	it('checks the panel rows from the panels shown', () => {
@@ -124,5 +152,94 @@ describe('the bridge', () => {
 		bridge.setHandlers({ b: () => {} });
 		remove();
 		expect(Object.keys(bridge.getSnapshot().handlers)).toEqual(['b']);
+	});
+});
+
+describe('the palette additions', () => {
+	const facts = {
+		hasLevel: true,
+		editorOpen: true,
+		brushes: [
+			{ group: 'tile', kind: 'block' },
+			{ group: 'enemy', kind: 'gloop' },
+		] as const,
+		lineCount: 30,
+	};
+
+	it('adds Command palette… to the View menu with its keys', () => {
+		const view = rowsOf(appMenuItems(snapshot()), 'menu:view');
+		expect(view.find((item) => item.id === 'view.commandPalette')).toMatchObject({
+			label: 'Command palette…',
+			shortcut: 'Ctrl+Shift+P',
+		});
+	});
+
+	it('leaves the menus alone: palette-only commands have no menu', () => {
+		for (const command of PALETTE_COMMANDS) expect(command.menu).toBeUndefined();
+		const rows = appMenuItems(snapshot(facts)).flatMap((menu) =>
+			menu.type === 'submenu' ? menu.items.map((row) => row.id ?? '') : [],
+		);
+		expect(rows.some((id) => id.startsWith('tool.') || id.startsWith('brush.'))).toBe(false);
+	});
+
+	it('has a tool command per tool and takes every label from the catalogue', () => {
+		for (const tool of TOOL_IDS) {
+			expect(PALETTE_COMMANDS.some((command) => command.id === toolCommandId(tool))).toBe(true);
+		}
+		for (const command of allCommands(snapshot(facts).facts)) {
+			expect(enMessages).toHaveProperty(command.label);
+		}
+	});
+
+	it('has unique ids across the menu, the palette and the brushes', () => {
+		const ids = allCommands(snapshot(facts).facts).map((command) => command.id);
+		expect(new Set(ids).size).toBe(ids.length);
+	});
+
+	it('names a brush command after its word and runs it through its handler', () => {
+		const [tile] = brushCommands(facts.brushes);
+		expect(commandLabel(tile!)).toBe('Brush: block');
+		const choose = vi.fn();
+		const id = brushCommandId({ group: 'enemy', kind: 'gloop' });
+		expect(id).toBe('brush.enemy.gloop');
+		expect(runCommand(id, snapshot(facts, { [id]: choose }))).toBe(true);
+		expect(choose).toHaveBeenCalledOnce();
+		expect(runCommand(id, snapshot({ ...facts, editorOpen: false }, { [id]: choose }))).toBe(false);
+	});
+
+	it('passes the asked-for value to Go to line, and needs lines to go to', () => {
+		const go = vi.fn();
+		expect(runCommand('goto.line', snapshot(facts, { 'goto.line': go }), '7')).toBe(true);
+		expect(go).toHaveBeenCalledWith('7');
+		expect(runCommand('goto.line', snapshot({ ...facts, lineCount: 0 }, { 'goto.line': go }))).toBe(
+			false,
+		);
+	});
+
+	it('groups the entries in the palette order with panels under Panels', () => {
+		const entries = paletteEntries(snapshot(facts));
+		const groups = entries.map((entry) => entry.group);
+		const order = groups.map((group) => PALETTE_GROUPS.indexOf(group));
+		expect(order).toEqual([...order].sort((a, b) => a - b));
+		const panel = entries.find((entry) => entry.id === 'view.panel.script')!;
+		expect(panel.group).toBe('panels');
+		expect(panel.label).toBe('Show Script');
+		expect(
+			paletteEntries(snapshot({ ...facts, panels: { ...NO_FACTS.panels, script: true } })).find(
+				(entry) => entry.id === 'view.panel.script',
+			)?.label,
+		).toBe('Hide Script');
+		expect(entries.find((entry) => entry.id === 'view.resetLayout')?.group).toBe('panels');
+		expect(paletteGroupOf(COMMANDS.find((c) => c.id === 'file.save')!)).toBe('file');
+	});
+
+	it('lists every command, never the opener, and dims what cannot run with a reason', () => {
+		const entries = paletteEntries(snapshot({ hasLevel: false, editorOpen: false }));
+		expect(entries.some((entry) => entry.id === 'view.commandPalette')).toBe(false);
+		const save = entries.find((entry) => entry.id === 'file.save')!;
+		expect(save).toMatchObject({ enabled: false, reason: 'Open a level first' });
+		const quit = entries.find((entry) => entry.id === 'file.quit')!;
+		expect(quit).toMatchObject({ enabled: true, shortcut: 'Ctrl+Q' });
+		expect(entries.find((entry) => entry.id === 'window.about')?.enabled).toBe(true);
 	});
 });

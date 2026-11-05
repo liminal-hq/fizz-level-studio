@@ -8,10 +8,13 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import {
 	CommandBridgeContext,
 	createCommandBridge,
+	useBridgeSnapshot,
 	type CommandBridge,
 } from '../commands/commandBridge';
+import { CommandPalette, isCommandPaletteShortcut } from '../commands/CommandPalette';
 import { t, type MessageId } from '../i18n/messages';
 import { launchClient, type LaunchClient } from '../services/launchClient';
+import { quitClient, type QuitClient } from '../services/quitClient';
 import { pickLevelFile, type PickLevelFile } from '../services/filePicker';
 import { openWindow } from '../services/windowsClient';
 import { recentClient, type RecentClient } from '../services/recentClient';
@@ -26,6 +29,7 @@ import {
 import { AppMenu } from './AppMenu';
 import { AppMenuBar } from './AppMenuBar';
 import { AppWindow } from './AppWindow';
+import type { DockClient } from '../services/dockClient';
 import { CloseLevelDialog } from './CloseLevelDialog';
 import { EditorScreen } from './EditorScreen';
 import styles from './MainScreen.module.css';
@@ -43,6 +47,10 @@ export interface MainScreenProps {
 	pickFile?: PickLevelFile;
 	/** The crash-recovery copies; defaults to the worlds plugin. */
 	recovery?: RecoveryClient;
+	/** Where the editor's dock layout is read and saved. Defaults to the settings plugin. */
+	docks?: DockClient;
+	/** Quitting the app; defaults to the app's commands. */
+	quit?: QuitClient;
 }
 
 // One client for the app: it remembers each level's latest snapshot between calls.
@@ -78,6 +86,11 @@ function isPreferencesShortcut(event: KeyboardEvent): boolean {
 	return (event.ctrlKey || event.metaKey) && !event.altKey && event.key === ',';
 }
 
+/** True for the keys that mean Quit: Ctrl+Q. */
+function isQuitShortcut(event: KeyboardEvent): boolean {
+	return event.ctrlKey && !event.metaKey && !event.altKey && event.key.toLowerCase() === 'q';
+}
+
 /** The main window: provides the command bridge the application menu reads, then the screen. */
 export function MainScreen(props: MainScreenProps) {
 	const [bridge] = useState(createCommandBridge);
@@ -95,6 +108,8 @@ function MainScreenBody({
 	launch = launchClient,
 	pickFile = pickLevelFile,
 	recovery = recoveryClient,
+	docks,
+	quit = quitClient,
 }: MainScreenProps & { bridge: CommandBridge }) {
 	/** The snapshot the level was opened from; the editor takes later ones from `level`. */
 	const [level, setLevel] = useState<LevelSnapshot | null>(null);
@@ -106,8 +121,12 @@ function MainScreenBody({
 	const [notice, setNotice] = useState(false);
 	const [conflict, setConflict] = useState<LevelConflict | null>(null);
 	const [asking, setAsking] = useState(false);
+	/** The quit round that is waiting on this window's Save, Discard or Cancel. */
+	const [quitRound, setQuitRound] = useState<number | null>(null);
 	const [busy, setBusy] = useState(false);
 	const launched = useRef(false);
+	const [paletteOpen, setPaletteOpen] = useState(false);
+	const bridgeSnapshot = useBridgeSnapshot();
 
 	const follow = useCallback((snapshot: LevelSnapshot) => {
 		const kept = levelRef.current ? newerSnapshot(levelRef.current, snapshot) : snapshot;
@@ -317,6 +336,70 @@ function MainScreenBody({
 		await closeNow();
 	};
 
+	// The app asks every main window before it quits, and acts only when all agree. Asking only
+	// records a decision: a window with nothing unsaved says ready at once; one with unsaved changes
+	// asks the same question as closing the level does, and its Save or Discard is carried out only
+	// when the app sends the commit. A newer request replaces an older one, so the answer always
+	// names the round that is current.
+	useEffect(
+		() =>
+			quit.onRequested((round) => {
+				const current = levelRef.current;
+				if (current && isDirty(current)) {
+					setAsking(false);
+					setQuitRound(round);
+				} else {
+					setQuitRound(null);
+					void quit.answer(round, 'ready').catch(() => {});
+				}
+			}),
+		[quit],
+	);
+
+	const answerQuit = async (answer: 'save' | 'discard' | 'cancel') => {
+		const round = quitRound;
+		setQuitRound(null);
+		if (round !== null) await quit.answer(round, answer).catch(() => {});
+	};
+
+	// Everyone agreed: carry the decision out and report. A failed save keeps the app open, with
+	// the usual save-failed error shown in this window; a discard closes the level, which drops
+	// its recovery copy so the discarded work is not offered back.
+	useEffect(
+		() =>
+			quit.onCommit((round, decision) => {
+				const report = (outcome: 'done' | 'failed') =>
+					void quit.confirm(round, outcome).catch(() => {});
+				const current = levelRef.current;
+				if (!current) return report('done');
+				if (decision === 'save') {
+					void save().then((saved) => report(saved ? 'done' : 'failed'));
+					return;
+				}
+				client.close(current.id).then(
+					() => {
+						dropLevel();
+						report('done');
+					},
+					() => {
+						setBanner({ id: 'main.closeFailed' });
+						report('failed');
+					},
+				);
+			}),
+		[quit, client, save, dropLevel],
+	);
+
+	useEffect(() => {
+		const onKey = (event: KeyboardEvent) => {
+			if (!isQuitShortcut(event)) return;
+			event.preventDefault();
+			void quit.request().catch(() => {});
+		};
+		document.addEventListener('keydown', onKey);
+		return () => document.removeEventListener('keydown', onKey);
+	}, [quit]);
+
 	useEffect(() => {
 		if (!level) return;
 		const onKey = (event: KeyboardEvent) => {
@@ -338,6 +421,19 @@ function MainScreenBody({
 		return () => document.removeEventListener('keydown', onKey);
 	}, []);
 
+	// Ctrl+Shift+P toggles the command palette on every screen. It is handled at the window in the
+	// capture phase, so it works with focus in the script editor, which never sees the key.
+	useEffect(() => {
+		const onKey = (event: KeyboardEvent) => {
+			if (!isCommandPaletteShortcut(event)) return;
+			event.preventDefault();
+			event.stopPropagation();
+			setPaletteOpen((was) => !was);
+		};
+		window.addEventListener('keydown', onKey, true);
+		return () => window.removeEventListener('keydown', onKey, true);
+	}, []);
+
 	// The application menu runs these through the bridge; the latest closures are read at call time.
 	const live = useRef({ choose, save, requestClose });
 	live.current = { choose, save, requestClose };
@@ -348,6 +444,7 @@ function MainScreenBody({
 				'file.open': () => void live.current.choose(),
 				'file.save': () => void live.current.save(),
 				'file.close': () => live.current.requestClose(),
+				'view.commandPalette': () => setPaletteOpen(true),
 			}),
 		[bridge],
 	);
@@ -437,6 +534,11 @@ function MainScreenBody({
 						)}
 					</section>
 				</main>
+				<CommandPalette
+					open={paletteOpen}
+					onClose={() => setPaletteOpen(false)}
+					snapshot={bridgeSnapshot}
+				/>
 			</AppWindow>
 		);
 	}
@@ -481,15 +583,33 @@ function MainScreenBody({
 					</section>
 				)}
 				<div className={styles.editorBody}>
-					<EditorScreen key={level.id} snapshot={level} client={client} onSnapshot={follow} />
+					<EditorScreen
+						key={level.id}
+						snapshot={level}
+						client={client}
+						onSnapshot={follow}
+						docks={docks}
+					/>
 				</div>
 			</div>
+			<CommandPalette
+				open={paletteOpen}
+				onClose={() => setPaletteOpen(false)}
+				snapshot={bridgeSnapshot}
+			/>
 			<CloseLevelDialog
 				open={asking}
 				name={name}
 				onSave={() => void saveAndClose()}
 				onDiscard={() => void discardAndClose()}
 				onCancel={() => setAsking(false)}
+			/>
+			<CloseLevelDialog
+				open={quitRound !== null}
+				name={name}
+				onSave={() => void answerQuit('save')}
+				onDiscard={() => void answerQuit('discard')}
+				onCancel={() => void answerQuit('cancel')}
 			/>
 		</AppWindow>
 	);
