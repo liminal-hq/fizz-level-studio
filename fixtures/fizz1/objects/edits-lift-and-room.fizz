@@ -1,0 +1,6 @@
+level "T" 40x20 ground=4 id=crater
+start 3,4
+blocks
+edits
+  hover from=1,5 to=4,5 speed=0.3
+  room x=2..6 y=4..8

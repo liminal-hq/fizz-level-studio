@@ -1,0 +1,62 @@
+{
+	"id": "edge/level-header-missing-id",
+	"from": "tools/fizz1-cases.ts: a level header without ground or id",
+	"ast": {
+		"nodes": [
+			{
+				"type": "error",
+				"code": "E003",
+				"line": 1,
+				"raw": "level \"T\" 40x20",
+				"comment": null
+			},
+			{
+				"type": "start",
+				"x": {
+					"value": 3,
+					"text": "3"
+				},
+				"y": {
+					"value": 4,
+					"text": "4"
+				},
+				"line": 2,
+				"raw": "start 3,4",
+				"comment": null
+			},
+			{
+				"type": "section",
+				"name": "terrain",
+				"line": 3,
+				"raw": "terrain",
+				"comment": null
+			},
+			{
+				"type": "segs",
+				"segs": [
+					{
+						"seg": "flat",
+						"n": 40
+					}
+				],
+				"line": 4,
+				"raw": "  flat 40",
+				"comment": null
+			},
+			{
+				"type": "blank",
+				"line": 5,
+				"raw": "",
+				"comment": null
+			}
+		]
+	},
+	"errors": [
+		{
+			"line": 1,
+			"code": "E003",
+			"message": "missing field `ground=`",
+			"fix": "add `ground=4`"
+		}
+	]
+}

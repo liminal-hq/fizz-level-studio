@@ -1,0 +1,691 @@
+{
+	"id": "levels/crater",
+	"from": "levels/crater.fizz",
+	"ast": {
+		"nodes": [
+			{
+				"type": "comment",
+				"line": 1,
+				"raw": "// Crater Fields: the first level of Episode 1. Mirrors `fn crater()` in levels.rs call for call.",
+				"comment": "Crater Fields: the first level of Episode 1. Mirrors `fn crater()` in levels.rs call for call."
+			},
+			{
+				"type": "level",
+				"name": "Crater Fields",
+				"w": 192,
+				"h": 28,
+				"ground": 4,
+				"id": "crater",
+				"line": 2,
+				"raw": "level \"Crater Fields\" 192x28 ground=4 id=crater",
+				"comment": null
+			},
+			{
+				"type": "theme",
+				"name": "crater",
+				"line": 3,
+				"raw": "theme crater",
+				"comment": null
+			},
+			{
+				"type": "area",
+				"name": "crater-fields",
+				"line": 4,
+				"raw": "area crater-fields",
+				"comment": null
+			},
+			{
+				"type": "start",
+				"x": {
+					"value": 3,
+					"text": "3"
+				},
+				"y": {
+					"value": 4,
+					"text": "4"
+				},
+				"line": 5,
+				"raw": "start 3,4",
+				"comment": null
+			},
+			{
+				"type": "blank",
+				"line": 6,
+				"raw": "",
+				"comment": null
+			},
+			{
+				"type": "section",
+				"name": "terrain",
+				"line": 7,
+				"raw": "terrain",
+				"comment": null
+			},
+			{
+				"type": "segs",
+				"segs": [
+					{
+						"seg": "flat",
+						"n": 14
+					},
+					{
+						"seg": "up",
+						"n": 2
+					},
+					{
+						"seg": "flat",
+						"n": 6
+					},
+					{
+						"seg": "down",
+						"n": 2
+					},
+					{
+						"seg": "flat",
+						"n": 5
+					}
+				],
+				"line": 8,
+				"raw": "  flat 14, up 2, flat 6, down 2, flat 5",
+				"comment": null
+			},
+			{
+				"type": "segs",
+				"segs": [
+					{
+						"seg": "pool",
+						"n": 4
+					},
+					{
+						"seg": "flat",
+						"n": 8
+					},
+					{
+						"seg": "up22",
+						"n": 2
+					},
+					{
+						"seg": "flat",
+						"n": 10
+					},
+					{
+						"seg": "gap",
+						"n": 3
+					},
+					{
+						"seg": "flat",
+						"n": 9
+					},
+					{
+						"seg": "down22",
+						"n": 2
+					},
+					{
+						"seg": "flat",
+						"n": 6
+					}
+				],
+				"line": 9,
+				"raw": "  pool 4, flat 8, up22 2, flat 10, gap 3, flat 9, down22 2, flat 6",
+				"comment": null
+			},
+			{
+				"type": "segs",
+				"segs": [
+					{
+						"seg": "spikes",
+						"n": 4
+					},
+					{
+						"seg": "flat",
+						"n": 10
+					},
+					{
+						"seg": "up",
+						"n": 3
+					},
+					{
+						"seg": "flat",
+						"n": 8
+					},
+					{
+						"seg": "down",
+						"n": 3
+					}
+				],
+				"line": 10,
+				"raw": "  spikes 4, flat 10, up 3, flat 8, down 3",
+				"comment": null
+			},
+			{
+				"type": "segs",
+				"segs": [
+					{
+						"seg": "pool",
+						"n": 6
+					},
+					{
+						"seg": "flat",
+						"n": 10
+					},
+					{
+						"seg": "up22",
+						"n": 3
+					},
+					{
+						"seg": "flat",
+						"n": 14
+					},
+					{
+						"seg": "down",
+						"n": 3
+					},
+					{
+						"seg": "flat",
+						"n": 12
+					}
+				],
+				"line": 11,
+				"raw": "  pool 6, flat 10, up22 3, flat 14, down 3, flat 12",
+				"comment": null
+			},
+			{
+				"type": "segs",
+				"segs": [
+					{
+						"seg": "spikes",
+						"n": 3
+					},
+					{
+						"seg": "flat",
+						"n": 8
+					},
+					{
+						"seg": "up",
+						"n": 2
+					},
+					{
+						"seg": "flat",
+						"n": 22
+					}
+				],
+				"line": 12,
+				"raw": "  spikes 3, flat 8, up 2, flat 22",
+				"comment": null
+			},
+			{
+				"type": "blank",
+				"line": 13,
+				"raw": "",
+				"comment": null
+			},
+			{
+				"type": "walls",
+				"line": 14,
+				"raw": "walls",
+				"comment": null
+			},
+			{
+				"type": "blank",
+				"line": 15,
+				"raw": "",
+				"comment": null
+			},
+			{
+				"type": "section",
+				"name": "blocks",
+				"line": 16,
+				"raw": "blocks",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "block",
+				"x": {
+					"lo": 49,
+					"hi": 51
+				},
+				"y": {
+					"lo": 10,
+					"hi": 10
+				},
+				"line": 17,
+				"raw": "  block    x=49..51 y=10",
+				"comment": null
+			},
+			{
+				"type": "plat",
+				"x": {
+					"lo": 107,
+					"hi": 108
+				},
+				"y": 5,
+				"line": 18,
+				"raw": "  plat     x=107..108 y=5",
+				"comment": null
+			},
+			{
+				"type": "plat",
+				"x": {
+					"lo": 131,
+					"hi": 134
+				},
+				"y": 12,
+				"line": 19,
+				"raw": "  plat     x=131..134 y=12",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "red-door",
+				"x": {
+					"lo": 171,
+					"hi": 171
+				},
+				"y": {
+					"lo": 6,
+					"hi": 7
+				},
+				"line": 20,
+				"raw": "  red-door x=171 y=6..7",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "block",
+				"x": {
+					"lo": 171,
+					"hi": 171
+				},
+				"y": {
+					"lo": 8,
+					"hi": 27
+				},
+				"line": 21,
+				"raw": "  block    x=171 y=8..27",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "exit",
+				"x": {
+					"lo": 186,
+					"hi": 186
+				},
+				"y": {
+					"lo": 6,
+					"hi": 7
+				},
+				"line": 22,
+				"raw": "  exit     x=186 y=6..7",
+				"comment": null
+			},
+			{
+				"type": "crystal",
+				"xs": [
+					{
+						"lo": 10,
+						"hi": 10
+					},
+					{
+						"lo": 26,
+						"hi": 26
+					},
+					{
+						"lo": 60,
+						"hi": 60
+					},
+					{
+						"lo": 98,
+						"hi": 98
+					},
+					{
+						"lo": 118,
+						"hi": 118
+					},
+					{
+						"lo": 150,
+						"hi": 150
+					},
+					{
+						"lo": 178,
+						"hi": 178
+					}
+				],
+				"line": 23,
+				"raw": "  crystal  x=10,26,60,98,118,150,178",
+				"comment": null
+			},
+			{
+				"type": "blank",
+				"line": 24,
+				"raw": "",
+				"comment": null
+			},
+			{
+				"type": "section",
+				"name": "treats",
+				"line": 25,
+				"raw": "treats",
+				"comment": null
+			},
+			{
+				"type": "row",
+				"kind": "cheezie",
+				"x": {
+					"lo": 17,
+					"hi": 20
+				},
+				"y": 7,
+				"by": 1,
+				"line": 26,
+				"raw": "  row cheezie x=17..20 y=7",
+				"comment": null
+			},
+			{
+				"type": "row",
+				"kind": "cheezie",
+				"x": {
+					"lo": 29,
+					"hi": 32
+				},
+				"y": 7,
+				"by": 1,
+				"line": 27,
+				"raw": "  row cheezie x=29..32 y=7",
+				"comment": null
+			},
+			{
+				"type": "item",
+				"kind": "soda",
+				"xs": [
+					{
+						"lo": 36,
+						"hi": 36
+					}
+				],
+				"y": 5,
+				"line": 28,
+				"raw": "  soda        x=36 y=5",
+				"comment": null
+			},
+			{
+				"type": "row",
+				"kind": "choc",
+				"x": {
+					"lo": 46,
+					"hi": 52
+				},
+				"y": 8,
+				"by": 3,
+				"line": 29,
+				"raw": "  row choc    x=46..52 y=8 by=3",
+				"comment": null
+			},
+			{
+				"type": "item",
+				"kind": "cookie",
+				"xs": [
+					{
+						"lo": 50,
+						"hi": 50
+					}
+				],
+				"y": 11,
+				"line": 30,
+				"raw": "  cookie      x=50 y=11",
+				"comment": null
+			},
+			{
+				"type": "row",
+				"kind": "cheezie",
+				"x": {
+					"lo": 105,
+					"hi": 110
+				},
+				"y": 8,
+				"by": 1,
+				"line": 31,
+				"raw": "  row cheezie x=105..110 y=8",
+				"comment": null
+			},
+			{
+				"type": "row",
+				"kind": "cheezie",
+				"x": {
+					"lo": 72,
+					"hi": 74
+				},
+				"y": 5,
+				"by": 1,
+				"line": 32,
+				"raw": "  row cheezie x=72..74 y=5",
+				"comment": null
+			},
+			{
+				"type": "row",
+				"kind": "choc",
+				"x": {
+					"lo": 94,
+					"hi": 100
+				},
+				"y": 8,
+				"by": 2,
+				"line": 33,
+				"raw": "  row choc    x=94..100 y=8 by=2",
+				"comment": null
+			},
+			{
+				"type": "item",
+				"kind": "soda",
+				"xs": [
+					{
+						"lo": 125,
+						"hi": 125
+					}
+				],
+				"y": 9,
+				"line": 34,
+				"raw": "  soda        x=125 y=9",
+				"comment": null
+			},
+			{
+				"type": "row",
+				"kind": "cheezie",
+				"x": {
+					"lo": 128,
+					"hi": 136
+				},
+				"y": 8,
+				"by": 2,
+				"line": 35,
+				"raw": "  row cheezie x=128..136 y=8 by=2",
+				"comment": null
+			},
+			{
+				"type": "item",
+				"kind": "key-red",
+				"xs": [
+					{
+						"lo": 132,
+						"hi": 132
+					}
+				],
+				"y": 13,
+				"line": 36,
+				"raw": "  key-red     x=132 y=13",
+				"comment": null
+			},
+			{
+				"type": "row",
+				"kind": "choc",
+				"x": {
+					"lo": 146,
+					"hi": 152
+				},
+				"y": 5,
+				"by": 3,
+				"line": 37,
+				"raw": "  row choc    x=146..152 y=5 by=3",
+				"comment": null
+			},
+			{
+				"type": "item",
+				"kind": "cookie",
+				"xs": [
+					{
+						"lo": 157,
+						"hi": 157
+					}
+				],
+				"y": 7,
+				"line": 38,
+				"raw": "  cookie      x=157 y=7",
+				"comment": null
+			},
+			{
+				"type": "row",
+				"kind": "cheezie",
+				"x": {
+					"lo": 175,
+					"hi": 181
+				},
+				"y": 7,
+				"by": 2,
+				"line": 39,
+				"raw": "  row cheezie x=175..181 y=7 by=2",
+				"comment": null
+			},
+			{
+				"type": "pogo-cache",
+				"x": {
+					"lo": 8,
+					"hi": 10
+				},
+				"rise": 7,
+				"line": 40,
+				"raw": "  pogo-cache  x=8..10 rise=7   // a snack ledge for a pogo bounce, after the other treats",
+				"comment": "a snack ledge for a pogo bounce, after the other treats"
+			},
+			{
+				"type": "blank",
+				"line": 41,
+				"raw": "",
+				"comment": null
+			},
+			{
+				"type": "section",
+				"name": "enemies",
+				"line": 42,
+				"raw": "enemies",
+				"comment": null
+			},
+			{
+				"type": "spawn",
+				"kind": "gloop",
+				"xs": [
+					{
+						"value": 35,
+						"text": "35"
+					},
+					{
+						"value": 62,
+						"text": "62"
+					},
+					{
+						"value": 85,
+						"text": "85"
+					}
+				],
+				"y": null,
+				"dir": null,
+				"ride": false,
+				"line": 43,
+				"raw": "  gloop  x=35,62,85",
+				"comment": null
+			},
+			{
+				"type": "spawn",
+				"kind": "hopper",
+				"xs": [
+					{
+						"value": 97,
+						"text": "97"
+					},
+					{
+						"value": 148,
+						"text": "148"
+					}
+				],
+				"y": null,
+				"dir": null,
+				"ride": false,
+				"line": 44,
+				"raw": "  hopper x=97,148",
+				"comment": null
+			},
+			{
+				"type": "spawn",
+				"kind": "marsh",
+				"xs": [
+					{
+						"value": 115,
+						"text": "115"
+					}
+				],
+				"y": null,
+				"dir": null,
+				"ride": false,
+				"line": 45,
+				"raw": "  marsh  x=115",
+				"comment": null
+			},
+			{
+				"type": "spawn",
+				"kind": "pod",
+				"xs": [
+					{
+						"value": 136,
+						"text": "136"
+					}
+				],
+				"y": null,
+				"dir": null,
+				"ride": false,
+				"line": 46,
+				"raw": "  pod    x=136",
+				"comment": null
+			},
+			{
+				"type": "spawn",
+				"kind": "drone",
+				"xs": [
+					{
+						"value": 88.5,
+						"text": "88.5"
+					},
+					{
+						"value": 165.5,
+						"text": "165.5"
+					}
+				],
+				"y": {
+					"value": 7.5,
+					"text": "7.5"
+				},
+				"dir": null,
+				"ride": false,
+				"line": 47,
+				"raw": "  drone  x=88.5,165.5 y=7.5",
+				"comment": null
+			},
+			{
+				"type": "blank",
+				"line": 48,
+				"raw": "",
+				"comment": null
+			}
+		]
+	},
+	"errors": []
+}

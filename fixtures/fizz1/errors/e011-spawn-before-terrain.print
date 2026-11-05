@@ -1,0 +1,4 @@
+level "T" 40x20 ground=4 id=crater
+start 3,4
+enemies
+  gloop x=5

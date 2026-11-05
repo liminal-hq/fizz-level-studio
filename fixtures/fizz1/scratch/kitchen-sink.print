@@ -1,0 +1,36 @@
+// Every statement once; compiled and run in the scratch crate to check the generated Rust is valid.
+level "Kitchen Sink" 80x40 ground=4 id=caves
+theme caves
+area rock-candy-reach
+start 3,4
+arena x=40..60 floor=4
+terrain
+  liquid furnace
+  flat 10, belt-r 2, belt-l 2, up 2, flat 4, down 2, pool 3, up22 2, flat 4, down22 2, gap 2, spikes 2, flat 30
+walls
+blocks
+  fill x=1..20 y=20..30
+  plat x=1..3 y=6
+  hover from=2,4.5 to=8,4.5 speed=0.3
+  room x=1..5 y=22..25
+  secret-room x=6..9 y=22..25
+  wall-behind x=10..19 y=21..29
+  mural x=2 y=8
+  ladder x=4 y=4..9
+  stairs-right x=30 y=4 count=3
+  stairs-left x=40 y=4 count=3
+  vine-nook x=10 foot=21 shelf=24 dir=1 depth=3 h=3
+  gate x=3 y=1..2
+  crystal x=5
+treats
+  usb x=2 y=2
+  row key-blue x=1..5 y=3 by=2
+  pogo-cache x=8..10 rise=3
+enemies
+  gloop x=5
+  hopper x=9 y=5 ride
+  mirror x=11 y=6 dir=1
+edits
+  paint one-way x=26,28,30 y=9
+  clear x=12..14 y=8
+  place cheezie x=26,28,30 y=10

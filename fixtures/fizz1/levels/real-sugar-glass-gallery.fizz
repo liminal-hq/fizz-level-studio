@@ -1,0 +1,109 @@
+// Sugar Glass Gallery: rebuilt from the game's own data by tools/decompile-level.ts.
+level "Sugar Glass Gallery" 160x30 ground=4 id=sugar-glass-gallery
+theme theatre
+area rock-candy-reach
+start 3,4
+
+blocks
+  block x=0 y=0..29
+  fill x=1..35 y=0..3
+  fill x=39..76 y=0..3
+  fill x=80..119 y=0..3
+  fill x=123..158 y=0..3
+  block x=159 y=0..29
+  crystal-tile x=8 y=4
+  slope-r45 x=14 y=4
+  fill x=15..26 y=4
+  slope-l45 x=27 y=4
+  crystal-tile x=30 y=4
+  slope-r22a x=51 y=4
+  slope-r22b x=52 y=4
+  fill x=53..62 y=4
+  slope-l22a x=63 y=4
+  slope-l22b x=64 y=4
+  facade x=65..76 y=4..9
+  crystal-tile x=82 y=4
+  slope-r45 x=90 y=4
+  fill x=91..108 y=4
+  slope-l45 x=109 y=4
+  blue-door x=112 y=4..5
+  crystal-tile x=114 y=4
+  crystal-tile x=140 y=4
+  exit x=155 y=4..5
+  slope-r45 x=15 y=5
+  fill x=16..25 y=5
+  slope-l45 x=26 y=5
+  one-way x=36..37 y=5
+  crystal-tile x=56 y=5
+  red-door x=60 y=5..6
+  slope-r45 x=91 y=5
+  fill x=92..107 y=5
+  slope-l45 x=108 y=5
+  one-way x=120..121 y=5
+  facade x=16..25 y=6..11
+  one-way x=86..87 y=6
+  slope-r45 x=92 y=6
+  fill x=93..106 y=6
+  slope-l45 x=107 y=6
+  block x=112 y=6..29
+  block x=60 y=7..29
+  one-way x=38 y=8
+  one-way x=122..123 y=8
+  fill x=41..50 y=9
+  one-way x=89..90 y=9
+  fill x=126..136 y=9
+  facade x=41..50 y=10..15
+  facade x=126..136 y=10
+  facade x=126..129 y=11..12
+  mural-origin x=130 y=11
+  mural-part x=131..132 y=11
+  facade x=133..136 y=11..12
+  one-way x=92..93 y=12
+  mural-part x=130..132 y=12
+  fill x=95..106 y=13
+  facade x=126..136 y=13..15
+  facade x=95..106 y=14..19
+  room x=16..25 y=6..11
+  room x=41..50 y=10..15
+  room x=65..76 y=4..9
+  room x=95..106 y=14..19
+  secret-room x=126..136 y=10..15
+
+treats
+  row cheezie x=18..23 y=7
+  key-red x=46 y=10
+  cookie x=48 y=10
+  row cheezie x=42..44 y=10
+  row choc x=67..73 y=5 by=2
+  key-blue x=100 y=14
+  cookie x=104 y=14
+  row cheezie x=96..98 y=14
+  row cheezie x=119..121 y=7
+  row cheezie x=124..125 y=10
+  row cookie x=133..135 y=10
+  row cheezie x=5..10 y=6
+  row choc x=29..32 y=7
+  row cheezie x=54..58 y=8
+  soda x=58 y=9
+  row cheezie x=80..85 y=8
+  soda x=114 y=7
+  row cheezie x=138..143 y=8
+  row cookie x=146..152 y=7 by=3
+
+enemies
+  gloop x=20 y=6
+  gloop x=23 y=6
+  bat x=45 y=7.3
+  beetle x=74 y=4
+  bat x=98 y=11.3
+  bat x=103 y=11.3
+  gloop x=8 y=4
+  gloop x=31 y=4
+  gloop x=56 y=5
+  gloop x=70 y=4
+  gloop x=84 y=4
+  gloop x=128 y=4
+  gloop x=144 y=4
+  phantom x=148 y=4
+  pod x=55 y=5
+  pod x=115 y=4

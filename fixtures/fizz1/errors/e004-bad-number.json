@@ -1,0 +1,80 @@
+{
+	"id": "errors/e004-bad-number",
+	"from": "packages/language/test/errors.test.ts: E004 bad number and E005 backwards range",
+	"ast": {
+		"nodes": [
+			{
+				"type": "level",
+				"name": "T",
+				"w": 40,
+				"h": 20,
+				"ground": 4,
+				"id": "crater",
+				"line": 1,
+				"raw": "level \"T\" 40x20 ground=4 id=crater",
+				"comment": null
+			},
+			{
+				"type": "start",
+				"x": {
+					"value": 3,
+					"text": "3"
+				},
+				"y": {
+					"value": 4,
+					"text": "4"
+				},
+				"line": 2,
+				"raw": "start 3,4",
+				"comment": null
+			},
+			{
+				"type": "section",
+				"name": "terrain",
+				"line": 3,
+				"raw": "terrain",
+				"comment": null
+			},
+			{
+				"type": "segs",
+				"segs": [
+					{
+						"seg": "flat",
+						"n": 40
+					}
+				],
+				"line": 4,
+				"raw": "  flat 40",
+				"comment": null
+			},
+			{
+				"type": "section",
+				"name": "blocks",
+				"line": 5,
+				"raw": "blocks",
+				"comment": null
+			},
+			{
+				"type": "error",
+				"code": "E004",
+				"line": 6,
+				"raw": "  block x=a y=2",
+				"comment": null
+			},
+			{
+				"type": "blank",
+				"line": 7,
+				"raw": "",
+				"comment": null
+			}
+		]
+	},
+	"errors": [
+		{
+			"line": 6,
+			"code": "E004",
+			"message": "`x=` must be a whole number or a range such as 3..7, found `a`",
+			"fix": "write `a` or `a..b` with whole numbers"
+		}
+	]
+}

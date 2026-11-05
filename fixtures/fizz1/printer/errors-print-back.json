@@ -1,0 +1,74 @@
+{
+	"id": "printer/errors-print-back",
+	"from": "packages/language/test/printer.test.ts: scripts with errors still print back unchanged",
+	"ast": {
+		"nodes": [
+			{
+				"type": "level",
+				"name": "X",
+				"w": 10,
+				"h": 10,
+				"ground": 2,
+				"id": "crater",
+				"line": 1,
+				"raw": "level \"X\" 10x10 ground=2 id=crater",
+				"comment": null
+			},
+			{
+				"type": "start",
+				"x": {
+					"value": 1,
+					"text": "1"
+				},
+				"y": {
+					"value": 2,
+					"text": "2"
+				},
+				"line": 2,
+				"raw": "start 1,2",
+				"comment": null
+			},
+			{
+				"type": "section",
+				"name": "terrain",
+				"line": 3,
+				"raw": "terrain",
+				"comment": null
+			},
+			{
+				"type": "error",
+				"code": "E001",
+				"line": 4,
+				"raw": "  flatt 3",
+				"comment": null
+			},
+			{
+				"type": "error",
+				"code": "E001",
+				"line": 5,
+				"raw": "  ???",
+				"comment": null
+			},
+			{
+				"type": "blank",
+				"line": 6,
+				"raw": "",
+				"comment": null
+			}
+		]
+	},
+	"errors": [
+		{
+			"line": 4,
+			"code": "E001",
+			"message": "unknown statement `flatt` in `terrain`",
+			"fix": "did you mean `flat`?"
+		},
+		{
+			"line": 5,
+			"code": "E001",
+			"message": "unknown statement `???` in `terrain`",
+			"fix": "`terrain` takes: flat, up, down, up22, down22, gap, pool, spikes, belt-r, belt-l, liquid"
+		}
+	]
+}

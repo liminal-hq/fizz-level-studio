@@ -1,0 +1,105 @@
+// Crater: rebuilt from the game's own data by tools/decompile-level.ts.
+level "Crater" 192x28 ground=4 id=crater
+theme crater
+area crater-fields
+start 3,4
+
+blocks
+  block x=0 y=0..27
+  fill x=1..54 y=0
+  fill x=58..190 y=0
+  block x=191 y=0..27
+  fill x=1..28 y=1..3
+  choc x=29..32 y=1..2
+  fill x=33..54 y=1..3
+  fill x=58..104 y=1..3
+  choc x=105..110 y=1..2
+  fill x=111..190 y=1..3
+  crystal-tile x=10 y=4
+  slope-r45 x=14 y=4
+  fill x=15..22 y=4
+  slope-l45 x=23 y=4
+  crystal-tile x=26 y=4
+  slope-r22a x=41 y=4
+  slope-r22b x=42 y=4
+  fill x=43..54 y=4
+  fill x=58..68 y=4
+  slope-l22a x=69 y=4
+  slope-l22b x=70 y=4
+  spike x=77..80 y=4
+  slope-r45 x=91 y=4
+  fill x=92..103 y=4
+  slope-l45 x=104 y=4
+  crystal-tile x=118 y=4
+  slope-r22a x=121 y=4
+  slope-r22b x=122 y=4
+  fill x=123..142 y=4
+  slope-l45 x=143 y=4
+  crystal-tile x=150 y=4
+  spike x=156..158 y=4
+  slope-r45 x=167 y=4
+  fill x=168..190 y=4
+  slope-r45 x=15 y=5
+  fill x=16..21 y=5
+  slope-l45 x=22 y=5
+  slope-r22a x=43 y=5
+  slope-r22b x=44 y=5
+  fill x=45..54 y=5
+  fill x=58..66 y=5
+  slope-l22a x=67 y=5
+  slope-l22b x=68 y=5
+  slope-r45 x=92 y=5
+  fill x=93..102 y=5
+  slope-l45 x=103 y=5
+  one-way x=107..108 y=5
+  slope-r22a x=123 y=5
+  slope-r22b x=124 y=5
+  fill x=125..141 y=5
+  slope-l45 x=142 y=5
+  slope-r45 x=168 y=5
+  fill x=169..190 y=5
+  crystal-tile x=60 y=6
+  slope-r45 x=93 y=6
+  fill x=94..101 y=6
+  slope-l45 x=102 y=6
+  slope-r22a x=125 y=6
+  slope-r22b x=126 y=6
+  fill x=127..140 y=6
+  slope-l45 x=141 y=6
+  red-door x=171 y=6..7
+  crystal-tile x=178 y=6
+  exit x=186 y=6..7
+  crystal-tile x=98 y=7
+  block x=171 y=8..27
+  one-way x=8..10 y=10
+  block x=49..51 y=10
+  one-way x=131..134 y=12
+
+treats
+  row cheezie x=17..20 y=7
+  row cheezie x=29..32 y=7
+  soda x=36 y=5
+  row choc x=46..52 y=8 by=3
+  cookie x=50 y=11
+  row cheezie x=105..110 y=8
+  row cheezie x=72..74 y=5
+  row choc x=94..100 y=8 by=2
+  soda x=125 y=9
+  row cheezie x=128..136 y=8 by=2
+  key-red x=132 y=13
+  row choc x=146..152 y=5 by=3
+  cookie x=157 y=7
+  row cheezie x=175..181 y=7 by=2
+  cookie x=9 y=11
+  row cheezie x=8..10 y=11 by=2
+
+enemies
+  gloop x=35 y=4
+  gloop x=62 y=6
+  gloop x=85 y=4
+  hopper x=97 y=7
+  hopper x=148 y=4
+  marsh x=115 y=4
+  pod x=136 y=7
+  drone x=88.5 y=7.5
+  drone x=165.5 y=7.5

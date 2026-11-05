@@ -1,0 +1,40 @@
+{
+	"id": "edge/comment-slashes-in-quotes",
+	"from": "tools/fizz1-cases.ts: a // inside quotes, then a real comment after them",
+	"ast": {
+		"nodes": [
+			{
+				"type": "level",
+				"name": "a // b // c",
+				"w": 40,
+				"h": 20,
+				"ground": 4,
+				"id": "crater",
+				"line": 1,
+				"raw": "level \"a // b // c\" 40x20 ground=4 id=crater // real comment",
+				"comment": "real comment"
+			},
+			{
+				"type": "start",
+				"x": {
+					"value": 3,
+					"text": "3"
+				},
+				"y": {
+					"value": 4,
+					"text": "4"
+				},
+				"line": 2,
+				"raw": "start 3,4",
+				"comment": null
+			},
+			{
+				"type": "blank",
+				"line": 3,
+				"raw": "",
+				"comment": null
+			}
+		]
+	},
+	"errors": []
+}

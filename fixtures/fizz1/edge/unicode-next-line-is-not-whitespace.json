@@ -1,0 +1,87 @@
+{
+	"id": "edge/unicode-next-line-is-not-whitespace",
+	"from": "tools/fizz1-cases.ts: U+0085 is whitespace to Rust but not to JavaScript",
+	"ast": {
+		"nodes": [
+			{
+				"type": "level",
+				"name": "T",
+				"w": 40,
+				"h": 20,
+				"ground": 4,
+				"id": "crater",
+				"line": 1,
+				"raw": "level \"T\" 40x20 ground=4 id=crater",
+				"comment": null
+			},
+			{
+				"type": "start",
+				"x": {
+					"value": 3,
+					"text": "3"
+				},
+				"y": {
+					"value": 4,
+					"text": "4"
+				},
+				"line": 2,
+				"raw": "start 3,4",
+				"comment": null
+			},
+			{
+				"type": "section",
+				"name": "terrain",
+				"line": 3,
+				"raw": "terrain",
+				"comment": null
+			},
+			{
+				"type": "error",
+				"code": "E001",
+				"line": 4,
+				"raw": "flat 40",
+				"comment": null
+			},
+			{
+				"type": "error",
+				"code": "E001",
+				"line": 5,
+				"raw": "  flat40",
+				"comment": null
+			},
+			{
+				"type": "error",
+				"code": "E001",
+				"line": 6,
+				"raw": "",
+				"comment": null
+			},
+			{
+				"type": "blank",
+				"line": 7,
+				"raw": "",
+				"comment": null
+			}
+		]
+	},
+	"errors": [
+		{
+			"line": 4,
+			"code": "E001",
+			"message": "unknown statement `flat` in `terrain`",
+			"fix": "did you mean `flat`?"
+		},
+		{
+			"line": 5,
+			"code": "E001",
+			"message": "unknown statement `flat40` in `terrain`",
+			"fix": "`terrain` takes: flat, up, down, up22, down22, gap, pool, spikes, belt-r, belt-l, liquid"
+		},
+		{
+			"line": 6,
+			"code": "E001",
+			"message": "unknown statement `` in `terrain`",
+			"fix": "did you mean `up`?"
+		}
+	]
+}

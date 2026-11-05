@@ -1,0 +1,2588 @@
+{
+	"id": "levels/real-zarg-lookout",
+	"from": "levels/real/zarg-lookout.fizz",
+	"ast": {
+		"nodes": [
+			{
+				"type": "comment",
+				"line": 1,
+				"raw": "// Zarg Lookout: rebuilt from the game's own data by tools/decompile-level.ts.",
+				"comment": "Zarg Lookout: rebuilt from the game's own data by tools/decompile-level.ts."
+			},
+			{
+				"type": "level",
+				"name": "Zarg Lookout",
+				"w": 40,
+				"h": 84,
+				"ground": 4,
+				"id": "zarg-lookout",
+				"line": 2,
+				"raw": "level \"Zarg Lookout\" 40x84 ground=4 id=zarg-lookout",
+				"comment": null
+			},
+			{
+				"type": "theme",
+				"name": "building",
+				"line": 3,
+				"raw": "theme building",
+				"comment": null
+			},
+			{
+				"type": "area",
+				"name": "crater-fields",
+				"line": 4,
+				"raw": "area crater-fields",
+				"comment": null
+			},
+			{
+				"type": "start",
+				"x": {
+					"value": 3,
+					"text": "3"
+				},
+				"y": {
+					"value": 3,
+					"text": "3"
+				},
+				"line": 5,
+				"raw": "start 3,3",
+				"comment": null
+			},
+			{
+				"type": "blank",
+				"line": 6,
+				"raw": "",
+				"comment": null
+			},
+			{
+				"type": "section",
+				"name": "blocks",
+				"line": 7,
+				"raw": "blocks",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "block",
+				"x": {
+					"lo": 0,
+					"hi": 0
+				},
+				"y": {
+					"lo": 0,
+					"hi": 80
+				},
+				"line": 8,
+				"raw": "  block x=0 y=0..80",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "fill",
+				"x": {
+					"lo": 1,
+					"hi": 38
+				},
+				"y": {
+					"lo": 0,
+					"hi": 2
+				},
+				"line": 9,
+				"raw": "  fill x=1..38 y=0..2",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "block",
+				"x": {
+					"lo": 39,
+					"hi": 39
+				},
+				"y": {
+					"lo": 0,
+					"hi": 80
+				},
+				"line": 10,
+				"raw": "  block x=39 y=0..80",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "wall-bg",
+				"x": {
+					"lo": 1,
+					"hi": 13
+				},
+				"y": {
+					"lo": 3,
+					"hi": 3
+				},
+				"line": 11,
+				"raw": "  wall-bg x=1..13 y=3",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "crystal-tile",
+				"x": {
+					"lo": 14,
+					"hi": 14
+				},
+				"y": {
+					"lo": 3,
+					"hi": 3
+				},
+				"line": 12,
+				"raw": "  crystal-tile x=14 y=3",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "wall-bg",
+				"x": {
+					"lo": 15,
+					"hi": 17
+				},
+				"y": {
+					"lo": 3,
+					"hi": 3
+				},
+				"line": 13,
+				"raw": "  wall-bg x=15..17 y=3",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "rung",
+				"x": {
+					"lo": 18,
+					"hi": 18
+				},
+				"y": {
+					"lo": 3,
+					"hi": 10
+				},
+				"line": 14,
+				"raw": "  rung x=18 y=3..10",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "wall-bg",
+				"x": {
+					"lo": 19,
+					"hi": 35
+				},
+				"y": {
+					"lo": 3,
+					"hi": 10
+				},
+				"line": 15,
+				"raw": "  wall-bg x=19..35 y=3..10",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "red-door",
+				"x": {
+					"lo": 36,
+					"hi": 36
+				},
+				"y": {
+					"lo": 3,
+					"hi": 10
+				},
+				"line": 16,
+				"raw": "  red-door x=36 y=3..10",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "wall-bg",
+				"x": {
+					"lo": 37,
+					"hi": 37
+				},
+				"y": {
+					"lo": 3,
+					"hi": 4
+				},
+				"line": 17,
+				"raw": "  wall-bg x=37 y=3..4",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "exit",
+				"x": {
+					"lo": 38,
+					"hi": 38
+				},
+				"y": {
+					"lo": 3,
+					"hi": 4
+				},
+				"line": 18,
+				"raw": "  exit x=38 y=3..4",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "wall-bg",
+				"x": {
+					"lo": 1,
+					"hi": 17
+				},
+				"y": {
+					"lo": 4,
+					"hi": 10
+				},
+				"line": 19,
+				"raw": "  wall-bg x=1..17 y=4..10",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "wall-bg",
+				"x": {
+					"lo": 37,
+					"hi": 38
+				},
+				"y": {
+					"lo": 5,
+					"hi": 10
+				},
+				"line": 20,
+				"raw": "  wall-bg x=37..38 y=5..10",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "fill",
+				"x": {
+					"lo": 1,
+					"hi": 17
+				},
+				"y": {
+					"lo": 11,
+					"hi": 11
+				},
+				"line": 21,
+				"raw": "  fill x=1..17 y=11",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "rung-top",
+				"x": {
+					"lo": 18,
+					"hi": 18
+				},
+				"y": {
+					"lo": 11,
+					"hi": 11
+				},
+				"line": 22,
+				"raw": "  rung-top x=18 y=11",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "fill",
+				"x": {
+					"lo": 19,
+					"hi": 38
+				},
+				"y": {
+					"lo": 11,
+					"hi": 11
+				},
+				"line": 23,
+				"raw": "  fill x=19..38 y=11",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "wall-bg",
+				"x": {
+					"lo": 1,
+					"hi": 19
+				},
+				"y": {
+					"lo": 12,
+					"hi": 12
+				},
+				"line": 24,
+				"raw": "  wall-bg x=1..19 y=12",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "crystal-tile",
+				"x": {
+					"lo": 20,
+					"hi": 20
+				},
+				"y": {
+					"lo": 12,
+					"hi": 12
+				},
+				"line": 25,
+				"raw": "  crystal-tile x=20 y=12",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "wall-bg",
+				"x": {
+					"lo": 21,
+					"hi": 23
+				},
+				"y": {
+					"lo": 12,
+					"hi": 12
+				},
+				"line": 26,
+				"raw": "  wall-bg x=21..23 y=12",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "slope-r45",
+				"x": {
+					"lo": 24,
+					"hi": 24
+				},
+				"y": {
+					"lo": 12,
+					"hi": 12
+				},
+				"line": 27,
+				"raw": "  slope-r45 x=24 y=12",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "fill",
+				"x": {
+					"lo": 25,
+					"hi": 32
+				},
+				"y": {
+					"lo": 12,
+					"hi": 12
+				},
+				"line": 28,
+				"raw": "  fill x=25..32 y=12",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "wall-bg",
+				"x": {
+					"lo": 33,
+					"hi": 38
+				},
+				"y": {
+					"lo": 12,
+					"hi": 19
+				},
+				"line": 29,
+				"raw": "  wall-bg x=33..38 y=12..19",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "wall-bg",
+				"x": {
+					"lo": 1,
+					"hi": 24
+				},
+				"y": {
+					"lo": 13,
+					"hi": 13
+				},
+				"line": 30,
+				"raw": "  wall-bg x=1..24 y=13",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "slope-r45",
+				"x": {
+					"lo": 25,
+					"hi": 25
+				},
+				"y": {
+					"lo": 13,
+					"hi": 13
+				},
+				"line": 31,
+				"raw": "  slope-r45 x=25 y=13",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "fill",
+				"x": {
+					"lo": 26,
+					"hi": 32
+				},
+				"y": {
+					"lo": 13,
+					"hi": 13
+				},
+				"line": 32,
+				"raw": "  fill x=26..32 y=13",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "wall-bg",
+				"x": {
+					"lo": 1,
+					"hi": 25
+				},
+				"y": {
+					"lo": 14,
+					"hi": 14
+				},
+				"line": 33,
+				"raw": "  wall-bg x=1..25 y=14",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "slope-r45",
+				"x": {
+					"lo": 26,
+					"hi": 26
+				},
+				"y": {
+					"lo": 14,
+					"hi": 14
+				},
+				"line": 34,
+				"raw": "  slope-r45 x=26 y=14",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "fill",
+				"x": {
+					"lo": 27,
+					"hi": 32
+				},
+				"y": {
+					"lo": 14,
+					"hi": 14
+				},
+				"line": 35,
+				"raw": "  fill x=27..32 y=14",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "wall-bg",
+				"x": {
+					"lo": 1,
+					"hi": 26
+				},
+				"y": {
+					"lo": 15,
+					"hi": 15
+				},
+				"line": 36,
+				"raw": "  wall-bg x=1..26 y=15",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "slope-r45",
+				"x": {
+					"lo": 27,
+					"hi": 27
+				},
+				"y": {
+					"lo": 15,
+					"hi": 15
+				},
+				"line": 37,
+				"raw": "  slope-r45 x=27 y=15",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "fill",
+				"x": {
+					"lo": 28,
+					"hi": 32
+				},
+				"y": {
+					"lo": 15,
+					"hi": 15
+				},
+				"line": 38,
+				"raw": "  fill x=28..32 y=15",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "wall-bg",
+				"x": {
+					"lo": 1,
+					"hi": 27
+				},
+				"y": {
+					"lo": 16,
+					"hi": 16
+				},
+				"line": 39,
+				"raw": "  wall-bg x=1..27 y=16",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "slope-r45",
+				"x": {
+					"lo": 28,
+					"hi": 28
+				},
+				"y": {
+					"lo": 16,
+					"hi": 16
+				},
+				"line": 40,
+				"raw": "  slope-r45 x=28 y=16",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "fill",
+				"x": {
+					"lo": 29,
+					"hi": 32
+				},
+				"y": {
+					"lo": 16,
+					"hi": 16
+				},
+				"line": 41,
+				"raw": "  fill x=29..32 y=16",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "wall-bg",
+				"x": {
+					"lo": 1,
+					"hi": 28
+				},
+				"y": {
+					"lo": 17,
+					"hi": 17
+				},
+				"line": 42,
+				"raw": "  wall-bg x=1..28 y=17",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "slope-r45",
+				"x": {
+					"lo": 29,
+					"hi": 29
+				},
+				"y": {
+					"lo": 17,
+					"hi": 17
+				},
+				"line": 43,
+				"raw": "  slope-r45 x=29 y=17",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "fill",
+				"x": {
+					"lo": 30,
+					"hi": 32
+				},
+				"y": {
+					"lo": 17,
+					"hi": 17
+				},
+				"line": 44,
+				"raw": "  fill x=30..32 y=17",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "wall-bg",
+				"x": {
+					"lo": 1,
+					"hi": 29
+				},
+				"y": {
+					"lo": 18,
+					"hi": 18
+				},
+				"line": 45,
+				"raw": "  wall-bg x=1..29 y=18",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "slope-r45",
+				"x": {
+					"lo": 30,
+					"hi": 30
+				},
+				"y": {
+					"lo": 18,
+					"hi": 18
+				},
+				"line": 46,
+				"raw": "  slope-r45 x=30 y=18",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "fill",
+				"x": {
+					"lo": 31,
+					"hi": 32
+				},
+				"y": {
+					"lo": 18,
+					"hi": 18
+				},
+				"line": 47,
+				"raw": "  fill x=31..32 y=18",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "wall-bg",
+				"x": {
+					"lo": 1,
+					"hi": 30
+				},
+				"y": {
+					"lo": 19,
+					"hi": 19
+				},
+				"line": 48,
+				"raw": "  wall-bg x=1..30 y=19",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "slope-r45",
+				"x": {
+					"lo": 31,
+					"hi": 31
+				},
+				"y": {
+					"lo": 19,
+					"hi": 19
+				},
+				"line": 49,
+				"raw": "  slope-r45 x=31 y=19",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "fill",
+				"x": {
+					"lo": 32,
+					"hi": 32
+				},
+				"y": {
+					"lo": 19,
+					"hi": 19
+				},
+				"line": 50,
+				"raw": "  fill x=32 y=19",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "wall-bg",
+				"x": {
+					"lo": 1,
+					"hi": 31
+				},
+				"y": {
+					"lo": 20,
+					"hi": 20
+				},
+				"line": 51,
+				"raw": "  wall-bg x=1..31 y=20",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "slope-r45",
+				"x": {
+					"lo": 32,
+					"hi": 32
+				},
+				"y": {
+					"lo": 20,
+					"hi": 20
+				},
+				"line": 52,
+				"raw": "  slope-r45 x=32 y=20",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "fill",
+				"x": {
+					"lo": 33,
+					"hi": 38
+				},
+				"y": {
+					"lo": 20,
+					"hi": 20
+				},
+				"line": 53,
+				"raw": "  fill x=33..38 y=20",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "wall-bg",
+				"x": {
+					"lo": 1,
+					"hi": 35
+				},
+				"y": {
+					"lo": 21,
+					"hi": 28
+				},
+				"line": 54,
+				"raw": "  wall-bg x=1..35 y=21..28",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "rung",
+				"x": {
+					"lo": 36,
+					"hi": 36
+				},
+				"y": {
+					"lo": 21,
+					"hi": 28
+				},
+				"line": 55,
+				"raw": "  rung x=36 y=21..28",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "wall-bg",
+				"x": {
+					"lo": 37,
+					"hi": 38
+				},
+				"y": {
+					"lo": 21,
+					"hi": 28
+				},
+				"line": 56,
+				"raw": "  wall-bg x=37..38 y=21..28",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "fill",
+				"x": {
+					"lo": 1,
+					"hi": 35
+				},
+				"y": {
+					"lo": 29,
+					"hi": 29
+				},
+				"line": 57,
+				"raw": "  fill x=1..35 y=29",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "rung-top",
+				"x": {
+					"lo": 36,
+					"hi": 36
+				},
+				"y": {
+					"lo": 29,
+					"hi": 29
+				},
+				"line": 58,
+				"raw": "  rung-top x=36 y=29",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "fill",
+				"x": {
+					"lo": 37,
+					"hi": 38
+				},
+				"y": {
+					"lo": 29,
+					"hi": 29
+				},
+				"line": 59,
+				"raw": "  fill x=37..38 y=29",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "wall-bg",
+				"x": {
+					"lo": 1,
+					"hi": 5
+				},
+				"y": {
+					"lo": 30,
+					"hi": 37
+				},
+				"line": 60,
+				"raw": "  wall-bg x=1..5 y=30..37",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "fill",
+				"x": {
+					"lo": 6,
+					"hi": 13
+				},
+				"y": {
+					"lo": 30,
+					"hi": 30
+				},
+				"line": 61,
+				"raw": "  fill x=6..13 y=30",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "slope-l45",
+				"x": {
+					"lo": 14,
+					"hi": 14
+				},
+				"y": {
+					"lo": 30,
+					"hi": 30
+				},
+				"line": 62,
+				"raw": "  slope-l45 x=14 y=30",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "wall-bg",
+				"x": {
+					"lo": 15,
+					"hi": 21
+				},
+				"y": {
+					"lo": 30,
+					"hi": 30
+				},
+				"line": 63,
+				"raw": "  wall-bg x=15..21 y=30",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "crystal-tile",
+				"x": {
+					"lo": 22,
+					"hi": 22
+				},
+				"y": {
+					"lo": 30,
+					"hi": 30
+				},
+				"line": 64,
+				"raw": "  crystal-tile x=22 y=30",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "wall-bg",
+				"x": {
+					"lo": 23,
+					"hi": 38
+				},
+				"y": {
+					"lo": 30,
+					"hi": 30
+				},
+				"line": 65,
+				"raw": "  wall-bg x=23..38 y=30",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "fill",
+				"x": {
+					"lo": 6,
+					"hi": 12
+				},
+				"y": {
+					"lo": 31,
+					"hi": 31
+				},
+				"line": 66,
+				"raw": "  fill x=6..12 y=31",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "slope-l45",
+				"x": {
+					"lo": 13,
+					"hi": 13
+				},
+				"y": {
+					"lo": 31,
+					"hi": 31
+				},
+				"line": 67,
+				"raw": "  slope-l45 x=13 y=31",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "wall-bg",
+				"x": {
+					"lo": 14,
+					"hi": 38
+				},
+				"y": {
+					"lo": 31,
+					"hi": 31
+				},
+				"line": 68,
+				"raw": "  wall-bg x=14..38 y=31",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "fill",
+				"x": {
+					"lo": 6,
+					"hi": 11
+				},
+				"y": {
+					"lo": 32,
+					"hi": 32
+				},
+				"line": 69,
+				"raw": "  fill x=6..11 y=32",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "slope-l45",
+				"x": {
+					"lo": 12,
+					"hi": 12
+				},
+				"y": {
+					"lo": 32,
+					"hi": 32
+				},
+				"line": 70,
+				"raw": "  slope-l45 x=12 y=32",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "wall-bg",
+				"x": {
+					"lo": 13,
+					"hi": 38
+				},
+				"y": {
+					"lo": 32,
+					"hi": 32
+				},
+				"line": 71,
+				"raw": "  wall-bg x=13..38 y=32",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "fill",
+				"x": {
+					"lo": 6,
+					"hi": 10
+				},
+				"y": {
+					"lo": 33,
+					"hi": 33
+				},
+				"line": 72,
+				"raw": "  fill x=6..10 y=33",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "slope-l45",
+				"x": {
+					"lo": 11,
+					"hi": 11
+				},
+				"y": {
+					"lo": 33,
+					"hi": 33
+				},
+				"line": 73,
+				"raw": "  slope-l45 x=11 y=33",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "wall-bg",
+				"x": {
+					"lo": 12,
+					"hi": 38
+				},
+				"y": {
+					"lo": 33,
+					"hi": 33
+				},
+				"line": 74,
+				"raw": "  wall-bg x=12..38 y=33",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "fill",
+				"x": {
+					"lo": 6,
+					"hi": 9
+				},
+				"y": {
+					"lo": 34,
+					"hi": 34
+				},
+				"line": 75,
+				"raw": "  fill x=6..9 y=34",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "slope-l45",
+				"x": {
+					"lo": 10,
+					"hi": 10
+				},
+				"y": {
+					"lo": 34,
+					"hi": 34
+				},
+				"line": 76,
+				"raw": "  slope-l45 x=10 y=34",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "wall-bg",
+				"x": {
+					"lo": 11,
+					"hi": 38
+				},
+				"y": {
+					"lo": 34,
+					"hi": 34
+				},
+				"line": 77,
+				"raw": "  wall-bg x=11..38 y=34",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "fill",
+				"x": {
+					"lo": 6,
+					"hi": 8
+				},
+				"y": {
+					"lo": 35,
+					"hi": 35
+				},
+				"line": 78,
+				"raw": "  fill x=6..8 y=35",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "slope-l45",
+				"x": {
+					"lo": 9,
+					"hi": 9
+				},
+				"y": {
+					"lo": 35,
+					"hi": 35
+				},
+				"line": 79,
+				"raw": "  slope-l45 x=9 y=35",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "wall-bg",
+				"x": {
+					"lo": 10,
+					"hi": 38
+				},
+				"y": {
+					"lo": 35,
+					"hi": 35
+				},
+				"line": 80,
+				"raw": "  wall-bg x=10..38 y=35",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "fill",
+				"x": {
+					"lo": 6,
+					"hi": 7
+				},
+				"y": {
+					"lo": 36,
+					"hi": 36
+				},
+				"line": 81,
+				"raw": "  fill x=6..7 y=36",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "slope-l45",
+				"x": {
+					"lo": 8,
+					"hi": 8
+				},
+				"y": {
+					"lo": 36,
+					"hi": 36
+				},
+				"line": 82,
+				"raw": "  slope-l45 x=8 y=36",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "wall-bg",
+				"x": {
+					"lo": 9,
+					"hi": 38
+				},
+				"y": {
+					"lo": 36,
+					"hi": 36
+				},
+				"line": 83,
+				"raw": "  wall-bg x=9..38 y=36",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "fill",
+				"x": {
+					"lo": 6,
+					"hi": 6
+				},
+				"y": {
+					"lo": 37,
+					"hi": 37
+				},
+				"line": 84,
+				"raw": "  fill x=6 y=37",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "slope-l45",
+				"x": {
+					"lo": 7,
+					"hi": 7
+				},
+				"y": {
+					"lo": 37,
+					"hi": 37
+				},
+				"line": 85,
+				"raw": "  slope-l45 x=7 y=37",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "wall-bg",
+				"x": {
+					"lo": 8,
+					"hi": 38
+				},
+				"y": {
+					"lo": 37,
+					"hi": 37
+				},
+				"line": 86,
+				"raw": "  wall-bg x=8..38 y=37",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "fill",
+				"x": {
+					"lo": 1,
+					"hi": 5
+				},
+				"y": {
+					"lo": 38,
+					"hi": 38
+				},
+				"line": 87,
+				"raw": "  fill x=1..5 y=38",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "slope-l45",
+				"x": {
+					"lo": 6,
+					"hi": 6
+				},
+				"y": {
+					"lo": 38,
+					"hi": 38
+				},
+				"line": 88,
+				"raw": "  slope-l45 x=6 y=38",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "wall-bg",
+				"x": {
+					"lo": 7,
+					"hi": 38
+				},
+				"y": {
+					"lo": 38,
+					"hi": 38
+				},
+				"line": 89,
+				"raw": "  wall-bg x=7..38 y=38",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "wall-bg",
+				"x": {
+					"lo": 1,
+					"hi": 2
+				},
+				"y": {
+					"lo": 39,
+					"hi": 46
+				},
+				"line": 90,
+				"raw": "  wall-bg x=1..2 y=39..46",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "rung",
+				"x": {
+					"lo": 3,
+					"hi": 3
+				},
+				"y": {
+					"lo": 39,
+					"hi": 46
+				},
+				"line": 91,
+				"raw": "  rung x=3 y=39..46",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "wall-bg",
+				"x": {
+					"lo": 4,
+					"hi": 38
+				},
+				"y": {
+					"lo": 39,
+					"hi": 46
+				},
+				"line": 92,
+				"raw": "  wall-bg x=4..38 y=39..46",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "fill",
+				"x": {
+					"lo": 1,
+					"hi": 2
+				},
+				"y": {
+					"lo": 47,
+					"hi": 47
+				},
+				"line": 93,
+				"raw": "  fill x=1..2 y=47",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "rung-top",
+				"x": {
+					"lo": 3,
+					"hi": 3
+				},
+				"y": {
+					"lo": 47,
+					"hi": 47
+				},
+				"line": 94,
+				"raw": "  rung-top x=3 y=47",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "fill",
+				"x": {
+					"lo": 4,
+					"hi": 38
+				},
+				"y": {
+					"lo": 47,
+					"hi": 47
+				},
+				"line": 95,
+				"raw": "  fill x=4..38 y=47",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "wall-bg",
+				"x": {
+					"lo": 1,
+					"hi": 11
+				},
+				"y": {
+					"lo": 48,
+					"hi": 48
+				},
+				"line": 96,
+				"raw": "  wall-bg x=1..11 y=48",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "crystal-tile",
+				"x": {
+					"lo": 12,
+					"hi": 12
+				},
+				"y": {
+					"lo": 48,
+					"hi": 48
+				},
+				"line": 97,
+				"raw": "  crystal-tile x=12 y=48",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "wall-bg",
+				"x": {
+					"lo": 13,
+					"hi": 38
+				},
+				"y": {
+					"lo": 48,
+					"hi": 48
+				},
+				"line": 98,
+				"raw": "  wall-bg x=13..38 y=48",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "wall-bg",
+				"x": {
+					"lo": 1,
+					"hi": 38
+				},
+				"y": {
+					"lo": 49,
+					"hi": 55
+				},
+				"line": 99,
+				"raw": "  wall-bg x=1..38 y=49..55",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "fill",
+				"x": {
+					"lo": 1,
+					"hi": 17
+				},
+				"y": {
+					"lo": 56,
+					"hi": 56
+				},
+				"line": 100,
+				"raw": "  fill x=1..17 y=56",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "wall-bg",
+				"x": {
+					"lo": 18,
+					"hi": 20
+				},
+				"y": {
+					"lo": 56,
+					"hi": 56
+				},
+				"line": 101,
+				"raw": "  wall-bg x=18..20 y=56",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "fill",
+				"x": {
+					"lo": 21,
+					"hi": 38
+				},
+				"y": {
+					"lo": 56,
+					"hi": 56
+				},
+				"line": 102,
+				"raw": "  fill x=21..38 y=56",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "wall-bg",
+				"x": {
+					"lo": 1,
+					"hi": 14
+				},
+				"y": {
+					"lo": 57,
+					"hi": 57
+				},
+				"line": 103,
+				"raw": "  wall-bg x=1..14 y=57",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "crystal-tile",
+				"x": {
+					"lo": 15,
+					"hi": 15
+				},
+				"y": {
+					"lo": 57,
+					"hi": 57
+				},
+				"line": 104,
+				"raw": "  crystal-tile x=15 y=57",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "wall-bg",
+				"x": {
+					"lo": 16,
+					"hi": 25
+				},
+				"y": {
+					"lo": 57,
+					"hi": 57
+				},
+				"line": 105,
+				"raw": "  wall-bg x=16..25 y=57",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "slope-r45",
+				"x": {
+					"lo": 26,
+					"hi": 26
+				},
+				"y": {
+					"lo": 57,
+					"hi": 57
+				},
+				"line": 106,
+				"raw": "  slope-r45 x=26 y=57",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "fill",
+				"x": {
+					"lo": 27,
+					"hi": 34
+				},
+				"y": {
+					"lo": 57,
+					"hi": 57
+				},
+				"line": 107,
+				"raw": "  fill x=27..34 y=57",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "wall-bg",
+				"x": {
+					"lo": 35,
+					"hi": 38
+				},
+				"y": {
+					"lo": 57,
+					"hi": 64
+				},
+				"line": 108,
+				"raw": "  wall-bg x=35..38 y=57..64",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "wall-bg",
+				"x": {
+					"lo": 1,
+					"hi": 26
+				},
+				"y": {
+					"lo": 58,
+					"hi": 58
+				},
+				"line": 109,
+				"raw": "  wall-bg x=1..26 y=58",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "slope-r45",
+				"x": {
+					"lo": 27,
+					"hi": 27
+				},
+				"y": {
+					"lo": 58,
+					"hi": 58
+				},
+				"line": 110,
+				"raw": "  slope-r45 x=27 y=58",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "fill",
+				"x": {
+					"lo": 28,
+					"hi": 34
+				},
+				"y": {
+					"lo": 58,
+					"hi": 58
+				},
+				"line": 111,
+				"raw": "  fill x=28..34 y=58",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "wall-bg",
+				"x": {
+					"lo": 1,
+					"hi": 27
+				},
+				"y": {
+					"lo": 59,
+					"hi": 59
+				},
+				"line": 112,
+				"raw": "  wall-bg x=1..27 y=59",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "slope-r45",
+				"x": {
+					"lo": 28,
+					"hi": 28
+				},
+				"y": {
+					"lo": 59,
+					"hi": 59
+				},
+				"line": 113,
+				"raw": "  slope-r45 x=28 y=59",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "fill",
+				"x": {
+					"lo": 29,
+					"hi": 34
+				},
+				"y": {
+					"lo": 59,
+					"hi": 59
+				},
+				"line": 114,
+				"raw": "  fill x=29..34 y=59",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "wall-bg",
+				"x": {
+					"lo": 1,
+					"hi": 28
+				},
+				"y": {
+					"lo": 60,
+					"hi": 60
+				},
+				"line": 115,
+				"raw": "  wall-bg x=1..28 y=60",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "slope-r45",
+				"x": {
+					"lo": 29,
+					"hi": 29
+				},
+				"y": {
+					"lo": 60,
+					"hi": 60
+				},
+				"line": 116,
+				"raw": "  slope-r45 x=29 y=60",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "fill",
+				"x": {
+					"lo": 30,
+					"hi": 34
+				},
+				"y": {
+					"lo": 60,
+					"hi": 60
+				},
+				"line": 117,
+				"raw": "  fill x=30..34 y=60",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "wall-bg",
+				"x": {
+					"lo": 1,
+					"hi": 29
+				},
+				"y": {
+					"lo": 61,
+					"hi": 61
+				},
+				"line": 118,
+				"raw": "  wall-bg x=1..29 y=61",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "slope-r45",
+				"x": {
+					"lo": 30,
+					"hi": 30
+				},
+				"y": {
+					"lo": 61,
+					"hi": 61
+				},
+				"line": 119,
+				"raw": "  slope-r45 x=30 y=61",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "fill",
+				"x": {
+					"lo": 31,
+					"hi": 34
+				},
+				"y": {
+					"lo": 61,
+					"hi": 61
+				},
+				"line": 120,
+				"raw": "  fill x=31..34 y=61",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "wall-bg",
+				"x": {
+					"lo": 1,
+					"hi": 30
+				},
+				"y": {
+					"lo": 62,
+					"hi": 62
+				},
+				"line": 121,
+				"raw": "  wall-bg x=1..30 y=62",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "slope-r45",
+				"x": {
+					"lo": 31,
+					"hi": 31
+				},
+				"y": {
+					"lo": 62,
+					"hi": 62
+				},
+				"line": 122,
+				"raw": "  slope-r45 x=31 y=62",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "fill",
+				"x": {
+					"lo": 32,
+					"hi": 34
+				},
+				"y": {
+					"lo": 62,
+					"hi": 62
+				},
+				"line": 123,
+				"raw": "  fill x=32..34 y=62",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "wall-bg",
+				"x": {
+					"lo": 1,
+					"hi": 31
+				},
+				"y": {
+					"lo": 63,
+					"hi": 63
+				},
+				"line": 124,
+				"raw": "  wall-bg x=1..31 y=63",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "slope-r45",
+				"x": {
+					"lo": 32,
+					"hi": 32
+				},
+				"y": {
+					"lo": 63,
+					"hi": 63
+				},
+				"line": 125,
+				"raw": "  slope-r45 x=32 y=63",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "fill",
+				"x": {
+					"lo": 33,
+					"hi": 34
+				},
+				"y": {
+					"lo": 63,
+					"hi": 63
+				},
+				"line": 126,
+				"raw": "  fill x=33..34 y=63",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "wall-bg",
+				"x": {
+					"lo": 1,
+					"hi": 32
+				},
+				"y": {
+					"lo": 64,
+					"hi": 64
+				},
+				"line": 127,
+				"raw": "  wall-bg x=1..32 y=64",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "slope-r45",
+				"x": {
+					"lo": 33,
+					"hi": 33
+				},
+				"y": {
+					"lo": 64,
+					"hi": 64
+				},
+				"line": 128,
+				"raw": "  slope-r45 x=33 y=64",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "fill",
+				"x": {
+					"lo": 34,
+					"hi": 34
+				},
+				"y": {
+					"lo": 64,
+					"hi": 64
+				},
+				"line": 129,
+				"raw": "  fill x=34 y=64",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "wall-bg",
+				"x": {
+					"lo": 1,
+					"hi": 33
+				},
+				"y": {
+					"lo": 65,
+					"hi": 65
+				},
+				"line": 130,
+				"raw": "  wall-bg x=1..33 y=65",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "slope-r45",
+				"x": {
+					"lo": 34,
+					"hi": 34
+				},
+				"y": {
+					"lo": 65,
+					"hi": 65
+				},
+				"line": 131,
+				"raw": "  slope-r45 x=34 y=65",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "fill",
+				"x": {
+					"lo": 35,
+					"hi": 38
+				},
+				"y": {
+					"lo": 65,
+					"hi": 65
+				},
+				"line": 132,
+				"raw": "  fill x=35..38 y=65",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "wall-bg",
+				"x": {
+					"lo": 1,
+					"hi": 36
+				},
+				"y": {
+					"lo": 66,
+					"hi": 73
+				},
+				"line": 133,
+				"raw": "  wall-bg x=1..36 y=66..73",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "rung",
+				"x": {
+					"lo": 37,
+					"hi": 37
+				},
+				"y": {
+					"lo": 66,
+					"hi": 73
+				},
+				"line": 134,
+				"raw": "  rung x=37 y=66..73",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "wall-bg",
+				"x": {
+					"lo": 38,
+					"hi": 38
+				},
+				"y": {
+					"lo": 66,
+					"hi": 73
+				},
+				"line": 135,
+				"raw": "  wall-bg x=38 y=66..73",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "fill",
+				"x": {
+					"lo": 1,
+					"hi": 36
+				},
+				"y": {
+					"lo": 74,
+					"hi": 74
+				},
+				"line": 136,
+				"raw": "  fill x=1..36 y=74",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "rung-top",
+				"x": {
+					"lo": 37,
+					"hi": 37
+				},
+				"y": {
+					"lo": 74,
+					"hi": 74
+				},
+				"line": 137,
+				"raw": "  rung-top x=37 y=74",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "fill",
+				"x": {
+					"lo": 38,
+					"hi": 38
+				},
+				"y": {
+					"lo": 74,
+					"hi": 74
+				},
+				"line": 138,
+				"raw": "  fill x=38 y=74",
+				"comment": null
+			},
+			{
+				"type": "hover",
+				"from": [
+					{
+						"value": 18,
+						"text": "18"
+					},
+					{
+						"value": 47.5,
+						"text": "47.5"
+					}
+				],
+				"to": [
+					{
+						"value": 18,
+						"text": "18"
+					},
+					{
+						"value": 56.5,
+						"text": "56.5"
+					}
+				],
+				"speed": {
+					"value": 0.1,
+					"text": "0.1"
+				},
+				"size": [
+					{
+						"value": 3,
+						"text": "3"
+					},
+					{
+						"value": 0.5,
+						"text": "0.5"
+					}
+				],
+				"dwell": {
+					"value": 2,
+					"text": "2"
+				},
+				"line": 139,
+				"raw": "  hover from=18,47.5 to=18,56.5 speed=0.1 size=3x0.5 dwell=2",
+				"comment": null
+			},
+			{
+				"type": "blank",
+				"line": 140,
+				"raw": "",
+				"comment": null
+			},
+			{
+				"type": "section",
+				"name": "treats",
+				"line": 141,
+				"raw": "treats",
+				"comment": null
+			},
+			{
+				"type": "row",
+				"kind": "cheezie",
+				"x": {
+					"lo": 6,
+					"hi": 11
+				},
+				"y": 3,
+				"by": 1,
+				"line": 142,
+				"raw": "  row cheezie x=6..11 y=3",
+				"comment": null
+			},
+			{
+				"type": "row",
+				"kind": "cheezie",
+				"x": {
+					"lo": 8,
+					"hi": 18
+				},
+				"y": 12,
+				"by": 2,
+				"line": 143,
+				"raw": "  row cheezie x=8..18 y=12 by=2",
+				"comment": null
+			},
+			{
+				"type": "row",
+				"kind": "cheezie",
+				"x": {
+					"lo": 34,
+					"hi": 37
+				},
+				"y": 21,
+				"by": 1,
+				"line": 144,
+				"raw": "  row cheezie x=34..37 y=21",
+				"comment": null
+			},
+			{
+				"type": "row",
+				"kind": "cheezie",
+				"x": {
+					"lo": 16,
+					"hi": 26
+				},
+				"y": 30,
+				"by": 2,
+				"line": 145,
+				"raw": "  row cheezie x=16..26 y=30 by=2",
+				"comment": null
+			},
+			{
+				"type": "row",
+				"kind": "cheezie",
+				"x": {
+					"lo": 12,
+					"hi": 22
+				},
+				"y": 48,
+				"by": 2,
+				"line": 146,
+				"raw": "  row cheezie x=12..22 y=48 by=2",
+				"comment": null
+			},
+			{
+				"type": "row",
+				"kind": "cheezie",
+				"x": {
+					"lo": 22,
+					"hi": 24
+				},
+				"y": 57,
+				"by": 1,
+				"line": 147,
+				"raw": "  row cheezie x=22..24 y=57",
+				"comment": null
+			},
+			{
+				"type": "row",
+				"kind": "cheezie",
+				"x": {
+					"lo": 36,
+					"hi": 38
+				},
+				"y": 66,
+				"by": 1,
+				"line": 148,
+				"raw": "  row cheezie x=36..38 y=66",
+				"comment": null
+			},
+			{
+				"type": "row",
+				"kind": "cheezie",
+				"x": {
+					"lo": 8,
+					"hi": 18
+				},
+				"y": 75,
+				"by": 2,
+				"line": 149,
+				"raw": "  row cheezie x=8..18 y=75 by=2",
+				"comment": null
+			},
+			{
+				"type": "item",
+				"kind": "soda",
+				"xs": [
+					{
+						"lo": 14,
+						"hi": 14
+					}
+				],
+				"y": 12,
+				"line": 150,
+				"raw": "  soda x=14 y=12",
+				"comment": null
+			},
+			{
+				"type": "item",
+				"kind": "soda",
+				"xs": [
+					{
+						"lo": 24,
+						"hi": 24
+					}
+				],
+				"y": 48,
+				"line": 151,
+				"raw": "  soda x=24 y=48",
+				"comment": null
+			},
+			{
+				"type": "item",
+				"kind": "cookie",
+				"xs": [
+					{
+						"lo": 20,
+						"hi": 20
+					}
+				],
+				"y": 30,
+				"line": 152,
+				"raw": "  cookie x=20 y=30",
+				"comment": null
+			},
+			{
+				"type": "item",
+				"kind": "cookie",
+				"xs": [
+					{
+						"lo": 30,
+						"hi": 30
+					}
+				],
+				"y": 48,
+				"line": 153,
+				"raw": "  cookie x=30 y=48",
+				"comment": null
+			},
+			{
+				"type": "item",
+				"kind": "cookie",
+				"xs": [
+					{
+						"lo": 28,
+						"hi": 28
+					}
+				],
+				"y": 75,
+				"line": 154,
+				"raw": "  cookie x=28 y=75",
+				"comment": null
+			},
+			{
+				"type": "row",
+				"kind": "choc",
+				"x": {
+					"lo": 3,
+					"hi": 5
+				},
+				"y": 39,
+				"by": 1,
+				"line": 155,
+				"raw": "  row choc x=3..5 y=39",
+				"comment": null
+			},
+			{
+				"type": "row",
+				"kind": "choc",
+				"x": {
+					"lo": 8,
+					"hi": 12
+				},
+				"y": 57,
+				"by": 2,
+				"line": 156,
+				"raw": "  row choc x=8..12 y=57 by=2",
+				"comment": null
+			},
+			{
+				"type": "item",
+				"kind": "key-red",
+				"xs": [
+					{
+						"lo": 19,
+						"hi": 19
+					}
+				],
+				"y": 75,
+				"line": 157,
+				"raw": "  key-red x=19 y=75",
+				"comment": null
+			},
+			{
+				"type": "blank",
+				"line": 158,
+				"raw": "",
+				"comment": null
+			},
+			{
+				"type": "section",
+				"name": "enemies",
+				"line": 159,
+				"raw": "enemies",
+				"comment": null
+			},
+			{
+				"type": "spawn",
+				"kind": "gloop",
+				"xs": [
+					{
+						"value": 14,
+						"text": "14"
+					}
+				],
+				"y": {
+					"value": 3,
+					"text": "3"
+				},
+				"dir": null,
+				"ride": false,
+				"line": 160,
+				"raw": "  gloop x=14 y=3",
+				"comment": null
+			},
+			{
+				"type": "spawn",
+				"kind": "hopper",
+				"xs": [
+					{
+						"value": 24,
+						"text": "24"
+					}
+				],
+				"y": {
+					"value": 3,
+					"text": "3"
+				},
+				"dir": null,
+				"ride": false,
+				"line": 161,
+				"raw": "  hopper x=24 y=3",
+				"comment": null
+			},
+			{
+				"type": "spawn",
+				"kind": "gloop",
+				"xs": [
+					{
+						"value": 12,
+						"text": "12"
+					}
+				],
+				"y": {
+					"value": 12,
+					"text": "12"
+				},
+				"dir": null,
+				"ride": false,
+				"line": 162,
+				"raw": "  gloop x=12 y=12",
+				"comment": null
+			},
+			{
+				"type": "spawn",
+				"kind": "gloop",
+				"xs": [
+					{
+						"value": 20,
+						"text": "20"
+					}
+				],
+				"y": {
+					"value": 30,
+					"text": "30"
+				},
+				"dir": null,
+				"ride": false,
+				"line": 163,
+				"raw": "  gloop x=20 y=30",
+				"comment": null
+			},
+			{
+				"type": "spawn",
+				"kind": "hopper",
+				"xs": [
+					{
+						"value": 30,
+						"text": "30"
+					}
+				],
+				"y": {
+					"value": 30,
+					"text": "30"
+				},
+				"dir": null,
+				"ride": false,
+				"line": 164,
+				"raw": "  hopper x=30 y=30",
+				"comment": null
+			},
+			{
+				"type": "spawn",
+				"kind": "gloop",
+				"xs": [
+					{
+						"value": 28,
+						"text": "28"
+					}
+				],
+				"y": {
+					"value": 48,
+					"text": "48"
+				},
+				"dir": null,
+				"ride": false,
+				"line": 165,
+				"raw": "  gloop x=28 y=48",
+				"comment": null
+			},
+			{
+				"type": "spawn",
+				"kind": "pod",
+				"xs": [
+					{
+						"value": 8,
+						"text": "8"
+					}
+				],
+				"y": {
+					"value": 57,
+					"text": "57"
+				},
+				"dir": null,
+				"ride": false,
+				"line": 166,
+				"raw": "  pod x=8 y=57",
+				"comment": null
+			},
+			{
+				"type": "spawn",
+				"kind": "gloop",
+				"xs": [
+					{
+						"value": 14,
+						"text": "14"
+					}
+				],
+				"y": {
+					"value": 57,
+					"text": "57"
+				},
+				"dir": null,
+				"ride": false,
+				"line": 167,
+				"raw": "  gloop x=14 y=57",
+				"comment": null
+			},
+			{
+				"type": "spawn",
+				"kind": "gloop",
+				"xs": [
+					{
+						"value": 14,
+						"text": "14"
+					}
+				],
+				"y": {
+					"value": 75,
+					"text": "75"
+				},
+				"dir": null,
+				"ride": false,
+				"line": 168,
+				"raw": "  gloop x=14 y=75",
+				"comment": null
+			},
+			{
+				"type": "spawn",
+				"kind": "hopper",
+				"xs": [
+					{
+						"value": 26,
+						"text": "26"
+					}
+				],
+				"y": {
+					"value": 75,
+					"text": "75"
+				},
+				"dir": null,
+				"ride": false,
+				"line": 169,
+				"raw": "  hopper x=26 y=75",
+				"comment": null
+			},
+			{
+				"type": "spawn",
+				"kind": "bat",
+				"xs": [
+					{
+						"value": 10,
+						"text": "10"
+					}
+				],
+				"y": {
+					"value": 55.3,
+					"text": "55.3"
+				},
+				"dir": null,
+				"ride": false,
+				"line": 170,
+				"raw": "  bat x=10 y=55.3",
+				"comment": null
+			},
+			{
+				"type": "spawn",
+				"kind": "bat",
+				"xs": [
+					{
+						"value": 14,
+						"text": "14"
+					}
+				],
+				"y": {
+					"value": 55.3,
+					"text": "55.3"
+				},
+				"dir": null,
+				"ride": false,
+				"line": 171,
+				"raw": "  bat x=14 y=55.3",
+				"comment": null
+			},
+			{
+				"type": "spawn",
+				"kind": "bat",
+				"xs": [
+					{
+						"value": 28,
+						"text": "28"
+					}
+				],
+				"y": {
+					"value": 55.3,
+					"text": "55.3"
+				},
+				"dir": null,
+				"ride": false,
+				"line": 172,
+				"raw": "  bat x=28 y=55.3",
+				"comment": null
+			},
+			{
+				"type": "spawn",
+				"kind": "bat",
+				"xs": [
+					{
+						"value": 33,
+						"text": "33"
+					}
+				],
+				"y": {
+					"value": 55.3,
+					"text": "55.3"
+				},
+				"dir": null,
+				"ride": false,
+				"line": 173,
+				"raw": "  bat x=33 y=55.3",
+				"comment": null
+			},
+			{
+				"type": "blank",
+				"line": 174,
+				"raw": "",
+				"comment": null
+			}
+		]
+	},
+	"errors": []
+}

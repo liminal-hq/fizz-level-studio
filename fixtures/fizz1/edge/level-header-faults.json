@@ -1,0 +1,56 @@
+{
+	"id": "edge/level-header-faults",
+	"from": "tools/fizz1-cases.ts: level headers that are too small, mistyped or repeated",
+	"ast": {
+		"nodes": [
+			{
+				"type": "error",
+				"code": "E015",
+				"line": 1,
+				"raw": "level \"T\" 2x2 ground=4 id=crater",
+				"comment": null
+			},
+			{
+				"type": "error",
+				"code": "E006",
+				"line": 2,
+				"raw": "level \"T\" 5x5 ground=x id=crater",
+				"comment": null
+			},
+			{
+				"type": "start",
+				"x": {
+					"value": 1,
+					"text": "1"
+				},
+				"y": {
+					"value": 1,
+					"text": "1"
+				},
+				"line": 3,
+				"raw": "start 1,1",
+				"comment": null
+			},
+			{
+				"type": "blank",
+				"line": 4,
+				"raw": "",
+				"comment": null
+			}
+		]
+	},
+	"errors": [
+		{
+			"line": 1,
+			"code": "E015",
+			"message": "a level 2x2 is too small",
+			"fix": "make it at least 3x3"
+		},
+		{
+			"line": 2,
+			"code": "E006",
+			"message": "a second `level` header",
+			"fix": "a script holds one level; split it into two files"
+		}
+	]
+}

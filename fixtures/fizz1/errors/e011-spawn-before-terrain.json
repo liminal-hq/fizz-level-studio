@@ -1,0 +1,61 @@
+{
+	"id": "errors/e011-spawn-before-terrain",
+	"from": "packages/language/test/errors.test.ts: E011 ground-based statements need terrain first",
+	"ast": {
+		"nodes": [
+			{
+				"type": "level",
+				"name": "T",
+				"w": 40,
+				"h": 20,
+				"ground": 4,
+				"id": "crater",
+				"line": 1,
+				"raw": "level \"T\" 40x20 ground=4 id=crater",
+				"comment": null
+			},
+			{
+				"type": "start",
+				"x": {
+					"value": 3,
+					"text": "3"
+				},
+				"y": {
+					"value": 4,
+					"text": "4"
+				},
+				"line": 2,
+				"raw": "start 3,4",
+				"comment": null
+			},
+			{
+				"type": "section",
+				"name": "enemies",
+				"line": 3,
+				"raw": "enemies",
+				"comment": null
+			},
+			{
+				"type": "error",
+				"code": "E011",
+				"line": 4,
+				"raw": "  gloop x=5",
+				"comment": null
+			},
+			{
+				"type": "blank",
+				"line": 5,
+				"raw": "",
+				"comment": null
+			}
+		]
+	},
+	"errors": [
+		{
+			"line": 4,
+			"code": "E011",
+			"message": "`gloop` reads the ground height, but no terrain line comes before it",
+			"fix": "move it below the `terrain` lines (statements run in file order)"
+		}
+	]
+}

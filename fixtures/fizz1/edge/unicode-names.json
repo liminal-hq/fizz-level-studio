@@ -1,0 +1,93 @@
+{
+	"id": "edge/unicode-names",
+	"from": "tools/fizz1-cases.ts: non-ASCII level names, comments and unknown words",
+	"ast": {
+		"nodes": [
+			{
+				"type": "level",
+				"name": "Crème brûlée 🍮",
+				"w": 40,
+				"h": 20,
+				"ground": 4,
+				"id": "crater",
+				"line": 1,
+				"raw": "level \"Crème brûlée 🍮\" 40x20 ground=4 id=crater // café 🍮",
+				"comment": "café 🍮"
+			},
+			{
+				"type": "start",
+				"x": {
+					"value": 3,
+					"text": "3"
+				},
+				"y": {
+					"value": 4,
+					"text": "4"
+				},
+				"line": 2,
+				"raw": "start 3,4",
+				"comment": null
+			},
+			{
+				"type": "section",
+				"name": "terrain",
+				"line": 3,
+				"raw": "terrain",
+				"comment": null
+			},
+			{
+				"type": "segs",
+				"segs": [
+					{
+						"seg": "flat",
+						"n": 40
+					}
+				],
+				"line": 4,
+				"raw": "  flat 40",
+				"comment": null
+			},
+			{
+				"type": "section",
+				"name": "blocks",
+				"line": 5,
+				"raw": "blocks",
+				"comment": null
+			},
+			{
+				"type": "error",
+				"code": "E001",
+				"line": 6,
+				"raw": "  🍮🍮 x=1 y=1",
+				"comment": null
+			},
+			{
+				"type": "error",
+				"code": "E001",
+				"line": 7,
+				"raw": "  blöck x=1 y=1",
+				"comment": null
+			},
+			{
+				"type": "blank",
+				"line": 8,
+				"raw": "",
+				"comment": null
+			}
+		]
+	},
+	"errors": [
+		{
+			"line": 6,
+			"code": "E001",
+			"message": "unknown statement `🍮🍮` in `blocks`",
+			"fix": "`blocks` takes: fill, block, one-way, spike, choc, slope-r45, slope-l45, slope-r22a, slope-r22b, slope-l22a, slope-l22b, red-door, blue-door, green-door, bridge, mural-origin, mural-part, crystal-tile, exit, grass, path, river, tree, rock, conveyor-l, conveyor-r, furnace, wall-bg, rung, rung-top, facade, gate, gate-2, gate-3, vine, cracked, house-a, house-b, shop, fountain, plat, hover, channel, crystal, room, secret-room, wall-behind, mural, ladder, stairs-right, stairs-left, vine-nook"
+		},
+		{
+			"line": 7,
+			"code": "E001",
+			"message": "unknown statement `blöck` in `blocks`",
+			"fix": "did you mean `block`?"
+		}
+	]
+}

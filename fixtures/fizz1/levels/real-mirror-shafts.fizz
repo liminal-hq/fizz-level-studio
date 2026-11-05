@@ -1,0 +1,108 @@
+// Mirror Shafts: rebuilt from the game's own data by tools/decompile-level.ts.
+level "Mirror Shafts" 36x100 ground=4 id=mirror-shafts
+theme shaft
+area rock-candy-reach
+start 6,3
+
+blocks
+  channel 1,2,3 on
+  fill x=0..35 y=0..2
+  fill x=0..2 y=3..99
+  fill x=33..35 y=3..62
+  one-way x=4..12 y=5
+  crystal-tile x=10 y=8
+  one-way x=11..18 y=8
+  one-way x=16..24 y=11
+  one-way x=22..26 y=14
+  one-way x=16..23 y=17
+  crystal-tile x=24 y=17
+  one-way x=10..26 y=20
+  one-way x=4..12 y=23
+  fill x=19..28 y=25
+  one-way x=8..16 y=26
+  fill x=19..28 y=27
+  one-way x=12..20 y=29
+  gate x=3..32 y=30..31
+  one-way x=6..16 y=32
+  one-way x=12..22 y=35
+  one-way x=18..28 y=38
+  one-way x=12..19 y=41
+  crystal-tile x=20 y=41
+  one-way x=21..22 y=41
+  one-way x=6..16 y=44
+  one-way x=10..20 y=47
+  one-way x=6..11 y=50
+  crystal-tile x=12 y=50
+  one-way x=13..14 y=50
+  one-way x=6..14 y=53
+  one-way x=12..17 y=56
+  one-way x=19..25 y=59
+  fill x=16 y=61..63
+  fill x=18 y=61..63
+  one-way x=24..32 y=62
+  cracked x=33 y=63..64
+  vine x=34 y=63..69
+  fill x=35 y=63..69
+  one-way x=18..28 y=65
+  fill x=33 y=65..67
+  gate-2 x=3..32 y=66..67
+  one-way x=14..24 y=68
+  fill x=33..35 y=70..99
+  one-way x=12..22 y=71
+  one-way x=18..25 y=74
+  crystal-tile x=26 y=74
+  one-way x=27..28 y=74
+  one-way x=12..24 y=77
+  one-way x=24..32 y=80
+  fill x=4..17 y=81
+  fill x=4..17 y=83
+  one-way x=18..26 y=83
+  one-way x=18..26 y=86
+  gate-3 x=3..32 y=87..88
+  one-way x=14..24 y=89
+  crystal-tile x=20 y=91
+  one-way x=16..24 y=92
+  exit x=20 y=93..94
+
+treats
+  cookie x=34 y=65
+  cookie x=34 y=68
+  soda x=13 y=21
+  soda x=8 y=54
+  soda x=21 y=78
+  soda x=12 y=6
+  row cheezie x=5..9 y=6
+  row cheezie x=17..21 y=12
+  row cheezie x=17..21 y=18
+  row cheezie x=5..9 y=24
+  row cheezie x=13..17 y=36
+  row cheezie x=13..17 y=42
+  row cheezie x=11..15 y=48
+  row cheezie x=7..11 y=54
+  row cheezie x=20..24 y=60
+  row cheezie x=13..17 y=72
+  row cheezie x=13..17 y=78
+  row cheezie x=19..23 y=84
+  row cheezie x=15..19 y=90
+  row choc x=12..16 y=22 by=2
+  cookie x=22 y=40
+  cookie x=24 y=61
+  cookie x=22 y=76
+  row choc x=18..22 y=91 by=2
+
+enemies
+  mirror x=18 y=26 dir=1
+  crystal-switch x=28 y=26 dir=1
+  mirror x=10 y=58 dir=1
+  mirror x=17 y=58 dir=1
+  crystal-switch x=17 y=62 dir=2
+  swivel x=18 y=82 dir=1
+  crystal-switch x=8 y=82 dir=3
+  glyph x=26 y=63 dir=2
+  phantom x=26 y=15
+  phantom x=22 y=39
+  phantom x=16 y=72
+  pod x=14 y=48
+  pod x=24 y=75
+  drone x=20.5 y=36.5
+  drone x=14.5 y=68.5

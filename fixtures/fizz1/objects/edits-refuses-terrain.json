@@ -1,0 +1,68 @@
+{
+	"id": "objects/edits-refuses-terrain",
+	"from": "packages/language/test/objects.test.ts: the edits block still refuses a terrain segment",
+	"ast": {
+		"nodes": [
+			{
+				"type": "level",
+				"name": "T",
+				"w": 40,
+				"h": 20,
+				"ground": 4,
+				"id": "crater",
+				"line": 1,
+				"raw": "level \"T\" 40x20 ground=4 id=crater",
+				"comment": null
+			},
+			{
+				"type": "start",
+				"x": {
+					"value": 3,
+					"text": "3"
+				},
+				"y": {
+					"value": 4,
+					"text": "4"
+				},
+				"line": 2,
+				"raw": "start 3,4",
+				"comment": null
+			},
+			{
+				"type": "section",
+				"name": "blocks",
+				"line": 3,
+				"raw": "blocks",
+				"comment": null
+			},
+			{
+				"type": "section",
+				"name": "edits",
+				"line": 4,
+				"raw": "edits",
+				"comment": null
+			},
+			{
+				"type": "error",
+				"code": "E008",
+				"line": 5,
+				"raw": "  flat 4",
+				"comment": null
+			},
+			{
+				"type": "blank",
+				"line": 6,
+				"raw": "",
+				"comment": null
+			}
+		]
+	},
+	"errors": [
+		{
+			"line": 5,
+			"code": "E008",
+			"message": "`flat` belongs under `terrain`, not `edits`",
+			"fix": "move the line under a `terrain` header"
+		}
+	]
+}

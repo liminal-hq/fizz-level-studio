@@ -1,0 +1,81 @@
+{
+	"id": "edge/large-integers",
+	"from": "tools/fizz1-cases.ts: integers beyond the safe range for a double",
+	"ast": {
+		"nodes": [
+			{
+				"type": "level",
+				"name": "T",
+				"w": 100000000000000000000,
+				"h": 30,
+				"ground": 9007199254740992,
+				"id": "crater",
+				"line": 1,
+				"raw": "level \"T\" 99999999999999999999x30 ground=9007199254740993 id=crater",
+				"comment": null
+			},
+			{
+				"type": "start",
+				"x": {
+					"value": 3,
+					"text": "3"
+				},
+				"y": {
+					"value": 4,
+					"text": "4"
+				},
+				"line": 2,
+				"raw": "start 3,4",
+				"comment": null
+			},
+			{
+				"type": "section",
+				"name": "terrain",
+				"line": 3,
+				"raw": "terrain",
+				"comment": null
+			},
+			{
+				"type": "segs",
+				"segs": [
+					{
+						"seg": "flat",
+						"n": 9007199254740992
+					}
+				],
+				"line": 4,
+				"raw": "  flat 9007199254740993",
+				"comment": null
+			},
+			{
+				"type": "section",
+				"name": "blocks",
+				"line": 5,
+				"raw": "blocks",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "block",
+				"x": {
+					"lo": 0,
+					"hi": 9007199254740992
+				},
+				"y": {
+					"lo": 1,
+					"hi": 1
+				},
+				"line": 6,
+				"raw": "  block x=0..9007199254740993 y=1",
+				"comment": null
+			},
+			{
+				"type": "blank",
+				"line": 7,
+				"raw": "",
+				"comment": null
+			}
+		]
+	},
+	"errors": []
+}

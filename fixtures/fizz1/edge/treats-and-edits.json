@@ -1,0 +1,233 @@
+{
+	"id": "edge/treats-and-edits",
+	"from": "tools/fizz1-cases.ts: item rows, placed items and painted tiles with lists",
+	"ast": {
+		"nodes": [
+			{
+				"type": "level",
+				"name": "T",
+				"w": 40,
+				"h": 20,
+				"ground": 4,
+				"id": "crater",
+				"line": 1,
+				"raw": "level \"T\" 40x20 ground=4 id=crater",
+				"comment": null
+			},
+			{
+				"type": "start",
+				"x": {
+					"value": 3,
+					"text": "3"
+				},
+				"y": {
+					"value": 4,
+					"text": "4"
+				},
+				"line": 2,
+				"raw": "start 3,4",
+				"comment": null
+			},
+			{
+				"type": "section",
+				"name": "terrain",
+				"line": 3,
+				"raw": "terrain",
+				"comment": null
+			},
+			{
+				"type": "segs",
+				"segs": [
+					{
+						"seg": "flat",
+						"n": 40
+					}
+				],
+				"line": 4,
+				"raw": "  flat 40",
+				"comment": null
+			},
+			{
+				"type": "section",
+				"name": "treats",
+				"line": 5,
+				"raw": "treats",
+				"comment": null
+			},
+			{
+				"type": "item",
+				"kind": "cheezie",
+				"xs": [
+					{
+						"lo": 1,
+						"hi": 3
+					},
+					{
+						"lo": 7,
+						"hi": 7
+					},
+					{
+						"lo": 9,
+						"hi": 9
+					}
+				],
+				"y": 5,
+				"line": 6,
+				"raw": "  cheezie x=1..3,7,9 y=5",
+				"comment": null
+			},
+			{
+				"type": "error",
+				"code": "E004",
+				"line": 7,
+				"raw": "  cheezie x=1 y=4..6",
+				"comment": null
+			},
+			{
+				"type": "row",
+				"kind": "cheezie",
+				"x": {
+					"lo": 2,
+					"hi": 8
+				},
+				"y": 5,
+				"by": 2,
+				"line": 8,
+				"raw": "  row cheezie x=2..8 y=5 by=2",
+				"comment": null
+			},
+			{
+				"type": "error",
+				"code": "E012",
+				"line": 9,
+				"raw": "  row key-red x=2..9 y=5 by=2",
+				"comment": null
+			},
+			{
+				"type": "pogo-cache",
+				"x": {
+					"lo": 2,
+					"hi": 4
+				},
+				"rise": 7,
+				"line": 10,
+				"raw": "  pogo-cache x=2..4 rise=7",
+				"comment": null
+			},
+			{
+				"type": "section",
+				"name": "edits",
+				"line": 11,
+				"raw": "edits",
+				"comment": null
+			},
+			{
+				"type": "paint",
+				"tile": "one-way",
+				"xs": [
+					{
+						"lo": 1,
+						"hi": 1
+					},
+					{
+						"lo": 3,
+						"hi": 3
+					},
+					{
+						"lo": 5,
+						"hi": 6
+					}
+				],
+				"ys": [
+					{
+						"lo": 4,
+						"hi": 4
+					},
+					{
+						"lo": 8,
+						"hi": 8
+					}
+				],
+				"line": 12,
+				"raw": "  paint one-way x=1,3,5..6 y=4,8",
+				"comment": null
+			},
+			{
+				"type": "clear",
+				"xs": [
+					{
+						"lo": 1,
+						"hi": 3
+					}
+				],
+				"ys": [
+					{
+						"lo": 5,
+						"hi": 5
+					}
+				],
+				"line": 13,
+				"raw": "  clear x=1..3 y=5",
+				"comment": null
+			},
+			{
+				"type": "place",
+				"kind": "usb",
+				"xs": [
+					{
+						"lo": 4,
+						"hi": 4
+					}
+				],
+				"ys": [
+					{
+						"lo": 5,
+						"hi": 5
+					}
+				],
+				"line": 14,
+				"raw": "  place usb x=4 y=5",
+				"comment": null
+			},
+			{
+				"type": "place",
+				"kind": "choc",
+				"xs": [
+					{
+						"lo": 4,
+						"hi": 4
+					}
+				],
+				"ys": [
+					{
+						"lo": 5,
+						"hi": 5
+					}
+				],
+				"line": 15,
+				"raw": "  place choc x=4 y=5",
+				"comment": null
+			},
+			{
+				"type": "blank",
+				"line": 16,
+				"raw": "",
+				"comment": null
+			}
+		]
+	},
+	"errors": [
+		{
+			"line": 7,
+			"code": "E004",
+			"message": "`y=` must be one number, found the range 4..6",
+			"fix": "write a single whole number"
+		},
+		{
+			"line": 9,
+			"code": "E012",
+			"message": "x=2..9 does not end on a step of 2 from 2",
+			"fix": "write x=2..8 by=2 (4 items) or x=2..10 by=2"
+		}
+	]
+}

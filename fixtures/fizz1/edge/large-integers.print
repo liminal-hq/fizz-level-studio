@@ -1,0 +1,6 @@
+level "T" 99999999999999999999x30 ground=9007199254740993 id=crater
+start 3,4
+terrain
+  flat 9007199254740993
+blocks
+  block x=0..9007199254740993 y=1

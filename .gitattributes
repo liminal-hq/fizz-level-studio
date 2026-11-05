@@ -1,0 +1,2 @@
+# The conformance corpus holds CRLF, byte order marks and odd whitespace on purpose; never normalise it.
+fixtures/fizz1/** -text

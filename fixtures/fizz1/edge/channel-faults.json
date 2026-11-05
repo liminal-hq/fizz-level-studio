@@ -1,0 +1,124 @@
+{
+	"id": "edge/channel-faults",
+	"from": "tools/fizz1-cases.ts: channel lists with gaps, numbers out of bounds and extra words",
+	"ast": {
+		"nodes": [
+			{
+				"type": "level",
+				"name": "T",
+				"w": 40,
+				"h": 20,
+				"ground": 4,
+				"id": "crater",
+				"line": 1,
+				"raw": "level \"T\" 40x20 ground=4 id=crater",
+				"comment": null
+			},
+			{
+				"type": "start",
+				"x": {
+					"value": 3,
+					"text": "3"
+				},
+				"y": {
+					"value": 4,
+					"text": "4"
+				},
+				"line": 2,
+				"raw": "start 3,4",
+				"comment": null
+			},
+			{
+				"type": "section",
+				"name": "blocks",
+				"line": 3,
+				"raw": "blocks",
+				"comment": null
+			},
+			{
+				"type": "error",
+				"code": "E004",
+				"line": 4,
+				"raw": "  channel 1,,2 on",
+				"comment": null
+			},
+			{
+				"type": "error",
+				"code": "E013",
+				"line": 5,
+				"raw": "  channel 32 on",
+				"comment": null
+			},
+			{
+				"type": "error",
+				"code": "E013",
+				"line": 6,
+				"raw": "  channel -1 off",
+				"comment": null
+			},
+			{
+				"type": "error",
+				"code": "E003",
+				"line": 7,
+				"raw": "  channel 1,2",
+				"comment": null
+			},
+			{
+				"type": "error",
+				"code": "E009",
+				"line": 8,
+				"raw": "  channel 1 on extra",
+				"comment": null
+			},
+			{
+				"type": "channel",
+				"chs": [
+					0,
+					31
+				],
+				"on": false,
+				"line": 9,
+				"raw": "  channel 0,31 off",
+				"comment": null
+			},
+			{
+				"type": "blank",
+				"line": 10,
+				"raw": "",
+				"comment": null
+			}
+		]
+	},
+	"errors": [
+		{
+			"line": 4,
+			"code": "E004",
+			"message": "a channel number must be a whole number, found ``",
+			"fix": "write digits only, such as 14 or -2"
+		},
+		{
+			"line": 5,
+			"code": "E013",
+			"message": "switch channels run 0..31",
+			"fix": "use a channel from 0 to 31"
+		},
+		{
+			"line": 6,
+			"code": "E013",
+			"message": "switch channels run 0..31",
+			"fix": "use a channel from 0 to 31"
+		},
+		{
+			"line": 7,
+			"code": "E003",
+			"message": "missing on or off",
+			"fix": "write `channel 1,2,3 on`"
+		},
+		{
+			"line": 8,
+			"code": "E009",
+			"message": "unexpected `extra`",
+			"fix": "this statement takes: a channel list and on or off"
+		}
+	]
+}

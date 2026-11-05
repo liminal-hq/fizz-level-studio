@@ -1,0 +1,28 @@
+{
+	"id": "edge/lone-comment-newline",
+	"from": "tools/fizz1-cases.ts: one comment and a final newline",
+	"ast": {
+		"nodes": [
+			{
+				"type": "comment",
+				"line": 1,
+				"raw": "// nothing here",
+				"comment": "nothing here"
+			},
+			{
+				"type": "blank",
+				"line": 2,
+				"raw": "",
+				"comment": null
+			}
+		]
+	},
+	"errors": [
+		{
+			"line": 1,
+			"code": "E007",
+			"message": "the script has no `level` header",
+			"fix": "start the script with: level \"Name\" 192x28 ground=4 id=crater"
+		}
+	]
+}

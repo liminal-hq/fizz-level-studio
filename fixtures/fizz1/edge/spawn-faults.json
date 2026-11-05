@@ -1,0 +1,174 @@
+{
+	"id": "edge/spawn-faults",
+	"from": "tools/fizz1-cases.ts: spawn positions, flags and directions",
+	"ast": {
+		"nodes": [
+			{
+				"type": "level",
+				"name": "T",
+				"w": 40,
+				"h": 20,
+				"ground": 4,
+				"id": "crater",
+				"line": 1,
+				"raw": "level \"T\" 40x20 ground=4 id=crater",
+				"comment": null
+			},
+			{
+				"type": "start",
+				"x": {
+					"value": 3,
+					"text": "3"
+				},
+				"y": {
+					"value": 4,
+					"text": "4"
+				},
+				"line": 2,
+				"raw": "start 3,4",
+				"comment": null
+			},
+			{
+				"type": "section",
+				"name": "terrain",
+				"line": 3,
+				"raw": "terrain",
+				"comment": null
+			},
+			{
+				"type": "segs",
+				"segs": [
+					{
+						"seg": "flat",
+						"n": 40
+					}
+				],
+				"line": 4,
+				"raw": "  flat 40",
+				"comment": null
+			},
+			{
+				"type": "section",
+				"name": "enemies",
+				"line": 5,
+				"raw": "enemies",
+				"comment": null
+			},
+			{
+				"type": "spawn",
+				"kind": "gloop",
+				"xs": [
+					{
+						"value": 3.5,
+						"text": "3.5"
+					},
+					{
+						"value": 7,
+						"text": "7"
+					}
+				],
+				"y": null,
+				"dir": null,
+				"ride": false,
+				"line": 6,
+				"raw": "  gloop x=3.5, 7",
+				"comment": null
+			},
+			{
+				"type": "error",
+				"code": "E013",
+				"line": 7,
+				"raw": "  gloop x=40",
+				"comment": null
+			},
+			{
+				"type": "error",
+				"code": "E013",
+				"line": 8,
+				"raw": "  gloop x=-0.5",
+				"comment": null
+			},
+			{
+				"type": "spawn",
+				"kind": "bat",
+				"xs": [
+					{
+						"value": 3,
+						"text": "3"
+					}
+				],
+				"y": {
+					"value": 5,
+					"text": "5"
+				},
+				"dir": {
+					"value": -1,
+					"text": "-1"
+				},
+				"ride": false,
+				"line": 9,
+				"raw": "  bat x=3 y=5 dir=-1",
+				"comment": null
+			},
+			{
+				"type": "error",
+				"code": "E016",
+				"line": 10,
+				"raw": "  bat x=3 dir=1",
+				"comment": null
+			},
+			{
+				"type": "error",
+				"code": "E009",
+				"line": 11,
+				"raw": "  bat x=3 y=5 ride ride",
+				"comment": null
+			},
+			{
+				"type": "error",
+				"code": "E003",
+				"line": 12,
+				"raw": "  boss x=",
+				"comment": null
+			},
+			{
+				"type": "blank",
+				"line": 13,
+				"raw": "",
+				"comment": null
+			}
+		]
+	},
+	"errors": [
+		{
+			"line": 7,
+			"code": "E013",
+			"message": "x 40 is outside the level (x runs 0..39)",
+			"fix": "keep x within 0..39, or change the size on the `level` line"
+		},
+		{
+			"line": 8,
+			"code": "E013",
+			"message": "x -1 is outside the level (x runs 0..39)",
+			"fix": "keep x within 0..39, or change the size on the `level` line"
+		},
+		{
+			"line": 10,
+			"code": "E016",
+			"message": "`dir=` and `ride` need an explicit `y=`",
+			"fix": "add y=, for example `bat x=3 y=7.5`"
+		},
+		{
+			"line": 11,
+			"code": "E009",
+			"message": "unexpected `ride`",
+			"fix": "this statement takes: x=LIST [y=N] [dir=N] [ride]"
+		},
+		{
+			"line": 12,
+			"code": "E003",
+			"message": "field `x=` has no value",
+			"fix": "write a value after `x=`"
+		}
+	]
+}

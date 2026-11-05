@@ -1,0 +1,40 @@
+{
+	"id": "edge/start-with-fields",
+	"from": "tools/fizz1-cases.ts: start ignores fields but the duplicate check still runs",
+	"ast": {
+		"nodes": [
+			{
+				"type": "level",
+				"name": "T",
+				"w": 40,
+				"h": 20,
+				"ground": 4,
+				"id": "crater",
+				"line": 1,
+				"raw": "level \"T\" 40x20 ground=4 id=crater",
+				"comment": null
+			},
+			{
+				"type": "error",
+				"code": "E009",
+				"line": 2,
+				"raw": "start 3,4 a=1 a=2",
+				"comment": null
+			},
+			{
+				"type": "blank",
+				"line": 3,
+				"raw": "",
+				"comment": null
+			}
+		]
+	},
+	"errors": [
+		{
+			"line": 2,
+			"code": "E009",
+			"message": "field `a=` is given twice",
+			"fix": "keep one `a=`"
+		}
+	]
+}

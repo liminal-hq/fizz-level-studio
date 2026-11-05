@@ -1,0 +1,117 @@
+// Caves: rebuilt from the game's own data by tools/decompile-level.ts.
+level "Caves" 176x26 ground=4 id=caves
+theme caves
+area rock-candy-reach
+start 3,5
+
+blocks
+  block x=0 y=0..25
+  fill x=1..174 y=0
+  block x=175 y=0..25
+  fill x=1..21 y=1..3
+  choc x=22..29 y=1..2
+  fill x=30..59 y=1..3
+  choc x=60..73 y=1..2
+  fill x=74..119 y=1..2
+  choc x=120..129 y=1
+  fill x=130..174 y=1..2
+  bridge x=60..73 y=3
+  fill x=74..112 y=3
+  slope-l45 x=113 y=3
+  crystal-tile x=133 y=3
+  slope-r45 x=138 y=3
+  fill x=139..174 y=3
+  fill x=1..11 y=4
+  slope-l22a x=12 y=4
+  slope-l22b x=13 y=4
+  crystal-tile x=18 y=4
+  crystal-tile x=36 y=4
+  slope-r45 x=40 y=4
+  fill x=41..52 y=4
+  slope-l45 x=53 y=4
+  crystal-tile x=76 y=4
+  slope-r22a x=84 y=4
+  slope-r22b x=85 y=4
+  fill x=86..111 y=4
+  slope-l45 x=112 y=4
+  slope-r45 x=139 y=4
+  fill x=140..174 y=4
+  crystal-tile x=8 y=5
+  slope-r45 x=41 y=5
+  fill x=42..51 y=5
+  slope-l45 x=52 y=5
+  slope-r22a x=86 y=5
+  slope-r22b x=87 y=5
+  fill x=88..110 y=5
+  slope-l45 x=111 y=5
+  slope-r45 x=140 y=5
+  fill x=141..152 y=5
+  slope-l22a x=153 y=5
+  slope-l22b x=154 y=5
+  crystal-tile x=165 y=5
+  exit x=170 y=5..6
+  crystal-tile x=47 y=6
+  vine x=89 y=6..14
+  crystal-tile x=92 y=6
+  spike x=96..98 y=6
+  crystal-tile x=108 y=6
+  crystal-tile x=146 y=6
+  blue-door x=150 y=6..13
+  one-way x=100..103 y=9
+  one-way x=5..7 y=11
+  fill x=30..33 y=11..12
+  fill x=78..88 y=11..12
+  fill x=95..97 y=11..12
+  crystal-tile x=118 y=12
+  fill x=160..161 y=12..13
+  fill x=1..40 y=13..14
+  fill x=77 y=13..14
+  cracked x=86 y=13..16
+  fill x=90..120 y=13
+  crystal-tile x=138 y=13
+  crystal-tile x=50 y=14
+  fill x=90..174 y=14..16
+  fill x=1..77 y=15..16
+  fill x=1..174 y=17..25
+  hover from=22,4 to=27,4 speed=0.3
+  hover from=120,3.5 to=123,6 speed=0.4
+  hover from=125,6 to=128,3.5 speed=0.4
+
+treats
+  row cheezie x=4..8 y=6
+  row cheezie x=22..27 y=7
+  soda x=34 y=5
+  row choc x=43..49 y=8 by=2
+  row cheezie x=61..73 y=6 by=2
+  key-blue x=101 y=10
+  row choc x=88..92 y=8 by=2
+  cookie x=112 y=7
+  row cheezie x=120..128 y=9 by=2
+  soda x=140 y=7
+  row cookie x=158..161 y=7 by=3
+  cookie x=6 y=12
+  row cheezie x=5..7 y=12 by=2
+  row cookie x=79..82 y=14 by=3
+  row choc x=80..81 y=14
+  soda x=84 y=14
+
+enemies
+  beetle x=23 y=4.6 ride
+  switch x=57 y=4
+  bat x=35 y=11.3
+  bat x=66 y=13.3
+  bat x=92 y=11.3
+  bat x=105 y=11.3
+  bat x=158 y=12.3
+  beetle x=46 y=6
+  beetle x=145 y=6
+  hopper x=78 y=4
+  gloop x=16 y=4
+  gloop x=102 y=6
+  pod x=108 y=6
+  drone x=124.5 y=8.5
+  glyph x=91 y=6 dir=2
+  cameo x=82 y=13 dir=0
+  glyph x=20 y=4 dir=0
+  glyph x=104 y=6 dir=1
+  target x=131 y=3.9 dir=5

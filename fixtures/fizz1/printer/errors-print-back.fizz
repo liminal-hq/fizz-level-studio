@@ -1,0 +1,5 @@
+level "X" 10x10 ground=2 id=crater
+start 1,2
+terrain
+  flatt 3
+  ???

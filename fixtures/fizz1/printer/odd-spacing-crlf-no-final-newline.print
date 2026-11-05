@@ -1,0 +1,9 @@
+// top
+
+level   "X"  10x10   ground=2 id=crater   // why
+start  1 , 2
+
+
+terrain
+      flat   3,up 1
+// last

@@ -1,0 +1,281 @@
+{
+	"id": "parser/every-builder-statement",
+	"from": "packages/language/test/parser.test.ts: every Builder-backed statement parses",
+	"ast": {
+		"nodes": [
+			{
+				"type": "level",
+				"name": "T",
+				"w": 40,
+				"h": 20,
+				"ground": 4,
+				"id": "crater",
+				"line": 1,
+				"raw": "level \"T\" 40x20 ground=4 id=crater",
+				"comment": null
+			},
+			{
+				"type": "start",
+				"x": {
+					"value": 3,
+					"text": "3"
+				},
+				"y": {
+					"value": 4,
+					"text": "4"
+				},
+				"line": 2,
+				"raw": "start 3,4",
+				"comment": null
+			},
+			{
+				"type": "section",
+				"name": "terrain",
+				"line": 3,
+				"raw": "terrain",
+				"comment": null
+			},
+			{
+				"type": "liquid",
+				"tile": "furnace",
+				"line": 4,
+				"raw": "  liquid furnace",
+				"comment": null
+			},
+			{
+				"type": "segs",
+				"segs": [
+					{
+						"seg": "flat",
+						"n": 30
+					},
+					{
+						"seg": "belt-r",
+						"n": 2
+					},
+					{
+						"seg": "belt-l",
+						"n": 2
+					}
+				],
+				"line": 5,
+				"raw": "  flat 30, belt-r 2, belt-l 2",
+				"comment": null
+			},
+			{
+				"type": "section",
+				"name": "blocks",
+				"line": 6,
+				"raw": "blocks",
+				"comment": null
+			},
+			{
+				"type": "plat",
+				"x": {
+					"lo": 1,
+					"hi": 3
+				},
+				"y": 6,
+				"line": 7,
+				"raw": "  plat x=1..3 y=6",
+				"comment": null
+			},
+			{
+				"type": "hover",
+				"from": [
+					{
+						"value": 2,
+						"text": "2"
+					},
+					{
+						"value": 4.5,
+						"text": "4.5"
+					}
+				],
+				"to": [
+					{
+						"value": 8,
+						"text": "8"
+					},
+					{
+						"value": 4.5,
+						"text": "4.5"
+					}
+				],
+				"speed": {
+					"value": 0.3,
+					"text": "0.3"
+				},
+				"size": null,
+				"dwell": null,
+				"line": 8,
+				"raw": "  hover from=2,4.5 to=8,4.5 speed=0.3",
+				"comment": null
+			},
+			{
+				"type": "rect",
+				"op": "room",
+				"x": {
+					"lo": 1,
+					"hi": 5
+				},
+				"y": {
+					"lo": 4,
+					"hi": 8
+				},
+				"line": 9,
+				"raw": "  room x=1..5 y=4..8",
+				"comment": null
+			},
+			{
+				"type": "rect",
+				"op": "secret-room",
+				"x": {
+					"lo": 6,
+					"hi": 9
+				},
+				"y": {
+					"lo": 4,
+					"hi": 8
+				},
+				"line": 10,
+				"raw": "  secret-room x=6..9 y=4..8",
+				"comment": null
+			},
+			{
+				"type": "rect",
+				"op": "wall-behind",
+				"x": {
+					"lo": 1,
+					"hi": 9
+				},
+				"y": {
+					"lo": 1,
+					"hi": 9
+				},
+				"line": 11,
+				"raw": "  wall-behind x=1..9 y=1..9",
+				"comment": null
+			},
+			{
+				"type": "mural",
+				"x": 2,
+				"y": 3,
+				"line": 12,
+				"raw": "  mural x=2 y=3",
+				"comment": null
+			},
+			{
+				"type": "ladder",
+				"x": 4,
+				"y": {
+					"lo": 4,
+					"hi": 9
+				},
+				"line": 13,
+				"raw": "  ladder x=4 y=4..9",
+				"comment": null
+			},
+			{
+				"type": "stairs",
+				"side": "right",
+				"x": 10,
+				"y": 4,
+				"count": 3,
+				"line": 14,
+				"raw": "  stairs-right x=10 y=4 count=3",
+				"comment": null
+			},
+			{
+				"type": "stairs",
+				"side": "left",
+				"x": 14,
+				"y": 4,
+				"count": 3,
+				"line": 15,
+				"raw": "  stairs-left x=14 y=4 count=3",
+				"comment": null
+			},
+			{
+				"type": "vine-nook",
+				"x": 20,
+				"foot": 4,
+				"shelf": 9,
+				"dir": -1,
+				"depth": 3,
+				"h": 3,
+				"line": 16,
+				"raw": "  vine-nook x=20 foot=4 shelf=9 dir=-1 depth=3 h=3",
+				"comment": null
+			},
+			{
+				"type": "tile",
+				"tile": "gate",
+				"x": {
+					"lo": 3,
+					"hi": 3
+				},
+				"y": {
+					"lo": 1,
+					"hi": 2
+				},
+				"line": 17,
+				"raw": "  gate x=3 y=1..2",
+				"comment": null
+			},
+			{
+				"type": "section",
+				"name": "treats",
+				"line": 18,
+				"raw": "treats",
+				"comment": null
+			},
+			{
+				"type": "pogo-cache",
+				"x": {
+					"lo": 8,
+					"hi": 10
+				},
+				"rise": 7,
+				"line": 19,
+				"raw": "  pogo-cache x=8..10 rise=7",
+				"comment": null
+			},
+			{
+				"type": "item",
+				"kind": "usb",
+				"xs": [
+					{
+						"lo": 2,
+						"hi": 2
+					}
+				],
+				"y": 2,
+				"line": 20,
+				"raw": "  usb x=2 y=2",
+				"comment": null
+			},
+			{
+				"type": "arena",
+				"x": {
+					"lo": 1,
+					"hi": 5
+				},
+				"floor": {
+					"value": 4,
+					"text": "4"
+				},
+				"line": 21,
+				"raw": "arena x=1..5 floor=4",
+				"comment": null
+			},
+			{
+				"type": "blank",
+				"line": 22,
+				"raw": "",
+				"comment": null
+			}
+		]
+	},
+	"errors": []
+}

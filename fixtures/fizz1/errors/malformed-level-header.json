@@ -1,0 +1,62 @@
+{
+	"id": "errors/malformed-level-header",
+	"from": "packages/language/test/errors.test.ts: a malformed level header is one error, not a cascade",
+	"ast": {
+		"nodes": [
+			{
+				"type": "error",
+				"code": "E004",
+				"line": 1,
+				"raw": "level Crater 10x10",
+				"comment": null
+			},
+			{
+				"type": "start",
+				"x": {
+					"value": 1,
+					"text": "1"
+				},
+				"y": {
+					"value": 1,
+					"text": "1"
+				},
+				"line": 2,
+				"raw": "start 1,1",
+				"comment": null
+			},
+			{
+				"type": "section",
+				"name": "terrain",
+				"line": 3,
+				"raw": "terrain",
+				"comment": null
+			},
+			{
+				"type": "segs",
+				"segs": [
+					{
+						"seg": "flat",
+						"n": 3
+					}
+				],
+				"line": 4,
+				"raw": "  flat 3",
+				"comment": null
+			},
+			{
+				"type": "blank",
+				"line": 5,
+				"raw": "",
+				"comment": null
+			}
+		]
+	},
+	"errors": [
+		{
+			"line": 1,
+			"code": "E004",
+			"message": "the level header is malformed",
+			"fix": "write: level \"Name\" 192x28 ground=4 id=crater"
+		}
+	]
+}

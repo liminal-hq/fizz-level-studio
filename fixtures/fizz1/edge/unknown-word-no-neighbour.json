@@ -1,0 +1,94 @@
+{
+	"id": "edge/unknown-word-no-neighbour",
+	"from": "tools/fizz1-cases.ts: an unknown word with nothing close enough lists the section's words",
+	"ast": {
+		"nodes": [
+			{
+				"type": "level",
+				"name": "T",
+				"w": 40,
+				"h": 20,
+				"ground": 4,
+				"id": "crater",
+				"line": 1,
+				"raw": "level \"T\" 40x20 ground=4 id=crater",
+				"comment": null
+			},
+			{
+				"type": "start",
+				"x": {
+					"value": 3,
+					"text": "3"
+				},
+				"y": {
+					"value": 4,
+					"text": "4"
+				},
+				"line": 2,
+				"raw": "start 3,4",
+				"comment": null
+			},
+			{
+				"type": "section",
+				"name": "terrain",
+				"line": 3,
+				"raw": "terrain",
+				"comment": null
+			},
+			{
+				"type": "error",
+				"code": "E001",
+				"line": 4,
+				"raw": "  zzzzzzzz 3",
+				"comment": null
+			},
+			{
+				"type": "section",
+				"name": "blocks",
+				"line": 5,
+				"raw": "blocks",
+				"comment": null
+			},
+			{
+				"type": "error",
+				"code": "E001",
+				"line": 6,
+				"raw": "  qqqqqqqq x=1 y=1",
+				"comment": null
+			},
+			{
+				"type": "error",
+				"code": "E001",
+				"line": 7,
+				"raw": "qqqqqqqq",
+				"comment": null
+			},
+			{
+				"type": "blank",
+				"line": 8,
+				"raw": "",
+				"comment": null
+			}
+		]
+	},
+	"errors": [
+		{
+			"line": 4,
+			"code": "E001",
+			"message": "unknown statement `zzzzzzzz` in `terrain`",
+			"fix": "`terrain` takes: flat, up, down, up22, down22, gap, pool, spikes, belt-r, belt-l, liquid"
+		},
+		{
+			"line": 6,
+			"code": "E001",
+			"message": "unknown statement `qqqqqqqq` in `blocks`",
+			"fix": "`blocks` takes: fill, block, one-way, spike, choc, slope-r45, slope-l45, slope-r22a, slope-r22b, slope-l22a, slope-l22b, red-door, blue-door, green-door, bridge, mural-origin, mural-part, crystal-tile, exit, grass, path, river, tree, rock, conveyor-l, conveyor-r, furnace, wall-bg, rung, rung-top, facade, gate, gate-2, gate-3, vine, cracked, house-a, house-b, shop, fountain, plat, hover, channel, crystal, room, secret-room, wall-behind, mural, ladder, stairs-right, stairs-left, vine-nook"
+		},
+		{
+			"line": 7,
+			"code": "E001",
+			"message": "unknown statement `qqqqqqqq` in `blocks`",
+			"fix": "`blocks` takes: fill, block, one-way, spike, choc, slope-r45, slope-l45, slope-r22a, slope-r22b, slope-l22a, slope-l22b, red-door, blue-door, green-door, bridge, mural-origin, mural-part, crystal-tile, exit, grass, path, river, tree, rock, conveyor-l, conveyor-r, furnace, wall-bg, rung, rung-top, facade, gate, gate-2, gate-3, vine, cracked, house-a, house-b, shop, fountain, plat, hover, channel, crystal, room, secret-room, wall-behind, mural, ladder, stairs-right, stairs-left, vine-nook"
+		}
+	]
+}

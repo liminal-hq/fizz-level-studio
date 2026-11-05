@@ -1,0 +1,74 @@
+{
+	"id": "edge/section-after-edits",
+	"from": "tools/fizz1-cases.ts: a section header after the edits block",
+	"ast": {
+		"nodes": [
+			{
+				"type": "level",
+				"name": "T",
+				"w": 40,
+				"h": 20,
+				"ground": 4,
+				"id": "crater",
+				"line": 1,
+				"raw": "level \"T\" 40x20 ground=4 id=crater",
+				"comment": null
+			},
+			{
+				"type": "start",
+				"x": {
+					"value": 3,
+					"text": "3"
+				},
+				"y": {
+					"value": 4,
+					"text": "4"
+				},
+				"line": 2,
+				"raw": "start 3,4",
+				"comment": null
+			},
+			{
+				"type": "section",
+				"name": "edits",
+				"line": 3,
+				"raw": "edits",
+				"comment": null
+			},
+			{
+				"type": "error",
+				"code": "E008",
+				"line": 4,
+				"raw": "terrain",
+				"comment": null
+			},
+			{
+				"type": "error",
+				"code": "E008",
+				"line": 5,
+				"raw": "edits",
+				"comment": null
+			},
+			{
+				"type": "blank",
+				"line": 6,
+				"raw": "",
+				"comment": null
+			}
+		]
+	},
+	"errors": [
+		{
+			"line": 4,
+			"code": "E008",
+			"message": "`terrain` cannot follow the edits block",
+			"fix": "the edits block is last; move this section above `edits`"
+		},
+		{
+			"line": 5,
+			"code": "E008",
+			"message": "`edits` cannot follow the edits block",
+			"fix": "the edits block is last; move this section above `edits`"
+		}
+	]
+}

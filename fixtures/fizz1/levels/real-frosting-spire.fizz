@@ -1,0 +1,153 @@
+// Frosting Spire: rebuilt from the game's own data by tools/decompile-level.ts.
+level "Frosting Spire" 44x112 ground=4 id=frosting-spire
+theme building
+area frosting-frontier
+start 3,3
+
+blocks
+  block x=0 y=0..108
+  fill x=1..42 y=0..2
+  block x=43 y=0..108
+  wall-bg x=1..5 y=3..10
+  rung x=6 y=3..10
+  wall-bg x=7..13 y=3
+  crystal-tile x=14 y=3
+  wall-bg x=15..35 y=3
+  green-door x=36 y=3..10
+  wall-bg x=37..41 y=3..4
+  exit x=42 y=3..4
+  wall-bg x=7..35 y=4..10
+  wall-bg x=37..42 y=5..10
+  fill x=1..5 y=11
+  rung-top x=6 y=11
+  fill x=7..42 y=11
+  wall-bg x=1..27 y=12
+  crystal-tile x=28 y=12
+  wall-bg x=29..37 y=12
+  rung x=38 y=12..19
+  wall-bg x=39..42 y=12..19
+  wall-bg x=1..37 y=13..19
+  fill x=1..37 y=20
+  rung-top x=38 y=20
+  fill x=39..42 y=20
+  wall-bg x=1..42 y=21..28
+  fill x=1..19 y=29
+  wall-bg x=20..22 y=29
+  fill x=23..42 y=29
+  wall-bg x=1..9 y=30
+  crystal-tile x=10 y=30
+  wall-bg x=11..37 y=30
+  rung x=38 y=30..37
+  wall-bg x=39..42 y=30..37
+  wall-bg x=1..37 y=31..37
+  fill x=1..37 y=38
+  rung-top x=38 y=38
+  fill x=39..42 y=38
+  wall-bg x=1..5 y=39..46
+  rung x=6 y=39..46
+  wall-bg x=7..29 y=39
+  crystal-tile x=30 y=39
+  wall-bg x=31..42 y=39
+  wall-bg x=7..42 y=40..46
+  fill x=1..5 y=47
+  rung-top x=6 y=47
+  fill x=7..42 y=47
+  wall-bg x=1..13 y=48
+  crystal-tile x=14 y=48
+  wall-bg x=15..20 y=48
+  red-door x=21 y=48..55
+  wall-bg x=22..37 y=48..55
+  rung x=38 y=48..55
+  wall-bg x=39..42 y=48..55
+  wall-bg x=1..20 y=49..55
+  fill x=1..37 y=56
+  rung-top x=38 y=56
+  fill x=39..42 y=56
+  wall-bg x=1..42 y=57..64
+  fill x=1..19 y=65
+  wall-bg x=20..22 y=65
+  fill x=23..42 y=65
+  wall-bg x=1..29 y=66
+  crystal-tile x=30 y=66
+  wall-bg x=31..37 y=66
+  rung x=38 y=66..73
+  wall-bg x=39..42 y=66..73
+  wall-bg x=1..37 y=67..73
+  fill x=1..37 y=74
+  rung-top x=38 y=74
+  fill x=39..42 y=74
+  wall-bg x=1..5 y=75..82
+  rung x=6 y=75..82
+  wall-bg x=7..20 y=75..82
+  blue-door x=21 y=75..82
+  wall-bg x=22..42 y=75..82
+  fill x=1..5 y=83
+  rung-top x=6 y=83
+  fill x=7..42 y=83
+  wall-bg x=1..9 y=84
+  crystal-tile x=10 y=84
+  wall-bg x=11..42 y=84
+  wall-bg x=1..42 y=85..91
+  fill x=1..19 y=92
+  wall-bg x=20..22 y=92
+  fill x=23..42 y=92
+  wall-bg x=1..5 y=93..100
+  rung x=6 y=93..100
+  wall-bg x=7..42 y=93..100
+  fill x=1..5 y=101
+  rung-top x=6 y=101
+  fill x=7..42 y=101
+  crystal-tile x=26 y=102
+  hover from=20,20.5 to=20,29.5 speed=0.14 size=3x0.5 dwell=1.5
+  hover from=20,56.5 to=20,65.5 speed=0.14 size=3x0.5 dwell=1.5
+  hover from=20,83.5 to=20,92.5 speed=0.14 size=3x0.5 dwell=1.5
+
+treats
+  key-red x=14 y=30
+  key-blue x=14 y=66
+  key-green x=30 y=102
+  row cheezie x=10..14 y=3
+  row cheezie x=26..30 y=12
+  row cheezie x=10..14 y=21
+  row cheezie x=26..30 y=30
+  row cheezie x=10..14 y=39
+  row cheezie x=26..30 y=48
+  row cheezie x=10..14 y=57
+  row cheezie x=26..30 y=66
+  row cheezie x=10..14 y=75
+  row cheezie x=26..30 y=84
+  row cheezie x=10..14 y=93
+  row cheezie x=26..30 y=102
+  soda x=12 y=12
+  soda x=30 y=39
+  soda x=12 y=84
+  cookie x=30 y=21
+  cookie x=14 y=57
+  cookie x=28 y=93
+  row choc x=24..28 y=48 by=2
+  row choc x=24..28 y=75 by=2
+
+enemies
+  gloop x=14 y=3
+  hopper x=24 y=3
+  gloop x=20 y=12
+  hopper x=30 y=21
+  gloop x=24 y=30
+  beetle x=30 y=30
+  gloop x=14 y=39
+  hopper x=14 y=57
+  gloop x=28 y=57
+  beetle x=12 y=66
+  gloop x=32 y=75
+  hopper x=20 y=84
+  gloop x=14 y=93
+  hopper x=36 y=102
+  sentry x=30 y=50.5
+  sentry x=30 y=77.5
+  sentry x=30 y=95.5
+  phantom x=30 y=57
+  phantom x=12 y=84
+  bat x=14 y=19.3
+  bat x=30 y=46.3
+  bat x=14 y=73.3
+  bat x=30 y=91.3

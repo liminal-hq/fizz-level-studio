@@ -1,0 +1,101 @@
+// Frosting Flats: rebuilt from the game's own data by tools/decompile-level.ts.
+level "Frosting Flats" 190x36 ground=4 id=frosting-flats
+theme open-sky
+area frosting-frontier
+start 3,4
+
+blocks
+  block x=0 y=0..35
+  fill x=1..11 y=0..3
+  fill x=15..31 y=0..3
+  fill x=40..67 y=0..3
+  fill x=71..92 y=0..3
+  fill x=103..120 y=0..5
+  fill x=124..145 y=0..4
+  fill x=152..188 y=0..4
+  block x=189 y=0..35
+  crystal-tile x=8 y=4
+  slope-r45 x=23 y=4
+  fill x=24..31 y=4
+  fill x=40..58 y=4
+  slope-l45 x=59 y=4
+  crystal-tile x=62 y=4
+  crystal-tile x=76 y=4
+  slope-r22a x=81 y=4
+  slope-r22b x=82 y=4
+  fill x=83..92 y=4
+  one-way x=148..149 y=4
+  slope-r45 x=24 y=5
+  fill x=25..31 y=5
+  fill x=40..57 y=5
+  slope-l45 x=58 y=5
+  slope-r22a x=83 y=5
+  slope-r22b x=84 y=5
+  fill x=85..92 y=5
+  fill x=124..135 y=5
+  slope-l22a x=136 y=5
+  slope-l22b x=137 y=5
+  crystal-tile x=142 y=5
+  red-door x=160 y=5..6
+  crystal-tile x=164 y=5
+  crystal-tile x=178 y=5
+  exit x=182 y=5..6
+  slope-r45 x=25 y=6
+  fill x=26..31 y=6
+  fill x=40..56 y=6
+  slope-l45 x=57 y=6
+  crystal-tile x=88 y=6
+  crystal-tile x=108 y=6
+  spike x=113..115 y=6
+  crystal-tile x=130 y=6
+  crystal-tile x=28 y=7
+  crystal-tile x=44 y=7
+  spike x=48..50 y=7
+  block x=160 y=7..35
+  one-way x=126..128 y=8
+  one-way x=130..132 y=11
+  hover from=32,6.5 to=38,6.5 speed=0.3
+  hover from=93,5.5 to=97,5.5 speed=0.3
+  hover from=97,5.5 to=101,5.5 speed=0.3
+
+treats
+  key-red x=131 y=12
+  row cheezie x=4..9 y=6
+  row choc x=12..14 y=8
+  row cheezie x=16..21 y=6
+  row cheezie x=26..30 y=9
+  soda x=30 y=10
+  row choc x=34..40 y=10 by=2
+  row cheezie x=41..46 y=9
+  row cheezie x=48..50 y=10
+  row cheezie x=61..66 y=6
+  row choc x=68..70 y=7
+  cookie x=76 y=7
+  row cheezie x=86..91 y=8
+  row choc x=94..101 y=9
+  row cheezie x=104..111 y=8
+  row cheezie x=113..115 y=9
+  soda x=118 y=8
+  cookie x=127 y=9
+  cookie x=131 y=13
+  row cheezie x=138..143 y=7
+  row choc x=146..151 y=6
+  row cheezie x=154..158 y=7
+  row cookie x=168..177 y=8 by=3
+
+enemies
+  gloop x=25 y=6.5
+  gloop x=88 y=6
+  gloop x=118 y=6
+  gloop x=172 y=5
+  hopper x=18 y=4
+  hopper x=64 y=4
+  hopper x=106 y=6
+  hopper x=130 y=6
+  hopper x=165 y=5
+  pod x=74 y=4
+  pod x=141 y=5
+  drone x=20.5 y=10.5
+  drone x=60.5 y=10.5
+  drone x=108.5 y=12.5
+  drone x=170.5 y=11.5

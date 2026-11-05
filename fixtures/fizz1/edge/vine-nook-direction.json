@@ -1,0 +1,74 @@
+{
+	"id": "edge/vine-nook-direction",
+	"from": "tools/fizz1-cases.ts: vine-nook direction other than 1 or -1, and a zero depth",
+	"ast": {
+		"nodes": [
+			{
+				"type": "level",
+				"name": "T",
+				"w": 40,
+				"h": 20,
+				"ground": 4,
+				"id": "crater",
+				"line": 1,
+				"raw": "level \"T\" 40x20 ground=4 id=crater",
+				"comment": null
+			},
+			{
+				"type": "start",
+				"x": {
+					"value": 3,
+					"text": "3"
+				},
+				"y": {
+					"value": 4,
+					"text": "4"
+				},
+				"line": 2,
+				"raw": "start 3,4",
+				"comment": null
+			},
+			{
+				"type": "section",
+				"name": "blocks",
+				"line": 3,
+				"raw": "blocks",
+				"comment": null
+			},
+			{
+				"type": "error",
+				"code": "E004",
+				"line": 4,
+				"raw": "  vine-nook x=20 foot=4 shelf=9 dir=2 depth=3 h=3",
+				"comment": null
+			},
+			{
+				"type": "error",
+				"code": "E015",
+				"line": 5,
+				"raw": "  vine-nook x=20 foot=4 shelf=9 dir=1 depth=0 h=3",
+				"comment": null
+			},
+			{
+				"type": "blank",
+				"line": 6,
+				"raw": "",
+				"comment": null
+			}
+		]
+	},
+	"errors": [
+		{
+			"line": 4,
+			"code": "E004",
+			"message": "`dir=` must be 1 or -1, found 2",
+			"fix": "write dir=1 (towards the right) or dir=-1 (towards the left)"
+		},
+		{
+			"line": 5,
+			"code": "E015",
+			"message": "`depth=` must be at least 1, found 0",
+			"fix": "use a count of 1 or more, or delete the line"
+		}
+	]
+}

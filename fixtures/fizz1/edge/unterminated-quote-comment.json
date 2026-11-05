@@ -1,0 +1,43 @@
+{
+	"id": "edge/unterminated-quote-comment",
+	"from": "tools/fizz1-cases.ts: a lone quote hides the // that follows it",
+	"ast": {
+		"nodes": [
+			{
+				"type": "error",
+				"code": "E004",
+				"line": 1,
+				"raw": "level \"T 40x20 ground=4 id=crater // not a comment",
+				"comment": null
+			},
+			{
+				"type": "start",
+				"x": {
+					"value": 3,
+					"text": "3"
+				},
+				"y": {
+					"value": 4,
+					"text": "4"
+				},
+				"line": 2,
+				"raw": "start 3,4",
+				"comment": null
+			},
+			{
+				"type": "blank",
+				"line": 3,
+				"raw": "",
+				"comment": null
+			}
+		]
+	},
+	"errors": [
+		{
+			"line": 1,
+			"code": "E004",
+			"message": "the level header is malformed",
+			"fix": "write: level \"Name\" 192x28 ground=4 id=crater"
+		}
+	]
+}

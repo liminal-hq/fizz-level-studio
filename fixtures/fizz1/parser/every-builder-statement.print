@@ -1,0 +1,21 @@
+level "T" 40x20 ground=4 id=crater
+start 3,4
+terrain
+  liquid furnace
+  flat 30, belt-r 2, belt-l 2
+blocks
+  plat x=1..3 y=6
+  hover from=2,4.5 to=8,4.5 speed=0.3
+  room x=1..5 y=4..8
+  secret-room x=6..9 y=4..8
+  wall-behind x=1..9 y=1..9
+  mural x=2 y=3
+  ladder x=4 y=4..9
+  stairs-right x=10 y=4 count=3
+  stairs-left x=14 y=4 count=3
+  vine-nook x=20 foot=4 shelf=9 dir=-1 depth=3 h=3
+  gate x=3 y=1..2
+treats
+  pogo-cache x=8..10 rise=7
+  usb x=2 y=2
+arena x=1..5 floor=4

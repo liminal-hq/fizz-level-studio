@@ -1,0 +1,43 @@
+{
+	"id": "errors/e002-unknown-level-id",
+	"from": "packages/language/test/errors.test.ts: E002 unknown tile, item and segment name the nearest match",
+	"ast": {
+		"nodes": [
+			{
+				"type": "error",
+				"code": "E002",
+				"line": 1,
+				"raw": "level \"T\" 40x20 ground=4 id=crator",
+				"comment": null
+			},
+			{
+				"type": "start",
+				"x": {
+					"value": 3,
+					"text": "3"
+				},
+				"y": {
+					"value": 4,
+					"text": "4"
+				},
+				"line": 2,
+				"raw": "start 3,4",
+				"comment": null
+			},
+			{
+				"type": "blank",
+				"line": 3,
+				"raw": "",
+				"comment": null
+			}
+		]
+	},
+	"errors": [
+		{
+			"line": 1,
+			"code": "E002",
+			"message": "unknown level id `crator`",
+			"fix": "did you mean `crater`?"
+		}
+	]
+}

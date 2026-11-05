@@ -1,0 +1,9 @@
+level "T" 40x20 ground=4 id=crater
+start 3,4
+blocks
+  channel 1,,2 on
+  channel 32 on
+  channel -1 off
+  channel 1,2
+  channel 1 on extra
+  channel 0,31 off

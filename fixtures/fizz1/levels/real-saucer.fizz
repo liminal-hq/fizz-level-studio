@@ -1,0 +1,45 @@
+// Saucer: rebuilt from the game's own data by tools/decompile-level.ts.
+level "Saucer" 72x22 ground=4 id=saucer
+theme building
+area crater-fields
+start 10,3
+
+blocks
+  block x=0 y=0..21
+  fill x=1..70 y=0..2
+  block x=71 y=0..21
+  exit x=1 y=3..4
+  crystal-tile x=6 y=3
+  crystal-tile x=12 y=3
+  wall-bg x=17..19 y=3
+  crystal-tile x=20 y=3
+  wall-bg x=21..35 y=3
+  crystal-tile x=36 y=3
+  wall-bg x=37..40 y=3
+  rung x=41 y=3..7
+  wall-bg x=42..55 y=3
+  crystal-tile x=56 y=3
+  wall-bg x=57..66 y=3
+  fill x=67..68 y=3..13
+  wall-bg x=17..40 y=4..7
+  wall-bg x=42..66 y=4..7
+  fill x=15..16 y=6..13
+  wall-bg x=17..39 y=8
+  one-way x=40 y=8
+  rung-top x=41 y=8
+  one-way x=42..62 y=8
+  wall-bg x=63..66 y=8
+  wall-bg x=17..66 y=9..13
+  fill x=15..22 y=14
+  fill x=60..68 y=14
+  fill x=15..68 y=15..16
+
+treats
+
+enemies
+  glyph x=14 y=3 dir=4
+  glyph x=21 y=3 dir=5
+  glyph x=28 y=3 dir=6
+  glyph x=34 y=3 dir=8
+  glyph x=47 y=9 dir=7
+  glyph x=56 y=9 dir=9
