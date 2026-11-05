@@ -17,7 +17,7 @@ interface AppProps {
 export function App({ windowLabel }: AppProps) {
 	return (
 		<AppWindowChrome>
-			<WindowFrame>
+			<WindowFrame className={styles.surface}>
 				<AppTitleBar />
 				<main className={styles.app}>
 					<h1 className={styles.title}>{t('app.name')}</h1>
