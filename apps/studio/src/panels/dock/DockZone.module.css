@@ -53,6 +53,9 @@
 	min-height: var(--fls-float-header);
 	padding: 0.2rem 0.4rem;
 	border-bottom: 1px solid var(--fls-border-subtle);
+	/* A press here may become a drag, so the webview must not scroll or select with it. */
+	touch-action: none;
+	user-select: none;
 }
 
 .tabs {
@@ -76,4 +79,9 @@
 	flex-direction: column;
 	min-height: 0;
 	overflow: auto;
+}
+
+/* The tab being dragged stays where it is, dimmed, until the drop. */
+.tab[data-dragging] {
+	opacity: 0.5;
 }

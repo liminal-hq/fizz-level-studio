@@ -30,6 +30,7 @@ function actions(): DockActions {
 		pin: vi.fn(),
 		resizeZone: vi.fn(),
 		resetZoneSize: vi.fn(),
+		reorder: vi.fn(),
 	};
 }
 

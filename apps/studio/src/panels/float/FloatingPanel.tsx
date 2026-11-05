@@ -39,6 +39,13 @@ export interface FloatingPanelProps {
 	neighbours?: readonly Rect[];
 	/** The guide lines for the edges a drag is locked to; empty when the drag ends. */
 	onGuides?: (guides: Guide[]) => void;
+	/**
+	 * Where the pointer is while the header moves the panel (null when the move ends or is
+	 * cancelled), so the docks can light up under it.
+	 */
+	onDockHover?: (point: { x: number; y: number } | null) => void;
+	/** The header was let go at this point: return true when that docked the panel (it is then not placed). */
+	onDockDrop?: (point: { x: number; y: number }) => boolean;
 	/** Extra controls in the header, such as a Tear off button. */
 	actions?: ReactNode;
 	children: ReactNode;
@@ -74,6 +81,8 @@ export function FloatingPanel({
 	onRaise,
 	neighbours = NO_NEIGHBOURS,
 	onGuides,
+	onDockHover,
+	onDockDrop,
 	actions,
 	children,
 }: FloatingPanelProps) {
@@ -89,6 +98,8 @@ export function FloatingPanel({
 	onChangeRef.current = onChange;
 	const onGuidesRef = useRef(onGuides);
 	onGuidesRef.current = onGuides;
+	const onDockHoverRef = useRef(onDockHover);
+	onDockHoverRef.current = onDockHover;
 	const stopEscape = useRef<(() => void) | null>(null);
 
 	// Escape ends a pointer drag wherever the keyboard focus is, putting the panel back.
@@ -99,6 +110,7 @@ export function FloatingPanel({
 			gesture.current = null;
 			stopEscape.current?.();
 			onGuidesRef.current?.([]);
+			onDockHoverRef.current?.(null);
 			onChangeRef.current(g.start, true);
 		};
 		document.addEventListener('keydown', hear);
@@ -139,6 +151,7 @@ export function FloatingPanel({
 		const dy = event.clientY - g.y;
 		const { rect: next, guides } = drag(g.start, dx, dy, kind);
 		onGuides?.(guides);
+		if (kind === 'move') onDockHover?.({ x: event.clientX, y: event.clientY });
 		onChange(next, false);
 	};
 
@@ -149,10 +162,12 @@ export function FloatingPanel({
 		stopEscape.current?.();
 		event.currentTarget.releasePointerCapture?.(event.pointerId);
 		onGuides?.([]);
+		if (kind === 'move') onDockHover?.(null);
 		if (cancelled) {
 			onChange(g.start, true);
 			return;
 		}
+		if (kind === 'move' && onDockDrop?.({ x: event.clientX, y: event.clientY })) return;
 		const dx = event.clientX - g.x;
 		const dy = event.clientY - g.y;
 		onChange(drag(g.start, dx, dy, kind).rect, true);
@@ -166,6 +181,7 @@ export function FloatingPanel({
 		gesture.current = null;
 		keyOrigin.current = null;
 		event.preventDefault();
+		onDockHover?.(null);
 		onChange(origin, true);
 		return true;
 	};

@@ -27,6 +27,7 @@ import {
 	dockPanel,
 	floatPanel,
 	peekPanel,
+	reorderTab,
 	pinPanel,
 	resizeZone,
 	setPanelVisible,
@@ -35,6 +36,7 @@ import {
 	toggleZone,
 	type DockSession,
 } from './dockLayout';
+import { dropOnZone } from './dockDrop';
 import { PANEL_IDS, defaultDock, defaultWorkspace } from './dockModel';
 import { normaliseDock, resetWorkspace } from './dockNormalise';
 import { shownPanels, visibleWorkspace } from './dockView';
@@ -57,6 +59,12 @@ export interface DockLayoutHandle {
 	activate(id: string): void;
 	dockTo(id: string, zone: ZoneId): void;
 	floatPanel(id: string): void;
+	/** Floats a panel at a rectangle, as a drop on the level does. */
+	floatAt(id: string, rect: Rect): void;
+	/** Docks a panel where a drop put it: the dock, the tab group and the place among its tabs. */
+	dropOn(id: string, zone: ZoneId, group: number | null, index: number | null): void;
+	/** Moves a docked panel to a place among its group's tabs. */
+	reorder(id: string, index: number): void;
 	setVisible(id: string, visible: boolean): void;
 	toggleZone(zone: ZoneId): void;
 	resizeZone(zone: ZoneId, size: number): void;
@@ -166,6 +174,19 @@ export function useDockLayout(client: DockClient, windowSize: Size, area: Size):
 		[edit],
 	);
 	const float = useCallback((id: string) => edit((ws) => floatPanel(ws, id)), [edit]);
+	const floatAt = useCallback(
+		(id: string, rect: Rect) => edit((ws) => floatPanel(ws, id, rect)),
+		[edit],
+	);
+	const dropOn = useCallback(
+		(id: string, zone: ZoneId, group: number | null, index: number | null) =>
+			edit((ws) => dropOnZone(ws, id, zone, group, index)),
+		[edit],
+	);
+	const reorder = useCallback(
+		(id: string, index: number) => edit((ws) => reorderTab(ws, id, index)),
+		[edit],
+	);
 	const setVisible = useCallback(
 		(id: string, visible: boolean) => edit((ws) => setPanelVisible(ws, id, visible)),
 		[edit],
@@ -260,6 +281,9 @@ export function useDockLayout(client: DockClient, windowSize: Size, area: Size):
 		activate,
 		dockTo,
 		floatPanel: float,
+		floatAt,
+		dropOn,
+		reorder,
 		setVisible,
 		toggleZone: toggleZoneFold,
 		resizeZone: resize,

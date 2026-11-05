@@ -378,6 +378,14 @@ export const enMessages = {
 	'dock.resize.bottom': 'Resize the bottom dock',
 	// translator: The size of a dock shown while it is dragged. {size} is a number of pixels, so “264 px”.
 	'dock.size': '{size} px',
+	// translator: Announced to screen readers after a tab is moved with the keyboard. {title} is the panel’s name, {position} the tab’s new place counting from 1 and {total} how many tabs the dock group has.
+	'dock.tab.moved': '{title} moved to position {position} of {total}.',
+	// translator: Announced to screen readers after a panel is dragged into a dock. {title} is the panel’s name and {zone} the dock’s name, such as “Left dock”.
+	'dock.drag.docked': '{title} moved to the {zone}.',
+	// translator: Announced to screen readers after a docked panel is dragged out onto the level, where it floats. {title} is the panel’s name.
+	'dock.drag.floated': '{title} is floating over the level.',
+	// translator: Announced to screen readers when a drag of a panel is cancelled and the panel stays where it was. {title} is the panel’s name.
+	'dock.drag.cancelled': 'Move cancelled. {title} stays where it was.',
 	// translator: Menu item in the View menu. Hides every docked and floating panel so the level has the whole window, and brings the same panels back when chosen again.
 	'view.levelFirst': 'Show the level only',
 

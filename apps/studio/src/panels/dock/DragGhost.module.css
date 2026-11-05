@@ -1,0 +1,28 @@
+/* The chip that follows the pointer: a keycap with the panel's title, set a little below and right. */
+.ghost {
+	composes: keycap from '../../theme/keycap.module.css';
+	position: fixed;
+	z-index: 1000;
+	top: 0;
+	left: 0;
+	transform: translate(calc(var(--fls-ghost-x) + 12px), calc(var(--fls-ghost-y) + 12px));
+	height: var(--fls-hit-target);
+	padding: 0 0.7rem;
+	pointer-events: none;
+	opacity: 0.92;
+}
+
+/* Where among the tabs the panel would sit. */
+.line {
+	position: fixed;
+	z-index: 1000;
+	top: var(--fls-line-top);
+	left: var(--fls-line-x);
+	width: 3px;
+	height: var(--fls-line-height);
+	margin-left: -1px;
+	pointer-events: none;
+	background: var(--fls-accent);
+	border-radius: 2px;
+	box-shadow: 0 0 6px var(--fls-accent);
+}

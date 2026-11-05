@@ -39,3 +39,65 @@
 .slot[data-slot='bottom'] {
 	grid-area: bottom;
 }
+
+/*
+ * The places a dragged panel can land, one for each dock. They are always there (a dock that is
+ * empty or folded still offers itself, as a strip along its edge) and show only during a drag.
+ * The hit test reads their rectangles, so they never take the pointer themselves.
+ */
+.drop {
+	--fls-drop-min: 72px;
+	--fls-drop-bottom: max(var(--fls-dock-bottom), var(--fls-drop-min));
+	position: absolute;
+	z-index: 20;
+	box-sizing: border-box;
+	display: none;
+	pointer-events: none;
+	border: 2px dashed color-mix(in srgb, var(--fls-accent) 55%, transparent);
+	background: color-mix(in srgb, var(--fls-accent) 8%, transparent);
+	border-radius: 6px;
+}
+
+.shell[data-dragging] .drop {
+	display: block;
+}
+
+.drop[data-lit] {
+	border-style: solid;
+	border-color: var(--fls-accent);
+	background: color-mix(in srgb, var(--fls-accent) 22%, transparent);
+}
+
+.drop[data-drop-zone='left'] {
+	top: 0;
+	bottom: var(--fls-drop-bottom);
+	left: 0;
+	width: max(var(--fls-dock-left), var(--fls-drop-min));
+}
+
+.drop[data-drop-zone='right'] {
+	top: 0;
+	right: 0;
+	bottom: var(--fls-drop-bottom);
+	width: max(var(--fls-dock-right), var(--fls-drop-min));
+}
+
+.drop[data-drop-zone='bottom'] {
+	right: 0;
+	bottom: 0;
+	left: 0;
+	height: var(--fls-drop-bottom);
+}
+
+/* Read by screen readers, not seen. */
+.hidden {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	margin: -1px;
+	padding: 0;
+	overflow: hidden;
+	clip-path: inset(50%);
+	white-space: nowrap;
+	border: 0;
+}

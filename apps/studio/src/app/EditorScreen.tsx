@@ -25,6 +25,14 @@ import { DockShell } from '../panels/dock/DockShell';
 import { isLevelFirstKey } from '../panels/dock/dockKeys';
 import { PanelCommands } from '../panels/dock/PanelCommands';
 import { useDockLayout } from '../panels/dock/useDockLayout';
+import {
+	floatRectAt,
+	locateDropTarget,
+	type DropTarget,
+	type Point,
+} from '../panels/dock/dockDrop';
+import { useDockDrag } from '../panels/dock/useDockDrag';
+import { ZONE_LABELS } from '../panels/dock/DockZone';
 import { brushCommandId, panelCommandId, toolCommandId } from '../commands/registry';
 import { PANEL_SPECS, type PanelId } from '../panels/float/panelSpecs';
 import { PanelsMenu } from '../panels/float/PanelsMenu';
@@ -100,6 +108,7 @@ export function EditorScreen({
 	const windowSize = useElementSize(windowRef);
 	const dock = useDockLayout(docks, windowSize, area);
 	const [guides, setGuides] = useState<Guide[]>([]);
+	const [dragNote, setDragNote] = useState('');
 	const [reveal, setReveal] = useState<{ cell: Cell; serial: number } | null>(null);
 
 	const follow = useRef(onSnapshot);
@@ -377,6 +386,45 @@ export function EditorScreen({
 	const noteText =
 		snapshot.banner && snapshot.banner in enMessages ? t(snapshot.banner as MessageId) : null;
 
+	const titleOf = (id: string) => {
+		const spec = PANEL_SPECS.find((candidate) => candidate.id === id);
+		return spec ? t(spec.title) : id;
+	};
+
+	// Dragging a panel: the docks and the level are the places it can be let go.
+	const dragLive = useRef({ dock, titleOf, area });
+	dragLive.current = { dock, titleOf, area };
+	const drag = useDockDrag({
+		locate: (point: Point, id: string) =>
+			areaRef.current ? locateDropTarget(areaRef.current, point, id) : null,
+		onDrop: (id: string, target: DropTarget, point: Point) => {
+			const { dock: layout, titleOf: nameOf, area: room } = dragLive.current;
+			const title = nameOf(id);
+			if (target.kind === 'zone') {
+				layout.dropOn(id, target.zone, target.group, target.index);
+				setDragNote(t('dock.drag.docked', { title, zone: t(ZONE_LABELS[target.zone]) }));
+				return;
+			}
+			const spec = PANEL_SPECS.find((candidate) => candidate.id === id);
+			const origin = areaRef.current?.getBoundingClientRect();
+			const entry = layout.workspace.panels[id];
+			if (!spec || !origin || !entry) return;
+			layout.floatAt(
+				id,
+				floatRectAt(
+					point,
+					{ x: origin.left, y: origin.top },
+					{ w: entry.float.w, h: entry.float.h },
+					spec.min,
+					room,
+				),
+			);
+			setDragNote(t('dock.drag.floated', { title }));
+		},
+		onCancel: (id: string) =>
+			setDragNote(t('dock.drag.cancelled', { title: dragLive.current.titleOf(id) })),
+	});
+
 	const content = (id: PanelId) =>
 		panelContent(id, {
 			snapshot,
@@ -395,10 +443,6 @@ export function EditorScreen({
 			focusLine,
 			focusSerial,
 		});
-	const titleOf = (id: string) => {
-		const spec = PANEL_SPECS.find((candidate) => candidate.id === id);
-		return spec ? t(spec.title) : id;
-	};
 
 	return (
 		<div
@@ -434,6 +478,8 @@ export function EditorScreen({
 					titleOf={titleOf}
 					renderPanel={(id) => content(id as PanelId)}
 					actions={dock}
+					drag={drag}
+					announcement={dragNote}
 				>
 					<div className={styles.canvas}>
 						<LevelCanvas
@@ -467,6 +513,8 @@ export function EditorScreen({
 							area={area}
 							neighbours={neighboursOf(spec.id, dock.floating)}
 							onGuides={setGuides}
+							onDockHover={(point) => drag.hoverFloat(spec.id, point)}
+							onDockDrop={(point) => drag.dropFloat(spec.id, point)}
 							onChange={(rect) => dock.changeFloat(spec.id, rect)}
 							onToggleCollapsed={() => dock.toggleFloatCollapsed(spec.id)}
 							onRaise={() => dock.raise(spec.id)}

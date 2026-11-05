@@ -5,14 +5,24 @@
 
 import type { Workspace } from '@liminal-hq/fizz-studio-protocol/generated/Workspace';
 import type { ZoneId } from '@liminal-hq/fizz-studio-protocol/generated/ZoneId';
-import { useEffect, useRef, type CSSProperties, type KeyboardEvent, type ReactNode } from 'react';
+import {
+	useEffect,
+	useRef,
+	useState,
+	type CSSProperties,
+	type KeyboardEvent,
+	type ReactNode,
+} from 'react';
+import { t } from '../../i18n/messages';
 import type { Size } from '../float/panelGeometry';
 import { DockRail } from './DockRail';
 import { DockZone } from './DockZone';
+import { DragGhost } from './DragGhost';
+import type { DockDrag } from './useDockDrag';
 import { PeekPanel } from './PeekPanel';
 import { DockResizeHandle } from './DockResizeHandle';
 import { clampZoneSize, zoneCap, zoneExtent } from './dockGeometry';
-import { RAIL_SIZE, dockedIn, zoneMin, zoneOf } from './dockModel';
+import { RAIL_SIZE, ZONE_IDS, dockedIn, zoneMin, zoneOf } from './dockModel';
 import type { DockSession } from './dockLayout';
 import styles from './DockShell.module.css';
 
@@ -26,6 +36,8 @@ export interface DockActions {
 	pin(id: string): void;
 	resizeZone(zone: ZoneId, size: number): void;
 	resetZoneSize(zone: ZoneId): void;
+	/** Moves a docked panel to a place among its group's tabs. */
+	reorder(id: string, index: number): void;
 }
 
 export interface DockShellProps {
@@ -39,6 +51,10 @@ export interface DockShellProps {
 	/** The real content of a panel. Only the showing panel of each group is asked for. */
 	renderPanel: (id: string) => ReactNode;
 	actions: DockActions;
+	/** The drag controller; without one, panels cannot be dragged. */
+	drag?: DockDrag;
+	/** What the last drag did, for the screen reader. */
+	announcement?: string;
 	/** The level. It takes whatever the docks leave and is never covered by them. */
 	children: ReactNode;
 }
@@ -55,8 +71,24 @@ export function DockShell({
 	titleOf,
 	renderPanel,
 	actions,
+	drag,
+	announcement = '',
 	children,
 }: DockShellProps) {
+	const [tabNote, setTabNote] = useState('');
+	const dragging = drag?.state ?? null;
+	const target = dragging?.target ?? null;
+	const reorder = (id: string, index: number) => {
+		actions.reorder(id, index);
+		const group = ZONE_IDS.flatMap((z) => view.zones[z].groups).find((g) => g.tabs.includes(id));
+		setTabNote(
+			t('dock.tab.moved', {
+				title: titleOf(id),
+				position: index + 1,
+				total: group?.tabs.length ?? 0,
+			}),
+		);
+	};
 	const extent = (zone: ZoneId) => zoneExtent(view, zone, window);
 	const style = {
 		'--fls-dock-left': `${extent('left')}px`,
@@ -126,6 +158,9 @@ export function DockShell({
 							onDock={actions.dockTo}
 							onFloat={actions.floatPanel}
 							onFold={() => actions.toggleZone(id)}
+							onReorder={reorder}
+							onDragStart={drag?.begin}
+							dragging={dragging?.id ?? null}
 						/>
 					</>
 				)}
@@ -134,13 +169,35 @@ export function DockShell({
 	};
 
 	return (
-		<div className={styles.shell} style={style} ref={shell} onKeyDown={onKeyDown}>
+		<div
+			className={styles.shell}
+			style={style}
+			ref={shell}
+			onKeyDown={onKeyDown}
+			data-dragging={dragging ? '' : undefined}
+		>
 			{zone('left')}
 			<div className={styles.level} data-level>
 				{children}
 			</div>
 			{zone('right')}
 			{zone('bottom')}
+			{ZONE_IDS.map((id) => (
+				<div
+					key={id}
+					className={styles.drop}
+					data-drop-zone={id}
+					data-lit={target?.kind === 'zone' && target.zone === id ? '' : undefined}
+					aria-hidden="true"
+				/>
+			))}
+			{dragging && <DragGhost drag={dragging} title={titleOf(dragging.id)} />}
+			<p className={styles.hidden} role="status" aria-live="polite">
+				{tabNote}
+			</p>
+			<p className={styles.hidden} role="status" aria-live="polite">
+				{announcement}
+			</p>
 			{peeking !== null && peekZone !== null && (
 				<PeekPanel
 					zone={peekZone}
