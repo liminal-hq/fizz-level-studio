@@ -17,7 +17,17 @@ import {
 	writeFileSync,
 } from 'node:fs';
 import { join } from 'node:path';
-import { App, Bridge, binary, makeProfile, root, sleep, within, type Profile } from './driver';
+import {
+	App,
+	Bridge,
+	binary,
+	makeProfile,
+	requireFreeBridgePort,
+	root,
+	sleep,
+	within,
+	type Profile,
+} from './driver';
 
 const failures: string[] = [];
 
@@ -982,6 +992,7 @@ async function main(): Promise<void> {
 		console.error(`No debug build at ${binary}. Run \`bun run app:build\` first.`);
 		process.exit(2);
 	}
+	await requireFreeBridgePort();
 	const profile = makeProfile();
 	const levels = join(profile.dir, 'levels');
 	await Bun.$`mkdir -p ${levels}`;

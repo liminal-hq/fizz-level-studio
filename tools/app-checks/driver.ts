@@ -25,6 +25,43 @@ export function makeProfile(): Profile {
 	return { dir, config: join(dir, 'config'), data: join(dir, 'data') };
 }
 
+/** The port the app's debug automation bridge listens on, and the one the harness talks to. */
+export const BRIDGE_PORT = 9223;
+
+/**
+ * Stops a run that would drive the wrong app. The bridge takes the first free port from 9223, but the
+ * harness always talks to 9223, so while another instance holds it (a build someone is trying by hand,
+ * or another run) the checks would silently drive THAT app and fail in confusing ways.
+ */
+export async function requireFreeBridgePort(): Promise<void> {
+	const taken = await new Promise<boolean>((resolve) => {
+		Bun.connect({
+			hostname: '127.0.0.1',
+			port: BRIDGE_PORT,
+			socket: {
+				open(socket) {
+					socket.end();
+					resolve(true);
+				},
+				error() {
+					resolve(false);
+				},
+				connectError() {
+					resolve(false);
+				},
+				data() {},
+			},
+		}).catch(() => resolve(false));
+	});
+	if (taken) {
+		console.error(
+			`Port ${BRIDGE_PORT} is already in use: another copy of the app (or another check run) is up. ` +
+				'Close it and run again, otherwise the checks would drive that app.',
+		);
+		process.exit(2);
+	}
+}
+
 export function sleep(ms: number): Promise<void> {
 	return new Promise((done) => setTimeout(done, ms));
 }
