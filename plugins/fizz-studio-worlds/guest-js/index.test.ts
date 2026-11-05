@@ -80,7 +80,7 @@ describe('listeners', () => {
 	it('onLevelChanged applies the rule to events', async () => {
 		const heard: number[] = [];
 		await onLevelChanged((s) => heard.push(Number(s.revision)), new Map([['a', 1]]));
-		for (const handler of handlers['level://changed']) {
+		for (const handler of handlers['level://changed'] ?? []) {
 			handler({ payload: snapshot('a', 1) });
 			handler({ payload: snapshot('a', 2) });
 		}

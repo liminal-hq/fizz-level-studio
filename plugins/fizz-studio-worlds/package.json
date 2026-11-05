@@ -20,7 +20,8 @@
 	},
 	"files": [
 		"dist-js",
-		"README.md"
+		"README.md",
+		"api-iife.js"
 	],
 	"dependencies": {
 		"@liminal-hq/fizz-studio-protocol": "workspace:*",

@@ -69,6 +69,8 @@ export function createConfig(pluginName) {
 					declarationMap: false,
 					noEmit: false,
 					sourceMap: false,
+					// Tests are not part of the bundle, and the base config has no `exclude` of its own.
+					exclude: ['**/*.test.ts'],
 				}),
 			],
 			onwarn,
