@@ -1058,12 +1058,14 @@ version = "0.1.0"
 dependencies = [
  "chrono",
  "fizz-studio-protocol",
+ "fizz-studio-settings",
  "log",
  "serde",
  "serde_json",
  "tauri",
  "tauri-build",
  "tauri-plugin-dialog",
+ "tauri-plugin-fizz-studio-settings",
  "tauri-plugin-log",
  "tauri-plugin-mcp-bridge",
  "tauri-plugin-os",
@@ -4114,6 +4116,18 @@ dependencies = [
  "tauri-plugin-fs",
  "thiserror 2.0.21",
  "url",
+]
+
+[[package]]
+name = "tauri-plugin-fizz-studio-settings"
+version = "0.1.0"
+dependencies = [
+ "fizz-studio-protocol",
+ "fizz-studio-settings",
+ "log",
+ "serde_json",
+ "tauri",
+ "tauri-plugin",
 ]
 
 [[package]]

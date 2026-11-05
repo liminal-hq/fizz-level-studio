@@ -1,0 +1,33 @@
+[package]
+name = "tauri-plugin-fizz-studio-settings"
+version = "0.1.0"
+description = "The studio's settings plugin: one store with one writer, a revision on every change, and a change event to every window, over the fizz-studio-settings crate"
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+repository.workspace = true
+publish = false
+build = "build.rs"
+links = "tauri-plugin-fizz-studio-settings"
+
+[package.metadata.platforms.support]
+linux = { level = "full", notes = "Nothing platform-specific; the files are written through the storage the app injects" }
+windows = { level = "partial", notes = "Builds and is linted for the Windows target; the mock-runtime tests need the Common Controls manifest the build script embeds" }
+
+[lib]
+name = "tauri_plugin_fizz_studio_settings"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[dependencies]
+fizz-studio-protocol = { path = "../../crates/fizz-studio-protocol" }
+fizz-studio-settings = { path = "../../crates/fizz-studio-settings" }
+log = { workspace = true }
+tauri = { workspace = true }
+
+[build-dependencies]
+tauri-plugin = { workspace = true, features = ["build"] }
+
+[dev-dependencies]
+serde_json = { workspace = true }
+tauri = { workspace = true, features = ["test"] }

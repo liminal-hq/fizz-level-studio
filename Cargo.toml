@@ -8,6 +8,7 @@ members = [
 	"crates/fizz-studio-protocol",
 	"crates/fizz-studio-session",
 	"crates/fizz-studio-settings",
+	"plugins/fizz-studio-settings",
 	"crates/fizz-studio-world",
 ]
 # The proof workspace is a copy of the game's crates and builds on its own.
@@ -31,6 +32,7 @@ log = "0.4"
 chrono = "0.4"
 tauri = { version = "2" }
 tauri-build = { version = "2" }
+tauri-plugin = { version = "2" }
 tempfile = "3"
 notify = "8"
 diffy = "0.5"

@@ -1,0 +1,8 @@
+[default]
+description = "Default permissions for the fizz-studio-settings plugin"
+permissions = [
+	"allow-settings-get",
+	"allow-settings-update",
+	"allow-recent-touch",
+	"allow-recent-clear",
+]
