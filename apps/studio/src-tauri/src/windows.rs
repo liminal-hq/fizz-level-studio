@@ -12,9 +12,11 @@
 // `panel-{panel}-{n}`, `new-world`, `preferences`, `about`, and `tear-ghost`. The pixel editor
 // (`pixel-{n}`) and behaviour editor (`behaviour-{n}`) windows arrive with their milestones.
 
-pub use fizz_studio_protocol::{WindowId, WindowKind};
+use crate::panel_place::{fit, placement_of, position_known_here, Fitted};
+pub use fizz_studio_protocol::{PanelPlaced, WindowId, WindowKind, WindowPlacement};
 use tauri::{
-    AppHandle, Emitter, Manager, Runtime, WebviewUrl, WebviewWindow, WebviewWindowBuilder,
+    AppHandle, Emitter, Manager, PhysicalPosition, PhysicalSize, Runtime, WebviewUrl,
+    WebviewWindow, WebviewWindowBuilder,
 };
 
 /// How a kind of window is made, in logical pixels.
@@ -99,6 +101,17 @@ pub fn build_window<R: Runtime>(
     app: &AppHandle<R>,
     id: &WindowId,
 ) -> tauri::Result<WebviewWindow<R>> {
+    build_window_at(app, id, None)
+}
+
+/// Builds the window `id`, at `place` when given (a remembered size and, where the platform allows,
+/// position, already fitted to the screens), and otherwise centred. A window with a place is made
+/// hidden, sized and moved, then shown, so it never flashes at the default size.
+pub fn build_window_at<R: Runtime>(
+    app: &AppHandle<R>,
+    id: &WindowId,
+    place: Option<Fitted>,
+) -> tauri::Result<WebviewWindow<R>> {
     let spec = spec_for(id.kind());
     let mut builder =
         WebviewWindowBuilder::new(app, id.label(), WebviewUrl::App("index.html".into()))
@@ -112,6 +125,7 @@ pub fn build_window<R: Runtime>(
             .decorations(false)
             .transparent(true)
             .shadow(true)
+            .visible(place.is_none())
             .center();
     if let Some((width, height)) = spec.min_size {
         builder = builder.min_inner_size(width, height);
@@ -123,7 +137,15 @@ pub fn build_window<R: Runtime>(
             builder = builder.parent(&main)?;
         }
     }
-    builder.build()
+    let window = builder.build()?;
+    if let Some(place) = place {
+        window.set_size(PhysicalSize::new(place.size.0, place.size.1))?;
+        if let Some((x, y)) = place.position {
+            window.set_position(PhysicalPosition::new(x, y))?;
+        }
+        window.show()?;
+    }
+    Ok(window)
 }
 
 /// Focuses the window `id` if it is open, and otherwise builds it.
@@ -176,6 +198,112 @@ pub fn announce_panel_closed<R: Runtime>(app: &AppHandle<R>, label: &str) {
             log::warn!("could not announce that {label} closed: {e}");
         }
     }
+}
+
+/// Sent to the main window a panel window belongs to when the window opens, moves, resizes or is
+/// about to close on its own. The payload is a [`PanelPlaced`]; the main window writes it into the
+/// panel's `window` record in the active workspace, which is the source of truth.
+pub const PANEL_PLACED_EVENT: &str = "panel://placed";
+
+/// What a window reports about where it is now, or `None` for a window with no size to report (a
+/// minimised one reports none).
+fn placed(
+    label: &str,
+    position: tauri::Result<PhysicalPosition<i32>>,
+    size: tauri::Result<PhysicalSize<u32>>,
+) -> Option<PanelPlaced> {
+    let size = size.ok().filter(|s| s.width >= 50 && s.height >= 50)?;
+    let position = position.ok().map(|p| (p.x, p.y));
+    Some(PanelPlaced {
+        label: label.to_owned(),
+        placement: placement_of(position, (size.width, size.height)),
+        positioned: position.is_some() && position_known_here(),
+    })
+}
+
+/// Tells the main window a panel window belongs to where the panel window is now. Called as a
+/// panel window moves, resizes and closes; any other window is ignored.
+pub fn report_panel_placed<R: Runtime>(window: &tauri::Window<R>) {
+    let Some(WindowId::Panel { n, .. }) = WindowId::parse(window.label()) else {
+        return;
+    };
+    let Some(report) = placed(window.label(), window.outer_position(), window.inner_size()) else {
+        return;
+    };
+    let owner = WindowId::Main { n }.label();
+    if let Err(e) = window
+        .app_handle()
+        .emit_to(owner, PANEL_PLACED_EVENT, report)
+    {
+        log::warn!("could not report where {} is: {e}", window.label());
+    }
+}
+
+/// The screens as placements, in physical pixels.
+fn screens<R: Runtime>(app: &AppHandle<R>) -> Vec<WindowPlacement> {
+    app.available_monitors()
+        .unwrap_or_default()
+        .iter()
+        .map(|m| WindowPlacement {
+            x: m.position().x,
+            y: m.position().y,
+            w: i32::try_from(m.size().width).unwrap_or(i32::MAX),
+            h: i32::try_from(m.size().height).unwrap_or(i32::MAX),
+        })
+        .collect()
+}
+
+/// Opens a panel's window, or brings it forward when it is open. `placement` is the remembered
+/// place from the saved workspace: it is fitted to `screens` (and a platform that cannot place
+/// windows keeps only its size). Only the panels in `PANEL_IDS` have windows.
+fn open_panel_window<R: Runtime>(
+    app: &AppHandle<R>,
+    panel: String,
+    placement: Option<WindowPlacement>,
+    screens: &[WindowPlacement],
+) -> Result<WebviewWindow<R>, String> {
+    let id = WindowId::Panel { panel, n: 1 };
+    if !id.is_openable() {
+        return Err(format!("{} is not a window the app opens", id.label()));
+    }
+    if let Some(open) = app.get_webview_window(&id.label()) {
+        open.unminimize().map_err(|e| e.to_string())?;
+        open.show().map_err(|e| e.to_string())?;
+        open.set_focus().map_err(|e| e.to_string())?;
+        return Ok(open);
+    }
+    let fitted = placement.map(|place| fit(place, screens, position_known_here()));
+    build_window_at(app, &id, fitted).map_err(|e| e.to_string())
+}
+
+/// Opens a panel's window, or brings it forward when it is open, and says where it is.
+///
+/// Like `open_window` this is `async` so building a webview does not wait on the main thread.
+#[tauri::command]
+pub async fn tear_off_panel<R: Runtime>(
+    app: AppHandle<R>,
+    panel: String,
+    placement: Option<WindowPlacement>,
+) -> Result<PanelPlaced, String> {
+    let window = open_panel_window(&app, panel, placement, &screens(&app))?;
+    let label = window.label().to_owned();
+    // A window that has not been drawn yet may not know its size; the place asked for, or the
+    // kind's default size, stands in until it moves or resizes and reports.
+    Ok(
+        placed(&label, window.outer_position(), window.inner_size()).unwrap_or_else(|| {
+            let spec = spec_for(WindowKind::Panel);
+            PanelPlaced {
+                label,
+                placement: placement.unwrap_or(WindowPlacement {
+                    x: 0,
+                    y: 0,
+                    w: spec.size.0 as i32,
+                    h: spec.size.1 as i32,
+                }),
+                positioned: false,
+            }
+        }),
+    )
 }
 
 /// The labels of the panel windows that are open, sorted, so a window that starts late can tell
@@ -298,6 +426,50 @@ mod tests {
         let refused = tauri::async_runtime::block_on(open_window(app.handle().clone(), unknown));
         assert!(refused.is_err());
         assert!(app.get_webview_window("panel-game-view-1").is_none());
+    }
+
+    #[test]
+    fn tearing_off_a_panel_opens_its_window_and_reopening_makes_no_second() {
+        let app = tauri::test::mock_app();
+        for panel in fizz_studio_protocol::PANEL_IDS {
+            let window =
+                open_panel_window(app.handle(), panel.to_owned(), None, &[]).expect("opens");
+            assert_eq!(window.label(), format!("panel-{panel}-1"));
+        }
+        open_panel_window(app.handle(), "script".into(), None, &[]).expect("focuses");
+        assert_eq!(open_panels(app.handle().clone()).len(), 5);
+    }
+
+    #[test]
+    fn tearing_off_a_panel_that_is_not_ours_is_refused() {
+        let app = tauri::test::mock_app();
+        for panel in ["game-view", "", "Script"] {
+            let refused = open_panel_window(app.handle(), panel.into(), None, &[]);
+            assert!(refused.is_err(), "{panel:?}");
+        }
+        assert!(open_panels(app.handle().clone()).is_empty());
+    }
+
+    #[test]
+    fn a_remembered_place_opens_the_window_whether_or_not_a_screen_holds_it() {
+        let app = tauri::test::mock_app();
+        let place = WindowPlacement {
+            x: -4000,
+            y: 60,
+            w: 700,
+            h: 500,
+        };
+        let screens = [WindowPlacement {
+            x: 0,
+            y: 0,
+            w: 1920,
+            h: 1080,
+        }];
+        // The mock window cannot report a size back, so what is applied is checked in `panel_place`
+        // and in the running app; here the window must open and be shown.
+        let window = open_panel_window(app.handle(), "history".into(), Some(place), &screens)
+            .expect("opens");
+        assert!(window.is_visible().unwrap());
     }
 
     #[test]

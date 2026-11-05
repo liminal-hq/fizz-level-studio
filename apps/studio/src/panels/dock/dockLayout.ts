@@ -192,6 +192,23 @@ export function sendToWindow(workspace: Workspace, id: string, at?: WindowPlacem
 	return next;
 }
 
+/**
+ * Records where a panel's own window is, whatever the panel's place: a window that moves while it
+ * closes reports after the panel has come back, and the record is kept for the next time it is torn
+ * off. The place itself is not touched.
+ */
+export function placeWindow(workspace: Workspace, id: string, at: WindowPlacement): Workspace {
+	const entry = entryOf(workspace, id);
+	if (!entry) return workspace;
+	const was = entry.window;
+	if (was && was.x === at.x && was.y === at.y && was.w === at.w && was.h === at.h) {
+		return workspace;
+	}
+	const next = structuredClone(workspace);
+	next.panels[id]!.window = { ...at };
+	return next;
+}
+
 /** Brings a panel in its own window back to where it was before: its zone, or floating. */
 export function bringBack(workspace: Workspace, id: string): Workspace {
 	const entry = entryOf(workspace, id);
