@@ -14,6 +14,9 @@ members = [
 	"plugins/fizz-studio-settings",
 	"plugins/fizz-studio-worlds",
 	"crates/fizz-studio-world",
+	"crates/wayland-toplevel-drag",
+	"plugins/window-effects",
+	"plugins/window-tearoff",
 ]
 # The proof workspace is a copy of the game's crates and builds on its own.
 exclude = ["scratch/rust"]
@@ -33,6 +36,7 @@ serde_json = { version = "1", features = ["float_roundtrip"] }
 thiserror = "2"
 ts-rs = "12"
 log = "0.4"
+tokio = { version = "1", features = ["rt", "macros", "sync"] }
 chrono = "0.4"
 tauri = { version = "2" }
 tauri-build = { version = "2" }
