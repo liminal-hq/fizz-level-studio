@@ -12,6 +12,7 @@ members = [
 	"crates/fizz-studio-settings",
 	"plugins/fizz-studio-host",
 	"plugins/fizz-studio-settings",
+	"plugins/fizz-studio-worlds",
 	"crates/fizz-studio-world",
 ]
 # The proof workspace is a copy of the game's crates and builds on its own.

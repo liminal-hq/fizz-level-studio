@@ -28,7 +28,8 @@
 		"react": "^19.1.0",
 		"react-dom": "^19.1.0",
 		"@liminal-hq/fizz-studio-protocol": "workspace:*",
-		"@liminal-hq/fizz-studio-plugin-host": "workspace:*"
+		"@liminal-hq/fizz-studio-plugin-host": "workspace:*",
+		"@liminal-hq/fizz-studio-plugin-worlds": "workspace:*"
 	},
 	"devDependencies": {
 		"@tauri-apps/cli": "^2",
