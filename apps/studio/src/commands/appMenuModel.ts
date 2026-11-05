@@ -6,7 +6,7 @@
 import type { MenuItem } from '@liminal-hq/fizz-studio-chrome/ContextMenu/types';
 import { t, type MessageId } from '../i18n/messages';
 import type { BridgeSnapshot } from './commandBridge';
-import { COMMANDS, viewOf, type CommandView, type MenuName } from './registry';
+import { COMMANDS, commandLabel, viewOf, type CommandView, type MenuName } from './registry';
 
 export const MENU_IDS: Record<MenuName, string> = {
 	file: 'menu:file',
@@ -34,7 +34,7 @@ function row(view: CommandView): MenuItem {
 	const { def } = view;
 	const common = {
 		id: def.id,
-		label: t(def.label),
+		label: commandLabel(def),
 		...(def.shortcut ? { shortcut: def.shortcut } : {}),
 		...(view.enabled ? {} : { disabled: true }),
 		...(def.unavailable ? { title: t(def.unavailable) } : {}),

@@ -8,8 +8,10 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import {
 	CommandBridgeContext,
 	createCommandBridge,
+	useBridgeSnapshot,
 	type CommandBridge,
 } from '../commands/commandBridge';
+import { CommandPalette, isCommandPaletteShortcut } from '../commands/CommandPalette';
 import { t, type MessageId } from '../i18n/messages';
 import { launchClient, type LaunchClient } from '../services/launchClient';
 import { pickLevelFile, type PickLevelFile } from '../services/filePicker';
@@ -108,6 +110,8 @@ function MainScreenBody({
 	const [asking, setAsking] = useState(false);
 	const [busy, setBusy] = useState(false);
 	const launched = useRef(false);
+	const [paletteOpen, setPaletteOpen] = useState(false);
+	const bridgeSnapshot = useBridgeSnapshot();
 
 	const follow = useCallback((snapshot: LevelSnapshot) => {
 		const kept = levelRef.current ? newerSnapshot(levelRef.current, snapshot) : snapshot;
@@ -338,6 +342,19 @@ function MainScreenBody({
 		return () => document.removeEventListener('keydown', onKey);
 	}, []);
 
+	// Ctrl+Shift+P toggles the command palette on every screen. It is handled at the window in the
+	// capture phase, so it works with focus in the script editor, which never sees the key.
+	useEffect(() => {
+		const onKey = (event: KeyboardEvent) => {
+			if (!isCommandPaletteShortcut(event)) return;
+			event.preventDefault();
+			event.stopPropagation();
+			setPaletteOpen((was) => !was);
+		};
+		window.addEventListener('keydown', onKey, true);
+		return () => window.removeEventListener('keydown', onKey, true);
+	}, []);
+
 	// The application menu runs these through the bridge; the latest closures are read at call time.
 	const live = useRef({ choose, save, requestClose });
 	live.current = { choose, save, requestClose };
@@ -348,6 +365,7 @@ function MainScreenBody({
 				'file.open': () => void live.current.choose(),
 				'file.save': () => void live.current.save(),
 				'file.close': () => live.current.requestClose(),
+				'view.commandPalette': () => setPaletteOpen(true),
 			}),
 		[bridge],
 	);
@@ -437,6 +455,11 @@ function MainScreenBody({
 						)}
 					</section>
 				</main>
+				<CommandPalette
+					open={paletteOpen}
+					onClose={() => setPaletteOpen(false)}
+					snapshot={bridgeSnapshot}
+				/>
 			</AppWindow>
 		);
 	}
@@ -484,6 +507,11 @@ function MainScreenBody({
 					<EditorScreen key={level.id} snapshot={level} client={client} onSnapshot={follow} />
 				</div>
 			</div>
+			<CommandPalette
+				open={paletteOpen}
+				onClose={() => setPaletteOpen(false)}
+				snapshot={bridgeSnapshot}
+			/>
 			<CloseLevelDialog
 				open={asking}
 				name={name}

@@ -547,3 +547,83 @@ describe('the application menu', () => {
 		await screen.findByRole('heading', { name: 'Fizz Level Studio' });
 	});
 });
+
+describe('the command palette', () => {
+	const pressShortcut = () =>
+		act(() => {
+			window.dispatchEvent(
+				new KeyboardEvent('keydown', {
+					key: 'P',
+					ctrlKey: true,
+					shiftKey: true,
+					bubbles: true,
+					cancelable: true,
+				}),
+			);
+		});
+
+	it('opens and closes with Ctrl+Shift+P on the start screen', async () => {
+		const user = userEvent.setup();
+		setup();
+		await user.keyboard('{Control>}{Shift>}P{/Shift}{/Control}');
+		expect(screen.getByRole('dialog', { name: 'Command palette' })).toBeInTheDocument();
+		await user.keyboard('{Control>}{Shift>}P{/Shift}{/Control}');
+		expect(screen.queryByRole('dialog')).toBeNull();
+	});
+
+	it('opens even when the focused element stops key events from bubbling', async () => {
+		const user = userEvent.setup();
+		setup();
+		await openFromDialog(user);
+		const field = document.createElement('div');
+		field.tabIndex = 0;
+		field.addEventListener('keydown', (event) => event.stopPropagation());
+		document.body.append(field);
+		field.focus();
+		pressShortcut();
+		expect(screen.getByRole('dialog', { name: 'Command palette' })).toBeInTheDocument();
+		field.remove();
+	});
+
+	it('is offered by the View menu with its keys', async () => {
+		const user = userEvent.setup();
+		setup();
+		await user.click(
+			within(screen.getByRole('menubar', { name: 'Application menu' })).getByRole('menuitem', {
+				name: 'View',
+			}),
+		);
+		const row = screen.getByRole('menuitem', { name: /Command palette…/ });
+		expect(row).toHaveTextContent('Ctrl+Shift+P');
+		await user.click(row);
+		expect(screen.getByRole('dialog', { name: 'Command palette' })).toBeInTheDocument();
+	});
+
+	it('runs Preferences from the palette', async () => {
+		const user = userEvent.setup();
+		openWindow.mockClear();
+		setup();
+		pressShortcut();
+		await user.type(screen.getByRole('combobox'), 'prefer{Enter}');
+		expect(openWindow).toHaveBeenCalledWith({ kind: 'preferences' });
+		expect(screen.queryByRole('dialog')).toBeNull();
+	});
+
+	it('hides a panel from the palette', async () => {
+		const user = userEvent.setup();
+		setup();
+		await openFromDialog(user);
+		expect(screen.getByRole('region', { name: 'History' })).toBeInTheDocument();
+		pressShortcut();
+		await user.type(screen.getByRole('combobox'), 'hide history{Enter}');
+		await waitFor(() => expect(screen.queryByRole('region', { name: 'History' })).toBeNull());
+	});
+
+	it('dims editor commands on the start screen', async () => {
+		const user = userEvent.setup();
+		setup();
+		pressShortcut();
+		await user.type(screen.getByRole('combobox'), 'erase');
+		expect(screen.getByRole('option', { name: /Erase/ })).toHaveAttribute('aria-disabled', 'true');
+	});
+});

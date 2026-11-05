@@ -1,0 +1,170 @@
+.backdrop {
+	position: fixed;
+	inset: 0;
+	z-index: 1000;
+	display: flex;
+	justify-content: center;
+	align-items: flex-start;
+	padding: 12vh 1rem 1rem;
+	background: color-mix(in srgb, var(--fls-solid-stage) 55%, transparent);
+}
+
+.panel {
+	display: flex;
+	flex-direction: column;
+	width: min(40rem, 100%);
+	max-height: min(32rem, 76vh);
+	overflow: hidden;
+	color: var(--fls-text-primary);
+	font-family: var(--fls-font);
+	background: var(--fls-glass-bg);
+	backdrop-filter: blur(var(--fls-glass-blur));
+	border: 1px solid var(--fls-glass-border);
+	border-radius: 12px;
+	box-shadow: var(--fls-glass-shadow);
+}
+
+/* The dialog's name for assistive technology; the search field is what a person sees. */
+.title {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	margin: -1px;
+	padding: 0;
+	overflow: hidden;
+	clip-path: inset(50%);
+	white-space: nowrap;
+	border: 0;
+}
+
+.query {
+	display: flex;
+	align-items: center;
+	flex: none;
+	height: 48px;
+	padding: 0 14px;
+	border-bottom: 1px solid var(--fls-border-subtle);
+}
+
+.input {
+	flex: 1;
+	min-width: 0;
+	height: 100%;
+	padding: 0;
+	color: var(--fls-text-primary);
+	font: inherit;
+	font-size: 15px;
+	background: transparent;
+	border: 0;
+	outline: none;
+}
+
+.input::placeholder {
+	color: var(--fls-text-muted);
+}
+
+.query:focus-within {
+	box-shadow: inset 0 -2px 0 var(--fls-focus-ring);
+}
+
+.list {
+	flex: 1;
+	min-height: 0;
+	margin: 0;
+	padding: 0 6px 6px;
+	overflow-y: auto;
+	list-style: none;
+}
+
+.group {
+	padding: 8px 10px 2px;
+	color: var(--fls-text-muted);
+	font-size: 11.5px;
+	font-weight: 700;
+}
+
+.option {
+	box-sizing: border-box;
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	height: 30px;
+	padding: 0 10px;
+	font-size: 13px;
+	border: 1px solid transparent;
+	border-radius: 8px;
+	cursor: default;
+}
+
+.option[data-active] {
+	background: color-mix(in srgb, var(--fls-accent) 12%, transparent);
+	border-color: color-mix(in srgb, var(--fls-accent) 50%, transparent);
+}
+
+.option[data-disabled] {
+	opacity: 0.5;
+}
+
+.label {
+	flex: 1;
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.hit {
+	color: var(--fls-accent-text);
+	font-weight: 700;
+	background: transparent;
+}
+
+.detail {
+	overflow: hidden;
+	color: var(--fls-text-muted);
+	font-size: 12px;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.key {
+	composes: keycap static from '../theme/keycap.module.css';
+	height: 20px;
+	padding: 0 6px;
+	font-family: var(--fls-font-mono);
+	font-size: 10.5px;
+	font-weight: 500;
+	border-radius: 5px;
+	border-bottom-width: 2px;
+}
+
+.empty,
+.message {
+	margin: 0;
+	padding: 14px 16px;
+	color: var(--fls-text-muted);
+	font-size: 13px;
+	list-style: none;
+}
+
+.message[data-invalid] {
+	color: var(--fls-danger);
+}
+
+.footer {
+	display: flex;
+	flex: none;
+	align-items: center;
+	gap: 14px;
+	min-height: 32px;
+	padding: 0 14px;
+	color: var(--fls-text-muted);
+	font-size: 11.5px;
+	border-top: 1px solid var(--fls-border-subtle);
+}
+
+.footer span {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+}
