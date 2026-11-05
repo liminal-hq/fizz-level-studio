@@ -272,6 +272,27 @@ export const enMessages = {
 	'panels.menu': 'Panels',
 	// translator: Verb phrase on a menu item. Puts every floating panel back where it starts.
 	'panels.reset': 'Reset layout',
+
+	// translator: The name of the File menu in the application menu. Level files are opened, saved and closed from it.
+	'appMenu.file': 'File',
+	// translator: The name of the Edit menu in the application menu. Undo and Redo are in it.
+	'appMenu.edit': 'Edit',
+	// translator: The name of the View menu in the application menu. It shows or hides the editor’s panels.
+	'appMenu.view': 'View',
+	// translator: The name of the Window menu in the application menu. Preferences and About are in it.
+	'appMenu.window': 'Window',
+	// translator: Verb on a File menu item. Closes the whole app.
+	'appMenu.quit': 'Quit',
+	// translator: The tooltip of the disabled Quit menu item: it explains why the item cannot be chosen yet.
+	'appMenu.quitUnavailable': 'Quit is not available yet. Close the window instead.',
+	// translator: Menu item that opens the Preferences window. The dots mean it opens a window.
+	'appMenu.preferences': 'Preferences…',
+	// translator: Menu item that opens the About window, which names the app and its version.
+	'appMenu.about': 'About',
+	// translator: Accessible name of the row of menus under the title bar.
+	'menuBar.label': 'Application menu',
+	// translator: Accessible name of the button that holds the menus that do not fit in the menu bar.
+	'menuBar.more': 'More menus',
 	// translator: The title of the Script panel’s own window.
 	'window.panelScript.title': 'Script',
 	// translator: A line shown in the Script panel’s own window until it is built.

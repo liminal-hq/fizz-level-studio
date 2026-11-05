@@ -494,3 +494,53 @@ describe('recovered changes', () => {
 		await screen.findByRole('group', { name: 'Level editor' });
 	});
 });
+
+describe('the application menu', () => {
+	const openMenu = async (user: ReturnType<typeof userEvent.setup>, menu: string) => {
+		await user.click(screen.getByRole('button', { name: 'Fizz Level Studio' }));
+		await user.click(screen.getByRole('menuitem', { name: menu }));
+	};
+
+	it('opens New level from File and Preferences from Window on the start screen', async () => {
+		const user = userEvent.setup();
+		setup();
+		await openMenu(user, 'File');
+		expect(screen.getByRole('menuitem', { name: /Save/ })).toHaveAttribute('aria-disabled', 'true');
+		await user.click(screen.getByRole('menuitem', { name: /New level/ }));
+		expect(openWindow).toHaveBeenCalledWith({ kind: 'new-world' });
+		await openMenu(user, 'Window');
+		await user.click(screen.getByRole('menuitem', { name: /Preferences/ }));
+		expect(openWindow).toHaveBeenCalledWith({ kind: 'preferences' });
+	});
+
+	it('opens Preferences with Ctrl+comma', async () => {
+		const user = userEvent.setup();
+		openWindow.mockClear();
+		setup();
+		await user.keyboard('{Control>},{/Control}');
+		expect(openWindow).toHaveBeenCalledWith({ kind: 'preferences' });
+	});
+
+	it('saves, toggles a panel, resets the layout and closes the level from the menus', async () => {
+		const user = userEvent.setup();
+		const { client } = setup();
+		await openFromDialog(user);
+		await openMenu(user, 'File');
+		await user.click(screen.getByRole('menuitem', { name: /Save/ }));
+		await waitFor(() => expect(client.saves).toBe(1));
+		await openMenu(user, 'View');
+		const palette = screen.getByRole('menuitemcheckbox', { name: /Palette/ });
+		expect(palette).toHaveAttribute('aria-checked', 'true');
+		await user.click(palette);
+		await openMenu(user, 'View');
+		expect(screen.getByRole('menuitemcheckbox', { name: /Palette/ })).toHaveAttribute(
+			'aria-checked',
+			'false',
+		);
+		await user.click(screen.getByRole('menuitem', { name: /Reset layout/ }));
+		await openMenu(user, 'File');
+		await user.click(screen.getByRole('menuitem', { name: /Close level/ }));
+		await waitFor(() => expect(client.closed.length).toBe(1));
+		await screen.findByRole('heading', { name: 'Fizz Level Studio' });
+	});
+});
