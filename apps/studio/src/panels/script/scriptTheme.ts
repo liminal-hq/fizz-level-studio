@@ -83,6 +83,9 @@ export const scriptTheme = EditorView.theme({
 		border: '1px solid var(--fls-border-subtle)',
 		borderRadius: '6px',
 	},
+	// The documentation popup is for reading, not for pointing at. If it can take the pointer, it can
+	// sit under the mouse, take the hover from the word, vanish, and reappear: a flicker.
+	'.cm-tooltip:has(.fls-doc)': { pointerEvents: 'none' },
 	'.cm-tooltip-autocomplete > ul > li[aria-selected]': {
 		color: 'var(--fls-text-primary)',
 		backgroundColor: 'var(--fls-bg-selected)',
