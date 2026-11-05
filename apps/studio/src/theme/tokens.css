@@ -48,6 +48,10 @@
 	--fls-hit-target: 28px;
 	--fls-text-scale: 1;
 
+	/* Floating panels: the header height a collapsed panel keeps, and the shadow under one. */
+	--fls-float-header: 46px;
+	--fls-shadow-float: 0 10px 30px rgb(0 0 0 / 0.3);
+
 	--fls-font: system-ui, sans-serif;
 }
 

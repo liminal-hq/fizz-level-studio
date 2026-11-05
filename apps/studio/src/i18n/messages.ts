@@ -260,6 +260,14 @@ export const enMessages = {
 	'panel.dockBack': 'Dock back',
 	// translator: Shown in the main window in place of the Script panel while the panel is in its own window.
 	'panel.scriptTornOff': 'The Script panel is open in its own window.',
+	// translator: Label of the grip a person drags, or moves with the arrow keys, to move a floating panel. {title} is the panel’s name.
+	'float.move': 'Move {title}',
+	// translator: Label of the corner grip a person drags, or presses the arrow keys on, to resize a floating panel. {title} is the panel’s name.
+	'float.resize': 'Resize {title}',
+	// translator: Verb phrase on a button. Shrinks a floating panel to just its title bar. {title} is the panel’s name.
+	'float.collapse': 'Collapse {title}',
+	// translator: Verb phrase on a button. Opens a collapsed floating panel again. {title} is the panel’s name.
+	'float.expand': 'Expand {title}',
 	// translator: The title of the Script panel’s own window.
 	'window.panelScript.title': 'Script',
 	// translator: A line shown in the Script panel’s own window until it is built.
