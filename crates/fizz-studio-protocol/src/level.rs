@@ -146,3 +146,18 @@ pub enum LevelError {
     /// The file could not be read or written.
     Io { message: String },
 }
+
+/// A recovery copy left by a session that did not close cleanly: an unsaved level and when the
+/// studio last kept it.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[ts(export, export_to = "../../../packages/protocol/src/generated/")]
+pub struct RecoveryEntry {
+    /// The key `recovery_restore` and `recovery_discard` take.
+    pub id: String,
+    /// The level file the copy is of.
+    pub path: String,
+    /// The file's name, for the start screen.
+    pub name: String,
+    /// When the copy was kept, in milliseconds since the Unix epoch.
+    pub saved_at_ms: u64,
+}
