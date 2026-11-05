@@ -19,6 +19,7 @@ tauri-build = { workspace = true }
 [dependencies]
 tauri = { workspace = true }
 log = { workspace = true }
+fizz-studio-protocol = { path = "../../../crates/fizz-studio-protocol" }
 chrono = { workspace = true }
 tauri-plugin-log = "2"
 tauri-plugin-os = "2"

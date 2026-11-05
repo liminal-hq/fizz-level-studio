@@ -17,7 +17,7 @@
 		"check:case": "bash scripts/check-case-collisions.sh",
 		"check:storage": "bash scripts/check-browser-storage.sh",
 		"check:licences": "bash scripts/check-licences.sh",
-		"validate": "bun run typecheck && bun run test && bun run test:mcp && bun run test:js && bun run format:check && bun run lint:md && bun run check:links && bun run check:headers && bun run check:boundaries && bun run check:case && bun run check:storage && bun run check:licences && bun run check:stubs && cargo fmt --all -- --check && cargo clippy --workspace --all-targets -- -D warnings && cargo nextest run --workspace",
+		"validate": "bun run typecheck && bun run test && bun run test:mcp && bun run test:js && bun run format:check && bun run lint:md && bun run check:links && bun run check:headers && bun run check:boundaries && bun run check:case && bun run check:storage && bun run check:licences && bun run check:stubs && bun run check:bindings && cargo fmt --all -- --check && cargo clippy --workspace --all-targets -- -D warnings && cargo nextest run --workspace",
 		"lint:md": "markdownlint-cli2 '**/*.md' '#**/node_modules' '#scratch/rust/target' '#target' '#.claude'",
 		"format": "prettier --write \"**/*.{ts,tsx,js,mjs,json,css,yml,yaml}\"",
 		"format:check": "prettier --check \"**/*.{ts,tsx,js,mjs,json,css,yml,yaml}\"",
@@ -28,7 +28,9 @@
 		"build": "bun run --cwd apps/studio build",
 		"typecheck": "bun run --cwd packages/chrome typecheck && bun run --cwd apps/studio typecheck",
 		"test:js": "bun run --cwd packages/chrome test && bun run --cwd apps/studio test",
-		"test:js:ci": "bun run --cwd packages/chrome test:ci && bun run --cwd apps/studio test:ci"
+		"test:js:ci": "bun run --cwd packages/chrome test:ci && bun run --cwd apps/studio test:ci",
+		"bindings": "bash scripts/generate-protocol-bindings.sh",
+		"check:bindings": "bash scripts/check-bindings-drift.sh"
 	},
 	"description": "A level and overworld editor for Lieutenant Fizz: a plain-text level language, an MCP server for Claude and proofs against the game",
 	"license": "Apache-2.0 OR MIT",
@@ -39,6 +41,7 @@
 	},
 	"workspaces": [
 		"apps/*",
-		"packages/chrome"
+		"packages/chrome",
+		"packages/protocol"
 	]
 }

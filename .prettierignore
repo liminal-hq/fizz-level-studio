@@ -31,3 +31,4 @@ apps/*/src-tauri/icons
 
 # Conformance corpus written by `bun run gen:fizz1`; the checked-in text is compared byte for byte
 fixtures
+**/generated

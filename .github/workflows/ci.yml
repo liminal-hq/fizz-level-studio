@@ -470,3 +470,29 @@ jobs:
             echo "- Result: \`${{ steps.check.outcome }}\`"
             echo "- Command: \`bash scripts/check-licences.sh\`"
           } >> "${GITHUB_STEP_SUMMARY}"
+
+  bindings-drift:
+    name: Bindings drift
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install the pinned Rust toolchain
+        run: rustup toolchain install
+
+      - name: Cache Rust build output
+        uses: Swatinem/rust-cache@v2
+
+      - name: Check generated bindings for drift
+        id: check
+        run: bash scripts/check-bindings-drift.sh
+
+      - name: Job summary
+        if: always()
+        run: |
+          {
+            echo "## Bindings drift"
+            echo "- Result: \`${{ steps.check.outcome }}\`"
+            echo "- Command: \`bash scripts/check-bindings-drift.sh\`"
+          } >> "${GITHUB_STEP_SUMMARY}"

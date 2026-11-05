@@ -5,6 +5,7 @@ members = [
 	"crates/fizz-studio-host",
 	"crates/fizz-studio-language",
 	"crates/fizz-studio-profile",
+	"crates/fizz-studio-protocol",
 	"crates/fizz-studio-session",
 	"crates/fizz-studio-world",
 ]
@@ -24,6 +25,7 @@ repository = "https://github.com/liminal-hq/fizz-level-studio"
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", features = ["float_roundtrip"] }
 thiserror = "2"
+ts-rs = "12"
 log = "0.4"
 chrono = "0.4"
 tauri = { version = "2" }

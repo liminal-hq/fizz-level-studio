@@ -3,16 +3,10 @@
 // (c) Copyright 2026 Liminal HQ, Scott Morris
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
+import type { WindowId } from '@liminal-hq/fizz-studio-protocol/generated/WindowId';
 import { invoke } from '@tauri-apps/api/core';
 
-/** A window the app can open, as `windows.rs` names it. A window's label is built from this. */
-export type WindowId =
-	| { kind: 'main'; n: number }
-	| { kind: 'panel'; panel: string; n: number }
-	| { kind: 'new-world' }
-	| { kind: 'preferences' }
-	| { kind: 'about' }
-	| { kind: 'tear-ghost' };
+export type { WindowId };
 
 /** Opens the window, or focuses it when it is already open. Reopening never makes a second. */
 export function openWindow(id: WindowId): Promise<void> {

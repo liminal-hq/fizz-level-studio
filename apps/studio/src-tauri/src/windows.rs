@@ -12,100 +12,8 @@
 // `panel-{panel}-{n}`, `new-world`, `preferences`, `about`, and `tear-ghost`. The pixel editor
 // (`pixel-{n}`) and behaviour editor (`behaviour-{n}`) windows arrive with their milestones.
 
-use serde::{Deserialize, Serialize};
+pub use fizz_studio_protocol::{WindowId, WindowKind};
 use tauri::{AppHandle, Manager, Runtime, WebviewUrl, WebviewWindow, WebviewWindowBuilder};
-
-/// Which window, by what it is: the part of a label that is not decoration.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(tag = "kind", rename_all = "kebab-case")]
-pub enum WindowId {
-    /// A main window: a level or world being edited, numbered from 1.
-    Main {
-        n: u32,
-    },
-    /// A panel torn off the main window, such as the Script panel: `panel-script-1`.
-    Panel {
-        panel: String,
-        n: u32,
-    },
-    /// The New level and New world window.
-    NewWorld,
-    Preferences,
-    About,
-    /// The ghost that follows the pointer while a panel is being torn off.
-    TearGhost,
-}
-
-/// The kinds of window, for the sizes and behaviour a kind shares.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum WindowKind {
-    Main,
-    Panel,
-    NewWorld,
-    Preferences,
-    About,
-    TearGhost,
-}
-
-impl WindowId {
-    pub fn kind(&self) -> WindowKind {
-        match self {
-            WindowId::Main { .. } => WindowKind::Main,
-            WindowId::Panel { .. } => WindowKind::Panel,
-            WindowId::NewWorld => WindowKind::NewWorld,
-            WindowId::Preferences => WindowKind::Preferences,
-            WindowId::About => WindowKind::About,
-            WindowId::TearGhost => WindowKind::TearGhost,
-        }
-    }
-
-    /// The window label, which the capability files match on.
-    pub fn label(&self) -> String {
-        match self {
-            WindowId::Main { n } => format!("main-{n}"),
-            WindowId::Panel { panel, n } => format!("panel-{panel}-{n}"),
-            WindowId::NewWorld => "new-world".to_owned(),
-            WindowId::Preferences => "preferences".to_owned(),
-            WindowId::About => "about".to_owned(),
-            WindowId::TearGhost => "tear-ghost".to_owned(),
-        }
-    }
-
-    /// The window a label names, or `None` for a label that is not one of ours.
-    pub fn parse(label: &str) -> Option<WindowId> {
-        match label {
-            "new-world" => return Some(WindowId::NewWorld),
-            "preferences" => return Some(WindowId::Preferences),
-            "about" => return Some(WindowId::About),
-            "tear-ghost" => return Some(WindowId::TearGhost),
-            _ => {}
-        }
-        if let Some(n) = label.strip_prefix("main-") {
-            return numbered(n).map(|n| WindowId::Main { n });
-        }
-        let rest = label.strip_prefix("panel-")?;
-        let (panel, n) = rest.rsplit_once('-')?;
-        if panel.is_empty()
-            || !panel
-                .chars()
-                .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '-')
-        {
-            return None;
-        }
-        Some(WindowId::Panel {
-            panel: panel.to_owned(),
-            n: numbered(n)?,
-        })
-    }
-}
-
-/// A window number: digits only, from 1, written without leading zeros.
-fn numbered(text: &str) -> Option<u32> {
-    if text.starts_with('0') || !text.chars().all(|c| c.is_ascii_digit()) {
-        return None;
-    }
-    text.parse().ok().filter(|n| *n >= 1)
-}
 
 /// How a kind of window is made, in logical pixels.
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -263,45 +171,6 @@ mod tests {
             WindowId::About,
             WindowId::TearGhost,
         ]
-    }
-
-    #[test]
-    fn labels_say_what_a_window_is() {
-        assert_eq!(WindowId::Main { n: 1 }.label(), "main-1");
-        assert_eq!(
-            WindowId::Panel {
-                panel: "script".into(),
-                n: 2
-            }
-            .label(),
-            "panel-script-2"
-        );
-        assert_eq!(WindowId::NewWorld.label(), "new-world");
-    }
-
-    #[test]
-    fn a_label_parses_back_to_the_window_it_names() {
-        for id in every_id() {
-            assert_eq!(WindowId::parse(&id.label()), Some(id.clone()), "{id:?}");
-        }
-    }
-
-    #[test]
-    fn a_label_that_is_not_ours_names_nothing() {
-        for label in [
-            "",
-            "main",
-            "main-0",
-            "main-01",
-            "main-x",
-            "panel-script",
-            "panel--1",
-            "panel-Script-1",
-            "settings",
-            "main-1 ",
-        ] {
-            assert_eq!(WindowId::parse(label), None, "{label:?}");
-        }
     }
 
     #[test]
