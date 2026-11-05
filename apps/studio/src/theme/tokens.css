@@ -1,0 +1,28 @@
+/* Design tokens: the only place colour literals live. Components use var(--fls-*). */
+
+:root {
+	--fls-surface: #14121b;
+	--fls-surface-raised: #1d1a28;
+	--fls-text: #ece8f6;
+	--fls-text-muted: #a49fb8;
+	--fls-accent: #a78bfa;
+	--fls-font: system-ui, sans-serif;
+}
+
+:root[data-fls-theme='light'] {
+	--fls-surface: #f7f5fb;
+	--fls-surface-raised: #ffffff;
+	--fls-text: #1b1826;
+	--fls-text-muted: #5b5670;
+	--fls-accent: #6d4fd6;
+}
+
+html,
+body,
+#root {
+	margin: 0;
+	height: 100%;
+	background: var(--fls-surface);
+	color: var(--fls-text);
+	font-family: var(--fls-font);
+}

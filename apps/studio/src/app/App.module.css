@@ -1,0 +1,17 @@
+.app {
+	display: grid;
+	place-items: center;
+	height: 100%;
+	text-align: center;
+}
+
+.title {
+	margin: 0;
+	font-size: 1.6rem;
+}
+
+.label {
+	margin: 0.4rem 0 0;
+	color: var(--fls-text-muted);
+	font-variant-numeric: tabular-nums;
+}

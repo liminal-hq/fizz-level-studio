@@ -1,5 +1,6 @@
 [workspace]
 members = [
+	"apps/studio/src-tauri",
 	"crates/fizz-studio-dialect",
 	"crates/fizz-studio-host",
 	"crates/fizz-studio-language",
@@ -23,6 +24,9 @@ repository = "https://github.com/liminal-hq/fizz-level-studio"
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", features = ["float_roundtrip"] }
 thiserror = "2"
+log = "0.4"
+tauri = { version = "2" }
+tauri-build = { version = "2" }
 tempfile = "3"
 notify = "8"
 diffy = "0.5"

@@ -1,0 +1,24 @@
+[package]
+name = "fizz-level-studio"
+version = "0.1.0"
+description = "The level and overworld editor for Lieutenant Fizz"
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+homepage.workspace = true
+repository.workspace = true
+publish = false
+
+[lib]
+name = "fizz_level_studio_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { workspace = true }
+
+[dependencies]
+tauri = { workspace = true }
+log = { workspace = true }
+
+[dev-dependencies]
+tauri = { workspace = true, features = ["test"] }
