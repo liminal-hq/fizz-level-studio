@@ -6,12 +6,33 @@
 use std::collections::BTreeMap;
 use std::sync::Arc;
 
-use fizz_studio_protocol::{ColourMode, Settings, SettingsError, SettingsPatch, RECENT_WORLDS_CAP};
+use fizz_studio_protocol::{
+    ColourMode, PanelLayout, PanelPlacement, Settings, SettingsError, SettingsPatch,
+    RECENT_WORLDS_CAP,
+};
 use fizz_studio_settings::{
-    apply_patch, touch_recent, BlobStorage, DiskStorage, MemoryStorage, Migration, SettingsFile,
-    SettingsStore, SETTINGS_FILE, SETTINGS_VERSION,
+    apply_patch, default_layout, resolve_layout, touch_recent, BlobStorage, DiskStorage,
+    MemoryStorage, Migration, SettingsFile, SettingsStore, SETTINGS_FILE, SETTINGS_VERSION,
 };
 use serde_json::{json, Value};
+
+fn placement(x: i32) -> PanelPlacement {
+    PanelPlacement {
+        x,
+        y: 4,
+        w: 300,
+        h: 200,
+        collapsed: false,
+        visible: true,
+        z: 1,
+    }
+}
+
+fn layout_of(id: &str, x: i32) -> PanelLayout {
+    PanelLayout {
+        panels: BTreeMap::from([(id.to_owned(), placement(x))]),
+    }
+}
 
 fn memory_file(text: Option<&str>) -> SettingsFile<MemoryStorage> {
     let storage = MemoryStorage::default();
@@ -85,9 +106,37 @@ fn an_older_file_is_migrated_step_by_step() {
 }
 
 #[test]
-fn this_build_has_no_steps_so_an_older_version_is_unreadable_not_guessed() {
+fn a_version_one_file_with_string_layouts_migrates_to_typed_ones() {
+    let layout = serde_json::to_string(&layout_of("script", 40)).unwrap();
+    let text = json!({
+        "version": 1,
+        "settings": {
+            "colour_mode": "dark",
+            "layout": { "main": layout, "about": "{ not json", "odd": 7 }
+        }
+    })
+    .to_string();
+    let report = memory_file(Some(&text)).load();
+    assert_eq!(report.problem, None);
+    assert_eq!(report.settings.colour_mode, ColourMode::Dark);
+    assert_eq!(report.settings.layout.len(), 1);
+    assert_eq!(report.settings.layout["main"], layout_of("script", 40));
+}
+
+#[test]
+fn a_version_one_file_without_layouts_migrates_untouched() {
+    let report = memory_file(Some(
+        r#"{ "version": 1, "settings": { "locale": "fr-CA" } }"#,
+    ))
+    .load();
+    assert_eq!(report.problem, None);
+    assert_eq!(report.settings.locale, "fr-CA");
+}
+
+#[test]
+fn a_version_with_no_step_is_unreadable_not_guessed() {
     let file = memory_file(Some(r#"{ "version": 0, "settings": {} }"#));
-    assert_eq!(SETTINGS_VERSION, 1);
+    assert_eq!(SETTINGS_VERSION, 2);
     let report = file.load();
     assert!(report
         .problem
@@ -223,19 +272,21 @@ fn recent_worlds_are_most_recent_first_without_duplicates_and_capped() {
 #[test]
 fn a_patch_changes_named_fields_and_removes_a_layout_with_null() {
     let mut settings = Settings::default();
-    settings.layout.insert("main-1".into(), "{}".into());
+    settings
+        .layout
+        .insert("main".into(), layout_of("script", 1));
     let patch = SettingsPatch {
         locale: Some("fr-CA".into()),
         layout: Some(BTreeMap::from([
-            ("main-1".to_owned(), None),
-            ("main-2".to_owned(), Some(r#"{"a":1}"#.to_owned())),
+            ("main".to_owned(), None),
+            ("other".to_owned(), Some(layout_of("palette", 9))),
         ])),
         ..SettingsPatch::default()
     };
     let next = apply_patch(&settings, &patch).unwrap();
     assert_eq!(next.locale, "fr-CA");
-    assert!(!next.layout.contains_key("main-1"));
-    assert_eq!(next.layout["main-2"], r#"{"a":1}"#);
+    assert!(!next.layout.contains_key("main"));
+    assert_eq!(next.layout["other"], layout_of("palette", 9));
 }
 
 #[test]
@@ -251,8 +302,16 @@ fn bad_patch_values_are_refused() {
     ));
     let bad_layout = SettingsPatch {
         layout: Some(BTreeMap::from([(
-            "main-1".to_owned(),
-            Some("{".to_owned()),
+            "main".to_owned(),
+            Some(PanelLayout {
+                panels: BTreeMap::from([(
+                    "script".to_owned(),
+                    PanelPlacement {
+                        w: 0,
+                        ..placement(0)
+                    },
+                )]),
+            }),
         )])),
         ..SettingsPatch::default()
     };
@@ -363,4 +422,84 @@ fn memory_storage_rename_refuses_to_replace() {
     storage.put("b", "2");
     assert!(storage.rename("a", "b").is_err());
     assert_eq!(storage.read("b").unwrap().unwrap(), "2");
+}
+
+#[test]
+fn the_editor_defaults_fit_a_1280_by_700_area_and_keep_the_palette_where_the_prototype_does() {
+    let layout = default_layout("main");
+    let ids: Vec<&str> = layout.panels.keys().map(String::as_str).collect();
+    assert_eq!(
+        ids,
+        ["history", "objects", "palette", "proposals", "script"]
+    );
+    let palette = layout.panels["palette"];
+    assert_eq!(
+        (palette.x, palette.y, palette.w, palette.h),
+        (76, 8, 252, 300)
+    );
+    let script = layout.panels["script"];
+    assert_eq!((script.w, script.h), (460, 420));
+    for (id, p) in &layout.panels {
+        assert!(
+            p.x + p.w <= 1280 && p.y + p.h <= 700,
+            "{id} leaves the area"
+        );
+        assert!(p.visible);
+    }
+    let mut z: Vec<u32> = layout.panels.values().map(|p| p.z).collect();
+    z.sort_unstable();
+    z.dedup();
+    assert_eq!(z.len(), layout.panels.len(), "z-order is distinct");
+    assert!(default_layout("about").panels.is_empty());
+}
+
+#[test]
+fn a_saved_layout_is_laid_over_the_defaults_panel_by_panel() {
+    let mut settings = Settings::default();
+    settings
+        .layout
+        .insert("main".into(), layout_of("script", 5));
+    let layout = resolve_layout(&settings, "main");
+    assert_eq!(layout.panels["script"].x, 5);
+    assert_eq!(
+        layout.panels["palette"],
+        default_layout("main").panels["palette"]
+    );
+    assert_eq!(layout.panels.len(), 5);
+}
+
+#[test]
+fn saving_and_resetting_a_layout_changes_the_revision_and_survives_a_reload() {
+    let (store, _) = SettingsStore::open(memory_file(None));
+    let saved = store.set_layout("main", layout_of("script", 77)).unwrap();
+    assert_eq!(saved.revision, 1);
+    assert_eq!(saved.settings.layout["main"], layout_of("script", 77));
+    let again = store.set_layout("main", layout_of("script", 77)).unwrap();
+    assert_eq!(again.revision, 1, "an unchanged layout is quiet");
+    let reset = store.reset_layout("main").unwrap();
+    assert_eq!(reset.revision, 2);
+    assert!(reset.settings.layout.is_empty());
+}
+
+#[test]
+fn a_layout_with_no_room_is_refused_and_changes_nothing() {
+    let (store, _) = SettingsStore::open(memory_file(None));
+    let bad = PanelLayout {
+        panels: BTreeMap::from([(
+            "script".to_owned(),
+            PanelPlacement {
+                h: 0,
+                ..placement(0)
+            },
+        )]),
+    };
+    assert!(matches!(
+        store.set_layout("main", bad),
+        Err(SettingsError::Invalid { .. })
+    ));
+    assert!(matches!(
+        store.set_layout("", layout_of("script", 1)),
+        Err(SettingsError::Invalid { .. })
+    ));
+    assert_eq!(store.snapshot().revision, 0);
 }

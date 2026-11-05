@@ -5,8 +5,9 @@
 //
 // A step works on the file's `settings` value as plain JSON, so it can rename or reshape fields
 // the current `Settings` no longer has. Steps run in order from the file's version up to the
-// current one; `MIGRATIONS` is empty while version 1 is the only version.
+// current one.
 
+use fizz_studio_protocol::PanelLayout;
 use serde_json::Value;
 
 /// One step: turns the `settings` value of version `from` into that of version `from + 1`.
@@ -17,7 +18,33 @@ pub struct Migration {
 }
 
 /// The steps this build knows, in order.
-pub const MIGRATIONS: &[Migration] = &[];
+pub const MIGRATIONS: &[Migration] = &[Migration {
+    from: 1,
+    apply: layouts_become_typed,
+}];
+
+/// Version 1 kept each panel layout as an opaque JSON string. Version 2 types it. Nothing wrote
+/// layouts in version 1, but a string that already has the typed shape is kept; any other entry is
+/// dropped, so that kind takes the defaults.
+fn layouts_become_typed(mut settings: Value) -> Result<Value, String> {
+    let Some(layouts) = settings.get_mut("layout").and_then(Value::as_object_mut) else {
+        return Ok(settings);
+    };
+    layouts.retain(|_, entry| {
+        let parsed = match &*entry {
+            Value::String(text) => serde_json::from_str::<Value>(text).ok(),
+            other => Some(other.clone()),
+        };
+        match parsed {
+            Some(value) if serde_json::from_value::<PanelLayout>(value.clone()).is_ok() => {
+                *entry = value;
+                true
+            }
+            _ => false,
+        }
+    });
+    Ok(settings)
+}
 
 /// Brings `settings` from `version` up to `current` through `steps`. A version newer than
 /// `current`, or a gap in the steps, is an error: the file stays untouched for the caller to set

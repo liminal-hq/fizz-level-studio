@@ -5,7 +5,9 @@
 
 use std::sync::{Mutex, MutexGuard};
 
-use fizz_studio_protocol::{Settings, SettingsError, SettingsPatch, SettingsSnapshot};
+use std::collections::BTreeMap;
+
+use fizz_studio_protocol::{PanelLayout, Settings, SettingsError, SettingsPatch, SettingsSnapshot};
 
 use crate::document::{LoadReport, SettingsFile};
 use crate::rules::{apply_patch, clear_recent, touch_recent};
@@ -69,6 +71,35 @@ impl<S: BlobStorage> SettingsStore<S> {
             });
         }
         let next = apply_patch(&current.settings, patch)?;
+        self.commit(&mut current, next)
+    }
+
+    /// Saves the panel layout of a window kind. The newest save wins: a layout is the arrangement
+    /// of one window, so it is not checked against a revision.
+    pub fn set_layout(
+        &self,
+        kind: &str,
+        layout: PanelLayout,
+    ) -> Result<SettingsSnapshot, SettingsError> {
+        self.change_layout(kind, Some(layout))
+    }
+
+    /// Forgets the saved layout of a window kind, so the defaults apply again.
+    pub fn reset_layout(&self, kind: &str) -> Result<SettingsSnapshot, SettingsError> {
+        self.change_layout(kind, None)
+    }
+
+    fn change_layout(
+        &self,
+        kind: &str,
+        layout: Option<PanelLayout>,
+    ) -> Result<SettingsSnapshot, SettingsError> {
+        let mut current = locked(&self.current);
+        let patch = SettingsPatch {
+            layout: Some(BTreeMap::from([(kind.to_owned(), layout)])),
+            ..SettingsPatch::default()
+        };
+        let next = apply_patch(&current.settings, &patch)?;
         self.commit(&mut current, next)
     }
 

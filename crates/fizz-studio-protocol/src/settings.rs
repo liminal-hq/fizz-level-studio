@@ -29,6 +29,30 @@ pub enum ColourMode {
     Dark,
 }
 
+/// Where one floating panel sits in its window, in pixels from the top-left of the editor area.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[ts(export, export_to = "../../../packages/protocol/src/generated/")]
+pub struct PanelPlacement {
+    pub x: i32,
+    pub y: i32,
+    pub w: i32,
+    pub h: i32,
+    /// Shrunk to its header.
+    pub collapsed: bool,
+    /// Shown at all; a hidden panel keeps its place for when it returns.
+    pub visible: bool,
+    /// Stacking order: the highest is in front.
+    pub z: u32,
+}
+
+/// The floating panels of one kind of window, by panel id (`palette`, `script`, ...).
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[serde(default)]
+#[ts(export, export_to = "../../../packages/protocol/src/generated/")]
+pub struct PanelLayout {
+    pub panels: BTreeMap<String, PanelPlacement>,
+}
+
 /// The application settings. Every field has a default, so a file written by an older build (or
 /// edited by hand down to a few lines) still loads.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, TS)]
@@ -43,9 +67,9 @@ pub struct Settings {
     /// Paths of the worlds last opened, most recent first, no duplicates, at most
     /// [`RECENT_WORLDS_CAP`].
     pub recent_worlds: Vec<String>,
-    /// Panel layouts by window label. The value is a JSON document the layout code owns; settings
-    /// keep it as an opaque string.
-    pub layout: BTreeMap<String, String>,
+    /// Panel layouts by window kind (`main` for the editor window). A panel missing from a saved
+    /// layout, or a kind with none, takes the defaults in the settings crate.
+    pub layout: BTreeMap<String, PanelLayout>,
 }
 
 impl Default for Settings {
@@ -60,7 +84,7 @@ impl Default for Settings {
     }
 }
 
-/// A change to the settings: only the fields that change. A layout entry set to `null` is removed.
+/// A change to the settings: only the fields that change. A layout entry set to `null` is removed, which restores that kind's defaults.
 /// The recent list changes through its own commands, never through a patch.
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize, TS)]
 #[serde(default)]
@@ -77,7 +101,7 @@ pub struct SettingsPatch {
     pub locale: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     #[ts(optional)]
-    pub layout: Option<BTreeMap<String, Option<String>>>,
+    pub layout: Option<BTreeMap<String, Option<PanelLayout>>>,
 }
 
 /// The settings in force and the revision they are at. It is both the answer to a read and the
@@ -103,7 +127,7 @@ pub enum SettingsError {
         #[ts(type = "number")]
         current: u64,
     },
-    /// A value is not acceptable, such as an empty locale or a layout that is not JSON.
+    /// A value is not acceptable, such as an empty locale or a panel with no room.
     Invalid { message: String },
     /// The settings could not be saved.
     Storage { message: String },

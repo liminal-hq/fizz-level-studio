@@ -149,3 +149,32 @@ fn settings_saved_by_an_earlier_run_load_at_revision_zero() {
     assert_eq!(snapshot.settings.colour_mode, ColourMode::Light);
     assert_eq!(snapshot.settings.recent_worlds, ["/w"]);
 }
+
+#[test]
+fn the_layout_commands_give_defaults_then_the_saved_places_and_back() {
+    let app = app_with(Arc::new(MemoryStorage::default()));
+    let defaults = commands::layout_get(store(&app), "main".to_owned());
+    assert_eq!(defaults.panels.len(), 5);
+    let mut moved = defaults.clone();
+    moved.panels.get_mut("script").unwrap().x = 100;
+    let saved = commands::layout_set(store(&app), "main".to_owned(), moved).unwrap();
+    assert_eq!(saved.panels["script"].x, 100);
+    assert_eq!(
+        commands::layout_get(store(&app), "main".to_owned()).panels["script"].x,
+        100
+    );
+    let back = commands::layout_reset(store(&app), "main".to_owned()).unwrap();
+    assert_eq!(back, defaults);
+}
+
+#[test]
+fn a_saved_layout_is_announced_to_every_window() {
+    let app = app_with(Arc::new(MemoryStorage::default()));
+    let heard = hear(&app, "main-1");
+    let mut layout = commands::layout_get(store(&app), "main".to_owned());
+    layout.panels.get_mut("palette").unwrap().collapsed = true;
+    commands::layout_set(store(&app), "main".to_owned(), layout).unwrap();
+    let heard = heard.lock().unwrap();
+    assert_eq!(heard.len(), 1);
+    assert!(heard[0].settings.layout["main"].panels["palette"].collapsed);
+}

@@ -34,6 +34,21 @@ var __TAURI_PLUGIN_FIZZ_STUDIO_SETTINGS__ = (function (exports, core, event) {
         return cmd('recent_clear');
     }
     /**
+     * The floating-panel layout for a kind of window (`main` for the editor): what was saved, laid over
+     * the defaults Rust owns, so a panel added since the layout was saved still has a place.
+     */
+    function getPanelLayout(kind) {
+        return cmd('layout_get', { kind });
+    }
+    /** Saves the layout of a kind of window. The newest save wins. Resolves with what is now in force. */
+    function savePanelLayout(kind, layout) {
+        return cmd('layout_set', { kind, layout });
+    }
+    /** Forgets the saved layout of a kind of window and resolves with the defaults. */
+    function resetPanelLayout(kind) {
+        return cmd('layout_reset', { kind });
+    }
+    /**
      * Wraps `listener` so it hears only snapshots newer than everything it has already heard. Events
      * can arrive out of order or twice (a window's own change comes back as an event), and a lower or
      * equal revision is older news than what the window has applied: it is ignored. `since` is the
@@ -61,9 +76,12 @@ var __TAURI_PLUGIN_FIZZ_STUDIO_SETTINGS__ = (function (exports, core, event) {
 
     exports.SETTINGS_EVENT = SETTINGS_EVENT;
     exports.clearRecent = clearRecent;
+    exports.getPanelLayout = getPanelLayout;
     exports.getSettings = getSettings;
     exports.newerOnly = newerOnly;
     exports.onSettingsChanged = onSettingsChanged;
+    exports.resetPanelLayout = resetPanelLayout;
+    exports.savePanelLayout = savePanelLayout;
     exports.touchRecent = touchRecent;
     exports.updateSettings = updateSettings;
 

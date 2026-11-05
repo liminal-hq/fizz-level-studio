@@ -8,6 +8,9 @@ const COMMANDS: &[&str] = &[
     "settings_update",
     "recent_touch",
     "recent_clear",
+    "layout_get",
+    "layout_set",
+    "layout_reset",
 ];
 
 fn main() {
