@@ -206,6 +206,52 @@ async function main(): Promise<void> {
 			system,
 		);
 
+		// The accent choice is applied by every window, and the Preferences window draws its page.
+		await bridge.js(
+			`const cur = await window.__TAURI_INTERNALS__.invoke('plugin:fizz-studio-settings|settings_get'); await window.__TAURI_INTERNALS__.invoke('plugin:fizz-studio-settings|settings_update', { patch: { accent: { kind: 'afterglow-orange' }, glass: 'off' }, basedOn: cur.revision });`,
+		);
+		const orange = await within(5000, async () =>
+			(
+				await bridge.js<{ v: string }>(
+					`return { v: document.documentElement.style.getPropertyValue('--fls-accent') };`,
+				)
+			).v === '#ffaa40'
+				? true
+				: null,
+		);
+		check('a saved accent choice reaches the main window', orange !== null);
+		check(
+			'glass off marks the main window as solid',
+			(
+				await bridge.js<{ v: string }>(
+					`return { v: document.documentElement.dataset.flsTransparency ?? '' };`,
+				)
+			).v === 'reduced',
+		);
+		await bridge.js(
+			`await window.__TAURI_INTERNALS__.invoke('open_window', { id: { kind: 'preferences' } });`,
+		);
+		const prefsUp = await bridge.ready('preferences');
+		check('the Preferences window opens', prefsUp);
+		const heading = await within(10_000, async () => {
+			const box = await bridge.js<{ w: number; h: number } | null>(
+				`const h = [...document.querySelectorAll('h2')].find((x) => x.textContent === 'Appearance'); if (!h) return null; const r = h.getBoundingClientRect(); return { w: r.width, h: r.height };`,
+				'preferences',
+			);
+			return box && box.w > 0 && box.h > 0 ? box : null;
+		});
+		check('the Appearance heading renders with a size', heading !== null, JSON.stringify(heading));
+		const prefsAccent = (
+			await bridge.js<{ v: string }>(
+				`return { v: document.documentElement.style.getPropertyValue('--fls-accent') };`,
+				'preferences',
+			)
+		).v;
+		check('the Preferences window wears the saved accent', prefsAccent === '#ffaa40', prefsAccent);
+		await bridge.js(
+			`const cur = await window.__TAURI_INTERNALS__.invoke('plugin:fizz-studio-settings|settings_get'); await window.__TAURI_INTERNALS__.invoke('plugin:fizz-studio-settings|settings_update', { patch: { accent: { kind: 'system' }, glass: 'system' }, basedOn: cur.revision });`,
+		);
+
 		const clickByText = (text: string, windowId = 'main-1') =>
 			bridge.js<boolean>(
 				`const b = [...document.querySelectorAll('button')].find((x) => x.textContent === ${JSON.stringify(text)}); if (!b) return false; b.click(); return true;`,
