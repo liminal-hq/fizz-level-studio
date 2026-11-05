@@ -3,6 +3,7 @@
 // (c) Copyright 2026 Liminal HQ, Scott Morris
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
+pub mod launch;
 pub mod logging;
 pub mod windows;
 
@@ -30,10 +31,10 @@ pub fn run() {
     #[allow(unused_mut)]
     let mut builder = tauri::Builder::default()
         // First, so a second launch (a double-clicked level while the studio is open) stops here
-        // and brings the running app forward instead of starting another. The paths it was given
-        // reach the worlds plugin when that arrives.
-        .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
-            let _ = windows::open_or_focus(app, &WindowId::Main { n: 1 });
+        // and brings the running app forward instead of starting another, handing it the level
+        // paths it was given.
+        .plugin(tauri_plugin_single_instance::init(|app, args, cwd| {
+            launch::handle_second_launch(app, args, &cwd);
         }))
         // The webview's `console.*` calls are forwarded into this plugin's stream by
         // `src/services/logger.ts`.
@@ -60,8 +61,12 @@ pub fn run() {
         .plugin(tauri_plugin_fizz_studio_settings::init_with(
             settings_storage,
         ))
-        .invoke_handler(tauri::generate_handler![windows::open_window])
+        .invoke_handler(tauri::generate_handler![
+            windows::open_window,
+            launch::app_launch_paths
+        ])
         .setup(|app| {
+            launch::queue_startup_paths(app.handle());
             windows::open_or_focus(app.handle(), &WindowId::Main { n: 1 })?;
             Ok(())
         });

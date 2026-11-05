@@ -33,6 +33,7 @@ tauri-plugin-prevent-default = "6"
 serde = { workspace = true }
 
 [dev-dependencies]
+tempfile = { workspace = true }
 serde_json = { workspace = true }
 tauri = { workspace = true, features = ["test"] }
 
