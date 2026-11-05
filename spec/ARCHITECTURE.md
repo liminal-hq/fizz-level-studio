@@ -4,7 +4,7 @@ How Fizz Level Studio is put together: the packages, how a script flows through 
 
 ## 1. Principles
 
-- **The game owns the simulation.** Deterministic rules (physics, collision, enemy behaviour, timing) live in Rust in the game (`crates/sim`, `episodes/episode-1/game`) (which also builds to WebAssembly behind a raw C-ABI export surface for its own web and Android builds). The studio never re-derives a simulation rule: in the desktop app it links the games' crates natively (D59, proposed) and its own logic is Rust too (D55); the webview only draws. This is the game repository's own rule (`CLAUDE.md`, `docs/ENGINE_SPEC.md` §4.1) carried into the studio.
+- **The game owns the simulation.** Deterministic rules (physics, collision, enemy behaviour, timing) live in Rust in the game (`crates/sim`, `episodes/episode-1/game`) (which also builds to WebAssembly behind a raw C-ABI export surface for its own web and Android builds). The studio never re-derives a simulation rule: in the desktop app it links the games' crates natively (D59) and its own logic is Rust too (D55); the webview only draws. This is the game repository's own rule (`CLAUDE.md`, `docs/ENGINE_SPEC.md` §4.1) carried into the studio.
 - **The script is the source.** A level or overworld is a `.fizz` text file. The canvas, Claude's view and the exported Rust are all derived from it.
 - **The `Builder` is the semantics.** The language is a thin skin over the private `Builder` in `episodes/episode-1/game/src/levels.rs`. Where a design idea disagreed with the `Builder`, the `Builder` won (`spec/LANGUAGE.md`, "Changes from the sketch").
 - **Prove against the game's own data.** Every claim of equality is checked by building the real thing and comparing, not by reading code.
@@ -17,7 +17,7 @@ How Fizz Level Studio is put together: the packages, how a script flows through 
 | MCP server | `packages/mcp/src` | `server.ts` (stdio server), `tools.ts` (the nine tools), `studio.ts` (file, sidecar, proposals, accept, reject, undo), `world.ts` (level rasteriser, glyph rendering, gap check), `schema.ts` (input checker), `cli.ts` (the person's command line) | Language; `@modelcontextprotocol/sdk` ^1.32.1 |
 | Tools | `tools/` | Proof generators, verifiers, audits, the decompiler, the prototype data generators, the design harness | Language, MCP (`world.ts`) |
 | Proof copy | `scratch/rust/` | A Cargo workspace copied from the game, plus the generated functions and proof tests | The game's crates |
-| Fizz 2 dialect and target profiles | not built | Planned: the dialect, the target profiles and their capability states, the Fizz 1 export check and Convert to Fizz 2, in `packages/language`; the profiles as generated data files | Language |
+| Fizz 2 dialect and target profiles | not built | Planned: the dialect, the target profiles and their capability states, the Fizz 1 export check and Convert to Fizz 2, parsed through the baker's own `fizz-script` (D55) with the studio's Rust crates around it; the profiles as generated data files | Language |
 | Design prototype | `design/project/` | `Proto.dc.html` and the other canvas pages | `levels-data.js`, `lang-docs.js` (generated) |
 | Studio app | not built | Planned as a Tauri v2 desktop app: `apps/studio`, `crates/fizz-studio-*`, `plugins/*` ([DESKTOP.md](DESKTOP.md)) | The studio's crates; the Fizz 1 and Fizz 2 game crates, linked natively |
 
@@ -76,7 +76,7 @@ The gap check in `world.ts` (`findGaps`) and the prototype's Gaps lens apply a s
 
 ## 5. The game host
 
-The desktop app links the games' own Rust and runs it natively, on worker threads, behind one `GameHost` trait in `fizz-studio-host` with an implementation per game (D59, proposed). Results stream to the webview over Tauri `Channel`s; nothing about a game's rules runs in the webview.
+The desktop app links the games' own Rust and runs it natively, on worker threads, behind one `GameHost` trait in `fizz-studio-host` with an implementation per game (D59). Results stream to the webview over Tauri `Channel`s; nothing about a game's rules runs in the webview.
 
 | Need | Fizz 1 (links `lf-sim` and `lf-episode-1`) | Fizz 2 (links `fizz-ep2`, `fizz-slice-view` and the presenter crates) |
 | --- | --- | --- |
@@ -130,7 +130,7 @@ Lieutenant Fizz 2 bakes its levels from `.fizz` sources in its own repository. N
 ```text
  level.fizz  (script fizz2 0, checked against a target profile)
       │
-      ├── editor (packages/language, TypeScript): lossless parse, print, completion, live checks
+      ├── editor (Rust crates, D55: fizz-script and the Fizz 1 port): lossless parse, print, completion, live checks
       │
       └── fizz-bake (Fizz 2 repository, Rust)
             fizz-script : parse → resolve → validate → lint → lower
@@ -140,7 +140,7 @@ Lieutenant Fizz 2 bakes its levels from `.fizz` sources in its own repository. N
 ```
 
 - **The baker is the authority.** `fizz-script` and `fizz-bake` decide what a Fizz 2 script means and what it bakes to. The editor's parser must agree with them on the dialect's grammar, its error codes and its positions.
-- **One parser for Fizz 2.** The desktop app links `fizz-script` natively (D55, proposed), so the studio and the baker share one parser and the old question of a second TypeScript parser or a WebAssembly build of `fizz-script` falls away. A corpus of golden scripts still belongs in both repositories' tests, because the studio adds owned-line rewrites and completion on top of the parser.
+- **One parser for Fizz 2.** The desktop app links `fizz-script` natively (D55), so the studio and the baker share one parser and the old question of a second TypeScript parser or a WebAssembly build of `fizz-script` falls away. A corpus of golden scripts still belongs in both repositories' tests, because the studio adds owned-line rewrites and completion on top of the parser.
 - **Rules are data.** A `when ... then ...` rule becomes a fixed 32-byte record at bake time. There is no VM on DOS and no rule text on the device, so the editor shows rules from the source and, in the dump view, from the records.
 - **Digests and manifests.** The pack's manifest and digest include the rule records and the decompiled lines, so a change to a rule shows in review as text. The editor does not compute them; it can show them.
 - **What exists in the Fizz 2 repository.** The `LEVL` data model is built and tested (`crates/fizz-pack`, `crates/fizz-ep2`; rules, strings and locks on the unmerged #137, #138 and #140). `fizz-script`, `fizz-bake`, the dialect's grammar and the packs are plans. So the record layout is a fact the editor can rely on, and the syntax is a proposal (`LANGUAGE.md`).

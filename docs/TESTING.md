@@ -163,7 +163,7 @@ None of these tests exist. They are what the work needs, so the implementer know
 
 ## 8. Planned: the desktop app
 
-None of this exists. The studio becomes a Tauri v2 desktop app ([DESKTOP.md](../spec/DESKTOP.md)), and its tests follow the Liminal HQ standard (proposed, `DECISIONS.md` D60):
+None of this exists. The studio becomes a Tauri v2 desktop app ([DESKTOP.md](../spec/DESKTOP.md)), and its tests follow the Liminal HQ standard (`DECISIONS.md` D60):
 
 - **Rust tests** with `cargo nextest` for every crate: the session (one writer, revisions, undo and redo, stale answers refused), files (atomic canonical writes, watching, recovery), profiles, states, art, budgets, export and the MCP server, with golden files.
 - **The Fizz 1 port's corpus.** Today's 76 language tests become fixtures (input, expected print, errors, exported Rust) run by the Rust crate, and the 16-level and overworld proofs become Rust tests that link the Fizz 1 crates at a pinned revision, so `scratch/rust/` and its drift go away. The TypeScript package keeps passing the same fixtures until it is retired (D56).

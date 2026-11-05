@@ -17,6 +17,8 @@
 - [The Fizz 2 Dialect](#the-fizz-2-dialect)
 - [Testing](#testing)
 - [CI](#ci)
+- [Frontend Code Conventions](#frontend-code-conventions)
+- [Tauri v2](#tauri-v2)
 - [Architecture Rules](#architecture-rules)
 - [What Not to Touch](#what-not-to-touch)
 - [Documentation](#documentation)
@@ -86,7 +88,7 @@ End every commit that an AI model helped write with a `Co-Authored-By:` trailer 
 
 **Requirement:** Never push, tag or dispatch a workflow unless the user explicitly asks. The default branch is `main`; never commit directly to it. Work on topic branches (`feat/<topic>`, `fix/<topic>`, `docs/<topic>`; for a fix tied to an issue, `fix/issue-<number>-<short-description>`) and merge through a pull request with a merge commit.
 
-The repository's home is GitHub (`liminal-hq/fizz-level-studio`), so use `gh` for pull requests, labels, reviews and Actions. Forgejo holds a mirror; don't open pull requests there.
+The repository's home is GitHub (`liminal-hq/fizz-level-studio`), so use `gh` for pull requests, labels, reviews and Actions. The old Forgejo repository is archived and read-only; don't use it.
 
 ## Local Tooling
 
@@ -114,7 +116,7 @@ Planned, not built, and the more important target. Lieutenant Fizz 2 is a separa
 - **Custom enemies and items** have behaviour scripts compiled to bytecode and run by the game's interpreter under a per-tick step budget (`spec/SCRIPTING.md`). Fizz 1 levels keep the Fizz 1 roster.
 - The syntax is the studio's proposal, overridden by `fizz-script` when it exists: a `map` block with the profile's legend, `at=X,Y` beside `x=`/`y=` (printed only for exact cell centres), an `objects` section with a required `id=` resolved to an index, placed `light` objects. Codes E001 to E016 are reused, the dialect adds E101 to E130 and the scripts E201 to E208; lints are W101 to W113 and W201 to W205.
 - The **target profile** (`fizz1`, `ep2`, later `ep3`) holds content tables, limits, budgets, physics parameters (the wall-kick is core in Fizz 2) and a capability state per feature.
-- The oblique ground is the Fizz 2 look, and a Fizz 2 level's canvas is drawn by the game's own presenter in WebAssembly, never imitated in TypeScript. Behaviours and rules run in the game's WebAssembly too. The studio's pixel editor paints panels and drawn sprites.
+- The oblique ground is the Fizz 2 look, and a Fizz 2 level's canvas is drawn by the game's own presenter, linked natively into the studio's game host (D59), never imitated in TypeScript. Behaviours and rules run in the game's own interpreter, hosted the same way. The studio's pixel editor paints panels and drawn sprites.
 - The baker (`fizz-bake`), the parser crate (`fizz-script`), the packs, manifests and digests live in the Fizz 2 repository, and are plans there today. This repository owns the language reference and the editor; it must not copy the baker's rules.
 
 `spec/LANGUAGE.md`, `spec/WORLD.md`, `spec/SCRIPTING.md`, `spec/EDITOR.md` (sections 13 to 15), `docs/FIZZ2-COVERAGE.md` and `docs/DECISIONS.md` carry the detail and the open questions.
@@ -132,6 +134,35 @@ Planned, not built, and the more important target. Lieutenant Fizz 2 is a separa
 
 `.github/workflows/ci.yml` installs the MCP server's dependencies with `--frozen-lockfile`, lints the Markdown and runs the language and MCP tests on GitHub Actions (`ubuntu-24.04`) for every pull request and push to `main`. `.github/dependabot.yml` is configured with every limit at zero, so it is off until someone raises them. The proofs need Rust and the game's crates, so they run locally, not in CI.
 
+## Frontend Code Conventions
+
+These apply to the desktop app once `apps/studio` exists (`spec/DESKTOP.md`).
+
+- **No barrel files.** Don't create an `index.ts` or `index.tsx` that only re-exports from sibling files. Import directly from the file that defines the thing.
+- **React 19 + TypeScript (strict) + Vite.** Function components only. One folder per area directly under `src/` (`app`, `canvas`, `panels`, `settings`, `services`, and so on).
+- **The frontend renders; Rust decides.** The document, rules, checks, exporter and settings live in Rust. Frontend code reacts to commands and events and never re-derives domain rules. Ephemeral UI state (hover, drag pointer state, focus) stays in the frontend.
+- **No browser storage for app state.** Preferences and window state go through the settings plugin; `localStorage`, `sessionStorage` and IndexedDB are not used. `scripts/check-browser-storage.sh` enforces it.
+- **Styling:** CSS Modules plus CSS custom properties, with the `--fls-*` prefix and `data-fls-theme`, never Waypoint's `--wp-*` or Folio's `--folio-*`. No inline-style styling: a value that must be measured in script is passed to the stylesheet as a custom property. Colour literals live only in token files; component CSS uses `var(--fls-*)` with no inline fallback. The level canvas is never themed: the game's palette stays the game's palette.
+- **Cursors:** the plain arrow over buttons, tabs and menu items; the pointing hand only for a real link that opens somewhere. Direct-manipulation surfaces keep their own cursors.
+- **Accessibility is a build requirement, not a polish pass.** A component that is not keyboard-operable is not done.
+- **All user-visible strings go through the message catalogue** (`apps/studio/src/i18n/messages.ts`, `t('area.thing')`), with no string literals in JSX. Error and lint messages are catalogue keys with arguments.
+- **JavaScript reaches a native plugin only through its `guest-js` package.** Application code imports typed functions and never calls `invoke('plugin:...|...')` or listens for a plugin's event by string. `scripts/check-plugin-boundaries.sh` enforces it.
+- **Module names never differ only by case.** `Canvas.tsx` beside `canvas.ts` is two files on Linux and one on Windows. `scripts/check-case-collisions.sh` enforces it.
+
+## Tauri v2
+
+The studio uses **Tauri v2** for desktop (Linux first, Windows 11). These are the house patterns and pitfalls from Folio, Waypoint, Spindle, Cadence and Jar.
+
+- **Platform detection:** use `@tauri-apps/plugin-os`. `platform()` is synchronous. Prefer a plugin's availability status over platform checks when deciding whether a feature exists.
+- **Prefer Tauri plugins over web APIs** when one exists, and use `async/await` for the async APIs.
+- **Common v1 pitfalls:** many online resources describe Tauri v1. In v2, `tauri` becomes `app` in the config, `build.distDir` becomes `frontendDist`, `build.devPath` becomes `devUrl`, and `tauri.allowlist` is replaced by capabilities. `@tauri-apps/api` exports only `core`, `path`, `event` and `window`; the rest moved to `@tauri-apps/plugin-*`.
+- **Permissions and capabilities (critical):** capability files live in `apps/studio/src-tauri/capabilities/`, one per concern. Installing a plugin is not enough. Every command in a plugin's `COMMANDS` list needs a matching entry in its `permissions/default.toml`, or a webview `invoke()` silently fails the ACL check even though the Rust command exists. Rust-side calls bypass the ACL, so check the ACL first when an invoke "does nothing".
+- **Multiple webviews, one bundle.** Each window is a separate webview with its own JavaScript heap; route by window label and never assume state is shared across windows. Shared state goes through Rust.
+- **The Linux webview is WebKitGTK.** Performance, `backdrop-filter`, transparency and Wayland behaviour differ from Chromium and WebView2. Verify visual and performance work on WebKitGTK.
+- **Window frames and shadows differ per platform.** The OS draws the shadow and rounded corners on Windows; on Linux the chrome draws them in CSS inside a transparent margin. `data-platform` on the root element selects the tokens.
+- **Logical versus physical pixels.** Positions from Rust are physical; `screenX` and `screenY` are logical. Convert with the monitor scale factor.
+- **Background work and visibility.** Webview timers are throttled when a window is hidden, so long-running work (checks, bakes, playtests) runs in Rust and pushes events.
+
 ## Architecture Rules
 
 - **The game owns the simulation.** Deterministic rules (physics, collision, enemy behaviour, timing) live in the game's Rust, and the studio never re-derives them in TypeScript outside `design/`.
@@ -140,7 +171,7 @@ Planned, not built, and the more important target. Lieutenant Fizz 2 is a separa
 - **Hand-written lines are never rewritten.** The studio rewrites only the object lines it owns (`spec/EDITOR.md`, section 4).
 - **Claude proposes by default.** Accept, reject and the mode are the person's alone, and no MCP tool can change them.
 - **The language package is pure.** No DOM, no storage, no network.
-- **The desktop app follows the Liminal HQ Tauri standards** (`spec/DESKTOP.md`): Rust owns state (intents in, patches out, one writer, a revision on every change), pure crates with no `tauri` dependency, thin plugins with `guest-js`, windows created in Rust, no browser storage, every string from the catalogue. The planned domain logic is Rust, including a port of the TypeScript language package (proposed, D56); the games are linked natively, not run as WebAssembly (proposed, D59).
+- **The desktop app follows the Liminal HQ Tauri standards** (`spec/DESKTOP.md`): Rust owns state (intents in, patches out, one writer, a revision on every change), pure crates with no `tauri` dependency, thin plugins with `guest-js`, windows created in Rust, no browser storage, every string from the catalogue. The planned domain logic is Rust, including a port of the TypeScript language package (D56); the games are linked natively, not run as WebAssembly (D59).
 - **No barrel files.** Import from the defining file.
 
 ## What Not to Touch
