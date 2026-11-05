@@ -3,7 +3,7 @@
  * 2px and the edge thins to 1px. The height is fixed and the label is padded to match, so the edge
  * changing never moves the key's neighbours or its label. The active choice (`aria-pressed`,
  * `aria-selected`, `data-lit` or the `lit` class) is the lit key: the accent, with a glow. A
- * component takes this with `composes: keycap from '../theme/keycap.module.css'`.
+ * component takes this with `composes: keycap from '@liminal-hq/fizz-studio-chrome/Keycap/keycap.module.css'`.
  */
 /* Zero specificity, so a component's own padding or height always wins over the base. */
 :where(.keycap) {

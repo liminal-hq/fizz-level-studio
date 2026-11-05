@@ -24,7 +24,7 @@
  * the narrowest dock, and the row wraps rather than cutting a tab off if the dock is narrower still.
  */
 .tab {
-	composes: keycap from '../theme/keycap.module.css';
+	composes: keycap from '@liminal-hq/fizz-studio-chrome/Keycap/keycap.module.css';
 	flex: 1 1 auto;
 	min-width: 0;
 	padding: 0 0.35rem;
