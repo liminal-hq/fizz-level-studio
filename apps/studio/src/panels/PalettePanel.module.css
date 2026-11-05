@@ -14,12 +14,21 @@
 
 .tabs {
 	display: flex;
-	gap: 0.5rem;
+	flex-wrap: wrap;
+	gap: 0.3rem;
 	margin-bottom: 0.4rem;
 }
 
+/*
+ * The three tabs share the dock's width: a smaller label and tighter padding let all three fit
+ * the narrowest dock, and the row wraps rather than cutting a tab off if the dock is narrower still.
+ */
 .tab {
 	composes: keycap from '../theme/keycap.module.css';
+	flex: 1 1 auto;
+	min-width: 0;
+	padding: 0 0.35rem;
+	font-size: 0.85rem;
 }
 
 .list {
@@ -31,6 +40,7 @@
 	min-height: 0;
 	margin: 0;
 	padding: 0;
+	overflow-x: hidden;
 	overflow-y: auto;
 	list-style: none;
 }

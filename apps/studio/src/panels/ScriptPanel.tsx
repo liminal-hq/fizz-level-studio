@@ -65,25 +65,31 @@ export function ScriptPanel({
 				reveal={reveal}
 				editable={editable}
 			/>
-			{words.length > 0 && <LineComposer words={words} />}
-			<h3 className={styles.subtitle}>{t('script.diagnostics')}</h3>
-			{diagnostics.length === 0 ? (
-				<p className={styles.none}>{t('script.noProblems')}</p>
-			) : (
-				<ul className={styles.problems} role="list">
-					{diagnostics.map((problem, index) => (
-						<li key={`${problem.line}-${problem.code}-${index}`}>
-							<button type="button" className={styles.link} onClick={() => ask(problem.line, true)}>
-								{t('script.problem', {
-									line: problem.line,
-									code: problem.code,
-									message: problem.message,
-								})}
-							</button>
-						</li>
-					))}
-				</ul>
-			)}
+			<div className={styles.footer}>
+				{words.length > 0 && <LineComposer words={words} />}
+				<h3 className={styles.subtitle}>{t('script.diagnostics')}</h3>
+				{diagnostics.length === 0 ? (
+					<p className={styles.none}>{t('script.noProblems')}</p>
+				) : (
+					<ul className={styles.problems} role="list">
+						{diagnostics.map((problem, index) => (
+							<li key={`${problem.line}-${problem.code}-${index}`}>
+								<button
+									type="button"
+									className={styles.link}
+									onClick={() => ask(problem.line, true)}
+								>
+									{t('script.problem', {
+										line: problem.line,
+										code: problem.code,
+										message: problem.message,
+									})}
+								</button>
+							</li>
+						))}
+					</ul>
+				)}
+			</div>
 		</div>
 	);
 }
