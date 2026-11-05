@@ -7,6 +7,7 @@ import type { TabGroup } from '@liminal-hq/fizz-studio-protocol/generated/TabGro
 import type { ZoneId } from '@liminal-hq/fizz-studio-protocol/generated/ZoneId';
 import type { KeyboardEvent, ReactNode } from 'react';
 import { t, type MessageId } from '../../i18n/messages';
+import { FoldButton } from './FoldButton';
 import { PanelCommands } from './PanelCommands';
 import { PANEL_ICONS } from './panelIcons';
 import type { PanelId } from '../float/panelSpecs';
@@ -20,6 +21,7 @@ export interface DockZoneProps {
 	onActivate: (id: string) => void;
 	onDock: (id: string, zone: ZoneId) => void;
 	onFloat: (id: string) => void;
+	onFold: () => void;
 }
 
 export const ZONE_LABELS: Record<ZoneId, MessageId> = {
@@ -41,6 +43,7 @@ export function DockZone({
 	onActivate,
 	onDock,
 	onFloat,
+	onFold,
 }: DockZoneProps) {
 	return (
 		<section className={styles.zone} data-zone={zone} aria-label={t(ZONE_LABELS[zone])}>
@@ -55,6 +58,7 @@ export function DockZone({
 					onActivate={onActivate}
 					onDock={onDock}
 					onFloat={onFloat}
+					onFold={onFold}
 				/>
 			))}
 		</section>
@@ -75,6 +79,7 @@ function Group({
 	onActivate,
 	onDock,
 	onFloat,
+	onFold,
 }: GroupProps) {
 	const id = `dock-${zone}-${index}`;
 	const move = (event: KeyboardEvent<HTMLDivElement>) => {
@@ -125,6 +130,7 @@ function Group({
 					onDock={(to) => onDock(active, to)}
 					onFloat={() => onFloat(active)}
 				/>
+				{index === 0 && <FoldButton zone={zone} folded={false} onClick={onFold} />}
 			</div>
 			<div
 				className={styles.body}

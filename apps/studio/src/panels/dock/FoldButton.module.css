@@ -1,0 +1,23 @@
+.key {
+	composes: keycap from '../../theme/keycap.module.css';
+	flex: none;
+	width: var(--fls-hit-target);
+	height: var(--fls-hit-target);
+	padding: 0;
+}
+
+.chevron {
+	display: inline-flex;
+}
+
+.chevron[data-points='left'] {
+	transform: scaleX(-1);
+}
+
+.chevron[data-points='down'] {
+	transform: rotate(90deg);
+}
+
+.chevron[data-points='up'] {
+	transform: rotate(-90deg);
+}

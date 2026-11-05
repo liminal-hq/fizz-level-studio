@@ -5,16 +5,24 @@
 
 import type { Workspace } from '@liminal-hq/fizz-studio-protocol/generated/Workspace';
 import type { ZoneId } from '@liminal-hq/fizz-studio-protocol/generated/ZoneId';
-import type { CSSProperties, ReactNode } from 'react';
+import { useEffect, useRef, type CSSProperties, type KeyboardEvent, type ReactNode } from 'react';
 import type { Size } from '../float/panelGeometry';
+import { DockRail } from './DockRail';
 import { DockZone } from './DockZone';
-import { zoneExtent } from './dockGeometry';
+import { PeekPanel } from './PeekPanel';
+import { clampZoneSize, zoneExtent } from './dockGeometry';
+import { RAIL_SIZE, dockedIn, zoneOf } from './dockModel';
+import type { DockSession } from './dockLayout';
 import styles from './DockShell.module.css';
 
 export interface DockActions {
 	activate(id: string): void;
 	dockTo(id: string, zone: ZoneId): void;
 	floatPanel(id: string): void;
+	toggleZone(zone: ZoneId): void;
+	peek(id: string): void;
+	closePeek(): void;
+	pin(id: string): void;
 }
 
 export interface DockShellProps {
@@ -22,6 +30,8 @@ export interface DockShellProps {
 	view: Workspace;
 	/** The window the caps are measured against. */
 	window: Size;
+	/** What is peeking, and whether level-first is on. */
+	session: DockSession;
 	titleOf: (id: string) => string;
 	/** The real content of a panel. Only the showing panel of each group is asked for. */
 	renderPanel: (id: string) => ReactNode;
@@ -38,6 +48,7 @@ export interface DockShellProps {
 export function DockShell({
 	view,
 	window,
+	session,
 	titleOf,
 	renderPanel,
 	actions,
@@ -48,29 +59,84 @@ export function DockShell({
 		'--fls-dock-left': `${extent('left')}px`,
 		'--fls-dock-right': `${extent('right')}px`,
 		'--fls-dock-bottom': `${extent('bottom')}px`,
+		'--fls-rail': `${RAIL_SIZE}px`,
 	} as CSSProperties;
 
-	const zone = (id: ZoneId) =>
-		view.zones[id].groups.length > 0 && extent(id) > 0 ? (
+	const peeking = session.peeking;
+	const peekZone = peeking === null ? null : zoneOf(view, peeking);
+	const shell = useRef<HTMLDivElement>(null);
+
+	// A click anywhere but on the peeking panel or a rail closes the peek.
+	const { closePeek } = actions;
+	useEffect(() => {
+		if (peeking === null) return;
+		const away = (event: PointerEvent) => {
+			const target = event.target as Element | null;
+			if (target?.closest('[data-peek], [data-rail]')) return;
+			closePeek();
+		};
+		document.addEventListener('pointerdown', away);
+		return () => document.removeEventListener('pointerdown', away);
+	}, [peeking, closePeek]);
+
+	// Escape closes the peek and returns to the rail button that opened it.
+	const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+		if (event.key !== 'Escape' || peeking === null || event.defaultPrevented) return;
+		event.preventDefault();
+		const opener = peeking;
+		actions.closePeek();
+		shell.current?.querySelector<HTMLElement>(`[data-rail-item="${opener}"]`)?.focus();
+	};
+
+	const zone = (id: ZoneId) => {
+		const z = view.zones[id];
+		if (z.groups.length === 0 || extent(id) === 0) return null;
+		return (
 			<div className={styles.slot} data-slot={id}>
-				<DockZone
-					zone={id}
-					groups={view.zones[id].groups}
-					titleOf={titleOf}
-					renderPanel={renderPanel}
-					onActivate={actions.activate}
-					onDock={actions.dockTo}
-					onFloat={actions.floatPanel}
-				/>
+				{z.collapsed ? (
+					<DockRail
+						zone={id}
+						panels={dockedIn(view, id)}
+						titleOf={titleOf}
+						peeking={peeking}
+						disabled={session.levelFirst}
+						onPeek={actions.peek}
+						onClosePeek={actions.closePeek}
+						onUnfold={() => actions.toggleZone(id)}
+					/>
+				) : (
+					<DockZone
+						zone={id}
+						groups={z.groups}
+						titleOf={titleOf}
+						renderPanel={renderPanel}
+						onActivate={actions.activate}
+						onDock={actions.dockTo}
+						onFloat={actions.floatPanel}
+						onFold={() => actions.toggleZone(id)}
+					/>
+				)}
 			</div>
-		) : null;
+		);
+	};
 
 	return (
-		<div className={styles.shell} style={style}>
+		<div className={styles.shell} style={style} ref={shell} onKeyDown={onKeyDown}>
 			{zone('left')}
 			<div className={styles.level}>{children}</div>
 			{zone('right')}
 			{zone('bottom')}
+			{peeking !== null && peekZone !== null && (
+				<PeekPanel
+					zone={peekZone}
+					id={peeking}
+					title={titleOf(peeking)}
+					size={clampZoneSize(peekZone, view.zones[peekZone].size, window)}
+					onPin={() => actions.pin(peeking)}
+				>
+					{renderPanel(peeking)}
+				</PeekPanel>
+			)}
 		</div>
 	);
 }

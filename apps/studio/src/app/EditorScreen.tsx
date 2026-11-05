@@ -404,6 +404,7 @@ export function EditorScreen({
 				<DockShell
 					view={dock.view}
 					window={dock.window}
+					session={dock.session}
 					titleOf={titleOf}
 					renderPanel={(id) => content(id as PanelId)}
 					actions={dock}

@@ -79,7 +79,7 @@ describe('the editor’s floating panels', () => {
 		await user.keyboard('{Control>}{Shift>}0{/Shift}{/Control}');
 		// Resetting returns the panels to the docks.
 		await waitFor(() =>
-			expect(screen.getByRole('region', { name: 'Right dock' })).toBeInTheDocument(),
+			expect(screen.getByRole('region', { name: 'Left dock' })).toBeInTheDocument(),
 		);
 	});
 
