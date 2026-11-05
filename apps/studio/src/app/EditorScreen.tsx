@@ -7,7 +7,7 @@ import type { LevelEdit } from '@liminal-hq/fizz-studio-protocol/generated/Level
 import type { LevelSnapshot } from '@liminal-hq/fizz-studio-protocol/generated/LevelSnapshot';
 import { useCallback, useEffect, useRef, useState, type KeyboardEvent } from 'react';
 import { LevelCanvas } from '../canvas/LevelCanvas';
-import { t, type MessageId } from '../i18n/messages';
+import { enMessages, t, type MessageId } from '../i18n/messages';
 import { HistoryPanel, historyShortcut } from '../panels/HistoryPanel';
 import { ScriptPanel } from '../panels/ScriptPanel';
 import { toolForKey } from '../tools/shortcuts';
@@ -139,6 +139,10 @@ export function EditorScreen({ snapshot: initial, client, onSnapshot }: EditorSc
 		}
 	};
 
+	// A banner key the catalogue does not hold shows nothing.
+	const noteText =
+		snapshot.banner && snapshot.banner in enMessages ? t(snapshot.banner as MessageId) : null;
+
 	return (
 		<div
 			className={styles.screen}
@@ -149,6 +153,11 @@ export function EditorScreen({ snapshot: initial, client, onSnapshot }: EditorSc
 			{snapshot.edited_outside && (
 				<p className={styles.banner} role="status">
 					{t('editor.editedOutside')}
+				</p>
+			)}
+			{noteText && (
+				<p className={styles.banner} role="note">
+					{noteText}
 				</p>
 			)}
 			{problem && (

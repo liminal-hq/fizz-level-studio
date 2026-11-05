@@ -109,6 +109,9 @@ export const enMessages = {
 
 	// translator: A banner shown when the level’s file was changed by something other than the studio.
 	'editor.editedOutside': 'This level was changed outside the studio.',
+	// translator: A note above the grid of a Fizz 2 level. “The game” is Lieutenant Fizz 2; “flat view” is a plain drawing of the tiles.
+	'level.flatFallback':
+		'The game’s own drawing of this level is not available yet, so this is the flat view.',
 	// translator: Shown when an edit was refused because the level had moved on.
 	'editor.stale': 'The level changed first, so that edit was not applied. Try it again.',
 	// translator: Shown when an edit could not be applied.
