@@ -3,7 +3,11 @@
 // (c) Copyright 2026 Liminal HQ, Scott Morris
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
-import { getSettings, onSettingsChanged } from '@liminal-hq/fizz-studio-plugin-settings';
+import {
+	getSettings,
+	onSettingsChanged,
+	type Settings,
+} from '@liminal-hq/fizz-studio-plugin-settings';
 import {
 	getAppearance,
 	getStatus,
@@ -11,7 +15,7 @@ import {
 	type AppearancePreferences,
 	type PluginStatus,
 } from '@liminal-hq/plugin-system-appearance';
-import type { AccentSources } from '../theme/followAccent';
+import type { AccentSources, AppearanceChoice } from '../theme/followAccent';
 import type { SchemeSources } from '../theme/followColourScheme';
 
 /** Keeps the plugin's unsubscribe function once its promise settles, even if stopped before then. */
@@ -54,6 +58,9 @@ export const accentSources: AccentSources = {
 	accentAvailable: async () =>
 		(await getStatus()).appearance.some((entry) => entry.feature === 'accent' && entry.available),
 	hints: async () => toHints(await getAppearance()),
+	choice: async () => toChoice((await getSettings()).settings),
+	onChoiceChanged: (listener) =>
+		subscribe(() => onSettingsChanged((snapshot) => listener(toChoice(snapshot.settings)))),
 	onHintsChanged: (listener) => {
 		// Keep only changes newer than the last one heard: the revision only goes up.
 		let latest = 0;
@@ -66,6 +73,10 @@ export const accentSources: AccentSources = {
 		);
 	},
 };
+
+function toChoice(settings: Settings): AppearanceChoice {
+	return { accent: settings.accent, glass: settings.glass };
+}
 
 function toHints(preferences: AppearancePreferences) {
 	return {

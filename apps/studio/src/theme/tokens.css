@@ -190,8 +190,9 @@
 
 /*
  * Less transparency and more contrast. The system-appearance plugin sets `data-fls-transparency`
- * and `data-fls-contrast` on the root (see `theme/followAccent.ts`); the media queries ask the
- * webview the same questions when it can answer them. Glass then drops its blur and takes a solid
+ * and `data-fls-contrast` on the root (see `theme/followAccent.ts`), and `data-fls-glass='on'` when
+ * the person has turned glass on whatever the system asks; the media queries ask the webview the
+ * same questions when it can answer them. Glass then drops its blur and takes a solid
  * fill, and the borders strengthen. In forced colours the system palette replaces every fill.
  */
 :root[data-fls-transparency='reduced'] {
@@ -200,7 +201,8 @@
 }
 
 @media (prefers-reduced-transparency: reduce) {
-	:root:root:root {
+	/* A person who turned glass on has said so, and that wins over the system's hint. */
+	:root:not([data-fls-glass='on']):root:root {
 		--fls-glass-blur: 0px;
 		--fls-glass-bg: var(--fls-glass-bg-solid);
 	}
