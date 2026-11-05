@@ -30,6 +30,11 @@ export interface LevelClient {
 	endStep(id: string): Promise<LevelSnapshot>;
 	undo(id: string, basedOn: bigint): Promise<LevelSnapshot>;
 	redo(id: string, basedOn: bigint): Promise<LevelSnapshot>;
+	/**
+	 * The level's current snapshot, for a window that did not open it (a panel in a window of its
+	 * own). Rejects with `{ kind: 'not_open' }` for a level that is not open.
+	 */
+	read(id: string): Promise<LevelSnapshot>;
 	/** The language's documented words, from Rust, for the Palette and completion. */
 	words(): Promise<WordDoc[]>;
 	/** The changes Claude proposed for this level that nobody has answered yet. Read-only. */

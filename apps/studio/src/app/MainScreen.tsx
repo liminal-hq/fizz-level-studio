@@ -31,6 +31,7 @@ import { AppMenu } from './AppMenu';
 import { AppMenuBar } from './AppMenuBar';
 import { AppWindow } from './AppWindow';
 import type { DockClient } from '../services/dockClient';
+import type { PanelBridge } from '../panels/windows/panelBridge';
 import { CloseLevelDialog } from './CloseLevelDialog';
 import { EditorScreen } from './EditorScreen';
 import styles from './MainScreen.module.css';
@@ -52,6 +53,8 @@ export interface MainScreenProps {
 	docks?: DockClient;
 	/** Quitting the app; defaults to the app's commands. */
 	quit?: QuitClient;
+	/** The channel to panels torn off into their own windows. */
+	panelBridge?: PanelBridge;
 }
 
 // One client for the app: it remembers each level's latest snapshot between calls.
@@ -111,6 +114,7 @@ function MainScreenBody({
 	recovery = recoveryClient,
 	docks,
 	quit = quitClient,
+	panelBridge,
 }: MainScreenProps & { bridge: CommandBridge }) {
 	/** The snapshot the level was opened from; the editor takes later ones from `level`. */
 	const [level, setLevel] = useState<LevelSnapshot | null>(null);
@@ -595,6 +599,7 @@ function MainScreenBody({
 						client={client}
 						onSnapshot={follow}
 						docks={docks}
+						panelBridge={panelBridge}
 					/>
 				</div>
 			</div>

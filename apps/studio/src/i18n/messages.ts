@@ -254,12 +254,12 @@ export const enMessages = {
 	// translator: Note that the proposals can be seen but not yet accepted or rejected here.
 	'ghosts.readOnly': 'You can see proposals here. Accepting and rejecting them comes later.',
 
-	// translator: Verb phrase on a button. Moves the Script panel out of the main window into a window of its own.
-	'panel.tearOff': 'Tear off',
 	// translator: Verb phrase on a button. Closes a panel’s own window and puts the panel back in the main window.
 	'panel.dockBack': 'Dock back',
-	// translator: Shown in the main window in place of the Script panel while the panel is in its own window.
-	'panel.scriptTornOff': 'The Script panel is open in its own window.',
+	// translator: Shown in the main window in place of a panel while the panel is in its own window. {title} is the panel’s name, such as “Script”.
+	'panel.tornOff': 'The {title} panel is open in its own window.',
+	// translator: Name of a docked panel’s tab, or of its folded dock’s rail button, while the panel is in its own window. {title} is the panel’s name.
+	'panel.awayTitle': '{title} (own window)',
 	// translator: Label of the grip a person drags, or moves with the arrow keys, to move a floating panel. {title} is the panel’s name.
 	'float.move': 'Move {title}',
 	// translator: Label of the corner grip a person drags, or presses the arrow keys on, to resize a floating panel. {title} is the panel’s name.
@@ -311,6 +311,10 @@ export const enMessages = {
 	'cmdPalette.showPanel': 'Show {panel}',
 	// translator: A command in the command palette. {panel} is the name of a panel, such as “Script”. Verb phrase.
 	'cmdPalette.hidePanel': 'Hide {panel}',
+	// translator: A command in the command palette. Moves a panel out of the main window into a window of its own. {panel} is the name of a panel, such as “Script”. Verb phrase.
+	'cmdPalette.tearOffPanel': 'Tear off {panel}',
+	// translator: A command in the command palette. Closes a panel’s own window and puts the panel back where it was. {panel} is the name of a panel, such as “Script”. Verb phrase.
+	'cmdPalette.dockPanelBack': 'Dock {panel} back',
 	// translator: A command in the command palette that chooses the brush. {name} is the tile, item or enemy, such as “cheezie”.
 	'cmdPalette.brush': 'Brush: {name}',
 	// translator: A command in the command palette. It asks for a line number, then shows that line of the level’s script. The three dots mean it asks for more input.
@@ -346,6 +350,9 @@ export const enMessages = {
 	'dock.dockBottom': 'Dock {title} bottom',
 	// translator: Verb phrase on an icon button. Lets a docked panel float over the level. {title} is the panel’s name.
 	'dock.float': 'Float {title}',
+
+	// translator: Verb phrase on an icon button. Moves a panel out of the main window into a window of its own. {title} is the panel’s name.
+	'dock.tearOff': 'Tear off {title} into its own window',
 
 	// translator: Verb phrase on an icon button. Folds the open left dock into a thin rail that shows each panel’s icon and title.
 	'dock.fold.left': 'Fold the left dock',
@@ -419,10 +426,8 @@ export const enMessages = {
 	'menuBar.label': 'Application menu',
 	// translator: Accessible name of the button that holds the menus that do not fit in the menu bar.
 	'menuBar.more': 'More menus',
-	// translator: The title of the Script panel’s own window.
-	'window.panelScript.title': 'Script',
-	// translator: A line shown in the Script panel’s own window until it is built.
-	'placeholder.panelScript': 'The script will appear here.',
+	// translator: A line shown in a panel’s own window while the main window has no level open, so the panel has nothing to show.
+	'panelWindow.noLevel': 'Open a level in the main window to use this panel.',
 
 	// translator: Heading of the panel with the undo and redo buttons.
 	'history.title': 'History',

@@ -60,14 +60,3 @@
 	outline: 2px solid var(--fls-focus-ring);
 	outline-offset: -2px;
 }
-
-.header {
-	display: flex;
-	flex: none;
-	justify-content: flex-end;
-	margin-bottom: 0.4rem;
-}
-
-.tearOff {
-	composes: keycap from '../theme/keycap.module.css';
-}

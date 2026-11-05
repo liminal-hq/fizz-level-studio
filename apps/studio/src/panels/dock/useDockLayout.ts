@@ -3,7 +3,7 @@
 // (c) Copyright 2026 Liminal HQ, Scott Morris
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 //
-// The name differs from `usePanelDock`, which follows the Script panel's own window. This hook owns
+// Panels in windows of their own are followed by `usePanelWindows`. This hook owns
 // the active workspace (where each panel is) and the session (what is peeking, what is hidden for
 // the level). Every move goes through the pure reducers; the workspace is written back after a
 // short pause and once more when the editor closes. A failed read or write leaves the layout as it
@@ -11,6 +11,7 @@
 
 import type { DockSettings } from '@liminal-hq/fizz-studio-protocol/generated/DockSettings';
 import type { Workspace } from '@liminal-hq/fizz-studio-protocol/generated/Workspace';
+import type { WindowPlacement } from '@liminal-hq/fizz-studio-protocol/generated/WindowPlacement';
 import type { ZoneId } from '@liminal-hq/fizz-studio-protocol/generated/ZoneId';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { DockClient } from '../../services/dockClient';
@@ -23,6 +24,7 @@ import { moveFloat, raiseFloat, toggleFloatCollapsed } from './dockFloat';
 import {
 	INITIAL_SESSION,
 	activateTab,
+	bringBack,
 	closePeek,
 	maximisePanel,
 	restorePanel,
@@ -32,6 +34,7 @@ import {
 	reorderTab,
 	pinPanel,
 	resizeZone,
+	sendToWindow,
 	setPanelVisible,
 	settleSession,
 	toggleLevelFirst,
@@ -85,6 +88,12 @@ export interface DockLayoutHandle {
 	restore(): void;
 	/** Puts the active workspace back to its shipped arrangement. */
 	reset(): void;
+	/** True once the saved arrangement has been read (or could not be). */
+	loaded: boolean;
+	/** Records a panel as in a window of its own, and where that window is when `at` is given. */
+	sendToWindow(id: string, at?: WindowPlacement): void;
+	/** Brings a panel in a window of its own back to its zone, or to floating. */
+	bringBack(id: string): void;
 }
 
 /**
@@ -103,6 +112,7 @@ export function useDockLayout(client: DockClient, windowSize: Size, area: Size):
 	rawSessionRef.current = rawSession;
 	const latest = useRef(dock);
 	const touched = useRef(false);
+	const [loaded, setLoaded] = useState(false);
 	const dirty = useRef(false);
 	const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -136,15 +146,17 @@ export function useDockLayout(client: DockClient, windowSize: Size, area: Size):
 		let live = true;
 		client.get().then(
 			(saved) => {
-				if (!live || touched.current) return;
+				if (!live) return;
+				if (touched.current) return setLoaded(true);
 				const repaired = normaliseDock(
 					saved,
 					isMeasured(sized.current) ? sized.current : undefined,
 				);
 				latest.current = repaired;
 				setDock(repaired);
+				setLoaded(true);
 			},
-			() => {},
+			() => live && setLoaded(true),
 		);
 		return () => {
 			live = false;
@@ -179,6 +191,11 @@ export function useDockLayout(client: DockClient, windowSize: Size, area: Size):
 		(id: string, zone: ZoneId) => edit((ws) => dockPanel(ws, id, zone)),
 		[edit],
 	);
+	const toWindow = useCallback(
+		(id: string, at?: WindowPlacement) => edit((ws) => sendToWindow(ws, id, at)),
+		[edit],
+	);
+	const fromWindow = useCallback((id: string) => edit((ws) => bringBack(ws, id)), [edit]);
 	const float = useCallback((id: string) => edit((ws) => floatPanel(ws, id)), [edit]);
 	const floatAt = useCallback(
 		(id: string, rect: Rect) => edit((ws) => floatPanel(ws, id, rect)),
@@ -324,5 +341,8 @@ export function useDockLayout(client: DockClient, windowSize: Size, area: Size):
 		maximise,
 		restore,
 		reset,
+		loaded,
+		sendToWindow: toWindow,
+		bringBack: fromWindow,
 	};
 }

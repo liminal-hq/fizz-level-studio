@@ -135,6 +135,14 @@ export function levelGhosts(id: string): Promise<GhostProposal[]> {
 }
 
 /**
+ * The current snapshot of an open level, for a window that did not open it, such as a panel torn
+ * off into a window of its own. Rejects with a `LevelError` of kind `not_open` for an unknown id.
+ */
+export function levelSnapshot(id: string): Promise<LevelSnapshot> {
+	return cmd<LevelSnapshot>('level_snapshot', { id });
+}
+
+/**
  * Wraps `listener` so it hears only snapshots newer than what it has applied for that level.
  * Events can arrive out of order or twice (a window's own edit comes back as an event), and a
  * revision at or below the one already applied for the same level id is older news: it is ignored.

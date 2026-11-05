@@ -99,3 +99,11 @@ export const FloatIcon: IconComponent = ({ size }) => (
 		<rect x="6" y="6.5" width="8" height="7" rx="1.2" />
 	</Svg>
 );
+
+/** A window with an arrow leaving it: a panel torn off into a window of its own. */
+export const TearOffIcon: IconComponent = ({ size }) => (
+	<Svg size={size}>
+		<path d="M9 2.5h4.5V7M13.5 2.5 8 8" />
+		<path d="M11.5 9.5v2.8a1.2 1.2 0 0 1-1.2 1.2H3.7a1.2 1.2 0 0 1-1.2-1.2V5.7a1.2 1.2 0 0 1 1.2-1.2h2.8" />
+	</Svg>
+);

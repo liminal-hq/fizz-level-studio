@@ -45,3 +45,12 @@ export function panelFromLabel(label: string): string | null {
 	if (windowKindFromLabel(label) !== 'panel') return null;
 	return label.slice('panel-'.length, label.lastIndexOf('-'));
 }
+
+/**
+ * The main window a panel window belongs to (`panel-script-1` belongs to `main-1`: the panel
+ * carries its owner's number), or `null` for a label that is not a panel window.
+ */
+export function ownerOfPanel(label: string): string | null {
+	if (windowKindFromLabel(label) !== 'panel') return null;
+	return `main-${label.slice(label.lastIndexOf('-') + 1)}`;
+}

@@ -3,6 +3,7 @@
 // (c) Copyright 2026 Liminal HQ, Scott Morris
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
+import { useMemo } from 'react';
 import type { MessageId } from '../i18n/messages';
 import { t } from '../i18n/messages';
 import styles from './App.module.css';
@@ -11,6 +12,7 @@ import { MainScreen } from './MainScreen';
 import { PanelWindowScreen } from '../panels/PanelWindowScreen';
 import { NewLevelScreen } from './NewLevelScreen';
 import { PreferencesScreen } from '../preferences/PreferencesScreen';
+import { createPanelBridge } from '../panels/windows/panelBridge';
 import { windowKindFromLabel } from './windowKind';
 
 interface AppProps {
@@ -30,9 +32,15 @@ function PlaceholderScreen({ titleId, messageId }: { titleId: MessageId; message
 }
 
 export function App({ windowLabel }: AppProps) {
-	switch (windowKindFromLabel(windowLabel)) {
+	const kind = windowKindFromLabel(windowLabel);
+	// A main window's end of the channel to its torn-off panels.
+	const panelBridge = useMemo(
+		() => (kind === 'main' ? createPanelBridge(windowLabel, false) : undefined),
+		[kind, windowLabel],
+	);
+	switch (kind) {
 		case 'main':
-			return <MainScreen />;
+			return <MainScreen panelBridge={panelBridge} />;
 		case 'about':
 			return <PlaceholderScreen titleId="window.about.title" messageId="placeholder.about" />;
 		case 'preferences':

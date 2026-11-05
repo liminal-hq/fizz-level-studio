@@ -23,8 +23,6 @@ export interface ScriptPanelProps {
 	focusSerial?: number;
 	/** True once the backend can take a typed change. Until then the script is read-only. */
 	editable?: boolean;
-	/** Shows a Tear off button that calls this; left out where the panel cannot be torn off. */
-	onTearOff?: () => void;
 }
 
 const NO_WORDS: readonly WordDoc[] = [];
@@ -41,7 +39,6 @@ export function ScriptPanel({
 	focusLine = null,
 	focusSerial = 0,
 	editable = false,
-	onTearOff,
 }: ScriptPanelProps) {
 	const [reveal, setReveal] = useState<RevealRequest | null>(null);
 	const serial = useRef(0);
@@ -60,13 +57,6 @@ export function ScriptPanel({
 
 	return (
 		<div className={styles.panel}>
-			{onTearOff && (
-				<div className={styles.header}>
-					<button type="button" className={styles.tearOff} onClick={onTearOff}>
-						{t('panel.tearOff')}
-					</button>
-				</div>
-			)}
 			<ScriptEditor
 				className={styles.editor}
 				text={text}

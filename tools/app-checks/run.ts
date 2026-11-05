@@ -85,6 +85,9 @@ function clickTab(bridge: Bridge, name: string): Promise<boolean> {
 	);
 }
 
+/** The accessible name of the Script panel's Tear off button. */
+const TEAR_OFF_SCRIPT = 'Tear off Script into its own window';
+
 /** Clicks the button with this accessible name. */
 function clickLabelled(bridge: Bridge, label: string): Promise<boolean> {
 	return bridge.js<boolean>(
@@ -904,7 +907,7 @@ async function main(): Promise<void> {
 				`const b = [...document.querySelectorAll('button')].find((x) => x.textContent === ${JSON.stringify(text)}); if (!b) return false; b.click(); return true;`,
 				windowId,
 			);
-		check('the Script panel offers Tear off', await clickByText('Tear off'));
+		check('the Script panel offers Tear off', await clickLabelled(bridge, TEAR_OFF_SCRIPT));
 		const tornOff = await within(10_000, async () =>
 			(await bridge.windows()).includes('panel-script-1'),
 		);
@@ -955,7 +958,7 @@ async function main(): Promise<void> {
 		await bridge.start();
 		const back = await within(3000, () =>
 			bridge.js<boolean>(
-				`return [...document.querySelectorAll('button')].some((b) => b.textContent === 'Tear off');`,
+				`return !!document.querySelector('button[aria-label=' + JSON.stringify(${JSON.stringify(TEAR_OFF_SCRIPT)}) + ']');`,
 			),
 		);
 		check('the Script panel is back in the main window', back !== null);
@@ -1109,7 +1112,7 @@ async function main(): Promise<void> {
 		);
 		check('closing the Preferences window leaves the app up', prefsGone !== null && app.alive);
 
-		await clickByText('Tear off');
+		await clickLabelled(bridge, TEAR_OFF_SCRIPT);
 		const tornAgain = await within(10_000, async () =>
 			(await bridge.windows()).includes('panel-script-1') ? true : null,
 		);
@@ -1125,7 +1128,7 @@ async function main(): Promise<void> {
 		await bridge.start();
 		const redocked = await within(5000, () =>
 			bridge.js<boolean>(
-				`return [...document.querySelectorAll('button')].some((b) => b.textContent === 'Tear off');`,
+				`return !!document.querySelector('button[aria-label=' + JSON.stringify(${JSON.stringify(TEAR_OFF_SCRIPT)}) + ']');`,
 			),
 		);
 		if (redocked === null)

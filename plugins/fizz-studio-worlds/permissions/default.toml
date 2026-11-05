@@ -16,4 +16,5 @@ permissions = [
 	"allow-language-words",
 	"allow-level-cell-line",
 	"allow-level-ghosts",
+	"allow-level-snapshot",
 ]
