@@ -11,7 +11,8 @@ use windows::WindowId;
 /// Starts the app. Every window is created in Rust (`windows.rs`); `tauri.conf.json` lists none.
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    tauri::Builder::default()
+    #[allow(unused_mut)]
+    let mut builder = tauri::Builder::default()
         // First, so a second launch (a double-clicked level while the studio is open) stops here
         // and brings the running app forward instead of starting another. The paths it was given
         // reach the worlds plugin when that arrives.
@@ -39,7 +40,17 @@ pub fn run() {
         .setup(|app| {
             windows::open_or_focus(app.handle(), &WindowId::Main { n: 1 })?;
             Ok(())
-        })
+        });
+
+    // Lets an agent drive and screenshot the running app during development and in the running-app
+    // checks. Not on Windows, where the bridge does not yet compile against Tauri's `windows`
+    // crate (see `Cargo.toml`), and never in a release build.
+    #[cfg(all(debug_assertions, not(windows)))]
+    {
+        builder = builder.plugin(tauri_plugin_mcp_bridge::init());
+    }
+
+    builder
         .build(tauri::generate_context!())
         .expect("error while building the Fizz Level Studio application")
         .run(|_app, _event| {});
