@@ -6,7 +6,8 @@
 // Usage: bun tools/gen-fizz1-fixtures.ts [--check]
 //
 // Each input becomes `fixtures/fizz1/<group>/<name>.fizz` (the input), `.print` (the printed output)
-// and `.json` (the full AST and the errors). With `--check` nothing is written; the process exits 1
+// and `.json` (the full AST and the errors). An `edits/` case adds `.edits.json` (the edits applied)
+// and `.after` (the printed script once they are appended). With `--check` nothing is written; the process exits 1
 // when the committed fixtures differ from regenerated ones. The Rust crate's tests read the same files.
 import { spawnSync } from 'node:child_process';
 import {
@@ -22,8 +23,9 @@ import { dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parse } from '../packages/language/src/parser.ts';
 import { print } from '../packages/language/src/printer.ts';
-import { CASES } from './fizz1-cases.ts';
-import type { Case } from './fizz1-cases.ts';
+import { appendEdits } from '../packages/language/src/edits.ts';
+import { CASES, EDIT_CASES } from './fizz1-cases.ts';
+import type { Case, EditCase } from './fizz1-cases.ts';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const OUT = join(ROOT, 'fixtures', 'fizz1');
@@ -49,7 +51,7 @@ function levelCases(): Case[] {
 function build(): Map<string, string> {
 	const files = new Map<string, string>();
 	const ids = new Set<string>();
-	for (const c of [...levelCases(), ...CASES]) {
+	for (const c of [...levelCases(), ...CASES, ...EDIT_CASES]) {
 		if (ids.has(c.id)) throw new Error(`duplicate case id ${c.id}`);
 		ids.add(c.id);
 		const { ast, errors } = parse(c.source);
@@ -62,6 +64,12 @@ function build(): Map<string, string> {
 		files.set(`${c.id}.fizz`, c.source);
 		files.set(`${c.id}.print`, print(ast));
 		files.set(`${c.id}.json`, JSON.stringify(doc, null, '\t') + '\n');
+		if ('edits' in c) {
+			// The edits applied, and the text the script prints as afterwards.
+			const edits = (c as EditCase).edits;
+			files.set(`${c.id}.edits.json`, JSON.stringify(edits, null, '\t') + '\n');
+			files.set(`${c.id}.after`, print(appendEdits(ast, edits)));
+		}
 	}
 	return files;
 }

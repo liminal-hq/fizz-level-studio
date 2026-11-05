@@ -6,6 +6,8 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 
+use fizz_studio_language::ast::Range;
+use fizz_studio_language::edits::{append_edits, Edit};
 use fizz_studio_language::messages::{fix, message};
 use fizz_studio_language::parser::parse;
 use fizz_studio_language::printer::print;
@@ -123,5 +125,64 @@ fn every_tracked_level_prints_back_byte_for_byte() {
             "{} does not round-trip",
             path.display()
         );
+    }
+}
+
+fn ranges(value: &Value) -> Vec<Range> {
+    value
+        .as_array()
+        .expect("a list of ranges")
+        .iter()
+        .map(|r| Range {
+            lo: r["lo"].as_f64().expect("lo"),
+            hi: r["hi"].as_f64().expect("hi"),
+        })
+        .collect()
+}
+
+fn edit_from(value: &Value) -> Edit {
+    let xs = ranges(&value["xs"]);
+    let ys = ranges(&value["ys"]);
+    let text = |key: &str| value[key].as_str().expect(key).to_string();
+    match value["op"].as_str().expect("op") {
+        "paint" => Edit::Paint {
+            tile: text("tile"),
+            xs,
+            ys,
+        },
+        "clear" => Edit::Clear { xs, ys },
+        "place" => Edit::Place {
+            kind: text("kind"),
+            xs,
+            ys,
+        },
+        other => panic!("unknown edit {other}"),
+    }
+}
+
+#[test]
+fn appended_edits_print_as_the_reference_does() {
+    let root = repo_root().join("fixtures/fizz1/edits");
+    let mut inputs = Vec::new();
+    files_with_extension(&root, "fizz", &mut inputs);
+    assert!(inputs.len() >= 10, "found only {} edit cases", inputs.len());
+    for input in &inputs {
+        let edits: Vec<Edit> =
+            serde_json::from_str::<Vec<Value>>(&read(&input.with_extension("edits.json")))
+                .expect("edits JSON parses")
+                .iter()
+                .map(edit_from)
+                .collect();
+        let want = read(&input.with_extension("after"));
+        let ast = append_edits(&parse(&read(input)).ast, &edits);
+        assert_eq!(print(&ast), want, "{}", input.display());
+
+        // Every appended node carries the line it prints on, and the result parses back to itself.
+        let lines: Vec<&str> = want.split('\n').collect();
+        for node in &ast.nodes {
+            if let Some(raw) = &node.raw {
+                assert_eq!(lines[node.line - 1], raw, "{}", input.display());
+            }
+        }
     }
 }

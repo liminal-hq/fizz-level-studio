@@ -3,12 +3,19 @@
 // (c) Copyright 2026 Liminal HQ, Scott Morris
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
+import type { Edit } from '../packages/language/src/edits.ts';
+
 /** One curated input. `id` is `<group>/<name>` and names the fixture files. */
 export interface Case {
 	id: string;
 	/** Where the input came from, so a failing fixture can be traced back. */
 	from: string;
 	source: string;
+}
+
+/** A curated input with studio edits appended to it, recorded with the text that results. */
+export interface EditCase extends Case {
+	edits: Edit[];
 }
 
 const HEAD = 'level "T" 40x20 ground=4 id=crater\nstart 3,4\n';
@@ -587,4 +594,105 @@ export const CASES: Case[] = [
 	...errorCases,
 	...objectCases,
 	...edgeCases,
+];
+
+const one = (n: number) => [{ lo: n, hi: n }];
+const span = (lo: number, hi: number) => [{ lo, hi }];
+const EDITS = 'packages/language/test/edits.test.ts';
+const BASE = `${HEAD}\nterrain\n  flat 40   // all flat\n\ntreats\n  soda x=5 y=5\n`;
+const clear = (x: number, y: number): Edit => ({ op: 'clear', xs: one(x), ys: one(y) });
+
+export const EDIT_CASES: EditCase[] = [
+	{
+		id: 'edits/creates-block',
+		from: `${EDITS}: appending creates the block after one blank line and keeps the final newline`,
+		source: BASE,
+		edits: [{ op: 'paint', tile: 'one-way', xs: [...one(26), ...one(28)], ys: one(9) }],
+	},
+	{
+		id: 'edits/two-rounds-folded',
+		from: `${EDITS}: appending never rewrites a hand-written line (both edits in one call)`,
+		source: BASE,
+		edits: [clear(1, 5), { op: 'place', kind: 'cookie', xs: one(2), ys: one(6) }],
+	},
+	{
+		id: 'edits/ranges-and-cross-product',
+		from: `${EDGE}: ranges and lists on both axes print as a cross product line`,
+		source: BASE,
+		edits: [
+			{
+				op: 'paint',
+				tile: 'block',
+				xs: [...span(3, 5), ...one(9)],
+				ys: [...one(7), ...span(10, 12)],
+			},
+			{ op: 'place', kind: 'cheezie', xs: span(26, 30), ys: span(10, 10) },
+		],
+	},
+	{
+		id: 'edits/existing-block-trailing-blanks',
+		from: `${EDITS}: appending to an existing block adds after its last line, before trailing blanks`,
+		source: `${BASE}\nedits\n  clear x=1 y=1\n\n\n`,
+		edits: [clear(2, 2)],
+	},
+	{
+		id: 'edits/existing-block-with-comment',
+		from: `${EDGE}: an existing edits block with a header comment and an edit comment`,
+		source: `${BASE}\nedits   // painted in the studio\n  paint block x=3..4 y=7   // a ledge\n`,
+		edits: [{ op: 'paint', tile: 'one-way', xs: one(4), ys: one(7) }],
+	},
+	{
+		id: 'edits/no-final-newline',
+		from: `${EDGE}: a final line without a newline`,
+		source: BASE.trimEnd(),
+		edits: [clear(1, 1)],
+	},
+	{
+		id: 'edits/no-final-newline-existing-block',
+		from: `${EDGE}: an existing edits block whose last line has no newline`,
+		source: `${BASE}\nedits\n  clear x=1 y=1`,
+		edits: [clear(2, 2)],
+	},
+	{
+		id: 'edits/crlf',
+		from: `${EDGE}: CRLF line endings`,
+		source: BASE.replaceAll('\n', '\r\n'),
+		edits: [clear(1, 1)],
+	},
+	{
+		id: 'edits/crlf-existing-block',
+		from: `${EDGE}: CRLF line endings with an existing edits block`,
+		source: `${BASE}\nedits\n  clear x=1 y=1\n`.replaceAll('\n', '\r\n'),
+		edits: [clear(2, 2)],
+	},
+	{
+		id: 'edits/no-edits',
+		from: `${EDGE}: an empty edit list returns the script unchanged`,
+		source: BASE,
+		edits: [],
+	},
+	{
+		id: 'edits/only-blank-lines',
+		from: `${EDGE}: a script of blank lines only`,
+		source: '\n\n',
+		edits: [clear(1, 1)],
+	},
+	{
+		id: 'edits/empty-script',
+		from: `${EDGE}: an empty script`,
+		source: '',
+		edits: [clear(1, 1)],
+	},
+	{
+		id: 'edits/with-errors',
+		from: `${EDGE}: a script with errors keeps its error lines as written`,
+		source: `${BASE}floop 1\n`,
+		edits: [clear(1, 1)],
+	},
+	{
+		id: 'edits/block-in-the-middle',
+		from: `${EDGE}: an edits block that is not last, with a section after it`,
+		source: `${BASE}\nedits\n  clear x=1 y=1\n\nenemies\n  gloop x=9\n`,
+		edits: [clear(2, 2)],
+	},
 ];
