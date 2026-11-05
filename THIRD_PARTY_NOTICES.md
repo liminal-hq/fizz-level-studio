@@ -8,4 +8,4 @@ MPL-2.0 is a file-level licence. Tauri's web stack brings `cssparser`, `cssparse
 
 ## The games
 
-The studio links the Lieutenant Fizz games' Rust crates as dependencies pinned by revision, and ships their art through the sprite sets the games export. Both games are `Apache-2.0 OR MIT` like the studio.
+The studio links the Lieutenant Fizz games' Rust crates as git dependencies pinned by revision (`crates/fizz-studio-games`), and ships their art through the sprite sets the games export. Both games are `Apache-2.0 OR MIT` like the studio. `deny.toml` allows exactly those two repositories as git sources.

@@ -2,6 +2,7 @@
 members = [
 	"apps/studio/src-tauri",
 	"crates/fizz-studio-dialect",
+	"crates/fizz-studio-games",
 	"crates/fizz-studio-host",
 	"crates/fizz-studio-language",
 	"crates/fizz-studio-profile",

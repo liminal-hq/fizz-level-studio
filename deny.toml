@@ -25,3 +25,13 @@ allow = [
   # `cssparser`, `selectors`, `dtoa-short` and `option-ext`. Each is listed in the third-party notices.
   "MPL-2.0",
 ]
+
+# Git dependencies are the two games' crates, pinned by revision (D58). Any other git source, and any
+# registry other than crates.io, is refused until someone decides it belongs here.
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"
+allow-git = [
+  "https://github.com/liminal-hq/lieutenant-fizz",
+  "https://github.com/ScottMorris/lieutenant-fizz-2",
+]

@@ -1,0 +1,22 @@
+[package]
+name = "fizz-studio-games"
+version = "0.1.0"
+description = "The two games' Rust crates, linked natively as dependencies pinned by revision (D58, D59); for now a link check that they build and agree with the studio's tables"
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+homepage.workspace = true
+repository.workspace = true
+publish = false
+
+[dependencies]
+# Fizz 1, pinned to a revision of liminal-hq/lieutenant-fizz's main. Bumped deliberately, in a reviewed change.
+lf-sim = { git = "https://github.com/liminal-hq/lieutenant-fizz", rev = "94f354d529eeb43661a265456900df059aa7b2f5" }
+lf-episode-1 = { git = "https://github.com/liminal-hq/lieutenant-fizz", rev = "94f354d529eeb43661a265456900df059aa7b2f5" }
+# Fizz 2, pinned to a revision of ScottMorris/lieutenant-fizz-2's main. Compile only for now.
+fizz-sim = { git = "https://github.com/ScottMorris/lieutenant-fizz-2", rev = "ba1ec8ef0fc1ea438134c2a8345656db95e4ff7b" }
+fizz-phys = { git = "https://github.com/ScottMorris/lieutenant-fizz-2", rev = "ba1ec8ef0fc1ea438134c2a8345656db95e4ff7b" }
+fizz-pack = { git = "https://github.com/ScottMorris/lieutenant-fizz-2", rev = "ba1ec8ef0fc1ea438134c2a8345656db95e4ff7b" }
+fizz-ep2 = { git = "https://github.com/ScottMorris/lieutenant-fizz-2", rev = "ba1ec8ef0fc1ea438134c2a8345656db95e4ff7b" }
+fizz-view = { git = "https://github.com/ScottMorris/lieutenant-fizz-2", rev = "ba1ec8ef0fc1ea438134c2a8345656db95e4ff7b" }
+fizz-slice-view = { git = "https://github.com/ScottMorris/lieutenant-fizz-2", rev = "ba1ec8ef0fc1ea438134c2a8345656db95e4ff7b" }
