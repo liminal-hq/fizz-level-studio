@@ -1,0 +1,12 @@
+[package]
+name = "fizz-studio-host"
+version = "0.1.0"
+description = "The game host for the studio: a trait for drawing and stepping a game, a flat fallback for when the game cannot draw, and a synthetic frame source for measuring the stream"
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+homepage.workspace = true
+repository.workspace = true
+publish = false
+
+[dependencies]

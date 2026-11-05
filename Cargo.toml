@@ -1,6 +1,7 @@
 [workspace]
 members = [
 	"crates/fizz-studio-dialect",
+	"crates/fizz-studio-host",
 	"crates/fizz-studio-language",
 	"crates/fizz-studio-profile",
 ]

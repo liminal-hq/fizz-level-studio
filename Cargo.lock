@@ -10,6 +10,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "fizz-studio-host"
+version = "0.1.0"
+
+[[package]]
 name = "fizz-studio-language"
 version = "0.1.0"
 
