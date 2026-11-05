@@ -12,8 +12,9 @@
 // stops its autosave there), and a discarded level has dropped its recovery copy by then.
 //
 // Every way of closing goes through the same round. File > Quit starts a whole-app round. A
-// window's own close (the title bar's X, Alt+F4, anything that makes the window manager ask the
-// window to close) arrives as `CloseRequested`, which `request_close` always prevents and then
+// window's close request arrives as `CloseRequested` from either origin (our own title bar's X,
+// window menu Close and title bar actions, which call the window's plain close; or the shell's own
+// close: the window manager, compositor, taskbar, Alt+F4), and `request_close` holds it back and
 // routes by the window's kind: the last main window closes with whole-app scope, exactly as Quit
 // does; one of several main windows closes with window scope (only it, and the panels torn off
 // it); the child windows (panel, Preferences, About, ghost) close at once. `exit_requested`
@@ -25,6 +26,7 @@ use std::sync::Mutex;
 use serde::Serialize;
 use tauri::{AppHandle, Emitter, Manager, Runtime, State, WebviewWindow, WindowEvent};
 
+use crate::close_gate::{Answer, CloseGate};
 use crate::quit_round::{Decision, Outcome, QuitRounds, Step};
 use crate::windows::{WindowId, WindowKind};
 
@@ -51,11 +53,16 @@ pub struct QuitRequest {
 #[derive(Default)]
 pub struct QuitState {
     rounds: Mutex<QuitRounds>,
+    gate: Mutex<CloseGate>,
     /// Set once a finished round has decided to exit, so `exit_requested` lets that exit through.
     exiting: AtomicBool,
 }
 
 impl QuitState {
+    fn with_gate<T>(&self, f: impl FnOnce(&mut CloseGate) -> T) -> T {
+        f(&mut self.gate.lock().unwrap_or_else(|e| e.into_inner()))
+    }
+
     fn with<T>(&self, f: impl FnOnce(&mut QuitRounds) -> T) -> T {
         f(&mut self.rounds.lock().unwrap_or_else(|e| e.into_inner()))
     }
@@ -163,6 +170,8 @@ pub enum CloseRoute {
     Window,
     /// The window closes at once.
     Immediate,
+    /// The window's page decides, through the close gate (`close_gate.rs`).
+    Page,
 }
 
 /// Routes a close request by the window's kind and how many main windows are open.
@@ -170,11 +179,10 @@ pub fn route_close(kind: WindowKind, main_windows: usize) -> CloseRoute {
     match kind {
         WindowKind::Main if main_windows <= 1 => CloseRoute::App,
         WindowKind::Main => CloseRoute::Window,
-        WindowKind::Panel
-        | WindowKind::NewWorld
-        | WindowKind::Preferences
-        | WindowKind::About
-        | WindowKind::TearGhost => CloseRoute::Immediate,
+        WindowKind::NewWorld => CloseRoute::Page,
+        WindowKind::Panel | WindowKind::Preferences | WindowKind::About | WindowKind::TearGhost => {
+            CloseRoute::Immediate
+        }
     }
 }
 
@@ -190,6 +198,10 @@ pub fn request_close<R: Runtime>(window: &tauri::Window<R>, event: &WindowEvent)
     };
     match route_close(id.kind(), main_labels(app).len()) {
         CloseRoute::Immediate => {}
+        CloseRoute::Page => {
+            api.prevent_close();
+            ask_page(window);
+        }
         CloseRoute::App => {
             api.prevent_close();
             begin_app_round(app);
@@ -201,6 +213,63 @@ pub fn request_close<R: Runtime>(window: &tauri::Window<R>, event: &WindowEvent)
                 perform(app, &state, step);
             }
         }
+    }
+}
+
+/// Sent to a window whose page decides whether it closes (the New level window).
+pub const CLOSE_REQUESTED_EVENT: &str = "window://close-requested";
+
+/// What `window://close-requested` carries: the token the answer must name.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct CloseRequest {
+    pub token: u64,
+}
+
+/// How long a page has to say anything about a close request before it counts as gone.
+const PAGE_DEADLINE: std::time::Duration = std::time::Duration::from_secs(3);
+
+/// Holds the close back and asks the window's page. The window is closed by `window_close_answer`,
+/// or here at the deadline if the page never speaks.
+fn ask_page<R: Runtime>(window: &tauri::Window<R>) {
+    let app = window.app_handle().clone();
+    let Some(state) = app.try_state::<QuitState>() else {
+        return;
+    };
+    let label = window.label().to_owned();
+    let token = state.with_gate(|gate| gate.request(&label));
+    if app
+        .emit_to(&label, CLOSE_REQUESTED_EVENT, CloseRequest { token })
+        .is_err()
+    {
+        log::warn!("could not ask {label} to close; closing it");
+        state.with_gate(|gate| gate.gone(&label));
+        let _ = window.destroy();
+        return;
+    }
+    std::thread::spawn(move || {
+        std::thread::sleep(PAGE_DEADLINE);
+        let Some(state) = app.try_state::<QuitState>() else {
+            return;
+        };
+        if state.with_gate(|gate| gate.expire(&label, token)) {
+            log::warn!("{label} did not answer a close request; closing it");
+            if let Some(window) = app.get_webview_window(&label) {
+                let _ = window.destroy();
+            }
+        }
+    });
+}
+
+/// The page's answer to `window://close-requested`: close, stay, or "I am asking the person".
+#[tauri::command]
+pub fn window_close_answer<R: Runtime>(
+    window: WebviewWindow<R>,
+    state: State<'_, QuitState>,
+    token: u64,
+    answer: Answer,
+) {
+    if state.with_gate(|gate| gate.answer(window.label(), token, answer)) {
+        let _ = window.destroy();
     }
 }
 
@@ -259,6 +328,7 @@ pub fn app_quit_confirm<R: Runtime>(
 /// A window was destroyed: if the quit was waiting on it, it carries on.
 pub fn window_gone<R: Runtime>(app: &AppHandle<R>, label: &str) {
     if let Some(state) = app.try_state::<QuitState>() {
+        state.with_gate(|gate| gate.gone(label));
         let step = state.with(|rounds| rounds.gone(label));
         perform(app, &state, step);
     }
@@ -280,10 +350,14 @@ mod tests {
     }
 
     #[test]
+    fn the_new_level_window_leaves_the_decision_to_its_page() {
+        assert_eq!(route_close(WindowKind::NewWorld, 1), CloseRoute::Page);
+    }
+
+    #[test]
     fn child_windows_close_at_once() {
         for kind in [
             WindowKind::Panel,
-            WindowKind::NewWorld,
             WindowKind::Preferences,
             WindowKind::About,
             WindowKind::TearGhost,

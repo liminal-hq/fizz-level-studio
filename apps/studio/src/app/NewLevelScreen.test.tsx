@@ -3,9 +3,10 @@
 // (c) Copyright 2026 Liminal HQ, Scott Morris
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
-import { render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
+import type { CloseAnswer, CloseGateClient } from '../services/closeGateClient';
 import { FakeNewLevelClient } from '../worlds/fakeNewLevelClient';
 
 // The chrome follows the real window; in a test there is none, so it gets a quiet stand-in.
@@ -27,20 +28,40 @@ vi.mock('@tauri-apps/api/window', () => {
 
 import { NewLevelScreen } from './NewLevelScreen';
 
+/** A close gate the test plays Rust with: `ask` is the close request, `answers` what the page said. */
+class FakeCloseGate implements CloseGateClient {
+	answers: { token: number; answer: CloseAnswer }[] = [];
+	private listener: ((token: number) => void) | null = null;
+	onRequested(listener: (token: number) => void) {
+		this.listener = listener;
+		return () => {
+			this.listener = null;
+		};
+	}
+	async answer(token: number, answer: CloseAnswer) {
+		this.answers.push({ token, answer });
+	}
+	ask(token: number) {
+		act(() => this.listener?.(token));
+	}
+}
+
 function setup(folder: string | null = '/levels') {
 	const client = new FakeNewLevelClient();
 	const pickDirectory = vi.fn(async () => folder);
 	const openInMain = vi.fn(async () => {});
 	const closeWindow = vi.fn(async () => {});
+	const gate = new FakeCloseGate();
 	render(
 		<NewLevelScreen
 			client={client}
 			pickDirectory={pickDirectory}
 			openInMain={openInMain}
 			closeWindow={closeWindow}
+			closeGate={gate}
 		/>,
 	);
-	return { client, pickDirectory, openInMain, closeWindow, user: userEvent.setup() };
+	return { client, pickDirectory, openInMain, closeWindow, gate, user: userEvent.setup() };
 }
 
 describe('the New level screen', () => {
@@ -154,5 +175,67 @@ describe('the New level screen', () => {
 		await user.click(screen.getByRole('button', { name: 'Cancel' }));
 		expect(closeWindow).toHaveBeenCalled();
 		expect(client.requests).toEqual([]);
+	});
+});
+
+describe('closing the New level window', () => {
+	const question = () => screen.queryByRole('dialog', { name: 'Discard this new level?' });
+
+	it('closes at once when nothing was entered', () => {
+		const { gate } = setup();
+		gate.ask(1);
+		expect(gate.answers).toEqual([{ token: 1, answer: 'close' }]);
+		expect(question()).toBeNull();
+	});
+
+	it('asks when a field was edited, and Discard closes', async () => {
+		const { gate, user } = setup();
+		await user.type(screen.getByLabelText('Name'), 'S');
+		gate.ask(2);
+		expect(await screen.findByRole('dialog', { name: 'Discard this new level?' })).toBeVisible();
+		expect(gate.answers).toEqual([{ token: 2, answer: 'asking' }]);
+		await user.click(screen.getByRole('button', { name: 'Discard' }));
+		expect(gate.answers.at(-1)).toEqual({ token: 2, answer: 'close' });
+		await waitFor(() => expect(question()).toBeNull());
+	});
+
+	it('asks when only a folder was chosen, and Keep editing stays', async () => {
+		const { gate, user } = setup('/work');
+		await user.click(screen.getByRole('button', { name: 'Choose…' }));
+		gate.ask(3);
+		await screen.findByRole('dialog', { name: 'Discard this new level?' });
+		await user.click(screen.getByRole('button', { name: 'Keep editing' }));
+		expect(gate.answers.at(-1)).toEqual({ token: 3, answer: 'stay' });
+		await waitFor(() => expect(question()).toBeNull());
+		expect(screen.getByLabelText('Folder')).toHaveValue('/work');
+	});
+
+	it('keeps editing on Escape', async () => {
+		const { gate, user } = setup();
+		await user.type(screen.getByLabelText('Name'), 'S');
+		gate.ask(4);
+		await screen.findByRole('dialog', { name: 'Discard this new level?' });
+		await user.keyboard('{Escape}');
+		expect(gate.answers.at(-1)).toEqual({ token: 4, answer: 'stay' });
+	});
+
+	it('does not ask after Cancel, however the form was filled', async () => {
+		const { gate, user, closeWindow } = setup();
+		await user.type(screen.getByLabelText('Name'), 'S');
+		await user.click(screen.getByRole('button', { name: 'Cancel' }));
+		expect(closeWindow).toHaveBeenCalled();
+		gate.ask(5);
+		expect(gate.answers).toEqual([{ token: 5, answer: 'close' }]);
+		expect(question()).toBeNull();
+	});
+
+	it('does not ask after Create', async () => {
+		const { gate, user, closeWindow } = setup('/work');
+		await user.type(screen.getByLabelText('Name'), 'Hill');
+		await user.click(screen.getByRole('button', { name: 'Choose…' }));
+		await user.click(screen.getByRole('button', { name: 'Create' }));
+		await waitFor(() => expect(closeWindow).toHaveBeenCalled());
+		gate.ask(6);
+		expect(gate.answers).toEqual([{ token: 6, answer: 'close' }]);
 	});
 });

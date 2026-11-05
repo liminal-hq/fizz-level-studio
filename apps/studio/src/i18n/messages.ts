@@ -475,6 +475,14 @@ export const enMessages = {
 	'newLevel.create': 'Create',
 	// translator: Verb. A button that closes the window without making a level.
 	'newLevel.cancel': 'Cancel',
+	// translator: Title of a question asked when the New level window is closed after the person typed in it.
+	'newLevel.discardTitle': 'Discard this new level?',
+	// translator: The question’s explanation: what happens to what the person entered.
+	'newLevel.discardMessage': 'What you entered will be lost.',
+	// translator: Verb. A button that closes the New level window and throws away what was entered.
+	'newLevel.discard': 'Discard',
+	// translator: Verb phrase on a button that goes back to the New level form instead of closing it.
+	'newLevel.keepEditing': 'Keep editing',
 	// translator: An error shown beside the name field when it is empty.
 	'newLevel.error.nameEmpty': 'Enter a name.',
 	// translator: An error shown beside the name field: it may not hold quotation marks or line breaks.
