@@ -1,0 +1,40 @@
+.panel {
+	padding: 0.5rem 0.75rem;
+	background: var(--fls-bg-content);
+	border-top: 1px solid var(--fls-border-subtle);
+}
+
+.title {
+	margin: 0 0 0.4rem;
+	font-size: 0.95rem;
+}
+
+.buttons {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.4rem;
+}
+
+.button {
+	min-height: var(--fls-hit-target);
+	padding: 0 0.7rem;
+	color: var(--fls-text-primary);
+	background: var(--fls-control-bg);
+	border: 1px solid var(--fls-border-subtle);
+	border-radius: 6px;
+	font: inherit;
+	cursor: default;
+}
+
+.button:hover:not(:disabled) {
+	background: var(--fls-control-bg-hover);
+}
+
+.button:disabled {
+	color: var(--fls-text-muted);
+}
+
+.button:focus-visible {
+	outline: 2px solid var(--fls-focus-ring);
+	outline-offset: 2px;
+}
