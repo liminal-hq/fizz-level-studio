@@ -19,8 +19,8 @@ export const enMessages = {
 	// translator: The product name, “Fizz Level Studio”. “Fizz” is the game’s hero and is not translated.
 	'app.name': 'Fizz Level Studio',
 
-	// translator: The title of the main editor window, shown in its title bar.
-	'window.main.title': 'Fizz Level Studio',
+	// translator: The title of the main window while no level is open, shown in its title bar and in the taskbar. It names the start screen, not the app.
+	'window.main.start': 'Start',
 
 	// translator: Verb. Puts a maximised window back to its earlier size. Appears on a window button.
 	'chrome.restore': 'Restore',
@@ -301,6 +301,8 @@ export const enMessages = {
 	'cmdPalette.group.view': 'View',
 	// translator: Heading in the command palette above the commands from the Window menu.
 	'cmdPalette.group.window': 'Window',
+	// translator: Heading in the command palette above the commands from the Help menu.
+	'cmdPalette.group.help': 'Help',
 	// translator: Heading in the command palette above the commands that move to a place in the level, such as a line of its script.
 	'cmdPalette.group.goto': 'Go to',
 	// translator: Why a command in the command palette is dimmed: no level is open yet.
@@ -408,20 +410,22 @@ export const enMessages = {
 	// translator: Menu item in the View menu. Hides every docked and floating panel so the level has the whole window, and brings the same panels back when chosen again.
 	'view.levelFirst': 'Show the level only',
 
-	// translator: The name of the File menu in the application menu. Level files are opened, saved and closed from it.
+	// translator: The name of the File menu in the application menu. Level files are opened, saved and closed from it, and Preferences and Quit are in it.
 	'appMenu.file': 'File',
 	// translator: The name of the Edit menu in the application menu. Undo and Redo are in it.
 	'appMenu.edit': 'Edit',
 	// translator: The name of the View menu in the application menu. It shows or hides the editor’s panels.
 	'appMenu.view': 'View',
-	// translator: The name of the Window menu in the application menu. Preferences and About are in it.
+	// translator: The name of the Window menu in the application menu. Tearing a panel off into its own window, and docking it back, are in it.
 	'appMenu.window': 'Window',
+	// translator: The name of the Help menu in the application menu. About and the command palette are in it.
+	'appMenu.help': 'Help',
 	// translator: Verb on a File menu item. Closes the whole app.
 	'appMenu.quit': 'Quit',
 	// translator: Menu item that opens the Preferences window. The dots mean it opens a window.
 	'appMenu.preferences': 'Preferences…',
-	// translator: Menu item that opens the About window, which names the app and its version.
-	'appMenu.about': 'About',
+	// translator: Menu item in the Help menu that opens the About window, which names the app and its version. “Fizz Level Studio” is the product name.
+	'appMenu.about': 'About Fizz Level Studio',
 	// translator: Accessible name of the row of menus under the title bar.
 	'menuBar.label': 'Application menu',
 	// translator: Accessible name of the button that holds the menus that do not fit in the menu bar.
@@ -452,10 +456,10 @@ export const enMessages = {
 	// translator: Accessible name of the editor’s main area, which holds the canvas, tools and panels.
 	'editor.region': 'Level editor',
 
-	// translator: Title bar text for a window showing a level. {name} is the level’s name.
-	'window.main.titled': '{name} — Fizz Level Studio',
-	// translator: Title bar text for a level with unsaved changes; the “•” marks them. {name} is the level’s name.
-	'window.main.titledDirty': '• {name} — Fizz Level Studio',
+	// translator: Title bar text and taskbar title for a window showing a level. {name} is the level’s name, and nothing else is added.
+	'window.main.titled': '{name}',
+	// translator: Title bar text and taskbar title for a level with unsaved changes; the “•” after the name marks them. {name} is the level’s name.
+	'window.main.titledDirty': '{name} •',
 	// translator: The title of the New level window, shown in its title bar.
 	'window.newWorld.title': 'New level',
 	// translator: The title of the Preferences window, shown in its title bar.
@@ -524,6 +528,17 @@ export const enMessages = {
 	'newLevel.createFailed': 'The level could not be created: {message}',
 	// translator: Accessible name of the list of pages in the Preferences window.
 	'preferences.navigation': 'Preferences pages',
+	// translator: The name of a Preferences page about how the app behaves in general, such as its title bar. It is the page’s heading and its entry in the list of pages.
+	'preferences.page.general': 'General',
+	// translator: The title of a group of settings about the window’s title bar and the menus under it.
+	'preferences.group.titleBar': 'Title bar',
+	// translator: The name of a switch. When on, the application’s menus sit in a row under the title bar.
+	'preferences.menuBar.label': 'Show the menu bar',
+	// translator: Explains the Show the menu bar switch. “App menu” is the button at the left of the title bar that shows the app’s name.
+	'preferences.menuBar.description':
+		'Puts the menus in a bar below the title bar. The app menu in the title bar then becomes plain text.',
+	// translator: Explains the reset action on the General page.
+	'preferences.reset.descriptionGeneral': 'Puts the title bar choices back to their defaults.',
 	// translator: The name of a Preferences page about how the app looks. It is the page’s heading and its entry in the list of pages.
 	'preferences.page.appearance': 'Appearance',
 	// translator: The title of a group of settings about colour.

@@ -3,8 +3,10 @@
 // (c) Copyright 2026 Liminal HQ, Scott Morris
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
+import type { Settings } from '@liminal-hq/fizz-studio-protocol/generated/Settings';
+import type { SettingsSnapshot } from '@liminal-hq/fizz-studio-protocol/generated/SettingsSnapshot';
 import type { LevelSnapshot } from '@liminal-hq/fizz-studio-protocol/generated/LevelSnapshot';
-import { act, render, screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { resetActiveLocale } from '../i18n/active';
@@ -18,6 +20,7 @@ import type {
 	QuitOutcome,
 } from '../services/quitClient';
 import type { RecentClient } from '../services/recentClient';
+import type { SettingsClient } from '../services/settingsClient';
 import { fakeDockClient, floatingDock } from '../test/dockFixtures';
 import { levelSnapshot, levelView } from '../test/levelFixtures';
 import { FakeLevelClient } from '../worlds/fakeLevelClient';
@@ -43,6 +46,9 @@ vi.mock('@tauri-apps/api/window', () => {
 
 const openWindow = vi.hoisted(() => vi.fn(async () => {}));
 vi.mock('../services/windowsClient', () => ({ openWindow }));
+
+const setWindowTitle = vi.hoisted(() => vi.fn(async (_title: string) => {}));
+vi.mock('../services/windowTitleClient', () => ({ setWindowTitle }));
 
 import { MainScreen } from './MainScreen';
 
@@ -145,8 +151,51 @@ class FakeQuit implements QuitClient {
 	}
 }
 
+/** The settings document as far as the main window reads it: the menu bar choice, changeable. */
+class FakeSettings implements Pick<SettingsClient, 'get' | 'onChanged'> {
+	revision = 0;
+	menuBar: boolean;
+	private listener: ((snapshot: SettingsSnapshot) => void) | null = null;
+	constructor(menuBar: boolean) {
+		this.menuBar = menuBar;
+	}
+	private snapshot(): SettingsSnapshot {
+		return {
+			revision: this.revision,
+			settings: { ...DEFAULT_SETTINGS, ui: { menu_bar: this.menuBar } },
+		};
+	}
+	async get() {
+		return this.snapshot();
+	}
+	onChanged(listener: (snapshot: SettingsSnapshot) => void) {
+		this.listener = listener;
+		return () => {
+			this.listener = null;
+		};
+	}
+	set(menuBar: boolean) {
+		this.menuBar = menuBar;
+		this.revision += 1;
+		act(() => this.listener?.(this.snapshot()));
+	}
+}
+
+const DEFAULT_SETTINGS: Settings = {
+	colour_mode: 'system',
+	accent: { kind: 'system' },
+	glass: 'system',
+	larger_controls: false,
+	ui: { menu_bar: false },
+	locale: 'en-CA',
+	recent_worlds: [],
+	layout: {},
+	dock: { active: '', workspaces: {} },
+};
+
 function setup(
 	options: {
+		menuBar?: boolean;
 		recent?: string[];
 		launchPaths?: string[];
 		pick?: string | null;
@@ -169,6 +218,7 @@ function setup(
 	);
 	const recovery = options.recovery ?? new FakeRecoveryClient();
 	const quit = new FakeQuit();
+	const settings = new FakeSettings(options.menuBar ?? false);
 	render(
 		<MainScreen
 			client={client}
@@ -178,9 +228,11 @@ function setup(
 			recovery={recovery}
 			docks={fakeDockClient(floatingDock())}
 			quit={quit}
+			settings={settings}
 		/>,
 	);
 	return {
+		settings,
 		client,
 		quit,
 		recents,
@@ -188,6 +240,13 @@ function setup(
 		recovery,
 		sendOpenRequest: (paths: string[]) => openRequest?.(paths),
 	};
+}
+
+/** The title bar's text, the page's title and the native title all read exactly `title`. */
+function expectTitle(title: string) {
+	expect(screen.getByText(title, { selector: '[class*="title" i]' })).toBeInTheDocument();
+	expect(document.title).toBe(title);
+	expect(setWindowTitle).toHaveBeenLastCalledWith(title);
 }
 
 async function openFromDialog(user: ReturnType<typeof userEvent.setup>) {
@@ -205,6 +264,11 @@ describe('the start screen', () => {
 		setup();
 		await user.click(screen.getByRole('button', { name: 'New level…' }));
 		expect(openWindow).toHaveBeenCalledWith({ kind: 'new-world' });
+	});
+
+	it('is titled Start, without the app name, in the title bar and the native title', () => {
+		setup();
+		expectTitle('Start');
 	});
 
 	it('shows the product name, Open level and an empty recent list', async () => {
@@ -239,7 +303,7 @@ describe('opening', () => {
 		expect(pickFile).toHaveBeenCalledWith({ title: 'Open a level', filterName: 'Fizz level' });
 		expect(client.opened).toEqual(['/levels/a.fizz']);
 		expect(recents.paths).toEqual(['/levels/a.fizz']);
-		expect(screen.getByText('Crater Fields — Fizz Level Studio')).toBeInTheDocument();
+		expectTitle('Crater Fields');
 	});
 
 	it('does nothing when the file dialog is cancelled', async () => {
@@ -317,9 +381,9 @@ describe('the dirty marker, saving and closing', () => {
 		const { client } = setup();
 		client.dirty = true;
 		await openFromDialog(user);
-		expect(screen.getByText('• Crater Fields — Fizz Level Studio')).toBeInTheDocument();
+		expectTitle('Crater Fields •');
 		await user.click(screen.getByRole('button', { name: 'Save' }));
-		expect(await screen.findByText('Crater Fields — Fizz Level Studio')).toBeInTheDocument();
+		await waitFor(() => expectTitle('Crater Fields'));
 		expect(client.saves).toBe(1);
 	});
 
@@ -474,7 +538,7 @@ describe('recovered changes', () => {
 		expect(recovery.restored).toEqual(['r1']);
 		expect(client.opened).toEqual([]);
 		expect(recents.paths).toEqual(['/levels/a.fizz']);
-		expect(screen.getByText('• Crater Fields — Fizz Level Studio')).toBeInTheDocument();
+		expectTitle('Crater Fields •');
 		expect(screen.getByText('Recovered unsaved changes from your last session.')).toBeVisible();
 		await user.click(screen.getByRole('button', { name: 'Dismiss' }));
 		expect(screen.queryByText('Recovered unsaved changes from your last session.')).toBeNull();
@@ -544,22 +608,22 @@ describe('recovered changes', () => {
 });
 
 describe('the application menu', () => {
+	/** Opens a menu from the title bar's app menu, the primary menu while there is no bar. */
 	const openMenu = async (user: ReturnType<typeof userEvent.setup>, menu: string) => {
-		await user.click(
-			within(screen.getByRole('menubar', { name: 'Application menu' })).getByRole('menuitem', {
-				name: menu,
-			}),
-		);
+		if (!screen.queryByRole('menu')) {
+			await user.click(await screen.findByRole('button', { name: 'Fizz Level Studio' }));
+		}
+		await user.click(screen.getByRole('menuitem', { name: menu }));
 	};
 
-	it('opens New level from File and Preferences from Window on the start screen', async () => {
+	it('opens New level from File and Preferences from File on the start screen', async () => {
 		const user = userEvent.setup();
 		setup();
 		await openMenu(user, 'File');
 		expect(screen.getByRole('menuitem', { name: /Save/ })).toHaveAttribute('aria-disabled', 'true');
 		await user.click(screen.getByRole('menuitem', { name: /New level/ }));
 		expect(openWindow).toHaveBeenCalledWith({ kind: 'new-world' });
-		await openMenu(user, 'Window');
+		await openMenu(user, 'File');
 		await user.click(screen.getByRole('menuitem', { name: /Preferences/ }));
 		expect(openWindow).toHaveBeenCalledWith({ kind: 'preferences' });
 	});
@@ -593,6 +657,64 @@ describe('the application menu', () => {
 		await user.click(screen.getByRole('menuitem', { name: /Close level/ }));
 		await waitFor(() => expect(client.closed.length).toBe(1));
 		await screen.findByRole('heading', { name: 'Fizz Level Studio' });
+	});
+
+	it('has no menu bar by default, and the title bar button carries the five menus', async () => {
+		const user = userEvent.setup();
+		setup();
+		expect(screen.queryByRole('menubar')).toBeNull();
+		await user.click(await screen.findByRole('button', { name: 'Fizz Level Studio' }));
+		for (const name of ['File', 'Edit', 'View', 'Window', 'Help']) {
+			expect(screen.getByRole('menuitem', { name })).toBeInTheDocument();
+		}
+		await user.click(screen.getByRole('menuitem', { name: 'Help' }));
+		await user.click(screen.getByRole('menuitem', { name: 'About Fizz Level Studio' }));
+		expect(openWindow).toHaveBeenCalledWith({ kind: 'about' });
+	});
+
+	it('opens the app menu on F10 and on Alt+H with Help out, when there is no bar', async () => {
+		setup();
+		await screen.findByRole('button', { name: 'Fizz Level Studio' });
+		fireEvent.keyDown(window, { key: 'F10' });
+		expect(await screen.findByRole('menu')).toBeInTheDocument();
+		fireEvent.keyDown(window, { key: 'F10' });
+		expect(screen.queryByRole('menu')).toBeNull();
+		fireEvent.keyDown(window, { key: 'h', altKey: true });
+		expect(await screen.findByRole('menuitem', { name: /About/ })).toBeInTheDocument();
+	});
+
+	it('shows the bar with the setting on, and the title bar button becomes plain text', async () => {
+		const user = userEvent.setup();
+		setup({ menuBar: true });
+		const bar = await screen.findByRole('menubar', { name: 'Application menu' });
+		for (const name of ['File', 'Edit', 'View', 'Window', 'Help']) {
+			expect(within(bar).getByRole('menuitem', { name })).toBeInTheDocument();
+		}
+		expect(screen.queryByRole('button', { name: 'Fizz Level Studio' })).toBeNull();
+		fireEvent.keyDown(window, { key: 'F10' });
+		expect(screen.queryByRole('menu')).toBeNull();
+		await user.click(within(bar).getByRole('menuitem', { name: 'File' }));
+		await user.click(screen.getByRole('menuitem', { name: /Preferences/ }));
+		expect(openWindow).toHaveBeenCalledWith({ kind: 'preferences' });
+	});
+
+	it('follows the setting live in both directions', async () => {
+		const { settings } = setup();
+		await screen.findByRole('button', { name: 'Fizz Level Studio' });
+		expect(screen.queryByRole('menubar')).toBeNull();
+		settings.set(true);
+		expect(await screen.findByRole('menubar', { name: 'Application menu' })).toBeInTheDocument();
+		expect(screen.queryByRole('button', { name: 'Fizz Level Studio' })).toBeNull();
+		settings.set(false);
+		await waitFor(() => expect(screen.queryByRole('menubar')).toBeNull());
+		expect(screen.getByRole('button', { name: 'Fizz Level Studio' })).toBeInTheDocument();
+	});
+
+	it('shows the same menus with a level open, bar on or off', async () => {
+		const user = userEvent.setup();
+		setup({ menuBar: true });
+		await openFromDialog(user);
+		expect(screen.getByRole('menubar', { name: 'Application menu' })).toBeInTheDocument();
 	});
 });
 
@@ -636,11 +758,8 @@ describe('the command palette', () => {
 	it('is offered by the View menu with its keys', async () => {
 		const user = userEvent.setup();
 		setup();
-		await user.click(
-			within(screen.getByRole('menubar', { name: 'Application menu' })).getByRole('menuitem', {
-				name: 'View',
-			}),
-		);
+		await user.click(await screen.findByRole('button', { name: 'Fizz Level Studio' }));
+		await user.click(screen.getByRole('menuitem', { name: 'View' }));
 		const row = screen.getByRole('menuitem', { name: /Command palette…/ });
 		expect(row).toHaveTextContent('Ctrl+Shift+P');
 		await user.click(row);

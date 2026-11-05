@@ -87,6 +87,7 @@ pub fn run() {
         .plugin(tauri_plugin_window_tearoff::init(tear_off_options()))
         .invoke_handler(tauri::generate_handler![
             windows::open_window,
+            windows::set_window_title,
             windows::open_panels,
             windows::tear_off_panel,
             windows::close_panel,

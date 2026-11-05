@@ -659,6 +659,53 @@ async function windowSize(bridge: Bridge, label: string): Promise<{ w: number; h
 	}
 }
 
+/** The native title the window manager shows for a window, when the bridge reports one. */
+async function nativeTitle(bridge: Bridge, label: string): Promise<string | null> {
+	const text = await bridge.call('manage_window', { action: 'info', windowId: label });
+	const find = (value: unknown): string | null => {
+		if (typeof value !== 'object' || value === null) return null;
+		const v = value as Record<string, unknown>;
+		if (typeof v.title === 'string') return v.title;
+		for (const inner of Object.values(v)) {
+			const found = find(inner);
+			if (found !== null) return found;
+		}
+		return null;
+	};
+	try {
+		return find(JSON.parse(text));
+	} catch {
+		return null;
+	}
+}
+
+/** Changes the menu bar setting through the settings command, as the Preferences switch does. */
+function setMenuBar(bridge: Bridge, on: boolean): Promise<unknown> {
+	return bridge.js(
+		`const cur = await window.__TAURI_INTERNALS__.invoke('plugin:fizz-studio-settings|settings_get'); await window.__TAURI_INTERNALS__.invoke('plugin:fizz-studio-settings|settings_update', { patch: { ui: { menu_bar: ${on} } }, basedOn: cur.revision }); return true;`,
+	);
+}
+
+/** Presses an element with this role and leading text with the events a mouse click makes. */
+function pressByRole(bridge: Bridge, role: string, name: string, windowId = 'main-1') {
+	return bridge.js<boolean>(
+		`const el = [...document.querySelectorAll('[role=${role}]')].find((x) => x.textContent.trim().startsWith(${JSON.stringify(name)}));
+		 if (!el) return false;
+		 for (const type of ['pointerdown', 'mousedown', 'pointerup', 'mouseup', 'click']) el.dispatchEvent(new MouseEvent(type, { bubbles: true, cancelable: true }));
+		 return true;`,
+		windowId,
+	);
+}
+
+/** The text of the title bar's title, without the app menu button beside it. */
+async function titleBarText(bridge: Bridge, windowId = 'main-1'): Promise<string | null> {
+	const found = await bridge.js<{ v: string | null }>(
+		`return { v: document.querySelector('[data-title-align] [data-group="centre"]')?.textContent ?? null };`,
+		windowId,
+	);
+	return found.v;
+}
+
 /** The saved dock record for a panel's window in the active workspace. */
 function savedPlace(bridge: Bridge, panel: string) {
 	return bridge.js<{
@@ -728,6 +775,16 @@ async function checkPanelWindows(
 			}
 		});
 		check(`the ${label} window shows the real ${panel.title} panel`, real !== null);
+		// The window manager's title for the panel window is the panel's name, not the app's.
+		const panelNative = await within(
+			5000,
+			async () => (await nativeTitle(bridge, label)) === panel.title,
+		);
+		check(
+			`the ${label} native window title is ${panel.title}`,
+			panelNative !== null,
+			String(await nativeTitle(bridge, label)),
+		);
 		check(
 			`the main window shows the ${panel.title} panel is away`,
 			(await mainHas(`The ${panel.title} panel is open in its own window.`)) !== null,
@@ -962,9 +1019,85 @@ async function main(): Promise<void> {
 			laidOut.canvas > 300,
 			String(laidOut.canvas),
 		);
-		// The menus sit in a row below the title bar, which holds only the app name, the title and the
-		// window buttons; the canvas keeps its room beneath. Choosing Window, then Preferences opens
-		// the Preferences window.
+		await dockChecks(bridge);
+		await dragAndMaximiseChecks(bridge);
+		// With the default settings there is no menu bar: the title bar's app menu button is the
+		// primary menu, and a real click on it opens File, Edit, View, Window and Help. Choosing
+		// File, then Preferences opens the Preferences window.
+		check(
+			'by default there is no menu bar',
+			await bridge.js<boolean>(`return document.querySelector('[role=menubar]') === null;`),
+		);
+		const appButton = await bridge.js<boolean>(
+			`const b = [...document.querySelectorAll('[data-title-align] button[aria-haspopup=menu]')].find((x) => x.textContent.trim() === 'Fizz Level Studio');
+			 if (!b) return false;
+			 b.click();
+			 return true;`,
+		);
+		check('the title bar app menu is a button by default', appButton);
+		const menuRows = await within(3000, async () => {
+			const names = await bridge.js<string[]>(
+				`return [...document.querySelectorAll('[role=menu] [role=menuitem]')].map((x) => x.textContent.trim());`,
+			);
+			return names.length >= 5 ? names : null;
+		});
+		const rowNames = await bridge.js<string[]>(
+			`return [...document.querySelectorAll('[role=menu] [role=menuitem]')].map((x) => x.textContent.trim());`,
+		);
+		check(
+			'the app menu opens to File, Edit, View, Window and Help',
+			menuRows !== null &&
+				['File', 'Edit', 'View', 'Window', 'Help'].every((name) =>
+					rowNames.some((row) => row.startsWith(name)),
+				),
+			JSON.stringify(rowNames),
+		);
+		check('the app menu offers File', await pressByRole(bridge, 'menuitem', 'File'));
+		const preferencesRow = await within(3000, async () =>
+			(await pressByRole(bridge, 'menuitem', 'Preferences')) ? true : null,
+		);
+		check('the File menu offers Preferences', preferencesRow !== null);
+		const fromMenu = await bridge.ready('preferences');
+		check('File, Preferences opens the Preferences window', fromMenu);
+		check(
+			'the Preferences window native title is Preferences',
+			(await within(
+				5000,
+				async () => (await nativeTitle(bridge, 'preferences')) === 'Preferences',
+			)) !== null,
+		);
+		const pageHeading = (name: string) =>
+			within(10_000, async () => {
+				const box = await bridge.js<{ w: number; h: number } | null>(
+					`const h = [...document.querySelectorAll('h2')].find((x) => x.textContent === ${JSON.stringify(name)}); if (!h) return null; const r = h.getBoundingClientRect(); return { w: r.width, h: r.height };`,
+					'preferences',
+				);
+				return box && box.w > 0 && box.h > 0 ? true : null;
+			});
+		check(
+			'the Preferences window opened from the menu draws General with a size',
+			(await pageHeading('General')) !== null,
+		);
+		// The menu bar is the optional setting, and the Preferences switch is the person's way to it.
+		const switchState = await within(5000, async () => {
+			const found = await bridge.js<{ name: string; checked: string } | null>(
+				`const s = document.querySelector('[role=switch]'); if (!s) return null;
+				 const label = s.getAttribute('aria-labelledby');
+				 return { name: label ? (document.getElementById(label)?.textContent ?? '') : '', checked: s.getAttribute('aria-checked') ?? '' };`,
+				'preferences',
+			);
+			return found !== null && found.name === 'Show the menu bar' && found.checked === 'false';
+		});
+		check('the General page offers the Show the menu bar switch, off', switchState !== null);
+
+		// Turning the setting on shows the bar below the title bar, which holds only the app name,
+		// the title and the window buttons, and makes the button plain text; the canvas keeps its
+		// room beneath. The setting applies live, so turning it off puts the button back.
+		await setMenuBar(bridge, true);
+		const barShown = await within(5000, () =>
+			bridge.js<boolean>(`return document.querySelector('[role=menubar]') !== null;`),
+		);
+		check('turning the menu bar on shows it live', barShown !== null);
 		const bars = await bridge.js<{ title: number; bar: number; canvas: number } | null>(
 			`const t = document.querySelector('[data-tauri-drag-region][data-title-align]')?.getBoundingClientRect();
 			 const b = document.querySelector('[role=menubar]')?.getBoundingClientRect();
@@ -977,34 +1110,40 @@ async function main(): Promise<void> {
 			JSON.stringify(bars),
 		);
 		check('the canvas still has room with the menu bar', (bars?.canvas ?? 0) > 300);
-		await dockChecks(bridge);
-		await dragAndMaximiseChecks(bridge);
-		const pressByRole = (role: string, name: string) =>
-			bridge.js<boolean>(
-				`const el = [...document.querySelectorAll('[role=${role}]')].find((x) => x.textContent.trim().startsWith(${JSON.stringify(name)}));
-				 if (!el) return false;
-				 for (const type of ['pointerdown', 'mousedown', 'pointerup', 'mouseup', 'click']) el.dispatchEvent(new MouseEvent(type, { bubbles: true, cancelable: true }));
-				 return true;`,
-			);
-		check('the menu bar offers Window', await pressByRole('menuitem', 'Window'));
-		const preferencesRow = await within(3000, async () =>
-			(await pressByRole('menuitem', 'Preferences')) ? true : null,
-		);
-		check('the Window menu offers Preferences', preferencesRow !== null);
-		const fromMenu = await bridge.ready('preferences');
-		check('Window, Preferences opens the Preferences window', fromMenu);
-		const menuHeading = await within(10_000, async () => {
-			const box = await bridge.js<{ w: number; h: number } | null>(
-				`const h = [...document.querySelectorAll('h2')].find((x) => x.textContent === 'Appearance'); if (!h) return null; const r = h.getBoundingClientRect(); return { w: r.width, h: r.height };`,
-				'preferences',
-			);
-			return box && box.w > 0 && box.h > 0 ? box : null;
-		});
 		check(
-			'the Preferences window opened from the menu draws Appearance with a size',
-			menuHeading !== null,
-			JSON.stringify(menuHeading),
+			'with the bar showing, the title bar app menu is plain text',
+			await bridge.js<boolean>(
+				`const bar = document.querySelector('[data-title-align]'); return !bar.querySelector('button[aria-haspopup=menu]') && bar.textContent.includes('Fizz Level Studio');`,
+			),
 		);
+		check(
+			'the menu bar offers File, Edit, View, Window and Help',
+			await bridge.js<boolean>(
+				`const names = [...document.querySelectorAll('[role=menubar] [role=menuitem]')].map((x) => x.textContent.trim());
+				 return ['File', 'Edit', 'View', 'Window', 'Help'].every((n) => names.some((x) => x.startsWith(n)));`,
+			),
+		);
+		await setMenuBar(bridge, false);
+		const barGone = await within(5000, () =>
+			bridge.js<boolean>(
+				`return document.querySelector('[role=menubar]') === null && !!document.querySelector('[data-title-align] button[aria-haspopup=menu]');`,
+			),
+		);
+		check('turning the menu bar off puts the app menu button back live', barGone !== null);
+
+		// The title bar shows the document's name and nothing else; the native title is the same text.
+		const barTitle = await titleBarText(bridge);
+		check(
+			'the title bar reads the document name, without the app name',
+			barTitle !== null && /^(Crater Fields|crater\.fizz)( •)?$/.test(barTitle),
+			JSON.stringify(barTitle),
+		);
+		const native = await nativeTitle(bridge, 'main-1');
+		if (native === null) {
+			console.log('NOTE  the bridge does not report a native window title, so it is not checked');
+		} else {
+			check('the native window title matches the title bar', native === barTitle, native);
+		}
 		// The command palette opens with Ctrl+Shift+P on the window, draws with a real size and a list,
 		// narrows as the query is typed, runs a brush or tool command, and closes on Escape. Sizes are
 		// measured here because a jsdom test cannot see a panel laid out zero tall.
@@ -1221,6 +1360,13 @@ async function main(): Promise<void> {
 		);
 		const prefsUp = await bridge.ready('preferences');
 		check('the Preferences window opens', prefsUp);
+		check(
+			'the Preferences window lists the Appearance page beside General',
+			await bridge.js<boolean>(
+				`const b = [...document.querySelectorAll('button[data-section]')].find((x) => x.textContent.trim() === 'Appearance'); if (!b) return false; b.click(); return true;`,
+				'preferences',
+			),
+		);
 		const heading = await within(10_000, async () => {
 			const box = await bridge.js<{ w: number; h: number } | null>(
 				`const h = [...document.querySelectorAll('h2')].find((x) => x.textContent === 'Appearance'); if (!h) return null; const r = h.getBoundingClientRect(); return { w: r.width, h: r.height };`,
@@ -1342,6 +1488,24 @@ async function main(): Promise<void> {
 		app = new App(profile, []);
 		await bridge.start();
 		check('the relaunched app is ready', await bridge.ready());
+		// With no level open the title is Start, in the title bar and as the native title, and the
+		// menu bar is still off (the setting was put back).
+		check(
+			'with no level open the title bar reads Start',
+			(await within(10_000, async () => (await titleBarText(bridge)) === 'Start')) !== null,
+		);
+		const startNative = await nativeTitle(bridge, 'main-1');
+		if (startNative !== null) {
+			check(
+				'with no level open the native window title is Start',
+				startNative === 'Start',
+				startNative,
+			);
+		}
+		check(
+			'the relaunched app still has no menu bar',
+			await bridge.js<boolean>(`return document.querySelector('[role=menubar]') === null;`),
+		);
 		const offered = await bridge.js<{ id: string; name: string }[]>(
 			`return await window.__TAURI_INTERNALS__.invoke('plugin:fizz-studio-worlds|recovery_list');`,
 		);
