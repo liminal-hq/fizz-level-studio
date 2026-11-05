@@ -1,42 +1,82 @@
 /*
- * The studio's semantic theme tokens. Components use these, never raw colours. The scheme follows
- * the OS by default; `data-fls-theme="light"` or `data-fls-theme="dark"` on the root element
- * overrides it. The level canvas is never themed: the game's palette stays the game's palette.
+ * The studio's semantic theme tokens. Components use these, never raw colours. The look is
+ * Neo-Glass Tactile (direction K): translucent glass panels that float over the work, and raised
+ * keycaps for everything you press, with the active tool lit in the accent colour. The scheme
+ * follows the OS by default; `data-fls-theme="light"` or `data-fls-theme="dark"` on the root
+ * element overrides it. The accent colour comes from the system when the platform supplies one:
+ * `theme/followAccent.ts` sets `--fls-accent` and its relatives inline on the root, and clearing
+ * them returns the defaults below. The level canvas is never themed: the game's palette stays the
+ * game's palette.
  */
 :root {
 	color-scheme: light dark;
 
+	/* Light scheme (the default): afterglow neutrals, frosted panels, light raised keys. */
 	/* What a window draws: the window colour, the work area behind the canvas, and panel content. */
-	--fls-solid-window: #f5f3fa;
-	--fls-solid-stage: #e8e4f1;
-	--fls-solid-content: #fbfaff;
+	--fls-solid-window: #f2eff4;
+	--fls-solid-stage: #e4e1e9;
+	--fls-solid-content: #f7f5f9;
 	--fls-bg-window: var(--fls-solid-window);
 	--fls-bg-stage: var(--fls-solid-stage);
 	--fls-bg-content: var(--fls-solid-content);
 	--fls-bg-raised: #ffffff;
-	--fls-bg-hover: #e6e1f2;
-	--fls-bg-selected: #ddd3f7;
-	--fls-border-subtle: #d8d2e6;
-	--fls-text-primary: #1b1826;
-	--fls-text-secondary: #4a4560;
-	--fls-text-muted: #6f6a85;
-	--fls-accent: #6d4fd6;
-	--fls-accent-fg: #ffffff;
-	/* What the chrome reads for text on the accent: always the same colour as `--fls-accent-fg`. */
-	--fls-accent-contrast: var(--fls-accent-fg);
+	--fls-bg-hover: #e6e0eb;
+	--fls-bg-selected: color-mix(in srgb, var(--fls-accent) 16%, var(--fls-solid-window));
+	--fls-border-subtle: rgb(28 27 32 / 0.16);
+	--fls-text-primary: #1c1b20;
+	--fls-text-secondary: #484554;
+	--fls-text-muted: #5a5e70;
 	--fls-danger: #b91c1c;
 	--fls-success: #15803d;
 	--fls-warning: #a16207;
-	--fls-focus-ring: #2563eb;
+	--fls-focus-inner: #ffffff;
 	/* The line that shows which edges a dragged panel is locked to. */
-	--fls-snap-guide: #ea7a00;
+	--fls-snap-guide: #c25f00;
+
+	/* The accent: the lit key's top, its deeper bottom, its lighter edge and the text on it. */
+	--fls-accent: #00778c;
+	--fls-accent-2: #005d6d;
+	--fls-accent-edge: #80bbc6;
+	--fls-accent-ink: #ffffff;
+	/* Accent-coloured text on the glass panel: reads at 4.5:1 or better against it. */
+	--fls-accent-text: var(--fls-sys-text-light, var(--fls-accent));
+
+	/* Glass: a frosted light panel with a soft shadow and a white highlight along its top edge. */
+	--fls-glass-bg: linear-gradient(145deg, rgb(248 246 250 / 0.88), rgb(238 234 241 / 0.94));
+	--fls-glass-bg-solid: #f2eff4;
+	--fls-glass-border: rgb(28 27 32 / 0.16);
+	--fls-glass-shadow: 0 8px 20px rgb(28 27 32 / 0.18), inset 0 1px 0 #ffffff;
+	--fls-glass-blur: 16px;
+
+	/* Keycaps: a light raised key with a darker bottom edge that thins when pressed. */
+	--fls-key-top: #ffffff;
+	--fls-key-bottom: #e6e0eb;
+	--fls-key-hover-top: #ffffff;
+	--fls-key-hover-bottom: #f1edf5;
+	--fls-key-border: rgb(28 27 32 / 0.16);
+	--fls-key-border-bottom: #c9c5d0;
+	--fls-key-ink: #2b2a33;
+	--fls-key-shadow: 0 2px 4px rgb(28 27 32 / 0.2);
+	--fls-key-travel: 2px;
+
+	/* The lit key: the active tool, in the accent. */
+	--fls-lit-key-top: var(--fls-accent);
+	--fls-lit-key-bottom: var(--fls-accent-2);
+	--fls-lit-key-edge: var(--fls-accent-edge);
+	--fls-lit-key-ink: var(--fls-accent-ink);
+	--fls-lit-key-glow: 0 0 14px color-mix(in srgb, var(--fls-accent) 45%, transparent);
+
+	--fls-accent-fg: var(--fls-accent-ink);
+	/* What the chrome reads for text on the accent: always the same colour as `--fls-accent-fg`. */
+	--fls-accent-contrast: var(--fls-accent-fg);
+	--fls-focus-ring: var(--fls-accent-text);
 
 	/* The script editor's syntax colours. */
 	--fls-syntax-keyword: #5b3fc4;
 	--fls-syntax-number: #0e6377;
 	--fls-syntax-string: #15803d;
 	--fls-syntax-field: #9a4a06;
-	--fls-syntax-comment: #6f6a85;
+	--fls-syntax-comment: #5a5e70;
 
 	/* Window chrome (packages/chrome). Derived from the palette so they follow the scheme. */
 	--fls-bg-chrome: var(--fls-bg-raised);
@@ -52,36 +92,52 @@
 
 	/* Floating panels: the header height a collapsed panel keeps, and the shadow under one. */
 	--fls-float-header: 46px;
-	--fls-shadow-float: 0 10px 30px rgb(0 0 0 / 0.3);
+	--fls-shadow-float: var(--fls-glass-shadow);
 
 	--fls-font: system-ui, sans-serif;
+	--fls-font-mono: 'JetBrains Mono', ui-monospace, monospace;
 }
 
 @media (prefers-color-scheme: dark) {
 	:root:not([data-fls-theme='light']) {
 		color-scheme: dark;
-		--fls-solid-window: #14121b;
-		--fls-solid-stage: #0e0c14;
-		--fls-solid-content: #181523;
-		--fls-bg-raised: #1d1a28;
-		--fls-bg-hover: #272337;
-		--fls-bg-selected: #3a2f63;
-		--fls-border-subtle: #2d2940;
-		--fls-text-primary: #ece8f6;
-		--fls-text-secondary: #c5bfdb;
-		--fls-text-muted: #a49fb8;
-		--fls-accent: #a78bfa;
-		--fls-accent-fg: #14121b;
-		--fls-danger: #f87171;
-		--fls-success: #4ade80;
+		--fls-solid-window: #14151e;
+		--fls-solid-stage: #0d0e15;
+		--fls-solid-content: #181924;
+		--fls-bg-raised: #222330;
+		--fls-bg-hover: #2e3044;
+		--fls-bg-selected: color-mix(in srgb, var(--fls-accent) 22%, var(--fls-solid-window));
+		--fls-border-subtle: rgb(255 255 255 / 0.14);
+		--fls-text-primary: #ffffff;
+		--fls-text-secondary: #c7cad8;
+		--fls-text-muted: #9ca3af;
+		--fls-danger: #ff7a85;
+		--fls-success: #5be37d;
 		--fls-warning: #facc15;
-		--fls-focus-ring: #60a5fa;
+		--fls-focus-inner: #090c14;
 		--fls-snap-guide: #ffaa40;
+		--fls-accent: #00e5ff;
+		--fls-accent-2: #00a8cc;
+		--fls-accent-edge: #80f2ff;
+		--fls-accent-ink: #090c14;
+		--fls-accent-text: var(--fls-sys-text-dark, var(--fls-accent));
+		--fls-glass-bg: linear-gradient(145deg, rgb(34 35 48 / 0.88), rgb(20 21 30 / 0.94));
+		--fls-glass-bg-solid: #1a1b26;
+		--fls-glass-border: rgb(255 255 255 / 0.14);
+		--fls-glass-shadow: 0 20px 40px rgb(0 0 0 / 0.55), inset 0 1px 0 rgb(255 255 255 / 0.18);
+		--fls-key-top: #2e3044;
+		--fls-key-bottom: #212232;
+		--fls-key-hover-top: #383b54;
+		--fls-key-hover-bottom: #292b3e;
+		--fls-key-border: rgb(255 255 255 / 0.12);
+		--fls-key-border-bottom: #12131c;
+		--fls-key-ink: #e6e8f2;
+		--fls-key-shadow: 0 2px 4px rgb(0 0 0 / 0.35);
 		--fls-syntax-keyword: #c4b5fd;
 		--fls-syntax-number: #67e8f9;
 		--fls-syntax-string: #86efac;
 		--fls-syntax-field: #fdba74;
-		--fls-syntax-comment: #a49fb8;
+		--fls-syntax-comment: #9ca3af;
 	}
 }
 
@@ -91,28 +147,99 @@
 
 :root[data-fls-theme='dark'] {
 	color-scheme: dark;
-	--fls-solid-window: #14121b;
-	--fls-solid-stage: #0e0c14;
-	--fls-solid-content: #181523;
-	--fls-bg-raised: #1d1a28;
-	--fls-bg-hover: #272337;
-	--fls-bg-selected: #3a2f63;
-	--fls-border-subtle: #2d2940;
-	--fls-text-primary: #ece8f6;
-	--fls-text-secondary: #c5bfdb;
-	--fls-text-muted: #a49fb8;
-	--fls-accent: #a78bfa;
-	--fls-accent-fg: #14121b;
-	--fls-danger: #f87171;
-	--fls-success: #4ade80;
+	--fls-solid-window: #14151e;
+	--fls-solid-stage: #0d0e15;
+	--fls-solid-content: #181924;
+	--fls-bg-raised: #222330;
+	--fls-bg-hover: #2e3044;
+	--fls-bg-selected: color-mix(in srgb, var(--fls-accent) 22%, var(--fls-solid-window));
+	--fls-border-subtle: rgb(255 255 255 / 0.14);
+	--fls-text-primary: #ffffff;
+	--fls-text-secondary: #c7cad8;
+	--fls-text-muted: #9ca3af;
+	--fls-danger: #ff7a85;
+	--fls-success: #5be37d;
 	--fls-warning: #facc15;
-	--fls-focus-ring: #60a5fa;
+	--fls-focus-inner: #090c14;
 	--fls-snap-guide: #ffaa40;
+	--fls-accent: #00e5ff;
+	--fls-accent-2: #00a8cc;
+	--fls-accent-edge: #80f2ff;
+	--fls-accent-ink: #090c14;
+	--fls-accent-text: var(--fls-sys-text-dark, var(--fls-accent));
+	--fls-glass-bg: linear-gradient(145deg, rgb(34 35 48 / 0.88), rgb(20 21 30 / 0.94));
+	--fls-glass-bg-solid: #1a1b26;
+	--fls-glass-border: rgb(255 255 255 / 0.14);
+	--fls-glass-shadow: 0 20px 40px rgb(0 0 0 / 0.55), inset 0 1px 0 rgb(255 255 255 / 0.18);
+	--fls-key-top: #2e3044;
+	--fls-key-bottom: #212232;
+	--fls-key-hover-top: #383b54;
+	--fls-key-hover-bottom: #292b3e;
+	--fls-key-border: rgb(255 255 255 / 0.12);
+	--fls-key-border-bottom: #12131c;
+	--fls-key-ink: #e6e8f2;
+	--fls-key-shadow: 0 2px 4px rgb(0 0 0 / 0.35);
 	--fls-syntax-keyword: #c4b5fd;
 	--fls-syntax-number: #67e8f9;
 	--fls-syntax-string: #86efac;
 	--fls-syntax-field: #fdba74;
-	--fls-syntax-comment: #a49fb8;
+	--fls-syntax-comment: #9ca3af;
+}
+
+/*
+ * Less transparency and more contrast. The system-appearance plugin sets `data-fls-transparency`
+ * and `data-fls-contrast` on the root (see `theme/followAccent.ts`); the media queries ask the
+ * webview the same questions when it can answer them. Glass then drops its blur and takes a solid
+ * fill, and the borders strengthen. In forced colours the system palette replaces every fill.
+ */
+:root[data-fls-transparency='reduced'] {
+	--fls-glass-blur: 0px;
+	--fls-glass-bg: var(--fls-glass-bg-solid);
+}
+
+@media (prefers-reduced-transparency: reduce) {
+	:root:root:root {
+		--fls-glass-blur: 0px;
+		--fls-glass-bg: var(--fls-glass-bg-solid);
+	}
+}
+
+:root[data-fls-contrast='more'] {
+	--fls-glass-border: var(--fls-text-secondary);
+	--fls-key-border: var(--fls-text-secondary);
+	--fls-border-subtle: var(--fls-text-muted);
+}
+
+@media (prefers-contrast: more) {
+	:root:root:root {
+		--fls-glass-border: var(--fls-text-secondary);
+		--fls-key-border: var(--fls-text-secondary);
+		--fls-border-subtle: var(--fls-text-muted);
+	}
+}
+
+@media (forced-colors: active) {
+	:root:root:root {
+		--fls-glass-blur: 0px;
+		--fls-glass-bg: Canvas;
+		--fls-glass-border: CanvasText;
+		--fls-glass-shadow: none;
+		--fls-key-top: ButtonFace;
+		--fls-key-bottom: ButtonFace;
+		--fls-key-hover-top: ButtonFace;
+		--fls-key-hover-bottom: ButtonFace;
+		--fls-key-border: ButtonText;
+		--fls-key-border-bottom: ButtonText;
+		--fls-key-ink: ButtonText;
+		--fls-key-shadow: none;
+		--fls-lit-key-top: Highlight;
+		--fls-lit-key-bottom: Highlight;
+		--fls-lit-key-edge: HighlightText;
+		--fls-lit-key-ink: HighlightText;
+		--fls-lit-key-glow: none;
+		--fls-focus-ring: Highlight;
+		--fls-focus-inner: Canvas;
+	}
 }
 
 /*
