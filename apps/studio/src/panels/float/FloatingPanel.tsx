@@ -143,7 +143,6 @@ export function FloatingPanel({
 	const begin = (event: PointerEvent<HTMLElement>, handle: ResizeHandle = 'se') => {
 		if (event.button !== 0 || maximised) return;
 		watchEscape();
-		event.currentTarget.setPointerCapture?.(event.pointerId);
 		gesture.current = {
 			pointer: event.pointerId,
 			x: event.clientX,
@@ -151,6 +150,13 @@ export function FloatingPanel({
 			start: live.current,
 			handle,
 		};
+		// Capture keeps the drag going outside the handle; it throws for a pointer that is no
+		// longer active, and the gesture still works from the events the handle receives.
+		try {
+			event.currentTarget.setPointerCapture?.(event.pointerId);
+		} catch {
+			// Ignored: see above.
+		}
 	};
 
 	// A pointer drag snaps to the area and the neighbours; the keys place a panel exactly.
@@ -184,7 +190,11 @@ export function FloatingPanel({
 		if (!g || g.pointer !== event.pointerId) return;
 		gesture.current = null;
 		stopEscape.current?.();
-		event.currentTarget.releasePointerCapture?.(event.pointerId);
+		try {
+			event.currentTarget.releasePointerCapture?.(event.pointerId);
+		} catch {
+			// The pointer is already gone.
+		}
 		onGuides?.([]);
 		if (kind === 'move') onDockHover?.(null);
 		if (cancelled) {
