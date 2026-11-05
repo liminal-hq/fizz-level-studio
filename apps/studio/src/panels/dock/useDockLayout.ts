@@ -39,7 +39,7 @@ import {
 	type DockSession,
 } from './dockLayout';
 import { dropOnZone } from './dockDrop';
-import { PANEL_IDS, defaultDock, defaultWorkspace } from './dockModel';
+import { PANEL_IDS, defaultDock, defaultWorkspace, zoneOf } from './dockModel';
 import { normaliseDock, resetWorkspace } from './dockNormalise';
 import { shownPanels, visibleWorkspace } from './dockView';
 
@@ -235,9 +235,20 @@ export function useDockLayout(client: DockClient, windowSize: Size, area: Size):
 		() => setRawSession((s) => (s.maximised !== null ? s : toggleLevelFirst(s))),
 		[],
 	);
+	// A panel stays where it is when maximised; it only has to be the showing tab, and in an open
+	// dock (a folded dock's panels are not drawn, so they cannot fill the workspace).
 	const maximise = useCallback(
-		(id: string) => setRawSession((s) => maximisePanel(settleSession(s, current()), current(), id)),
-		[],
+		(id: string) => {
+			const ws = current();
+			const zone = zoneOf(ws, id);
+			if (zone) {
+				if (ws.zones[zone].collapsed) return;
+				const group = ws.zones[zone].groups.find((g) => g.tabs.includes(id));
+				if (group && group.active !== id) edit((w) => activateTab(w, id));
+			}
+			setRawSession((s) => maximisePanel(settleSession(s, current()), current(), id));
+		},
+		[edit],
 	);
 	const restore = useCallback(() => setRawSession((s) => restorePanel(s)), []);
 

@@ -102,7 +102,36 @@
 	border: 0;
 }
 
-/* A maximised panel covers the workspace; the docks are kept as they are, only not shown. */
-.shell[hidden] {
-	display: none;
+/*
+ * A maximised panel is not moved in the tree. Everything in the shell is hidden (visibility keeps
+ * the layout and takes the hidden controls out of the tab order) except the panel's own group,
+ * which is laid over the workspace. The ancestors that would clip it or make it their containing
+ * block (the slot, the glass zone) are made plain for as long as it lasts.
+ */
+.shell[data-has-maximised] {
+	visibility: hidden;
+}
+
+/* The keycaps transition every property, which would keep a hidden button visible for a moment. */
+.shell[data-has-maximised] * {
+	transition: none;
+}
+
+.shell[data-has-maximised] .slot {
+	position: static;
+}
+
+.shell[data-has-maximised] [data-zone] {
+	overflow: visible;
+	backdrop-filter: none;
+	-webkit-backdrop-filter: none;
+}
+
+.shell[data-has-maximised] [data-panel-maximised] {
+	position: absolute;
+	inset: 0;
+	z-index: 30;
+	visibility: visible;
+	border: 0;
+	background: var(--fls-bg-content);
 }

@@ -37,6 +37,9 @@ export interface DockZoneProps {
 	/** Whether a panel can be maximised, and the action that does it. */
 	expandable?: (id: string) => boolean;
 	onMaximise?: (id: string) => void;
+	/** The maximised panel, and the action that puts it back. */
+	maximised?: string | null;
+	onRestore?: () => void;
 	/** The panel being dragged, dimmed where it sits. */
 	dragging?: string | null;
 }
@@ -66,6 +69,8 @@ export function DockZone({
 	dragging = null,
 	expandable,
 	onMaximise,
+	maximised = null,
+	onRestore,
 }: DockZoneProps) {
 	return (
 		<section className={styles.zone} data-zone={zone} aria-label={t(ZONE_LABELS[zone])}>
@@ -86,6 +91,8 @@ export function DockZone({
 					dragging={dragging}
 					expandable={expandable}
 					onMaximise={onMaximise}
+					maximised={maximised}
+					onRestore={onRestore}
 				/>
 			))}
 		</section>
@@ -112,6 +119,8 @@ function Group({
 	dragging = null,
 	expandable,
 	onMaximise,
+	maximised = null,
+	onRestore,
 }: GroupProps) {
 	const id = `dock-${zone}-${index}`;
 	const strip = useRef<HTMLDivElement>(null);
@@ -147,60 +156,76 @@ function Group({
 		event.currentTarget.querySelectorAll<HTMLElement>('[role="tab"]')[to]?.focus();
 	};
 	const active = group.active;
+	const filling = maximised === active;
 	return (
-		<div className={styles.group} data-group-zone={zone} data-group={index}>
+		<div
+			className={styles.group}
+			data-group-zone={zone}
+			data-group={index}
+			data-panel-maximised={filling ? '' : undefined}
+			data-panel-id={filling ? active : undefined}
+		>
 			<div
 				className={styles.header}
 				data-strip=""
 				onPointerDown={(event) => {
-					if ((event.target as HTMLElement).closest('button')) return;
+					if (filling || (event.target as HTMLElement).closest('button')) return;
 					onDragStart?.(event, active, 'header');
 				}}
 			>
-				<div
-					className={styles.tabs}
-					ref={strip}
-					role="tablist"
-					aria-label={t(ZONE_LABELS[zone])}
-					onKeyDown={move}
-				>
-					{group.tabs.map((tab) => {
-						const Icon = PANEL_ICONS[tab as PanelId];
-						return (
-							<button
-								key={tab}
-								id={`${id}-tab-${tab}`}
-								type="button"
-								role="tab"
-								data-tab={tab}
-								data-dragging={tab === dragging || undefined}
-								className={styles.tab}
-								aria-selected={tab === active}
-								aria-controls={`${id}-panel`}
-								tabIndex={tab === active ? 0 : -1}
-								onClick={() => onActivate(tab)}
-								onPointerDown={(event) => onDragStart?.(event, tab, 'tab')}
-							>
-								{Icon && <Icon size={14} />}
-								{titleOf(tab)}
-							</button>
-						);
-					})}
-				</div>
-				{onMaximise && expandable?.(active) && (
-					<PanelExpandButton
-						title={titleOf(active)}
-						expanded={false}
-						onToggle={() => onMaximise(active)}
-					/>
+				{filling ? (
+					<>
+						<h2 className={styles.maximisedTitle}>{titleOf(active)}</h2>
+						<PanelExpandButton title={titleOf(active)} expanded onToggle={() => onRestore?.()} />
+					</>
+				) : (
+					<>
+						<div
+							className={styles.tabs}
+							ref={strip}
+							role="tablist"
+							aria-label={t(ZONE_LABELS[zone])}
+							onKeyDown={move}
+						>
+							{group.tabs.map((tab) => {
+								const Icon = PANEL_ICONS[tab as PanelId];
+								return (
+									<button
+										key={tab}
+										id={`${id}-tab-${tab}`}
+										type="button"
+										role="tab"
+										data-tab={tab}
+										data-dragging={tab === dragging || undefined}
+										className={styles.tab}
+										aria-selected={tab === active}
+										aria-controls={`${id}-panel`}
+										tabIndex={tab === active ? 0 : -1}
+										onClick={() => onActivate(tab)}
+										onPointerDown={(event) => onDragStart?.(event, tab, 'tab')}
+									>
+										{Icon && <Icon size={14} />}
+										{titleOf(tab)}
+									</button>
+								);
+							})}
+						</div>
+						{onMaximise && expandable?.(active) && (
+							<PanelExpandButton
+								title={titleOf(active)}
+								expanded={false}
+								onToggle={() => onMaximise(active)}
+							/>
+						)}
+						<PanelCommands
+							title={titleOf(active)}
+							at={zone}
+							onDock={(to) => onDock(active, to)}
+							onFloat={() => onFloat(active)}
+						/>
+						{index === 0 && <FoldButton zone={zone} folded={false} onClick={onFold} />}
+					</>
 				)}
-				<PanelCommands
-					title={titleOf(active)}
-					at={zone}
-					onDock={(to) => onDock(active, to)}
-					onFloat={() => onFloat(active)}
-				/>
-				{index === 0 && <FoldButton zone={zone} folded={false} onClick={onFold} />}
 			</div>
 			<div
 				className={styles.body}

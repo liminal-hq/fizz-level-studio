@@ -131,6 +131,7 @@ function Harness({
 					resetZoneSize: () => {},
 					reorder: (id, index) => setWs((w) => reorderTab(w, id, index)),
 					maximise: () => {},
+					restore: () => {},
 				}}
 			>
 				<div data-testid="level" />

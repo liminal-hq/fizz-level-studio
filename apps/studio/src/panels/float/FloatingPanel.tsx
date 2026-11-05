@@ -46,6 +46,10 @@ export interface FloatingPanelProps {
 	onDockHover?: (point: { x: number; y: number } | null) => void;
 	/** The header was let go at this point: return true when that docked the panel (it is then not placed). */
 	onDockDrop?: (point: { x: number; y: number }) => boolean;
+	/** The panel fills the workspace: its header offers only `actions`, and it cannot be moved. */
+	maximised?: boolean;
+	/** Another panel is maximised: this one stays mounted, hidden. */
+	suppressed?: boolean;
 	/** Extra controls in the header, such as a Tear off button. */
 	actions?: ReactNode;
 	children: ReactNode;
@@ -83,6 +87,8 @@ export function FloatingPanel({
 	onGuides,
 	onDockHover,
 	onDockDrop,
+	maximised = false,
+	suppressed = false,
 	actions,
 	children,
 }: FloatingPanelProps) {
@@ -122,7 +128,7 @@ export function FloatingPanel({
 	useEffect(() => () => stopEscape.current?.(), []);
 
 	const begin = (event: PointerEvent<HTMLElement>) => {
-		if (event.button !== 0) return;
+		if (event.button !== 0 || maximised) return;
 		watchEscape();
 		event.currentTarget.setPointerCapture?.(event.pointerId);
 		gesture.current = {
@@ -217,6 +223,8 @@ export function FloatingPanel({
 			className={styles.panel}
 			style={style}
 			data-collapsed={collapsed || undefined}
+			data-panel-maximised={maximised ? '' : undefined}
+			data-suppressed={suppressed ? '' : undefined}
 			data-panel={id}
 			aria-labelledby={titleId}
 			onPointerDownCapture={onRaise}
