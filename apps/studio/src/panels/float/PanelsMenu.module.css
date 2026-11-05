@@ -1,0 +1,70 @@
+.root {
+	position: relative;
+	flex: none;
+}
+
+.button,
+.item {
+	min-height: var(--fls-hit-target);
+	color: var(--fls-text-primary);
+	font: inherit;
+	cursor: default;
+}
+
+.button {
+	padding: 0 0.7rem;
+	background: var(--fls-control-bg);
+	border: 1px solid var(--fls-border-subtle);
+	border-radius: 6px;
+}
+
+.button:hover,
+.item:hover {
+	background: var(--fls-control-bg-hover);
+}
+
+.button:focus-visible,
+.item:focus-visible {
+	outline: 2px solid var(--fls-focus-ring);
+	outline-offset: -2px;
+}
+
+.menu {
+	position: absolute;
+	top: calc(100% + 4px);
+	right: 0;
+	z-index: 10000;
+	display: flex;
+	flex-direction: column;
+	min-width: 12rem;
+	padding: 0.25rem;
+	background: var(--fls-bg-raised);
+	border: 1px solid var(--fls-border-subtle);
+	border-radius: 8px;
+	box-shadow: var(--fls-shadow-float);
+}
+
+.item {
+	display: flex;
+	align-items: center;
+	gap: 0.4rem;
+	padding: 0 0.6rem 0 0.25rem;
+	background: transparent;
+	border: 0;
+	border-radius: 4px;
+	text-align: left;
+}
+
+.check {
+	display: inline-block;
+	width: 1.2rem;
+	color: var(--fls-accent);
+	text-align: center;
+}
+
+.rule {
+	width: 100%;
+	margin: 0.25rem 0;
+	border: 0;
+	border-top: 1px solid var(--fls-border-subtle);
+}

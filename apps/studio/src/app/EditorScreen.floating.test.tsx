@@ -92,4 +92,26 @@ describe('the editor’s floating panels', () => {
 		await screen.findByRole('region', { name: 'Script' });
 		await waitFor(() => expect(screen.queryByRole('region', { name: 'Proposals' })).toBeNull());
 	});
+
+	it('hides and shows a panel from the Panels menu, and saves the choice', async () => {
+		const user = userEvent.setup();
+		const { layoutClient } = mount();
+		await screen.findByRole('region', { name: 'History' });
+		await user.click(screen.getByRole('button', { name: 'Panels' }));
+		await user.click(screen.getByRole('menuitemcheckbox', { name: 'History' }));
+		expect(screen.queryByRole('region', { name: 'History' })).toBeNull();
+		await waitFor(() => expect(layoutClient.save).toHaveBeenCalled(), { timeout: 2000 });
+		expect(vi.mocked(layoutClient.save).mock.calls.at(-1)![1].panels.history!.visible).toBe(false);
+		await user.click(screen.getByRole('menuitemcheckbox', { name: 'History' }));
+		expect(screen.getByRole('region', { name: 'History' })).toBeInTheDocument();
+	});
+
+	it('resets from the Panels menu', async () => {
+		const user = userEvent.setup();
+		const { layoutClient } = mount();
+		await screen.findByRole('region', { name: 'History' });
+		await user.click(screen.getByRole('button', { name: 'Panels' }));
+		await user.click(screen.getByRole('menuitem', { name: 'Reset layout' }));
+		expect(layoutClient.reset).toHaveBeenCalledWith('main');
+	});
 });

@@ -268,6 +268,10 @@ export const enMessages = {
 	'float.collapse': 'Collapse {title}',
 	// translator: Verb phrase on a button. Opens a collapsed floating panel again. {title} is the panel’s name.
 	'float.expand': 'Expand {title}',
+	// translator: Label of the button that opens the list of floating panels, where each can be shown or hidden.
+	'panels.menu': 'Panels',
+	// translator: Verb phrase on a menu item. Puts every floating panel back where it starts.
+	'panels.reset': 'Reset layout',
 	// translator: The title of the Script panel’s own window.
 	'window.panelScript.title': 'Script',
 	// translator: A line shown in the Script panel’s own window until it is built.

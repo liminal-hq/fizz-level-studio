@@ -15,6 +15,7 @@ import { GhostsPanel } from '../panels/GhostsPanel';
 import { FloatingPanel } from '../panels/float/FloatingPanel';
 import { neighboursOf, usePanelLayout } from '../panels/float/usePanelLayout';
 import { PANEL_SPECS, type PanelId } from '../panels/float/panelSpecs';
+import { PanelsMenu } from '../panels/float/PanelsMenu';
 import { SnapGuides } from '../panels/float/SnapGuides';
 import { useElementSize } from '../panels/float/useElementSize';
 import type { Guide } from '../panels/float/snap';
@@ -44,6 +45,13 @@ export interface EditorScreenProps {
 	panelWindows?: PanelWindowClient;
 	/** Reads and saves where the floating panels sit; defaults to the settings plugin. */
 	layouts?: LayoutClient;
+}
+
+/** Which panels are shown, as the Panels menu lists them. */
+function visibleOf(panels: Record<PanelId, { visible: boolean }>): Record<PanelId, boolean> {
+	return Object.fromEntries(
+		PANEL_SPECS.map((spec) => [spec.id, panels[spec.id].visible]),
+	) as Record<PanelId, boolean>;
 }
 
 /** Keys typed into these belong to the control, not to the editor's shortcuts. */
@@ -324,7 +332,14 @@ export function EditorScreen({
 					{t(problem)}
 				</p>
 			)}
-			<ToolPalette handle={tool} />
+			<div className={styles.bar}>
+				<ToolPalette handle={tool} />
+				<PanelsMenu
+					visible={visibleOf(floating.panels)}
+					onToggle={floating.setVisible}
+					onReset={floating.reset}
+				/>
+			</div>
 			<div className={styles.body} ref={areaRef}>
 				<div className={styles.canvas}>
 					<LevelCanvas
