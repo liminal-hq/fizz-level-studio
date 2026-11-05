@@ -28,6 +28,8 @@
 	--fls-success: #15803d;
 	--fls-warning: #a16207;
 	--fls-focus-ring: #2563eb;
+	/* The line that shows which edges a dragged panel is locked to. */
+	--fls-snap-guide: #ea7a00;
 
 	/* The script editor's syntax colours. */
 	--fls-syntax-keyword: #5b3fc4;
@@ -74,6 +76,7 @@
 		--fls-success: #4ade80;
 		--fls-warning: #facc15;
 		--fls-focus-ring: #60a5fa;
+		--fls-snap-guide: #ffaa40;
 		--fls-syntax-keyword: #c4b5fd;
 		--fls-syntax-number: #67e8f9;
 		--fls-syntax-string: #86efac;
@@ -104,6 +107,7 @@
 	--fls-success: #4ade80;
 	--fls-warning: #facc15;
 	--fls-focus-ring: #60a5fa;
+	--fls-snap-guide: #ffaa40;
 	--fls-syntax-keyword: #c4b5fd;
 	--fls-syntax-number: #67e8f9;
 	--fls-syntax-string: #86efac;

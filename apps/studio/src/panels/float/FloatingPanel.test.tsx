@@ -164,6 +164,19 @@ describe('FloatingPanel', () => {
 		expect(onRaise).toHaveBeenCalledTimes(2);
 	});
 
+	it('snaps a drag to a neighbour’s edge and reports the guide, then clears it', () => {
+		const onGuides = vi.fn();
+		const neighbours = [{ x: 600, y: 500, w: 100, h: 100 }];
+		setup({ neighbours, onGuides });
+		const header = screen.getByRole('heading', { name: 'Demo' }).parentElement as HTMLElement;
+		fireEvent.pointerDown(header, { pointerId: 1, clientX: 0, clientY: 0, button: 0 });
+		// The panel's right edge (400) lands 3 px short of the neighbour's left edge (600).
+		fireEvent.pointerMove(header, { pointerId: 1, clientX: 197, clientY: 0 });
+		expect(onGuides).toHaveBeenLastCalledWith([{ axis: 'x', at: 600 }]);
+		fireEvent.pointerUp(header, { pointerId: 1, clientX: 197, clientY: 0 });
+		expect(onGuides).toHaveBeenLastCalledWith([]);
+	});
+
 	it('shows extra header controls', () => {
 		setup({ actions: <button type="button">Extra</button> });
 		expect(screen.getByRole('button', { name: 'Extra' })).toBeInTheDocument();

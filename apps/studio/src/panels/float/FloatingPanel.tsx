@@ -14,6 +14,7 @@ import {
 import { t } from '../../i18n/messages';
 import styles from './FloatingPanel.module.css';
 import { keyDelta, moveRect, resizeRect, type Rect, type Size } from './panelGeometry';
+import { snapMoveWithin, snapResize, type Guide } from './snap';
 
 export interface FloatingPanelProps {
 	/** A stable name, such as `script`; it keys the panel's saved place. */
@@ -34,10 +35,16 @@ export interface FloatingPanelProps {
 	onToggleCollapsed: () => void;
 	/** The panel was grabbed or focused and should come to the front. */
 	onRaise: () => void;
+	/** The other panels' rectangles as they show, which this panel's edges snap to. */
+	neighbours?: readonly Rect[];
+	/** The guide lines for the edges a drag is locked to; empty when the drag ends. */
+	onGuides?: (guides: Guide[]) => void;
 	/** Extra controls in the header, such as a Tear off button. */
 	actions?: ReactNode;
 	children: ReactNode;
 }
+
+const NO_NEIGHBOURS: readonly Rect[] = [];
 
 interface Gesture {
 	pointer: number;
@@ -64,6 +71,8 @@ export function FloatingPanel({
 	onChange,
 	onToggleCollapsed,
 	onRaise,
+	neighbours = NO_NEIGHBOURS,
+	onGuides,
 	actions,
 	children,
 }: FloatingPanelProps) {
@@ -75,6 +84,8 @@ export function FloatingPanel({
 
 	const onChangeRef = useRef(onChange);
 	onChangeRef.current = onChange;
+	const onGuidesRef = useRef(onGuides);
+	onGuidesRef.current = onGuides;
 	const stopEscape = useRef<(() => void) | null>(null);
 
 	// Escape ends a pointer drag wherever the keyboard focus is, putting the panel back.
@@ -84,6 +95,7 @@ export function FloatingPanel({
 			if (event.key !== 'Escape' || !g) return;
 			gesture.current = null;
 			stopEscape.current?.();
+			onGuidesRef.current?.([]);
 			onChangeRef.current(g.start, true);
 		};
 		document.addEventListener('keydown', hear);
@@ -106,15 +118,24 @@ export function FloatingPanel({
 		};
 	};
 
+	// A pointer drag snaps to the area and the neighbours; the keys place a panel exactly.
+	const drag = (start: Rect, dx: number, dy: number, kind: 'move' | 'resize') => {
+		if (kind === 'move') {
+			const moved = moveRect(start, dx, dy, min, area, collapsed);
+			return snapMoveWithin(moved, min, area, neighbours, collapsed);
+		}
+		const resized = resizeRect(start, dx, dy, min, area);
+		const snapped = snapResize(resized, area, neighbours);
+		return { rect: resizeRect(snapped.rect, 0, 0, min, area), guides: snapped.guides };
+	};
+
 	const follow = (event: PointerEvent<HTMLElement>, kind: 'move' | 'resize') => {
 		const g = gesture.current;
 		if (!g || g.pointer !== event.pointerId) return;
 		const dx = event.clientX - g.x;
 		const dy = event.clientY - g.y;
-		const next =
-			kind === 'move'
-				? moveRect(g.start, dx, dy, min, area, collapsed)
-				: resizeRect(g.start, dx, dy, min, area);
+		const { rect: next, guides } = drag(g.start, dx, dy, kind);
+		onGuides?.(guides);
 		onChange(next, false);
 	};
 
@@ -124,18 +145,14 @@ export function FloatingPanel({
 		gesture.current = null;
 		stopEscape.current?.();
 		event.currentTarget.releasePointerCapture?.(event.pointerId);
+		onGuides?.([]);
 		if (cancelled) {
 			onChange(g.start, true);
 			return;
 		}
 		const dx = event.clientX - g.x;
 		const dy = event.clientY - g.y;
-		onChange(
-			kind === 'move'
-				? moveRect(g.start, dx, dy, min, area, collapsed)
-				: resizeRect(g.start, dx, dy, min, area),
-			true,
-		);
+		onChange(drag(g.start, dx, dy, kind).rect, true);
 	};
 
 	const escapeDrag = (event: KeyboardEvent<HTMLElement>): boolean => {
