@@ -132,7 +132,7 @@ Planned, not built, and the more important target. Lieutenant Fizz 2 is a separa
 
 ## CI
 
-`.github/workflows/ci.yml` installs the MCP server's dependencies with `--frozen-lockfile`, lints the Markdown and runs the language and MCP tests on GitHub Actions (`ubuntu-24.04`) for every pull request and push to `main`. `.github/dependabot.yml` is configured with every limit at zero, so it is off until someone raises them. The proofs need Rust and the game's crates, so they run locally, not in CI.
+`.github/workflows/ci.yml` runs one job per check on GitHub Actions (`ubuntu-24.04`) for every pull request and push to `main`: Markdown lint, link check, language tests, and MCP server tests (which installs the server's dependencies with `--frozen-lockfile`). The two test jobs write JUnit XML (`bun run test:ci` and `bun run test:mcp:ci`), and `.github/workflows/publish-test-results.yml` posts the results to the pull request as a comment and a check run; it is a separate `workflow_run` workflow so that it also works for Dependabot and fork pull requests, and it takes effect once it is on `main`. The proofs need Rust and the game's crates, so they run locally, not in CI. `.github/dependabot.yml` is configured with every limit at zero, so it is off until someone raises them.
 
 ## Frontend Code Conventions
 

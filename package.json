@@ -5,6 +5,8 @@
   "scripts": {
     "test": "bun test packages/language",
     "test:mcp": "bun test packages/mcp",
+    "test:ci": "mkdir -p test-results && bun test packages/language --reporter=junit --reporter-outfile=test-results/language-junit.xml",
+    "test:mcp:ci": "mkdir -p test-results && bun test packages/mcp --reporter=junit --reporter-outfile=test-results/mcp-junit.xml",
     "prove": "bash scripts/prove-crater.sh",
     "prove:all": "bash scripts/prove-all.sh",
     "check:links": "bun tools/check-links.ts",

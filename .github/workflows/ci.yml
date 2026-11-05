@@ -1,4 +1,5 @@
-# Runs the language and MCP tests and lints the Markdown on every pull request and push to main.
+# One job per check, so a pull request's checks list names exactly what passed or failed. The two
+# test jobs write JUnit XML; publish-test-results.yml posts it to the pull request.
 #
 # (c) Copyright 2026 Liminal HQ, Scott Morris
 # SPDX-License-Identifier: Apache-2.0 OR MIT
@@ -14,13 +15,112 @@ on:
       - main
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  validate:
-    name: Validate
+  markdown-lint:
+    name: Markdown lint
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.10
+
+      - name: Lint Markdown
+        id: lint
+        run: bun run lint:md
+
+      - name: Job summary
+        if: always()
+        run: |
+          {
+            echo "## Markdown lint"
+            echo "- Result: \`${{ steps.lint.outcome }}\`"
+            echo "- Command: \`bun run lint:md\`"
+          } >> "${GITHUB_STEP_SUMMARY}"
+
+  link-check:
+    name: Link check
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.10
+
+      - name: Check relative links and anchors
+        id: links
+        run: bun run check:links
+
+      - name: Job summary
+        if: always()
+        run: |
+          {
+            echo "## Link check"
+            echo "- Result: \`${{ steps.links.outcome }}\`"
+            echo "- Command: \`bun run check:links\`"
+          } >> "${GITHUB_STEP_SUMMARY}"
+
+  language-tests:
+    name: Language tests
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.10
+
+      - name: Run language tests
+        id: tests
+        run: bun run test:ci
+
+      - name: Job summary
+        if: always()
+        run: |
+          {
+            echo "## Language tests"
+            echo "- Result: \`${{ steps.tests.outcome }}\`"
+            echo "- Command: \`bun run test:ci\`"
+            echo
+            bash scripts/junit-summary.sh test-results/language-junit.xml
+          } >> "${GITHUB_STEP_SUMMARY}"
+
+      - name: Upload language test artefacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: language-test-results
+          path: test-results/*.xml
+          if-no-files-found: error
+
+      # Consumed by publish-test-results.yml. The pull_request event's own GITHUB_TOKEN is
+      # read-only for Dependabot and fork PRs, so the results are published from a separate
+      # `workflow_run` workflow, which runs with this repository's own permissions whoever opened
+      # the PR.
+      - name: Upload event file
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: event-file
+          path: ${{ github.event_path }}
+
+  mcp-tests:
+    name: MCP server tests
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout code
@@ -35,11 +135,25 @@ jobs:
         run: bun install --frozen-lockfile
         working-directory: packages/mcp
 
-      - name: Lint Markdown
-        run: bun run lint:md
-
-      - name: Run language tests
-        run: bun run test
-
       - name: Run MCP server tests
-        run: bun run test:mcp
+        id: tests
+        run: bun run test:mcp:ci
+
+      - name: Job summary
+        if: always()
+        run: |
+          {
+            echo "## MCP server tests"
+            echo "- Result: \`${{ steps.tests.outcome }}\`"
+            echo "- Command: \`bun run test:mcp:ci\`"
+            echo
+            bash scripts/junit-summary.sh test-results/mcp-junit.xml
+          } >> "${GITHUB_STEP_SUMMARY}"
+
+      - name: Upload MCP server test artefacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mcp-test-results
+          path: test-results/*.xml
+          if-no-files-found: error
