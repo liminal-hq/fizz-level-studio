@@ -9,6 +9,7 @@ import type { LevelEdit } from '@liminal-hq/fizz-studio-protocol/generated/Level
 import type { LevelError } from '@liminal-hq/fizz-studio-protocol/generated/LevelError';
 import type { LevelSnapshot } from '@liminal-hq/fizz-studio-protocol/generated/LevelSnapshot';
 import type { ProjectInfo } from '@liminal-hq/fizz-studio-protocol/generated/ProjectInfo';
+import type { RecoveryEntry } from '@liminal-hq/fizz-studio-protocol/generated/RecoveryEntry';
 
 const PREFIX = 'plugin:fizz-studio-worlds|';
 
@@ -79,6 +80,24 @@ export function closeLevel(id: string): Promise<void> {
 	return cmd<void>('level_close', { id });
 }
 
+/** The recovery copies a session that did not close cleanly left behind, for levels not open now. */
+export function listRecovery(): Promise<RecoveryEntry[]> {
+	return cmd<RecoveryEntry[]>('recovery_list');
+}
+
+/**
+ * Opens the level a recovery copy is of with the recovered text as unsaved changes (author
+ * `recovered`). The copy is kept until the level is saved or closed.
+ */
+export function restoreRecovery(id: string): Promise<LevelSnapshot> {
+	return cmd<LevelSnapshot>('recovery_restore', { id });
+}
+
+/** Deletes a recovery copy. */
+export function discardRecovery(id: string): Promise<void> {
+	return cmd<void>('recovery_discard', { id });
+}
+
 /**
  * Wraps `listener` so it hears only snapshots newer than what it has applied for that level.
  * Events can arrive out of order or twice (a window's own edit comes back as an event), and a
@@ -116,4 +135,4 @@ export function onLevelConflict(listener: (conflict: LevelConflict) => void): Pr
 	return listen<LevelConflict>(LEVEL_CONFLICT_EVENT, (event) => listener(event.payload));
 }
 
-export type { LevelEdit, LevelError, LevelSnapshot, ProjectInfo };
+export type { LevelEdit, LevelError, LevelSnapshot, ProjectInfo, RecoveryEntry };

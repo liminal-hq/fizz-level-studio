@@ -5,14 +5,16 @@
 
 mod commands;
 mod open;
+mod recovery;
 #[cfg(test)]
 mod tests;
 
 use serde::{Deserialize, Serialize};
 use tauri::plugin::{Builder, TauriPlugin};
-use tauri::{Manager, Runtime};
+use tauri::{Manager, RunEvent, Runtime};
 
 pub use open::Worlds;
+pub use recovery::{RecoveryConfig, AUTOSAVE_INTERVAL};
 
 /// Sent to every window after every change to an open level, with a `LevelSnapshot`. A window
 /// ignores a snapshot at or below the revision it has already applied for that level.
@@ -31,8 +33,14 @@ pub struct LevelConflict {
     pub marked: String,
 }
 
-/// Registers the plugin.
+/// Registers the plugin, keeping recovery copies under the app's data directory every
+/// [`AUTOSAVE_INTERVAL`].
 pub fn init<R: Runtime>() -> TauriPlugin<R> {
+    init_with(RecoveryConfig::default())
+}
+
+/// Registers the plugin with its own recovery folder and autosave interval.
+pub fn init_with<R: Runtime>(config: RecoveryConfig) -> TauriPlugin<R> {
     Builder::new("fizz-studio-worlds")
         .invoke_handler(tauri::generate_handler![
             commands::project_open,
@@ -43,10 +51,18 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
             commands::level_redo,
             commands::level_save,
             commands::level_close,
+            commands::recovery_list,
+            commands::recovery_restore,
+            commands::recovery_discard,
         ])
-        .setup(|app, _api| {
-            app.manage(Worlds::default());
+        .setup(move |app, _api| {
+            app.manage(Worlds::from_config(app, config));
             Ok(())
+        })
+        .on_event(|app, event| {
+            if let RunEvent::Exit = event {
+                app.state::<Worlds>().stop_autosave();
+            }
         })
         .build()
 }

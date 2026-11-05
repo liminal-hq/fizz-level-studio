@@ -12,6 +12,9 @@ const COMMANDS: &[&str] = &[
     "level_redo",
     "level_save",
     "level_close",
+    "recovery_list",
+    "recovery_restore",
+    "recovery_discard",
 ];
 
 fn main() {

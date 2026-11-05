@@ -11,16 +11,29 @@ use fizz_studio_protocol::{LevelEdit, LevelError, LevelSnapshot, ProjectKind};
 use tauri::test::{mock_builder, mock_context, noop_assets, MockRuntime};
 use tauri::{Listener, Manager, WebviewUrl, WebviewWindowBuilder};
 
-use crate::{commands, init, LevelConflict, Worlds, CHANGED_EVENT, CONFLICT_EVENT};
+use crate::{
+    commands, init_with, LevelConflict, RecoveryConfig, Worlds, CHANGED_EVENT, CONFLICT_EVENT,
+};
 
 type App = tauri::App<MockRuntime>;
 
 const CRATER: &str = include_str!("../../../levels/crater.fizz");
 const LABELS: [&str; 2] = ["main-1", "panel-layers-1"];
 
+/// An app whose autosave never fires during a test and whose recovery folder is never written.
 fn app() -> App {
+    app_with(
+        std::env::temp_dir().join("fizz-studio-tests-unused-recovery"),
+        Duration::from_secs(3600),
+    )
+}
+
+fn app_with(recovery: PathBuf, interval: Duration) -> App {
     let app = mock_builder()
-        .plugin(init())
+        .plugin(init_with(RecoveryConfig {
+            dir: Some(recovery),
+            interval,
+        }))
         .build(mock_context(noop_assets()))
         .expect("the mock app builds");
     for label in LABELS {
@@ -348,4 +361,178 @@ fn the_capability_leaves_out_about_and_preferences() {
         capability["permissions"],
         serde_json::json!(["fizz-studio-worlds:default"])
     );
+}
+
+const FAST: Duration = Duration::from_millis(20);
+
+fn copies(app: &App) -> Vec<fizz_studio_protocol::RecoveryEntry> {
+    commands::recovery_list(worlds(app)).unwrap()
+}
+
+fn restore(app: &App, id: &str) -> Result<LevelSnapshot, LevelError> {
+    commands::recovery_restore(app.handle().clone(), worlds(app), id.to_string())
+}
+
+fn save(app: &App, id: &str) -> LevelSnapshot {
+    commands::level_save(app.handle().clone(), worlds(app), id.to_string()).unwrap()
+}
+
+/// The recovery copies on disk under `dir`.
+fn copy_folders(dir: &Path) -> Vec<PathBuf> {
+    std::fs::read_dir(dir)
+        .map(|entries| entries.flatten().map(|e| e.path()).collect())
+        .unwrap_or_default()
+}
+
+fn wait_for_copy(dir: &Path) {
+    assert!(
+        within(Duration::from_secs(2), || !copy_folders(dir).is_empty()),
+        "a recovery copy is kept"
+    );
+}
+
+#[test]
+fn an_unsaved_paint_is_autosaved_and_a_saved_level_has_no_copy() {
+    let recovery = tempfile::tempdir().unwrap();
+    let app = app_with(recovery.path().to_path_buf(), FAST);
+    let (_dir, path) = project();
+    let opened = open(&app, &path);
+
+    std::thread::sleep(FAST * 5);
+    assert!(copy_folders(recovery.path()).is_empty(), "nothing unsaved");
+
+    let painted = apply(&app, &opened.id, paint("grass", 5), 0).unwrap();
+    wait_for_copy(recovery.path());
+    // The open level is not offered back to the app that has it open.
+    assert!(copies(&app).is_empty());
+    let kept = std::fs::read_to_string(
+        copy_folders(recovery.path())[0]
+            .join("files")
+            .join("level.fizz"),
+    )
+    .unwrap();
+    assert_eq!(kept, painted.text);
+
+    save(&app, &opened.id);
+    assert!(
+        copy_folders(recovery.path()).is_empty(),
+        "saving removes it"
+    );
+    std::thread::sleep(FAST * 5);
+    assert!(
+        copy_folders(recovery.path()).is_empty(),
+        "and it stays gone"
+    );
+}
+
+#[test]
+fn undoing_back_to_the_saved_text_and_closing_discard_the_copy() {
+    let recovery = tempfile::tempdir().unwrap();
+    let app = app_with(recovery.path().to_path_buf(), FAST);
+    let (_dir, path) = project();
+    let opened = open(&app, &path);
+
+    apply(&app, &opened.id, paint("grass", 5), 0).unwrap();
+    wait_for_copy(recovery.path());
+    commands::level_undo(app.handle().clone(), worlds(&app), opened.id.clone(), 1).unwrap();
+    assert!(copy_folders(recovery.path()).is_empty(), "a clean undo");
+
+    apply(&app, &opened.id, paint("grass", 6), 2).unwrap();
+    wait_for_copy(recovery.path());
+    commands::level_close(worlds(&app), opened.id).unwrap();
+    assert!(copy_folders(recovery.path()).is_empty(), "closing");
+}
+
+#[test]
+fn a_crash_leaves_a_copy_that_restores_byte_for_byte_and_can_be_discarded() {
+    let recovery = tempfile::tempdir().unwrap();
+    let (_dir, path) = project();
+    let painted = {
+        let app = app_with(recovery.path().to_path_buf(), FAST);
+        let opened = open(&app, &path);
+        let painted = apply(&app, &opened.id, paint("grass", 5), 0).unwrap();
+        wait_for_copy(recovery.path());
+        painted
+        // Dropped without closing: the session did not end cleanly.
+    };
+    assert_eq!(std::fs::read_to_string(&path).unwrap(), CRATER);
+
+    let app = app_with(recovery.path().to_path_buf(), FAST);
+    let offered = copies(&app);
+    assert_eq!(offered.len(), 1);
+    assert_eq!(offered[0].name, "crater.fizz");
+    assert_eq!(
+        PathBuf::from(&offered[0].path),
+        std::fs::canonicalize(&path).unwrap()
+    );
+    assert!(offered[0].saved_at_ms > 0);
+
+    let restored = restore(&app, &offered[0].id).unwrap();
+    assert_eq!(restored.text, painted.text);
+    assert!(restored.revision > restored.saved_revision);
+    assert_eq!(restored.author, "recovered");
+    assert!(!restored.edited_outside);
+    assert_eq!(std::fs::read_to_string(&path).unwrap(), CRATER);
+    // Open now, so no longer offered, and not restorable twice.
+    assert!(copies(&app).is_empty());
+    assert!(restore(&app, &offered[0].id).is_err());
+    // The copy stays until the level is saved.
+    assert_eq!(copy_folders(recovery.path()).len(), 1);
+    save(&app, &restored.id);
+    assert_eq!(std::fs::read_to_string(&path).unwrap(), painted.text);
+    assert!(copy_folders(recovery.path()).is_empty());
+    commands::level_close(worlds(&app), restored.id).unwrap();
+
+    // Discard removes a copy without opening it.
+    {
+        let app = app_with(recovery.path().to_path_buf(), FAST);
+        let opened = open(&app, &path);
+        apply(&app, &opened.id, paint("grass", 9), 0).unwrap();
+        wait_for_copy(recovery.path());
+    }
+    let app = app_with(recovery.path().to_path_buf(), FAST);
+    let offered = copies(&app);
+    assert_eq!(offered.len(), 1);
+    commands::recovery_discard(worlds(&app), offered[0].id.clone()).unwrap();
+    assert!(copies(&app).is_empty());
+    assert!(copy_folders(recovery.path()).is_empty());
+}
+
+#[test]
+fn a_level_whose_file_is_gone_restores_as_a_new_unsaved_level() {
+    let recovery = tempfile::tempdir().unwrap();
+    let (_dir, path) = project();
+    let painted = {
+        let app = app_with(recovery.path().to_path_buf(), FAST);
+        let opened = open(&app, &path);
+        let painted = apply(&app, &opened.id, paint("grass", 5), 0).unwrap();
+        wait_for_copy(recovery.path());
+        painted
+    };
+    std::fs::remove_file(&path).unwrap();
+
+    let app = app_with(recovery.path().to_path_buf(), FAST);
+    let offered = copies(&app);
+    let restored = restore(&app, &offered[0].id).unwrap();
+    assert_eq!(restored.text, painted.text);
+    assert!(restored.revision > restored.saved_revision);
+    assert!(!path.exists());
+    save(&app, &restored.id);
+    assert_eq!(std::fs::read_to_string(&path).unwrap(), painted.text);
+}
+
+#[test]
+fn the_studios_recovery_writes_are_not_outside_edits() {
+    // The recovery folder sits inside the watched level folder, the worst case.
+    let (dir, path) = project();
+    let recovery = dir.path().join("recovery");
+    let app = app_with(recovery.clone(), FAST);
+    let opened = open(&app, &path);
+    let painted = apply(&app, &opened.id, paint("grass", 5), 0).unwrap();
+    wait_for_copy(&recovery);
+    std::thread::sleep(Duration::from_millis(600));
+    let level = current(&app, &opened.id);
+    assert_eq!(level.revision, painted.revision);
+    assert!(!level.edited_outside);
+    assert_eq!(level.author, "person");
 }

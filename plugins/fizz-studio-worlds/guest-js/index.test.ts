@@ -21,13 +21,16 @@ vi.mock('@tauri-apps/api/event', () => ({
 const {
 	applyEdit,
 	closeLevel,
+	discardRecovery,
 	endStep,
 	newerOnly,
 	onLevelChanged,
 	onLevelConflict,
 	openLevel,
 	openProject,
+	listRecovery,
 	redo,
+	restoreRecovery,
 	saveLevel,
 	undo,
 } = await import('./index');
@@ -92,6 +95,21 @@ describe('listeners', () => {
 		await onLevelConflict((c) => heard.push(c));
 		handlers['level://conflict'][0]({ payload: { id: 'a', marked: '<<<<<<<' } });
 		expect(heard).toEqual([{ id: 'a', marked: '<<<<<<<' }]);
+	});
+});
+
+describe('recovery', () => {
+	it('sends the recovery commands under the plugin prefix', async () => {
+		invoke.mockResolvedValue(null);
+		await listRecovery();
+		await restoreRecovery('level-1');
+		await discardRecovery('level-1');
+		const prefix = 'plugin:fizz-studio-worlds|';
+		expect(invoke.mock.calls).toEqual([
+			[`${prefix}recovery_list`, undefined],
+			[`${prefix}recovery_restore`, { id: 'level-1' }],
+			[`${prefix}recovery_discard`, { id: 'level-1' }],
+		]);
 	});
 });
 

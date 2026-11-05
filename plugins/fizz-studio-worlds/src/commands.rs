@@ -4,7 +4,9 @@
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
 use fizz_studio_level::step_name;
-use fizz_studio_protocol::{LevelEdit, LevelError, LevelSnapshot, ProjectInfo, ProjectKind};
+use fizz_studio_protocol::{
+    LevelEdit, LevelError, LevelSnapshot, ProjectInfo, ProjectKind, RecoveryEntry,
+};
 use fizz_studio_session::{Author, Request};
 use fizz_studio_world::{Project, ProjectKind as FoundKind};
 use tauri::{AppHandle, Runtime, State};
@@ -91,6 +93,7 @@ pub fn level_undo<R: Runtime>(
             .undo(&level.writer, based_on)
             .map_err(session_error)?;
         level.last_author = Author::Person;
+        level.settle();
         Ok(level.snapshot())
     })?;
     announce(&app, &snapshot);
@@ -111,6 +114,7 @@ pub fn level_redo<R: Runtime>(
             .redo(&level.writer, based_on)
             .map_err(session_error)?;
         level.last_author = Author::Person;
+        level.settle();
         Ok(level.snapshot())
     })?;
     announce(&app, &snapshot);
@@ -136,4 +140,28 @@ pub fn level_save<R: Runtime>(
 #[tauri::command]
 pub fn level_close(worlds: State<'_, Worlds>, id: String) -> Result<(), LevelError> {
     worlds.close(&id)
+}
+
+/// The recovery copies a session that did not close cleanly left behind, leaving out levels that
+/// are open now.
+#[tauri::command]
+pub fn recovery_list(worlds: State<'_, Worlds>) -> Result<Vec<RecoveryEntry>, LevelError> {
+    worlds.recovery_list()
+}
+
+/// Opens the copy's level with the recovered text as unsaved changes. The copy is kept until the
+/// level is saved or closed.
+#[tauri::command]
+pub fn recovery_restore<R: Runtime>(
+    app: AppHandle<R>,
+    worlds: State<'_, Worlds>,
+    id: String,
+) -> Result<LevelSnapshot, LevelError> {
+    worlds.restore(&app, &id)
+}
+
+/// Deletes a recovery copy.
+#[tauri::command]
+pub fn recovery_discard(worlds: State<'_, Worlds>, id: String) -> Result<(), LevelError> {
+    worlds.recovery_discard(&id)
 }
