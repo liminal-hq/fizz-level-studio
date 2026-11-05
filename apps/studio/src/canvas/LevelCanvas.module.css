@@ -1,0 +1,76 @@
+.root {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) 16rem;
+	min-height: 0;
+	min-width: 0;
+}
+
+.stage {
+	display: flex;
+	flex-direction: column;
+	min-height: 0;
+	min-width: 0;
+	background: var(--fls-bg-stage);
+}
+
+.frame {
+	position: relative;
+	flex: 1;
+	min-height: 12rem;
+	overflow: hidden;
+}
+
+/* A direct-manipulation surface keeps its own cursor. */
+.canvas {
+	position: absolute;
+	inset: 0;
+	width: 100%;
+	height: 100%;
+	cursor: crosshair;
+	touch-action: none;
+}
+
+.canvas:focus-visible {
+	outline: 2px solid var(--fls-focus-ring);
+	outline-offset: -2px;
+}
+
+.bar {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 1rem;
+	padding: 0.25rem 0.75rem;
+	color: var(--fls-text-secondary);
+	font-variant-numeric: tabular-nums;
+}
+
+.zoom {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.5rem;
+}
+
+.button {
+	min-height: var(--fls-hit-target);
+	padding: 0 0.6rem;
+	color: var(--fls-text-primary);
+	background: var(--fls-control-bg);
+	border: 1px solid var(--fls-border-subtle);
+	border-radius: 6px;
+	font: inherit;
+	cursor: default;
+}
+
+.button:hover:not(:disabled) {
+	background: var(--fls-control-bg-hover);
+}
+
+.button:disabled {
+	color: var(--fls-text-muted);
+}
+
+.button:focus-visible {
+	outline: 2px solid var(--fls-focus-ring);
+	outline-offset: 2px;
+}

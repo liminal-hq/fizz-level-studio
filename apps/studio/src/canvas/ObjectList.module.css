@@ -1,0 +1,39 @@
+.list {
+	margin: 0;
+	padding: 0.25rem;
+	overflow: auto;
+	list-style: none;
+	background: var(--fls-bg-content);
+	border-left: 1px solid var(--fls-border-subtle);
+}
+
+.entry {
+	display: block;
+	width: 100%;
+	padding: 0.3rem 0.5rem;
+	color: var(--fls-text-primary);
+	background: transparent;
+	border: 0;
+	border-radius: 4px;
+	font: inherit;
+	text-align: left;
+	cursor: default;
+}
+
+.entry:hover {
+	background: var(--fls-bg-hover);
+}
+
+.entry:focus-visible {
+	outline: 2px solid var(--fls-focus-ring);
+	outline-offset: -2px;
+}
+
+.problem {
+	color: var(--fls-danger);
+}
+
+.none {
+	padding: 0.3rem 0.5rem;
+	color: var(--fls-text-muted);
+}
