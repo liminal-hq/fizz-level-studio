@@ -267,6 +267,260 @@ async function dockChecks(bridge: Bridge): Promise<void> {
 	);
 }
 
+/**
+ * A synthetic pointer drag: pointerdown on the element found by `from`, two moves and a pointerup
+ * at the point `to` gives (all dispatched on the source, as a captured pointer would deliver
+ * them). Real pointer events are unreliable under the automation bridge. `escape` presses Escape
+ * before letting go. Returns false when the source is not there.
+ */
+function syntheticDrag(
+	bridge: Bridge,
+	from: string,
+	to: { x: number; y: number } | { selector: string; fx: number; fy: number },
+	escape = false,
+): Promise<boolean> {
+	return bridge.js<boolean>(
+		`const src = document.querySelector(${JSON.stringify(from)});
+		 if (!src) return false;
+		 const r = src.getBoundingClientRect();
+		 const start = { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+		 const spec = ${JSON.stringify(to)};
+		 let end;
+		 if ('selector' in spec) {
+		   const t = document.querySelector(spec.selector).getBoundingClientRect();
+		   end = { x: t.left + t.width * spec.fx, y: t.top + t.height * spec.fy };
+		 } else end = spec;
+		 const wait = () => new Promise((res) => setTimeout(res, 60));
+		 const fire = (type, p) => src.dispatchEvent(new PointerEvent(type, {
+		   bubbles: true, cancelable: true, pointerId: 41, button: 0, clientX: p.x, clientY: p.y,
+		 }));
+		 fire('pointerdown', start);
+		 await wait();
+		 fire('pointermove', { x: start.x + 12, y: start.y + 12 });
+		 await wait();
+		 fire('pointermove', end);
+		 await wait();
+		 if (${escape}) {
+		   document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+		   await wait();
+		 }
+		 fire('pointerup', end);
+		 await wait();
+		 return true;`,
+	);
+}
+
+/** The tab names in a dock, in order. */
+function tabsIn(bridge: Bridge, dock: string): Promise<string[]> {
+	return bridge.js<string[]>(
+		`return [...document.querySelectorAll('section[aria-label=' + JSON.stringify(${JSON.stringify(dock)}) + '] [data-tab]')].map((t) => t.textContent.trim());`,
+	);
+}
+
+const sameBox = (a: Box | null, b: Box | null) =>
+	a === null || b === null
+		? a === b
+		: Math.abs(a.x - b.x) < 1 &&
+			Math.abs(a.y - b.y) < 1 &&
+			Math.abs(a.w - b.w) < 1 &&
+			Math.abs(a.h - b.h) < 1;
+
+/**
+ * Dragging panels between docks, onto the level and among tabs, and maximising a panel, measured in
+ * the real window. It leaves the default arrangement as it found it.
+ */
+async function dragAndMaximiseChecks(bridge: Bridge): Promise<void> {
+	const sane = (m: Layout) =>
+		!!m.canvas &&
+		m.canvas.h > 300 &&
+		[m.left, m.right, m.bottom].every((d) => d === null || apart(d, m.canvas!));
+
+	// A panel dragged from one dock into another.
+	let m = await measureLayout(bridge);
+	check(
+		'drag: the Palette tab starts in the left dock',
+		(await tabsIn(bridge, 'Left dock')).join() === 'Palette',
+	);
+	check(
+		'drag: a synthetic drag starts on the Palette tab',
+		await syntheticDrag(bridge, 'section[aria-label="Left dock"] [data-tab="palette"]', {
+			selector: 'section[aria-label="Right dock"] [data-strip]',
+			fx: 0.1,
+			fy: 0.5,
+		}),
+	);
+	await sleep(300);
+	m = await measureLayout(bridge);
+	check(
+		'drag: the Palette moves to the right dock as a tab and the left dock goes',
+		(await tabsIn(bridge, 'Right dock')).join() === 'Palette,Objects,History' && !m.left,
+		JSON.stringify(await tabsIn(bridge, 'Right dock')),
+	);
+	check(
+		'drag: the canvas keeps its room and no dock overlaps it',
+		sane(m),
+		JSON.stringify([m.left, m.right, m.bottom, m.canvas]),
+	);
+
+	// The now empty left dock still offers itself, and takes the panel back.
+	check(
+		'drag: a synthetic drag starts on the Palette tab again',
+		await syntheticDrag(bridge, 'section[aria-label="Right dock"] [data-tab="palette"]', {
+			// The empty dock's drop strip only exists during a drag: aim at the left edge of the level.
+			x: (m.canvas?.x ?? 0) + 20,
+			y: (m.canvas?.y ?? 0) + (m.canvas?.h ?? 0) / 2,
+		}),
+	);
+	await sleep(300);
+	m = await measureLayout(bridge);
+	check(
+		'drag: an empty dock takes the panel back and the sizes are sane',
+		(await tabsIn(bridge, 'Left dock')).join() === 'Palette' &&
+			(await tabsIn(bridge, 'Right dock')).join() === 'Objects,History' &&
+			sane(m),
+		JSON.stringify([m.left, m.right, m.bottom, m.canvas]),
+	);
+
+	// Escape during a drag puts everything back.
+	await syntheticDrag(
+		bridge,
+		'section[aria-label="Left dock"] [data-tab="palette"]',
+		{ selector: 'section[aria-label="Right dock"] [data-strip]', fx: 0.5, fy: 0.5 },
+		true,
+	);
+	await sleep(300);
+	check(
+		'drag: Escape during a drag cancels it',
+		(await tabsIn(bridge, 'Left dock')).join() === 'Palette' &&
+			(await tabsIn(bridge, 'Right dock')).join() === 'Objects,History',
+	);
+
+	// A panel dragged onto the level floats where it was let go.
+	const before = await measureLayout(bridge);
+	const target = {
+		x: before.canvas!.x + before.canvas!.w / 2,
+		y: before.canvas!.y + before.canvas!.h / 2,
+	};
+	await syntheticDrag(bridge, 'section[aria-label="Right dock"] [data-tab="objects"]', target);
+	await sleep(300);
+	const floated = await bridge.js<{ x: number; y: number; w: number } | null>(
+		`const e = document.querySelector('section[data-panel="objects"]');
+		 if (!e) return null;
+		 const r = e.getBoundingClientRect();
+		 return { x: r.left + r.width / 2, y: r.top, w: r.width };`,
+	);
+	m = await measureLayout(bridge);
+	check(
+		'drag: a panel dragged onto the level floats where it was let go',
+		floated !== null &&
+			Math.abs(floated.x - target.x) < 40 &&
+			(await tabsIn(bridge, 'Right dock')).join() === 'History' &&
+			sane(m),
+		JSON.stringify([floated, target]),
+	);
+
+	// Docking it back puts it at the end; Alt+ArrowLeft on its tab reorders it, with an announcement.
+	check('drag: the floating panel docks back', await clickLabelled(bridge, 'Dock Objects right'));
+	await sleep(300);
+	check(
+		'drag: it sits after History until moved',
+		(await tabsIn(bridge, 'Right dock')).join() === 'History,Objects',
+	);
+	const moved = await bridge.js<{ tabs: string[]; note: string }>(
+		`const tab = [...document.querySelectorAll('section[aria-label="Right dock"] [data-tab]')].find((t) => t.textContent.trim() === 'Objects');
+		 tab.focus();
+		 tab.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft', altKey: true, bubbles: true, cancelable: true }));
+		 await new Promise((res) => setTimeout(res, 300));
+		 return {
+		   tabs: [...document.querySelectorAll('section[aria-label="Right dock"] [data-tab]')].map((t) => t.textContent.trim()),
+		   note: [...document.querySelectorAll('[role=status]')].map((e) => e.textContent).join('|'),
+		 };`,
+	);
+	check(
+		'drag: Alt+ArrowLeft moves a tab and announces its new place',
+		moved.tabs.join() === 'Objects,History' &&
+			moved.note.includes('Objects moved to position 1 of 2'),
+		JSON.stringify(moved),
+	);
+
+	// Maximise: Script fills the area under the tool bar, hides the level, and restore is exact.
+	const normal = await measureLayout(bridge);
+	check('maximise: Script offers the button', await clickLabelled(bridge, 'Maximise Script'));
+	await sleep(400);
+	const full = await bridge.js<{ fill: Box | null; area: Box | null; canvas: boolean }>(
+		`const box = (e) => { if (!e) return null; const r = e.getBoundingClientRect(); return { x: r.left, y: r.top, w: r.width, h: r.height }; };
+		 const f = document.querySelector('[data-panel-maximised]');
+		 const canvas = document.querySelector('canvas');
+		 return { fill: box(f), area: box(f && f.parentElement), canvas: !!canvas && canvas.getBoundingClientRect().width > 0 };`,
+	);
+	const docksHidden = await bridge.js<boolean>(
+		`return [...document.querySelectorAll('section[aria-label$=" dock"]')].every((e) => e.getBoundingClientRect().width === 0);`,
+	);
+	check(
+		'maximise: the Script fills the workspace area under the tool bar and the level is hidden',
+		!!full.fill &&
+			!!full.area &&
+			sameBox(full.fill, full.area) &&
+			full.fill.w > normal.window.w * 0.6 &&
+			full.fill.h > 300 &&
+			// The area starts where the level started: right under the tool bar.
+			Math.abs(full.fill.y - normal.canvas!.y) < 2 &&
+			!full.canvas &&
+			docksHidden,
+		JSON.stringify(full),
+	);
+	check('maximise: Restore is offered', await clickLabelled(bridge, 'Restore Script'));
+	await sleep(400);
+	const back = await measureLayout(bridge);
+	check(
+		'maximise: Restore returns the previous sizes exactly',
+		sameBox(back.canvas, normal.canvas) &&
+			sameBox(back.left, normal.left) &&
+			sameBox(back.right, normal.right) &&
+			sameBox(back.bottom, normal.bottom),
+		JSON.stringify([normal.canvas, back.canvas]),
+	);
+
+	// Ctrl+Shift+M and Escape.
+	await bridge.js(
+		`window.dispatchEvent(new KeyboardEvent('keydown', { key: 'M', ctrlKey: true, shiftKey: true, bubbles: true, cancelable: true }));`,
+	);
+	await sleep(300);
+	const keyed = await bridge.js<boolean>(
+		`return !!document.querySelector('[data-panel-maximised]');`,
+	);
+	await bridge.js(
+		`document.querySelector('[data-panel-maximised] button').dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));`,
+	);
+	await sleep(300);
+	const escaped = await bridge.js<boolean>(
+		`return !document.querySelector('[data-panel-maximised]');`,
+	);
+	check('maximise: Ctrl+Shift+M maximises and Escape restores', keyed && escaped);
+
+	// Proposals can be maximised; the Palette cannot.
+	check('maximise: the Proposals tab shows', await clickTab(bridge, 'Proposals'));
+	await sleep(200);
+	const buttons = await bridge.js<{ proposals: boolean; palette: boolean }>(
+		`return {
+		   proposals: !!document.querySelector('button[aria-label="Maximise Proposals"]'),
+		   palette: !!document.querySelector('button[aria-label="Maximise Palette"]'),
+		 };`,
+	);
+	check(
+		'maximise: Proposals is expandable and the Palette has no button',
+		buttons.proposals && !buttons.palette,
+		JSON.stringify(buttons),
+	);
+	await clickTab(bridge, 'Script');
+	await sleep(200);
+	m = await measureLayout(bridge);
+	check(
+		'drag: the arrangement is back as it was and the canvas keeps its room',
+		sane(m) && (await tabsIn(bridge, 'Bottom dock')).join() === 'Script,Proposals',
+	);
+}
+
 async function main(): Promise<void> {
 	if (!existsSync(binary)) {
 		console.error(`No debug build at ${binary}. Run \`bun run app:build\` first.`);
@@ -325,6 +579,7 @@ async function main(): Promise<void> {
 		);
 		check('the canvas still has room with the menu bar', (bars?.canvas ?? 0) > 300);
 		await dockChecks(bridge);
+		await dragAndMaximiseChecks(bridge);
 		const pressByRole = (role: string, name: string) =>
 			bridge.js<boolean>(
 				`const el = [...document.querySelectorAll('[role=${role}]')].find((x) => x.textContent.trim().startsWith(${JSON.stringify(name)}));
