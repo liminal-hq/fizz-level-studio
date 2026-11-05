@@ -40,6 +40,7 @@
 		"check:bundles": "bash scripts/check-plugin-bundles.sh",
 		"check": "bash tools/check.sh",
 		"check:scope": "bash tools/ci-scope.sh --self-test",
+		"icons": "bun tools/gen-icons.ts",
 		"app:build": "bun run build:plugins && bun run --cwd apps/studio build && bun run --cwd apps/studio tauri build --debug --no-bundle --config src-tauri/tauri.conf.dev.json",
 		"check:app": "bun tools/app-checks/run.ts",
 		"check:perf": "bun tools/app-checks/perf.ts"
