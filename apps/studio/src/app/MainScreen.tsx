@@ -14,6 +14,7 @@ import {
 import { CommandPalette, isCommandPaletteShortcut } from '../commands/CommandPalette';
 import { t, type MessageId } from '../i18n/messages';
 import { launchClient, type LaunchClient } from '../services/launchClient';
+import { flushPendingWrites } from '../services/pendingWrites';
 import { quitClient, type QuitClient } from '../services/quitClient';
 import { pickLevelFile, type PickLevelFile } from '../services/filePicker';
 import { openWindow } from '../services/windowsClient';
@@ -349,8 +350,9 @@ function MainScreenBody({
 					setAsking(false);
 					setQuitRound(round);
 				} else {
+					// Nothing is committed to a window that is ready, so its waiting writes go now.
 					setQuitRound(null);
-					void quit.answer(round, 'ready').catch(() => {});
+					void flushPendingWrites().then(() => quit.answer(round, 'ready').catch(() => {}));
 				}
 			}),
 		[quit],
@@ -371,14 +373,18 @@ function MainScreenBody({
 				const report = (outcome: 'done' | 'failed') =>
 					void quit.confirm(round, outcome).catch(() => {});
 				const current = levelRef.current;
-				if (!current) return report('done');
+				if (!current) return void flushPendingWrites().then(() => report('done'));
 				if (decision === 'save') {
-					void save().then((saved) => report(saved ? 'done' : 'failed'));
+					void save().then(async (saved) => {
+						await flushPendingWrites();
+						report(saved ? 'done' : 'failed');
+					});
 					return;
 				}
 				client.close(current.id).then(
-					() => {
+					async () => {
 						dropLevel();
+						await flushPendingWrites();
 						report('done');
 					},
 					() => {
