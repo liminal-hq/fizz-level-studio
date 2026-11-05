@@ -25,19 +25,28 @@ export function makeProfile(): Profile {
 	return { dir, config: join(dir, 'config'), data: join(dir, 'data') };
 }
 
-/** The port the app's debug automation bridge listens on, and the one the harness talks to. */
-export const BRIDGE_PORT = 9223;
+/**
+ * The port this run's app listens on for the debug automation bridge, and the one the harness talks
+ * to. The bridge takes the first free port from its base, so a fixed port meant that while another
+ * copy of the app was up (a build someone was trying by hand, another check run, a helper's run) the
+ * checks silently drove THAT app and failed in confusing ways that looked like flaky tests. Each run
+ * now picks its own base port (set `FIZZ_BRIDGE_PORT` to choose one) and tells the app through the
+ * environment.
+ */
+export let bridgePort = 9223;
 
 /**
- * Stops a run that would drive the wrong app. The bridge takes the first free port from 9223, but the
- * harness always talks to 9223, so while another instance holds it (a build someone is trying by hand,
- * or another run) the checks would silently drive THAT app and fail in confusing ways.
+ * This run's app identity for the single-instance guard (see `single_instance` in the app's lib.rs):
+ * the first copy on a machine would otherwise take every other copy's launch and make it quit.
  */
-export async function requireFreeBridgePort(): Promise<void> {
-	const taken = await new Promise<boolean>((resolve) => {
+export const instanceId = `${process.pid}`;
+
+/** Whether something is already listening on `port` on this machine. */
+function listening(port: number): Promise<boolean> {
+	return new Promise<boolean>((resolve) => {
 		Bun.connect({
 			hostname: '127.0.0.1',
-			port: BRIDGE_PORT,
+			port,
 			socket: {
 				open(socket) {
 					socket.end();
@@ -53,13 +62,26 @@ export async function requireFreeBridgePort(): Promise<void> {
 			},
 		}).catch(() => resolve(false));
 	});
-	if (taken) {
-		console.error(
-			`Port ${BRIDGE_PORT} is already in use: another copy of the app (or another check run) is up. ` +
-				'Close it and run again, otherwise the checks would drive that app.',
-		);
-		process.exit(2);
+}
+
+/**
+ * Picks this run's bridge port: `FIZZ_BRIDGE_PORT` when set, otherwise a random base in 9400 to 9899
+ * (the bridge scans up to 100 ports from its base, so bases are 100 apart) that nothing is using.
+ */
+export async function chooseBridgePort(): Promise<number> {
+	const fixed = Number(process.env.FIZZ_BRIDGE_PORT);
+	if (Number.isInteger(fixed) && fixed > 0) {
+		bridgePort = fixed;
+		return bridgePort;
 	}
+	for (let attempt = 0; attempt < 20; attempt += 1) {
+		const base = 9400 + Math.floor(Math.random() * 5) * 100;
+		if (!(await listening(base))) {
+			bridgePort = base;
+			return bridgePort;
+		}
+	}
+	throw new Error('no free port for the automation bridge between 9400 and 9899');
 }
 
 export function sleep(ms: number): Promise<void> {
@@ -86,7 +108,13 @@ export class App {
 
 	constructor(profile: Profile, args: string[]) {
 		this.child = spawn(binary, args, {
-			env: { ...process.env, XDG_CONFIG_HOME: profile.config, XDG_DATA_HOME: profile.data },
+			env: {
+				...process.env,
+				XDG_CONFIG_HOME: profile.config,
+				XDG_DATA_HOME: profile.data,
+				FIZZ_BRIDGE_PORT: String(bridgePort),
+				FIZZ_INSTANCE_ID: instanceId,
+			},
 			stdio: ['ignore', 'pipe', 'pipe'],
 		});
 		const collect = (chunk: Buffer) => (this.log += chunk.toString());
@@ -137,8 +165,21 @@ export class Bridge {
 	async start(): Promise<void> {
 		const up = await within(30_000, async () => {
 			try {
-				const text = await this.call('driver_session', { action: 'start', host: '127.0.0.1' });
-				return /Session started/.test(text);
+				const text = await this.call('driver_session', {
+					action: 'start',
+					host: '127.0.0.1',
+					port: bridgePort,
+				});
+				if (!/Session started/.test(text)) return false;
+				// When the app is not up on our port yet the bridge server falls back to any app it can
+				// find (another run's, a helper's), and says "Session started" all the same. Only a
+				// session on OUR port counts; anything else is dropped and tried again.
+				const status = JSON.parse(await this.call('driver_session', { action: 'status' })) as {
+					port?: number;
+				};
+				if (status.port === bridgePort) return true;
+				await this.call('driver_session', { action: 'stop' }).catch(() => undefined);
+				return false;
 			} catch {
 				return false;
 			}

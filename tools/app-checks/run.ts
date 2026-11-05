@@ -22,7 +22,7 @@ import {
 	Bridge,
 	binary,
 	makeProfile,
-	requireFreeBridgePort,
+	chooseBridgePort,
 	root,
 	sleep,
 	within,
@@ -1025,7 +1025,7 @@ async function main(): Promise<void> {
 		console.error(`No debug build at ${binary}. Run \`bun run app:build\` first.`);
 		process.exit(2);
 	}
-	await requireFreeBridgePort();
+	await chooseBridgePort();
 	const profile = makeProfile();
 	const levels = join(profile.dir, 'levels');
 	await Bun.$`mkdir -p ${levels}`;
