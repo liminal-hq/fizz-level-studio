@@ -1,0 +1,18 @@
+[package]
+name = "fizz-studio-world"
+version = "0.1.0"
+description = "Files for the studio: Fizz 1 project folders and Fizz 2 world folders, atomic canonical writes, file watching, outside-edit merging, autosave and crash recovery"
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+homepage.workspace = true
+repository.workspace = true
+publish = false
+
+[dependencies]
+diffy.workspace = true
+notify.workspace = true
+thiserror.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true

@@ -4,6 +4,8 @@ members = [
 	"crates/fizz-studio-host",
 	"crates/fizz-studio-language",
 	"crates/fizz-studio-profile",
+	"crates/fizz-studio-session",
+	"crates/fizz-studio-world",
 ]
 # The proof workspace is a copy of the game's crates and builds on its own.
 exclude = ["scratch/rust"]
@@ -21,6 +23,9 @@ repository = "https://github.com/liminal-hq/fizz-level-studio"
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", features = ["float_roundtrip"] }
 thiserror = "2"
+tempfile = "3"
+notify = "8"
+diffy = "0.5"
 
 [profile.release]
 strip = true
