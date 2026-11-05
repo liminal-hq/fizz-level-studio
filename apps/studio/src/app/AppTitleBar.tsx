@@ -5,7 +5,14 @@
 
 import { TitleBar } from '@liminal-hq/fizz-studio-chrome/TitleBar';
 import { TitleBarTitle } from '@liminal-hq/fizz-studio-chrome/TitleBar/TitleBarTitle';
+import { chromeLabels } from '../i18n/chromeLabels';
+import { t } from '../i18n/messages';
 
-export function AppTitleBar({ title }: { title: string }) {
-	return <TitleBar center={<TitleBarTitle>{title}</TitleBarTitle>} />;
+export function AppTitleBar() {
+	return (
+		<TitleBar
+			labels={chromeLabels()}
+			center={<TitleBarTitle>{t('window.main.title')}</TitleBarTitle>}
+		/>
+	);
 }

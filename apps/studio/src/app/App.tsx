@@ -4,6 +4,7 @@
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
 import { WindowFrame } from '@liminal-hq/fizz-studio-chrome/WindowFrame';
+import { t } from '../i18n/messages';
 import styles from './App.module.css';
 import { AppTitleBar } from './AppTitleBar';
 import { AppWindowChrome } from './AppWindowChrome';
@@ -17,9 +18,9 @@ export function App({ windowLabel }: AppProps) {
 	return (
 		<AppWindowChrome>
 			<WindowFrame>
-				<AppTitleBar title="Fizz Level Studio" />
+				<AppTitleBar />
 				<main className={styles.app}>
-					<h1 className={styles.title}>Fizz Level Studio</h1>
+					<h1 className={styles.title}>{t('app.name')}</h1>
 					<p className={styles.label} data-testid="window-label">
 						{windowLabel}
 					</p>

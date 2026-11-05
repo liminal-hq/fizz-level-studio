@@ -7,6 +7,7 @@ import { getCurrentWindow } from '@tauri-apps/api/window';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { App } from './app/App';
+import { LocaleRoot } from './i18n/LocaleRoot';
 import { initLogger } from './services/logger';
 import { applyPlatform } from './theme/platform';
 import './theme/tokens.css';
@@ -23,7 +24,9 @@ if (!root) {
 
 createRoot(root).render(
 	<StrictMode>
-		<App windowLabel={label} />
+		<LocaleRoot>
+			<App windowLabel={label} />
+		</LocaleRoot>
 	</StrictMode>,
 );
 
