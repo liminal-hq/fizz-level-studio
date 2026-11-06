@@ -5,7 +5,7 @@
 
 import type { Settings } from '@liminal-hq/fizz-studio-protocol/generated/Settings';
 import type { SettingsSnapshot } from '@liminal-hq/fizz-studio-protocol/generated/SettingsSnapshot';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import type { SettingsClient } from '../services/settingsClient';
@@ -80,6 +80,16 @@ async function openAppearance(user: ReturnType<typeof userEvent.setup>) {
 }
 
 describe('PreferencesScreen', () => {
+	it('gives every section in the side navigation an icon', async () => {
+		setup();
+		const nav = await screen.findByRole('navigation', { name: 'Preferences pages' });
+		const buttons = within(nav).getAllByRole('button');
+		expect(buttons.length).toBeGreaterThanOrEqual(2);
+		for (const button of buttons) {
+			expect(button.querySelector('svg'), button.textContent ?? '').not.toBeNull();
+		}
+	});
+
 	it('opens on the General page, with the menu bar switch off by default', async () => {
 		setup();
 		expect(await screen.findByRole('heading', { name: 'General', level: 2 })).toBeInTheDocument();

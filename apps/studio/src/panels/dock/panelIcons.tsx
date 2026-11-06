@@ -16,7 +16,7 @@ function Svg({ size = 16, children }: { size?: number; children: ReactNode }) {
 		viewBox: '0 0 16 16',
 		fill: 'none',
 		stroke: 'currentColor',
-		strokeWidth: 1.25,
+		strokeWidth: 1.4,
 		strokeLinecap: 'round',
 		strokeLinejoin: 'round',
 		'aria-hidden': true,

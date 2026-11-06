@@ -8,6 +8,7 @@ import type { SettingsSectionDef } from '@liminal-hq/fizz-studio-chrome/Settings
 import { useEffect, useMemo, useState } from 'react';
 import { AppWindow } from '../app/AppWindow';
 import { t } from '../i18n/messages';
+import { AppearanceIcon, PreferencesIcon } from '../icons/AppIcons';
 import { accentSources, schemeSources } from '../services/appearanceClient';
 import { settingsClient, type SettingsClient } from '../services/settingsClient';
 import type { AccentSources } from '../theme/followAccent';
@@ -64,11 +65,13 @@ export function PreferencesScreen({
 			{
 				id: 'general',
 				label: t('preferences.page.general'),
+				icon: <PreferencesIcon />,
 				render: () => <GeneralPage editor={editor} />,
 			},
 			{
 				id: 'appearance',
 				label: t('preferences.page.appearance'),
+				icon: <AppearanceIcon />,
 				render: () => <AppearancePage editor={editor} system={system} />,
 			},
 		],
