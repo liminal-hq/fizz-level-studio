@@ -260,6 +260,7 @@ const TOOL_LABELS: Record<ToolId, MessageId> = {
 	pick: 'tools.pick',
 	select: 'tools.select',
 	stamp: 'tools.stamp',
+	inspect: 'tools.inspect',
 };
 
 /**
@@ -274,6 +275,7 @@ export const PALETTE_COMMANDS: readonly CommandDef[] = [
 	...TOOL_IDS.map(
 		(id): CommandDef => ({
 			id: toolCommandId(id),
+			icon: `tool.${id}`,
 			group: 'tools',
 			section: 0,
 			label: TOOL_LABELS[id],

@@ -52,6 +52,8 @@ export const enMessages = {
 	'tools.select': 'Select',
 	// translator: Verb. A tool that pastes the outlined rectangle, copied when the tool is chosen, where the pointer presses, like a rubber stamp.
 	'tools.stamp': 'Stamp',
+	// translator: Verb. A tool that selects what is on the cell the pointer presses (an item, an enemy, Ben's start, or the cell and its tile) so it can be looked at; it changes nothing.
+	'tools.inspect': 'Inspect',
 	// translator: A hint shown while the Stamp tool has nothing copied yet.
 	'tools.stampEmpty': 'Outline an area with Select, then choose Stamp to paste it.',
 	// translator: The accessible name of the row above the level that holds Save, Close level, the brush chip and the Panels menu.

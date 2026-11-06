@@ -77,7 +77,9 @@ describe('ToolPicker', () => {
 			['Pick', 'I'],
 			['Select', 'S'],
 			['Stamp', 'T'],
+			['Inspect', 'Q'],
 		] as const;
+		expect(picker.querySelectorAll('button[data-tool]')).toHaveLength(expected.length);
 		for (const [name, key] of expected) {
 			const button = screen.getByRole('button', { name });
 			expect(picker).toContainElement(button);
@@ -97,6 +99,8 @@ describe('ToolPicker', () => {
 		expect(screen.getByRole('button', { name: 'Paint' })).toHaveAttribute('aria-pressed', 'false');
 		await user.click(screen.getByRole('button', { name: 'Stamp' }));
 		expect(onTool).toHaveBeenCalledWith('stamp');
+		await user.click(screen.getByRole('button', { name: 'Inspect' }));
+		expect(onTool).toHaveBeenCalledWith('inspect');
 	});
 
 	it('sits at the top-left corner until it is moved, and where it was moved to after', () => {

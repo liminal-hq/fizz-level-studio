@@ -5,13 +5,14 @@
 
 import type { ToolId } from './tool';
 
-/** The key that picks each tool (`B`rush, `E`rase, p`I`ck, `S`elect, s`T`amp). */
+/** The key that picks each tool (`B`rush, `E`rase, p`I`ck, `S`elect, s`T`amp, and `Q` for Inspect, a query). */
 export const TOOL_KEYS: Record<ToolId, string> = {
 	paint: 'b',
 	erase: 'e',
 	pick: 'i',
 	select: 's',
 	stamp: 't',
+	inspect: 'q',
 };
 
 /** The tool a key chooses, or null. Modified keys never choose a tool. */

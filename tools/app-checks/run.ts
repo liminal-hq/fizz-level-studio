@@ -595,8 +595,8 @@ async function toolPickerChecks(bridge: Bridge): Promise<void> {
 		JSON.stringify({ offset: at0, saved0 }),
 	);
 	check(
-		'picker: it has the five square tool keys, named, with the shortcut in the tooltip',
-		m.keys.map((k) => k.name).join() === 'Paint,Erase,Pick,Select,Stamp' &&
+		'picker: it has the six square tool keys, named, with the shortcut in the tooltip',
+		m.keys.map((k) => k.name).join() === 'Paint,Erase,Pick,Select,Stamp,Inspect' &&
 			m.keys.every((k) => Math.abs(k.w - k.h) <= 1 && k.w >= 28) &&
 			m.keys[0]!.title === 'Paint (B)',
 		JSON.stringify(m.keys),

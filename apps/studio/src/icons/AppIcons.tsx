@@ -222,6 +222,15 @@ export const StampToolIcon: IconComponent = ({ size }) => (
 	</Svg>
 );
 
+/** A magnifier over a cell: the Inspect tool. */
+export const InspectToolIcon: IconComponent = ({ size }) => (
+	<Svg size={size}>
+		<circle cx="6.8" cy="6.8" r="4.3" />
+		<rect x="5.3" y="5.3" width="3" height="3" rx="0.4" />
+		<path d="M10 10l3.5 3.5" />
+	</Svg>
+);
+
 /** The icon on each tool's key. */
 export const TOOL_ICONS: Record<ToolId, IconComponent> = {
 	paint: PaintToolIcon,
@@ -229,6 +238,7 @@ export const TOOL_ICONS: Record<ToolId, IconComponent> = {
 	pick: PickToolIcon,
 	select: SelectToolIcon,
 	stamp: StampToolIcon,
+	inspect: InspectToolIcon,
 };
 
 /** The name of an icon a command or menu asks for. */
@@ -250,6 +260,7 @@ export type IconId =
 	| 'dockBack'
 	| 'about'
 	| `panel.${PanelId}`
+	| `tool.${ToolId}`
 	| 'menu.file'
 	| 'menu.edit'
 	| 'menu.view'
@@ -258,6 +269,9 @@ export type IconId =
 
 const PANEL_ICON_ENTRIES = PANEL_SPECS.map(
 	(spec) => [`panel.${spec.id}`, PANEL_ICONS[spec.id]] as const,
+);
+const TOOL_ICON_ENTRIES = (Object.keys(TOOL_ICONS) as ToolId[]).map(
+	(id) => [`tool.${id}`, TOOL_ICONS[id]] as const,
 );
 
 export const APP_ICONS: Record<IconId, IconComponent> = {
@@ -278,6 +292,7 @@ export const APP_ICONS: Record<IconId, IconComponent> = {
 	dockBack: DockBackIcon,
 	about: AboutIcon,
 	...(Object.fromEntries(PANEL_ICON_ENTRIES) as Record<`panel.${PanelId}`, IconComponent>),
+	...(Object.fromEntries(TOOL_ICON_ENTRIES) as Record<`tool.${ToolId}`, IconComponent>),
 	'menu.file': FileMenuIcon,
 	'menu.edit': EditMenuIcon,
 	'menu.view': EyeIcon,

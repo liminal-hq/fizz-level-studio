@@ -32,6 +32,7 @@ export const TOOL_LABELS: Record<ToolId, MessageId> = {
 	pick: 'tools.pick',
 	select: 'tools.select',
 	stamp: 'tools.stamp',
+	inspect: 'tools.inspect',
 };
 
 export interface ToolPickerProps {

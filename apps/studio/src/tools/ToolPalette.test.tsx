@@ -41,13 +41,16 @@ function Harness({ palette, lead }: { palette: string[]; lead?: ReactNode }) {
 }
 
 describe('toolForKey', () => {
-	it('maps B, E, I, S and T and ignores modified keys', () => {
+	it('maps B, E, I, S, T, and Q and ignores modified keys', () => {
 		const plain = { ctrlKey: false, metaKey: false, altKey: false };
 		expect(toolForKey({ key: 'b', ...plain })).toBe('paint');
 		expect(toolForKey({ key: 'E', ...plain })).toBe('erase');
 		expect(toolForKey({ key: 'i', ...plain })).toBe('pick');
 		expect(toolForKey({ key: 's', ...plain })).toBe('select');
 		expect(toolForKey({ key: 't', ...plain })).toBe('stamp');
+		expect(toolForKey({ key: 'Q', ...plain })).toBe('inspect');
+		// Ctrl+Q is Quit, never Inspect.
+		expect(toolForKey({ key: 'q', ...plain, ctrlKey: true })).toBeNull();
 		expect(toolForKey({ key: 's', ...plain, ctrlKey: true })).toBeNull();
 		expect(toolForKey({ key: 'x', ...plain })).toBeNull();
 	});

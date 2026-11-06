@@ -10,10 +10,10 @@ import type { Brush } from './brush';
 import { pasteEdits, type Clip } from './clip';
 import { coalesce, enemyEdit, itemEdits, spacedCells } from './runs';
 
-export type ToolId = 'paint' | 'erase' | 'pick' | 'select' | 'stamp';
+export type ToolId = 'paint' | 'erase' | 'pick' | 'select' | 'stamp' | 'inspect';
 
 /** Every tool, in the order the palette lists them. */
-export const TOOL_IDS: readonly ToolId[] = ['paint', 'erase', 'pick', 'select', 'stamp'];
+export const TOOL_IDS: readonly ToolId[] = ['paint', 'erase', 'pick', 'select', 'stamp', 'inspect'];
 
 /** A cell, counted from the bottom-left corner (`y` grows upward). */
 export interface Cell {
@@ -148,17 +148,64 @@ function strokeTool(
 	};
 }
 
+/** The item on a cell, if one is there. */
+function itemOn(view: LevelView, cell: Cell) {
+	return view.items.find((i) => Math.floor(i.x) === cell.x && Math.floor(i.y) === cell.y);
+}
+
+/** The enemy on a cell, if one is there; an enemy with no `y` stands on its column's resting row. */
+function spawnOn(view: LevelView, cell: Cell) {
+	return view.spawns.find(
+		(s) => Math.floor(s.x) === cell.x && Math.floor(s.y ?? restingRow(view, cell.x)) === cell.y,
+	);
+}
+
+/** The tile word of a cell inside the level. */
+function tileOn(view: LevelView, cell: Cell): string | undefined {
+	return view.palette[view.cells[cell.y * view.width + cell.x] ?? 0];
+}
+
 /** What lies on a cell, topmost first: an item, an enemy, then the tile. */
 function brushAt(view: LevelView, cell: Cell): Brush | null {
 	if (!inBounds(view, cell)) return null;
-	const item = view.items.find((i) => Math.floor(i.x) === cell.x && Math.floor(i.y) === cell.y);
+	const item = itemOn(view, cell);
 	if (item) return { group: 'item', kind: item.kind };
-	const spawn = view.spawns.find(
-		(s) => Math.floor(s.x) === cell.x && Math.floor(s.y ?? restingRow(view, cell.x)) === cell.y,
-	);
+	const spawn = spawnOn(view, cell);
 	if (spawn) return { group: 'enemy', kind: spawn.kind };
-	const word = view.palette[view.cells[cell.y * view.width + cell.x] ?? 0];
+	const word = tileOn(view, cell);
 	return word === undefined ? null : { group: 'tile', kind: word };
+}
+
+/** What Inspect selects: an object on the level, or the cell itself. */
+export type ThingKind = 'item' | 'enemy' | 'start' | 'cell';
+
+/** A thing chosen on the level, as the canvas, the objects list and the inspector read it. */
+export interface Thing {
+	kind: ThingKind;
+	/** The item or enemy word, `start` for Ben's start, or the cell's tile word (`empty` included). */
+	name: string;
+	x: number;
+	y: number;
+	/** The layer it lives on: the placed objects, or the tile map. */
+	layer: 'objects' | 'tiles';
+}
+
+/**
+ * The topmost thing on a cell: an item, then an enemy, then Ben's start, then the cell with its
+ * tile. Null outside the level. It only reads the view.
+ */
+export function thingAt(view: LevelView, cell: Cell): Thing | null {
+	if (!inBounds(view, cell)) return null;
+	const { x, y } = cell;
+	const item = itemOn(view, cell);
+	if (item) return { kind: 'item', name: item.kind, x, y, layer: 'objects' };
+	const spawn = spawnOn(view, cell);
+	if (spawn) return { kind: 'enemy', name: spawn.kind, x, y, layer: 'objects' };
+	const start = view.start;
+	if (start && Math.floor(start.x) === x && Math.floor(start.y) === y) {
+		return { kind: 'start', name: 'start', x, y, layer: 'objects' };
+	}
+	return { kind: 'cell', name: tileOn(view, cell) ?? 'empty', x, y, layer: 'tiles' };
 }
 
 function pick(state: ToolState, phase: PointerPhase, cell: Cell, context: ToolContext): ToolResult {
@@ -235,5 +282,8 @@ export function reduceTool(
 			return select(state, phase, cell, context);
 		case 'stamp':
 			return stamp(state, phase, cell, context);
+		// Inspect only reads: the screen selects `thingAt` the pressed cell, and nothing is edited.
+		case 'inspect':
+			return { state, edits: [], pick: null };
 	}
 }
