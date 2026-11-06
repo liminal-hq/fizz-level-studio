@@ -215,29 +215,6 @@ export const enMessages = {
 	// translator: Shown in place of the Palette’s item and enemy lists while the words are loading or unavailable.
 	'palette.unavailable': 'The word list is not available.',
 
-	// translator: Label of the text field in which a line of script is typed, with word completion.
-	'compose.label': 'Script line',
-	// translator: Hint for the script line field. “Tab” and “Enter” are key names.
-	'compose.hint': 'Type a word, then press Tab or Enter to complete it.',
-	// translator: Accessible name of the list of suggested words under the script line field.
-	'compose.suggestions': 'Word suggestions',
-	// translator: Spoken when suggestions appear. {count} is how many.
-	'compose.count.one': '{count} suggestion',
-	// translator: Spoken when suggestions appear. {count} is how many.
-	'compose.count.other': '{count} suggestions',
-	// translator: What kind of word a suggestion is. A statement is a line of the script, such as “paint”.
-	'compose.kind.statement': 'statement',
-	// translator: What kind of word a suggestion is. A section is a heading in the script, such as “edits”.
-	'compose.kind.section': 'section',
-	// translator: What kind of word a suggestion is. A segment is a kind of terrain.
-	'compose.kind.segment': 'terrain',
-	// translator: What kind of word a suggestion is. A tile is a kind of ground or wall.
-	'compose.kind.tile': 'tile',
-	// translator: What kind of word a suggestion is. An item is a collectable.
-	'compose.kind.item': 'item',
-	// translator: What kind of word a suggestion is.
-	'compose.kind.enemy': 'enemy',
-
 	// translator: Heading of the panel that shows what Claude has proposed and the person has not yet answered.
 	'ghosts.title': 'Proposals',
 	// translator: Label of the switch that shows or hides Claude’s proposed changes as faint cells on the canvas.

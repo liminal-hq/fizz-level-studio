@@ -7,7 +7,6 @@ import type { ViewDiagnostic } from '@liminal-hq/fizz-studio-protocol/generated/
 import type { WordDoc } from '@liminal-hq/fizz-studio-protocol/generated/WordDoc';
 import { useEffect, useRef, useState } from 'react';
 import { t } from '../i18n/messages';
-import { LineComposer } from './LineComposer';
 import styles from './ScriptPanel.module.css';
 import { ScriptEditor, type RevealRequest } from './script/ScriptEditor';
 
@@ -15,7 +14,7 @@ export interface ScriptPanelProps {
 	/** `LevelSnapshot.text`, shown exactly as it is. */
 	text: string;
 	diagnostics: readonly ViewDiagnostic[];
-	/** The documented words, from the backend, for hover text and completion. */
+	/** The documented words, from the backend, for hover text. */
 	words?: readonly WordDoc[];
 	/** A line (counted from 1) to mark and bring into view, such as one chosen elsewhere. */
 	focusLine?: number | null;
@@ -66,7 +65,6 @@ export function ScriptPanel({
 				editable={editable}
 			/>
 			<div className={styles.footer}>
-				{words.length > 0 && <LineComposer words={words} />}
 				<h3 className={styles.subtitle}>{t('script.diagnostics')}</h3>
 				{diagnostics.length === 0 ? (
 					<p className={styles.none}>{t('script.noProblems')}</p>

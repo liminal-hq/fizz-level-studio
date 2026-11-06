@@ -19,14 +19,14 @@
 .editor {
 	flex: 1 1 6rem;
 	min-width: 0;
-	/* The editor is the panel: in a short dock the composer and problems give way, not the code. */
+	/* The editor is the panel: in a short dock the problems give way, not the code. */
 	min-height: 5rem;
 	border: 1px solid var(--fls-border-subtle);
 	border-radius: 4px;
 	overflow: hidden;
 }
 
-/* The composer and the problems share what the editor leaves, and scroll when it is not enough. */
+/* The problems get what the editor leaves, and scroll when it is not enough. */
 .footer {
 	display: flex;
 	flex: 0 1 auto;

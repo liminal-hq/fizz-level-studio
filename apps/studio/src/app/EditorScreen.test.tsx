@@ -419,8 +419,11 @@ describe('EditorScreen panels', () => {
 		screen.getByRole('application').focus();
 		await user.keyboard('e');
 		expect(screen.getByRole('button', { name: 'Erase' })).toHaveAttribute('aria-pressed', 'true');
-		(await screen.findByRole('combobox', { name: 'Script line' })).focus();
+		const field = document.createElement('input');
+		document.body.append(field);
+		field.focus();
 		await user.keyboard('p');
+		field.remove();
 		expect(screen.getByRole('button', { name: 'Erase' })).toHaveAttribute('aria-pressed', 'true');
 	});
 
@@ -439,16 +442,6 @@ describe('EditorScreen panels', () => {
 		await user.click(await within(region).findByRole('option', { name: 'soda' }));
 		expect(screen.getByRole('button', { name: /^Paint/ })).toHaveAttribute('aria-pressed', 'true');
 		expect(screen.getByText(/^Brush: soda/)).toBeInTheDocument();
-	});
-
-	it('offers paint for pa in the Script panel from the backend words', async () => {
-		const user = userEvent.setup();
-		await mountWithWords();
-		const field = await screen.findByRole('combobox', { name: 'Script line' });
-		await user.type(field, 'pa');
-		expect(await screen.findByRole('option', { name: /^paint/ })).toBeInTheDocument();
-		await user.keyboard('{Tab}');
-		expect(field).toHaveValue('paint');
 	});
 
 	it("lists Claude's pending proposals from the backend", async () => {

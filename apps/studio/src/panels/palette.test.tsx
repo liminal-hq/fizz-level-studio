@@ -10,7 +10,6 @@ import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { GhostsPanel } from './GhostsPanel';
 import { PalettePanel } from './PalettePanel';
-import { ScriptPanel } from './ScriptPanel';
 
 const doc = (word: string, kind: string, note = ''): WordDoc => ({
 	word,
@@ -147,78 +146,6 @@ describe('PalettePanel', () => {
 		expect(screen.getByRole('option', { name: 'grass' })).toBeInTheDocument();
 		expect(screen.getByText('The word list is not available.')).toBeInTheDocument();
 		expect(screen.getByRole('option', { name: 'cheezie' })).toBeInTheDocument();
-	});
-});
-
-describe('completion in the Script panel', () => {
-	const mount = () => render(<ScriptPanel text="" diagnostics={[]} words={words} />);
-
-	it('has no field without words', () => {
-		render(<ScriptPanel text="" diagnostics={[]} />);
-		expect(screen.queryByRole('combobox')).toBeNull();
-	});
-
-	it('offers paint for pa as a listbox, with the field keeping focus', async () => {
-		const user = userEvent.setup();
-		mount();
-		const field = screen.getByRole('combobox', { name: 'Script line' });
-		expect(field).toHaveAttribute('aria-expanded', 'false');
-		await user.type(field, 'pa');
-		expect(field).toHaveAttribute('aria-expanded', 'true');
-		const options = within(screen.getByRole('listbox', { name: 'Word suggestions' })).getAllByRole(
-			'option',
-		);
-		expect(options.map((o) => o.textContent)).toEqual(['paintstatement', 'pathtile']);
-		expect(options[0]).toHaveAttribute('aria-selected', 'true');
-		expect(field).toHaveAttribute('aria-activedescendant', options[0]?.id);
-		expect(field).toHaveFocus();
-	});
-
-	it('accepts the highlighted word with Tab, and the next one after ArrowDown with Enter', async () => {
-		const user = userEvent.setup();
-		mount();
-		const field = screen.getByRole('combobox', { name: 'Script line' });
-		await user.type(field, 'pa');
-		await user.keyboard('{Tab}');
-		expect(field).toHaveValue('paint');
-		expect(field).toHaveFocus();
-		expect(field).toHaveAttribute('aria-expanded', 'false');
-
-		await user.type(field, ' pa');
-		await user.keyboard('{ArrowDown}{Enter}');
-		expect(field).toHaveValue('paint path');
-	});
-
-	it('moves up and wraps, and closes with Escape without clearing the text', async () => {
-		const user = userEvent.setup();
-		mount();
-		const field = screen.getByRole('combobox', { name: 'Script line' });
-		await user.type(field, 'pa');
-		await user.keyboard('{ArrowUp}');
-		expect(screen.getAllByRole('option')[1]).toHaveAttribute('aria-selected', 'true');
-		await user.keyboard('{Escape}');
-		expect(field).toHaveAttribute('aria-expanded', 'false');
-		expect(field).toHaveValue('pa');
-	});
-
-	it('accepts a suggestion that is clicked', async () => {
-		const user = userEvent.setup();
-		mount();
-		const field = screen.getByRole('combobox', { name: 'Script line' });
-		await user.type(field, 'pa');
-		await user.click(screen.getByRole('option', { name: /^path/ }));
-		expect(field).toHaveValue('path');
-	});
-
-	it('completes the word at the caret in the middle of a line', async () => {
-		const user = userEvent.setup();
-		mount();
-		const field = screen.getByRole('combobox', { name: 'Script line' });
-		await user.type(field, 'paint gr x=1');
-		await user.keyboard('{ArrowLeft}{ArrowLeft}{ArrowLeft}{ArrowLeft}');
-		expect(screen.getByRole('option', { name: /^grass/ })).toBeInTheDocument();
-		await user.keyboard('{Tab}');
-		expect(field).toHaveValue('paint grass x=1');
 	});
 });
 

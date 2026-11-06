@@ -206,7 +206,7 @@ In the prototype there is no AI: Ask cycles through three canned ideas per level
 | Navigator | The whole level with an orange frame for what the canvas shows, shading under windows, the selection in white, and the zoom |
 | History | Steps by You and Claude, Now, then proposed steps |
 | Review changes | The pending idea's title and why, its hunks and lines, Accept and Reject per hunk and for all |
-| Script | Line numbers, the `+` marks, tinted pending lines, the scroll track, Following, the typed-line box, errors with Use this fix, completion |
+| Script | Line numbers, the `+` marks, tinted pending lines, the scroll track, Following, errors with Use this fix, completion in the editor |
 | Shortcuts card | The key table in §3 |
 | Starter levels card | §9 |
 
