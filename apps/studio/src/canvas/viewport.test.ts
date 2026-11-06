@@ -9,10 +9,14 @@ import {
 	cellPx,
 	clampScroll,
 	clampZoom,
+	frameViewport,
 	moveCursor,
+	NO_INSETS,
 	pixelToCell,
 	revealCell,
+	uncoveredRect,
 	zoomAt,
+	type Size,
 	type Viewport,
 } from './viewport';
 
@@ -98,5 +102,71 @@ describe('moveCursor', () => {
 	it('ignores other keys', () => {
 		const cursor = { x: 2, y: 2 };
 		expect(moveCursor(cursor, 'a', level)).toBe(cursor);
+	});
+});
+
+describe('covered margins', () => {
+	// A 300 by 200 frame with a 60 px dock on the left, 40 px on the right and 50 px along the
+	// bottom leaves 200 by 150 uncovered, starting 60 px in.
+	const frame = { width: 300, height: 200 };
+	const insets = { top: 0, right: 40, bottom: 50, left: 60 };
+	const visible = uncoveredRect(frame, insets);
+	const seen: Size = { width: visible.width, height: visible.height };
+
+	it('leaves the frame less its insets uncovered', () => {
+		expect(visible).toEqual({ x: 60, y: 0, width: 200, height: 150 });
+		expect(uncoveredRect(frame, NO_INSETS)).toEqual({ x: 0, y: 0, width: 300, height: 200 });
+	});
+
+	it('never reports a negative or out-of-frame rectangle', () => {
+		const over = uncoveredRect(frame, { top: 0, right: 400, bottom: 900, left: 250 });
+		expect(over).toEqual({ x: 250, y: 0, width: 0, height: 0 });
+		expect(uncoveredRect(frame, { top: -5, right: -5, bottom: 0, left: -5 })).toEqual({
+			x: 0,
+			y: 0,
+			width: 300,
+			height: 200,
+		});
+	});
+
+	it('centres a small level in the uncovered rectangle, not under the docks', () => {
+		const camera = at(1);
+		const framed = frameViewport({ ...camera, ...clampScroll(camera, seen, level) }, visible);
+		// At 1x the 20 by 10 level is 80 by 40 pixels.
+		const origin = cellOrigin({ x: 0, y: level.height - 1 }, framed, level);
+		expect(origin).toEqual({ x: 60 + (200 - 80) / 2, y: (150 - 40) / 2 });
+	});
+
+	it('clamps the scroll so the level never slides under a dock out of reach', () => {
+		// At 8x the level is 640 by 320; scrolled as far as it goes, its far corner meets the
+		// uncovered rectangle's, not the frame's.
+		const camera = at(8, 9999, 9999);
+		const framed = frameViewport({ ...camera, ...clampScroll(camera, seen, level) }, visible);
+		const far = cellOrigin({ x: level.width - 1, y: 0 }, framed, level);
+		expect(far.x + 32).toBe(visible.x + visible.width);
+		expect(far.y + 32).toBe(visible.y + visible.height);
+		const near = at(8, -9999, -9999);
+		const start = frameViewport({ ...near, ...clampScroll(near, seen, level) }, visible);
+		expect(cellOrigin({ x: 0, y: level.height - 1 }, start, level)).toEqual({ x: 60, y: 0 });
+	});
+
+	it('finds the cell under a frame pixel through the frame viewport', () => {
+		const camera = at(4, 16, 0);
+		const framed = frameViewport(camera, visible);
+		// The uncovered rectangle's top-left pixel shows the cell the camera's scroll names.
+		expect(pixelToCell(visible.x, visible.y, framed, level)).toEqual(
+			pixelToCell(0, 0, camera, level),
+		);
+		// A pixel under the left dock still maps to the cell drawn there.
+		expect(pixelToCell(10, 0, framed, level)).toEqual({ x: -3, y: level.height - 1 });
+	});
+
+	it('zooms about the pointer in uncovered coordinates', () => {
+		const before = at(4, 40, 20);
+		const px = 150;
+		const py = 80;
+		const cell = pixelToCell(px, py, frameViewport(before, visible), level);
+		const after = zoomAt(before, 8, px - visible.x, py - visible.y, seen, level);
+		expect(pixelToCell(px, py, frameViewport(after, visible), level)).toEqual(cell);
 	});
 });

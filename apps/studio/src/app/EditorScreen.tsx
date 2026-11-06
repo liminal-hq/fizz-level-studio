@@ -54,6 +54,7 @@ import { withAwayTabs } from '../panels/windows/awayTabs';
 import { type EditorShare, type PanelBridge } from '../panels/windows/panelBridge';
 import { useEditorBridgeHost } from '../panels/windows/useEditorBridgeHost';
 import { usePanelWindows } from '../panels/windows/usePanelWindows';
+import { dockInsets } from '../panels/dock/dockGeometry';
 import { zoneOf } from '../panels/dock/dockModel';
 import { visibleWorkspace } from '../panels/dock/dockView';
 import { dockClient as defaultDockClient, type DockClient } from '../services/dockClient';
@@ -140,6 +141,9 @@ export function EditorScreen({
 		() => visibleWorkspace(withAwayTabs(dock.workspace, shownAway), dock.session.levelFirst),
 		[dock.workspace, dock.session.levelFirst, shownAway],
 	);
+	// The level spans the dock shell and the docks lie over its edges; the canvas keeps the level in
+	// what they leave uncovered.
+	const insets = useMemo(() => dockInsets(dockView, dock.window), [dockView, dock.window]);
 	const activateTab = (id: string) => {
 		if (windows.away[id as PanelId]) {
 			setShownAway((was) => (was.includes(id) ? was : [...was, id]));
@@ -661,6 +665,7 @@ export function EditorScreen({
 							ghosts={ghostCells}
 							reveal={reveal}
 							onCellChosen={onCellChosen}
+							insets={insets}
 							overlay={(map) => (
 								<ToolPicker
 									tool={tool.tool}

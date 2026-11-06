@@ -1,4 +1,4 @@
-// Tests for the dock shell: the zones around the level, their rails and the buttons in their headers
+// Tests for the dock shell: the zones over the level, their rails and the buttons in their headers
 //
 // (c) Copyright 2026 Liminal HQ, Scott Morris
 // SPDX-License-Identifier: Apache-2.0 OR MIT
@@ -9,6 +9,7 @@ import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { PEEK_DELAY_MS } from './DockRail';
 import { DockShell, PEEK_LEAVE_MS, type DockActions } from './DockShell';
+import { dockInsets } from './dockGeometry';
 import { INITIAL_SESSION, setPanelVisible, setZoneCollapsed, type DockSession } from './dockLayout';
 import { defaultWorkspace } from './dockModel';
 import { visibleWorkspace } from './dockView';
@@ -119,6 +120,31 @@ describe('DockShell', () => {
 		expect(shell.style.getPropertyValue('--fls-dock-right')).toBe('432px');
 		expect(shell.style.getPropertyValue('--fls-dock-left')).toBe('196px');
 		expect(shell.style.getPropertyValue('--fls-dock-bottom')).toBe('180px');
+	});
+
+	it('covers the edges of the level by the insets the canvas is told', () => {
+		const ws = setZoneCollapsed(defaultWorkspace(), 'right', true);
+		const view = visibleWorkspace(ws);
+		mount(view);
+		const shell = shellOf();
+		const px = (name: string) => Number(shell.style.getPropertyValue(name).replace('px', ''));
+		const insets = dockInsets(view, { w: 1440, h: 900 });
+		expect(px('--fls-rail-left') + px('--fls-dock-left')).toBe(insets.left);
+		// A folded dock still covers the level, at its rail's width.
+		expect(px('--fls-rail-right') + px('--fls-dock-right')).toBe(insets.right);
+		expect(insets.right).toBe(36);
+		expect(px('--fls-rail-bottom') + px('--fls-dock-bottom')).toBe(insets.bottom);
+	});
+
+	it('keeps the docks around the level in the tree, so the keyboard meets them in order', () => {
+		mount();
+		const level = screen.getByTestId('level').parentElement!;
+		const before = (a: Element, b: Element) =>
+			(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0;
+		const region = (name: string) => screen.getByRole('region', { name });
+		expect(before(region('Left dock'), level)).toBe(true);
+		expect(before(level, region('Right dock'))).toBe(true);
+		expect(before(region('Right dock'), region('Bottom dock'))).toBe(true);
 	});
 });
 

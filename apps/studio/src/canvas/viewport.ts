@@ -27,6 +27,59 @@ export interface Size {
 	height: number;
 }
 
+/**
+ * How far in from each edge of the canvas's frame something lies over it (the docks, their rails
+ * and the status line), in pixels. The canvas draws under them, but the camera treats only the
+ * rectangle they leave as the window.
+ */
+export interface Insets {
+	top: number;
+	right: number;
+	bottom: number;
+	left: number;
+}
+
+export const NO_INSETS: Insets = { top: 0, right: 0, bottom: 0, left: 0 };
+
+/** A rectangle of the frame, in pixels from its top-left corner. */
+export interface FrameRect {
+	x: number;
+	y: number;
+	width: number;
+	height: number;
+}
+
+/**
+ * The part of the frame nothing covers: the frame less its insets, never negative. An inset larger
+ * than the frame is held to it, so the rectangle always lies inside the frame.
+ */
+export function uncoveredRect(frame: Size, insets: Insets): FrameRect {
+	const left = Math.min(Math.max(0, insets.left), frame.width);
+	const top = Math.min(Math.max(0, insets.top), frame.height);
+	const right = Math.min(Math.max(0, insets.right), frame.width - left);
+	const bottom = Math.min(Math.max(0, insets.bottom), frame.height - top);
+	return {
+		x: left,
+		y: top,
+		width: frame.width - left - right,
+		height: frame.height - top - bottom,
+	};
+}
+
+/**
+ * The camera's viewport as the whole frame sees it. The camera fits, clamps and centres against the
+ * uncovered rectangle and measures its scroll from that rectangle's top-left corner, so the frame,
+ * which starts `uncovered.x` and `uncovered.y` pixels further out, scrolls that much less. Drawing
+ * and the pointer's cell use this one, with pixels measured from the frame's own corner.
+ */
+export function frameViewport(viewport: Viewport, uncovered: FrameRect): Viewport {
+	return {
+		zoom: viewport.zoom,
+		scrollX: viewport.scrollX - uncovered.x,
+		scrollY: viewport.scrollY - uncovered.y,
+	};
+}
+
 export function clampZoom(zoom: number): number {
 	return Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, Math.round(zoom)));
 }

@@ -396,7 +396,9 @@ describe('the dirty marker, saving and closing', () => {
 		expect(within(row).queryByRole('button', { name: 'Paint' })).toBeNull();
 		const tools = screen.getByRole('group', { name: 'Tools' });
 		expect(tools).toContainElement(screen.getByRole('button', { name: 'Paint' }));
-		expect(tools.parentElement).toContainElement(screen.getByRole('application'));
+		expect(tools.closest('[data-map]')?.parentElement).toContainElement(
+			screen.getByRole('application'),
+		);
 		// The Panels menu stays at the end of the same row.
 		expect(row.parentElement).toContainElement(screen.getByRole('button', { name: /Panels/ }));
 		expect(

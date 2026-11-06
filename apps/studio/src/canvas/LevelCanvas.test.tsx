@@ -124,6 +124,34 @@ describe('LevelCanvas', () => {
 		expect(props.onCursorChange).toHaveBeenCalledWith({ x: 2, y: 0 });
 	});
 
+	it('keeps the level in the part the docks leave and maps the pointer across the whole frame', () => {
+		// A 100 px dock on the left and 84 px along the bottom leave 540 by 300 of the 640 by 384
+		// frame; the 192 by 128 level is centred in that, not in the frame.
+		const { props, canvas } = setup({ insets: { top: 0, right: 0, bottom: 84, left: 100 } });
+		const at = (x: number, y: number) => ({
+			clientX: 100 + (540 - 192) / 2 + x * 16 + 1,
+			clientY: (300 - 128) / 2 + (7 - y) * 16 + 1,
+		});
+		fireEvent.pointerDown(canvas, { button: 0, ...at(0, 7) });
+		fireEvent.pointerUp(canvas, at(11, 0));
+		expect(props.onToolEvent).toHaveBeenNthCalledWith(1, 'down', { x: 0, y: 7 });
+		expect(props.onToolEvent).toHaveBeenNthCalledWith(2, 'up', { x: 11, y: 0 });
+	});
+
+	it('gives the floating controls the uncovered part of the map, and the status line its edges', () => {
+		const overlay = vi.fn(() => <span data-testid="floating" />);
+		setup({ insets: { top: 0, right: 60, bottom: 84, left: 100 }, overlay });
+		expect(overlay).toHaveBeenLastCalledWith({ w: 480, h: 300 });
+		const map = screen.getByTestId('floating').parentElement!;
+		expect(map).toHaveAttribute('data-map');
+		const root = map.closest<HTMLElement>('[style]')!;
+		expect(root.style.getPropertyValue('--fls-map-x')).toBe('100px');
+		expect(root.style.getPropertyValue('--fls-map-w')).toBe('480px');
+		expect(root.style.getPropertyValue('--fls-cover-bottom')).toBe('84px');
+		expect(root.style.getPropertyValue('--fls-cover-right')).toBe('60px');
+		expect(map).not.toContainElement(screen.getByRole('status'));
+	});
+
 	it('sends no move events while the pointer is up', () => {
 		const { props, canvas } = setup();
 		fireEvent.pointerMove(canvas, { clientX: 300, clientY: 200 });
