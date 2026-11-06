@@ -1,0 +1,14 @@
+{
+	"blur": 16,
+	"saturation": 120,
+	"panel_opacity": 88,
+	"docks": true,
+	"floating": true,
+	"menus": false,
+	"dialogs": false,
+	"title_bar": false,
+	"menu_opacity": 96,
+	"window_enabled": false,
+	"window_blur": "low",
+	"solid_when_unfocused": true
+}

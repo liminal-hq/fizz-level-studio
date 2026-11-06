@@ -1,0 +1,14 @@
+{
+	"version": 6,
+	"settings": {
+		"colour_mode": "dark",
+		"accent": { "kind": "custom", "hex": "#ffaa40" },
+		"glass": "off",
+		"larger_controls": true,
+		"ui": { "menu_bar": true },
+		"locale": "fr-CA",
+		"recent_worlds": ["/worlds/b.fizz", "/worlds/a.fizz"],
+		"layout": {},
+		"dock": { "active": "", "workspaces": {} }
+	}
+}

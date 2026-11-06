@@ -21,6 +21,7 @@ import type {
 } from '../services/quitClient';
 import type { RecentClient } from '../services/recentClient';
 import type { SettingsClient } from '../services/settingsClient';
+import { TRANSPARENCY_DEFAULTS } from '../theme/transparency';
 import { fakeDockClient, floatingDock } from '../test/dockFixtures';
 import { levelSnapshot, levelView } from '../test/levelFixtures';
 import { FakeLevelClient } from '../worlds/fakeLevelClient';
@@ -185,6 +186,7 @@ const DEFAULT_SETTINGS: Settings = {
 	colour_mode: 'system',
 	accent: { kind: 'system' },
 	glass: 'system',
+	transparency: TRANSPARENCY_DEFAULTS,
 	larger_controls: false,
 	ui: { menu_bar: false },
 	locale: 'en-CA',

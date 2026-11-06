@@ -3,4 +3,4 @@
 /**
  * A settings field a refusal can name, so a form shows the message beside the right control.
  */
-export type SettingsField = "accent-hex" | "workspace-name" | "workspace-panel" | "workspace-tabs" | "zone-size" | "workspace-rect";
+export type SettingsField = "accent-hex" | "workspace-name" | "workspace-panel" | "workspace-tabs" | "zone-size" | "workspace-rect" | "transparency-blur" | "transparency-saturation" | "transparency-panel-opacity" | "transparency-menu-opacity";

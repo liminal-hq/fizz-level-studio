@@ -9,6 +9,7 @@ import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import type { SettingsClient } from '../services/settingsClient';
+import { TRANSPARENCY_DEFAULTS } from '../theme/transparency';
 
 // The chrome follows the real window; in a test there is none, so it gets a quiet stand-in.
 vi.mock('@tauri-apps/api/window', () => {
@@ -33,6 +34,7 @@ const BASE: Settings = {
 	colour_mode: 'system',
 	accent: { kind: 'system' },
 	glass: 'system',
+	transparency: TRANSPARENCY_DEFAULTS,
 	larger_controls: false,
 	locale: 'en-CA',
 	recent_worlds: [],

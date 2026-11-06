@@ -4,6 +4,7 @@ import type { ColourMode } from "./ColourMode";
 import type { DockSettings } from "./DockSettings";
 import type { GlassMode } from "./GlassMode";
 import type { PanelLayout } from "./PanelLayout";
+import type { TransparencySettings } from "./TransparencySettings";
 import type { UiSettings } from "./UiSettings";
 
 /**
@@ -19,6 +20,10 @@ accent: AccentChoice,
  * Whether panels are glass or solid.
  */
 glass: GlassMode, 
+/**
+ * How the glass is drawn, where it is worn, and whether the window lets the desktop through.
+ */
+transparency: TransparencySettings, 
 /**
  * Bigger hit targets and text for the controls.
  */
