@@ -70,6 +70,39 @@ describe('EditorScreen', () => {
 		expect(screen.getByRole('button', { name: 'Undo' })).toBeDisabled();
 	});
 
+	it('floats the tools over the map, outside the canvas and above the status line', async () => {
+		await mount();
+		const tools = screen.getByRole('group', { name: 'Tools' });
+		const canvas = screen.getByRole('application');
+		expect(tools.parentElement).toBe(canvas.parentElement);
+		expect(tools).not.toContainElement(canvas);
+		// The status line is below the map, not inside it.
+		const status = screen.getByText(/^Cell /);
+		expect(tools.parentElement).not.toContainElement(status);
+		expect(screen.getByRole('group', { name: 'Editor toolbar' })).not.toContainElement(
+			screen.getByRole('button', { name: 'Paint' }),
+		);
+	});
+
+	it('saves where the tools were moved to in the workspace', async () => {
+		const snapshot = levelSnapshot();
+		const docks = floating();
+		render(
+			<EditorScreen snapshot={snapshot} client={new FakeLevelClient(snapshot)} docks={docks} />,
+		);
+		await screen.findByRole('region', { name: 'History' });
+		const grip = screen.getByRole('button', { name: 'Move the tools' });
+		fireEvent.pointerDown(grip, { pointerId: 3, button: 0, clientX: 20, clientY: 20 });
+		fireEvent.pointerMove(grip, { pointerId: 3, clientX: 120, clientY: 70 });
+		fireEvent.pointerUp(grip, { pointerId: 3, clientX: 120, clientY: 70 });
+		const tools = screen.getByRole('group', { name: 'Tools' });
+		expect(tools.style.getPropertyValue('--fls-picker-x')).toBe('108px');
+		expect(tools.style.getPropertyValue('--fls-picker-y')).toBe('58px');
+		await waitFor(() => expect(docks.save).toHaveBeenCalled(), { timeout: 3000 });
+		const saved = vi.mocked(docks.save).mock.calls.at(-1)![0];
+		expect(saved.workspaces[saved.active]!.tool_picker).toEqual({ x: 108, y: 58 });
+	});
+
 	it('works on a level built from the Crater Fields fixture', () => {
 		const palette = Object.keys(crater.palette);
 		const ids = Object.values(crater.palette) as number[];

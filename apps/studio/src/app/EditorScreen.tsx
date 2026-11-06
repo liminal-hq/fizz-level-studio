@@ -62,6 +62,7 @@ import { BRUSH_GROUPS, brushWords, type Brush } from '../tools/brush';
 import { pasteRect } from '../tools/clip';
 import { SPACING_KEYS, toolForKey } from '../tools/shortcuts';
 import { ToolPalette } from '../tools/ToolPalette';
+import { ToolPicker } from '../tools/ToolPicker';
 import { TOOL_IDS, type Cell, type PointerPhase } from '../tools/tool';
 import { useTool } from '../tools/useTool';
 import { isLevelError, type LevelClient } from '../worlds/levelClient';
@@ -81,7 +82,7 @@ export interface EditorScreenProps {
 	docks?: DockClient;
 	/** The channel to the panels torn off into their own windows; without one they get no state. */
 	panelBridge?: PanelBridge;
-	/** Controls for the start of the tool row, before the tools (the main screen's Save and Close level). */
+	/** Controls for the start of the row above the level, before the brush (the main screen's Save and Close level). */
 	toolLead?: ReactNode;
 }
 
@@ -635,6 +636,15 @@ export function EditorScreen({
 							ghosts={ghostCells}
 							reveal={reveal}
 							onCellChosen={onCellChosen}
+							overlay={(map) => (
+								<ToolPicker
+									tool={tool.tool}
+									onTool={tool.setTool}
+									map={map}
+									place={dock.toolPicker}
+									onPlace={dock.placeToolPicker}
+								/>
+							)}
 						/>
 					</div>
 				</DockShell>

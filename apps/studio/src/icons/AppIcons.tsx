@@ -1,4 +1,4 @@
-// The icons on the application menu's rows and menus, drawn in the current text colour
+// The icons on the application menu's rows and menus, and on the tool keys, drawn in the current text colour
 //
 // (c) Copyright 2026 Liminal HQ, Scott Morris
 // SPDX-License-Identifier: Apache-2.0 OR MIT
@@ -11,6 +11,7 @@
 import type { ComponentType, ReactNode, SVGProps } from 'react';
 import { PANEL_SPECS, type PanelId } from '../panels/float/panelSpecs';
 import { PANEL_ICONS, TearOffIcon } from '../panels/dock/panelIcons';
+import type { ToolId } from '../tools/tool';
 
 export type IconComponent = ComponentType<{ size?: number }>;
 
@@ -179,6 +180,56 @@ export const FileMenuIcon: IconComponent = ({ size }) => (
 		<path d={PAGE} />
 	</Svg>
 );
+
+/** A pen nib: the Paint tool. */
+export const PaintToolIcon: IconComponent = ({ size }) => (
+	<Svg size={size}>
+		<path d="M2.5 13.5 4 8.6l5.8-5.8a1.4 1.4 0 0 1 2 0l1.4 1.4a1.4 1.4 0 0 1 0 2L7.4 12z" />
+		<path d="M2.5 13.5 6 10M8.6 4l3.4 3.4" />
+	</Svg>
+);
+
+/** An eraser on its side: the Erase tool. */
+export const EraseToolIcon: IconComponent = ({ size }) => (
+	<Svg size={size}>
+		<path d="M5.8 13.5 2.6 10.3a1.2 1.2 0 0 1 0-1.7l6-6a1.2 1.2 0 0 1 1.7 0l3.1 3.1a1.2 1.2 0 0 1 0 1.7l-6 6.1z" />
+		<path d="M5.4 5.8l4.8 4.8M5.8 13.5h7.7" />
+	</Svg>
+);
+
+/** An eyedropper: the Pick tool. */
+export const PickToolIcon: IconComponent = ({ size }) => (
+	<Svg size={size}>
+		<path d="M9.4 4.2 11.6 2a1.5 1.5 0 0 1 2.1 0l.3.3a1.5 1.5 0 0 1 0 2.1l-2.2 2.2" />
+		<path d="M8.4 3.2l4.4 4.4" />
+		<path d="M9.6 4.4 3.8 10.2a1 1 0 0 0-.3.6L3 13l2.2-.5a1 1 0 0 0 .6-.3l5.8-5.8" />
+	</Svg>
+);
+
+/** A dashed rectangle: the Select tool's marquee. */
+export const SelectToolIcon: IconComponent = ({ size }) => (
+	<Svg size={size}>
+		<rect x="2.5" y="3.5" width="11" height="9" rx="1" strokeDasharray="2 2" />
+	</Svg>
+);
+
+/** A rubber stamp: the Stamp tool. */
+export const StampToolIcon: IconComponent = ({ size }) => (
+	<Svg size={size}>
+		<circle cx="8" cy="3.6" r="1.8" />
+		<path d="M7 5.3v2.7M9 5.3v2.7" />
+		<path d="M3 10a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v1H3zM3.5 13.5h9" />
+	</Svg>
+);
+
+/** The icon on each tool's key. */
+export const TOOL_ICONS: Record<ToolId, IconComponent> = {
+	paint: PaintToolIcon,
+	erase: EraseToolIcon,
+	pick: PickToolIcon,
+	select: SelectToolIcon,
+	stamp: StampToolIcon,
+};
 
 /** The name of an icon a command or menu asks for. */
 export type IconId =

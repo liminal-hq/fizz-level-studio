@@ -1,27 +1,17 @@
+/*
+ * The row's height holds a key (its 3px edge included) with a gap above and a deeper one below for
+ * the edge's shadow and the 2px press, so nothing in the row is clipped.
+ */
 .palette {
 	display: flex;
 	flex-wrap: wrap;
 	align-items: center;
 	gap: 0.75rem;
-	padding: 0.5rem 0.75rem;
+	box-sizing: border-box;
+	min-height: calc(var(--fls-key-height) + 0.75rem);
+	padding: 0.3rem 0.75rem 0.45rem;
 	background: var(--fls-bg-window);
 	border-bottom: 1px solid var(--fls-border-subtle);
-}
-
-.tools {
-	display: flex;
-	gap: 0.5rem;
-}
-
-.tool {
-	composes: keycap from '@liminal-hq/fizz-studio-chrome/Keycap/keycap.module.css';
-}
-
-.key {
-	font-family: var(--fls-font-mono);
-	font-size: 0.75em;
-	font-weight: 400;
-	opacity: 0.75;
 }
 
 .chip {

@@ -1,4 +1,4 @@
-// Tests for the tool palette, the shortcut keys and the useTool hook
+// Tests for the row above the level, the tool picker's keys, the shortcut keys and the useTool hook
 //
 // (c) Copyright 2026 Liminal HQ, Scott Morris
 // SPDX-License-Identifier: Apache-2.0 OR MIT
@@ -12,6 +12,7 @@ import { levelView } from '../test/levelFixtures';
 import { PalettePanel } from '../panels/PalettePanel';
 import { toolForKey } from './shortcuts';
 import { ToolPalette } from './ToolPalette';
+import { ToolPicker } from './ToolPicker';
 import { useTool } from './useTool';
 
 function Harness({ palette, lead }: { palette: string[]; lead?: ReactNode }) {
@@ -19,6 +20,13 @@ function Harness({ palette, lead }: { palette: string[]; lead?: ReactNode }) {
 	return (
 		<>
 			<ToolPalette handle={handle} lead={lead} />
+			<ToolPicker
+				tool={handle.tool}
+				onTool={handle.setTool}
+				map={{ w: 0, h: 0 }}
+				place={null}
+				onPlace={() => {}}
+			/>
 			<PalettePanel
 				tiles={palette}
 				words={[]}
@@ -64,6 +72,8 @@ describe('ToolPalette', () => {
 	it('is operable from the keyboard', async () => {
 		const user = userEvent.setup();
 		render(<Harness palette={['empty', 'fill']} />);
+		await user.tab();
+		expect(screen.getByRole('button', { name: 'Move the tools' })).toHaveFocus();
 		await user.tab();
 		expect(screen.getByRole('button', { name: 'Paint' })).toHaveFocus();
 		await user.tab();
@@ -193,19 +203,20 @@ describe('useTool', () => {
 	});
 });
 
-describe('the tool row lead', () => {
-	it('puts the leading controls first, then a divider, then the tools', () => {
+describe('the row above the level', () => {
+	it('puts the leading controls first, then a divider, then the brush chip, and no tools', () => {
 		render(<Harness palette={['block']} lead={<button type="button">Lead</button>} />);
-		const row = screen.getByRole('group', { name: 'Tools' });
+		const row = screen.getByRole('group', { name: 'Editor toolbar' });
 		const children = [...row.children];
 		expect(children[0]).toContainElement(screen.getByRole('button', { name: 'Lead' }));
 		expect(children[1]).toHaveAttribute('aria-hidden', 'true');
-		expect(children[2]).toContainElement(screen.getByRole('button', { name: /Paint/ }));
+		expect(children[2]).toBe(screen.getByRole('status'));
+		expect(row).not.toContainElement(screen.getByRole('button', { name: 'Paint' }));
 	});
 
 	it('draws no divider without a lead', () => {
 		render(<Harness palette={['block']} />);
-		const row = screen.getByRole('group', { name: 'Tools' });
-		expect(row.firstElementChild).toContainElement(screen.getByRole('button', { name: /Paint/ }));
+		const row = screen.getByRole('group', { name: 'Editor toolbar' });
+		expect(row.firstElementChild).toBe(screen.getByRole('status'));
 	});
 });

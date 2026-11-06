@@ -1,0 +1,61 @@
+/*
+ * The tool picker: a glass pill over the map holding a grip and one square keycap per tool. Its
+ * place comes in as `--fls-picker-x` and `--fls-picker-y`, measured from the map's top-left. The
+ * pill's own box is the only part that takes the pointer; the map around it stays the canvas's.
+ */
+.picker {
+	position: absolute;
+	left: var(--fls-picker-x);
+	top: var(--fls-picker-y);
+	z-index: 1;
+	display: flex;
+	align-items: center;
+	gap: 0.3rem;
+	box-sizing: border-box;
+	/* Room under the keys for the 3px edge and the 2px press. */
+	padding: 0.3rem 0.4rem 0.4rem 0.2rem;
+	color: var(--fls-text-primary);
+	background: var(--fls-glass-bg);
+	backdrop-filter: blur(var(--fls-glass-blur));
+	-webkit-backdrop-filter: blur(var(--fls-glass-blur));
+	border: 1px solid var(--fls-glass-border);
+	border-radius: 14px;
+	box-shadow: var(--fls-glass-shadow);
+	user-select: none;
+}
+
+.grip {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	align-self: stretch;
+	min-width: 20px;
+	padding: 0;
+	color: var(--fls-text-muted);
+	background: transparent;
+	border: 0;
+	border-radius: 8px;
+	cursor: grab;
+	touch-action: none;
+}
+
+.picker[data-moving] .grip {
+	cursor: grabbing;
+}
+
+.grip:hover {
+	background: var(--fls-control-bg-hover);
+}
+
+.grip:focus-visible {
+	outline: 2px solid var(--fls-focus-ring);
+	outline-offset: -2px;
+	box-shadow: inset 0 0 0 2px var(--fls-focus-inner);
+}
+
+/* A square key: as wide as it is tall, the icon centred. */
+.key {
+	composes: keycap from '@liminal-hq/fizz-studio-chrome/Keycap/keycap.module.css';
+	width: var(--fls-key-height);
+	padding: 0;
+}

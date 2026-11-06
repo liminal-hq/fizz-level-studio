@@ -5,7 +5,15 @@
 
 import type { GhostCell } from '@liminal-hq/fizz-studio-protocol/generated/GhostCell';
 import type { LevelView } from '@liminal-hq/fizz-studio-protocol/generated/LevelView';
-import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent } from 'react';
+import {
+	useEffect,
+	useMemo,
+	useRef,
+	useState,
+	type KeyboardEvent,
+	type PointerEvent,
+	type ReactNode,
+} from 'react';
 import { t } from '../i18n/messages';
 import type { Cell, PointerPhase, Rect } from '../tools/tool';
 import { drawLevel, readCanvasColours, type DrawContext } from './drawLevel';
@@ -50,6 +58,11 @@ export interface LevelCanvasProps {
 	 * `serial` asks again for the same cell.
 	 */
 	reveal?: { cell: Cell; serial: number } | null;
+	/**
+	 * Controls that float over the map (the tool picker), given the map's size so they can keep
+	 * inside it. They sit above the canvas and below the status line, which they never cover.
+	 */
+	overlay?: (map: { w: number; h: number }) => ReactNode;
 }
 
 const NO_CELLS: readonly Cell[] = [];
@@ -69,6 +82,7 @@ export function LevelCanvas({
 	ghosts = NO_GHOSTS,
 	reveal = null,
 	onCellChosen,
+	overlay,
 }: LevelCanvasProps) {
 	const canvasRef = useRef<HTMLCanvasElement>(null);
 	const frameRef = useRef<HTMLDivElement>(null);
@@ -248,6 +262,7 @@ export function LevelCanvas({
 						onPointerUp={onPointerEnd}
 						onPointerCancel={onPointerEnd}
 					/>
+					{overlay?.({ w: size.width, h: size.height })}
 				</div>
 				<div className={styles.bar}>
 					<span className={styles.status} role="status">

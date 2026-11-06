@@ -1,29 +1,19 @@
-// The tool buttons and the brush chip
+// The row above the level: the leading controls (Save and Close level), the brush chip and the Stamp hint
 //
 // (c) Copyright 2026 Liminal HQ, Scott Morris
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
 import type { ReactNode } from 'react';
 import { t, type MessageId } from '../i18n/messages';
-import { TOOL_KEYS } from './shortcuts';
 import { brushSwatch } from './swatch';
 import styles from './ToolPalette.module.css';
-import { TOOL_IDS, type ToolId } from './tool';
 import type { ToolHandle } from './useTool';
 
 export interface ToolPaletteProps {
-	handle: Pick<ToolHandle, 'tool' | 'setTool' | 'brush' | 'spacing' | 'clip'>;
-	/** Controls for the start of the row (Save and Close level), set off from the tools by a thin divider. */
+	handle: Pick<ToolHandle, 'tool' | 'brush' | 'spacing' | 'clip'>;
+	/** Controls for the start of the row (Save and Close level), set off from the brush by a thin divider. */
 	lead?: ReactNode;
 }
-
-const TOOL_LABELS: Record<ToolId, MessageId> = {
-	paint: 'tools.paint',
-	erase: 'tools.erase',
-	pick: 'tools.pick',
-	select: 'tools.select',
-	stamp: 'tools.stamp',
-};
 
 const GROUP_LABELS = {
 	tile: 'brush.group.tile',
@@ -36,34 +26,18 @@ export function spacingText(spacing: number): string {
 	return spacing <= 1 ? t('spacing.everyCell') : t('spacing.everyN', { n: spacing });
 }
 
+/** The tools themselves float over the map in the tool picker (`ToolPicker`). */
 export function ToolPalette({ handle, lead }: ToolPaletteProps) {
 	const { brush, spacing } = handle;
 	const spaced = brush.group === 'item';
 	return (
-		<div className={styles.palette} role="group" aria-label={t('tools.group')}>
+		<div className={styles.palette} role="group" aria-label={t('tools.bar')}>
 			{lead ? (
 				<>
 					<div className={styles.lead}>{lead}</div>
 					<span className={styles.divider} aria-hidden="true" />
 				</>
 			) : null}
-			<div className={styles.tools}>
-				{TOOL_IDS.map((id) => (
-					<button
-						key={id}
-						type="button"
-						className={styles.tool}
-						aria-pressed={handle.tool === id}
-						aria-keyshortcuts={TOOL_KEYS[id].toUpperCase()}
-						onClick={() => handle.setTool(id)}
-					>
-						{t(TOOL_LABELS[id])}
-						<kbd className={styles.key} aria-hidden="true">
-							{TOOL_KEYS[id].toUpperCase()}
-						</kbd>
-					</button>
-				))}
-			</div>
 			<span
 				className={styles.chip}
 				role="status"

@@ -399,6 +399,212 @@ const sameBox = (a: Box | null, b: Box | null) =>
  * Dragging panels between docks, onto the level and among tabs, and maximising a panel, measured in
  * the real window. It leaves the default arrangement as it found it.
  */
+/** Where the tool picker was left by `toolPickerChecks`, for the restart to find it again. */
+let pickerLeftAt: { x: number; y: number } | null = null;
+
+interface PickerLayout {
+	picker: Box;
+	canvas: Box;
+	status: Box;
+	frame: Box | null;
+	keys: { name: string; w: number; h: number; pressed: boolean; title: string }[];
+}
+
+/** The tool picker, the map it floats over and the status line under the map. */
+function measurePicker(bridge: Bridge): Promise<PickerLayout | null> {
+	return bridge.js<PickerLayout | null>(
+		`const box = (e) => { const r = e.getBoundingClientRect(); return { x: r.left, y: r.top, w: r.width, h: r.height }; };
+		 const p = document.querySelector('[data-tool-picker]');
+		 const c = document.querySelector('canvas');
+		 const s = [...document.querySelectorAll('[role=status]')].find((e) => e.textContent.startsWith('Cell '));
+		 if (!p || !c || !s) return null;
+		 return {
+		   picker: box(p), canvas: box(c), status: box(s), frame: p.offsetParent ? box(p.offsetParent) : null,
+		   keys: [...p.querySelectorAll('button[data-tool]')].map((b) => ({
+		     name: b.getAttribute('aria-label'), w: b.getBoundingClientRect().width, h: b.getBoundingClientRect().height,
+		     pressed: b.getAttribute('aria-pressed') === 'true', title: b.getAttribute('title'),
+		   })),
+		 };`,
+	);
+}
+
+/** Drags the tool picker's grip by `dx`, `dy` with pointer events, as a person would. */
+function dragPicker(bridge: Bridge, dx: number, dy: number): Promise<boolean> {
+	return bridge.js<boolean>(
+		`const src = document.querySelector('[data-tool-picker] button[data-grip]');
+		 if (!src) return false;
+		 const r = src.getBoundingClientRect();
+		 const p = { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+		 const wait = () => new Promise((res) => setTimeout(res, 60));
+		 const fire = (type, x, y) => src.dispatchEvent(new PointerEvent(type, {
+		   bubbles: true, cancelable: true, pointerId: 43, button: 0, clientX: x, clientY: y,
+		 }));
+		 fire('pointerdown', p.x, p.y);
+		 await wait();
+		 fire('pointermove', p.x + ${dx} / 2, p.y + ${dy} / 2);
+		 await wait();
+		 fire('pointermove', p.x + ${dx}, p.y + ${dy});
+		 await wait();
+		 fire('pointerup', p.x + ${dx}, p.y + ${dy});
+		 await wait();
+		 return true;`,
+	);
+}
+
+/** The tool picker's saved place in the active workspace (null when it was never moved). */
+async function savedPicker(bridge: Bridge): Promise<{ x: number; y: number } | null> {
+	const found = await bridge.js<{ v: { x: number; y: number } | null }>(
+		`const s = await window.__TAURI_INTERNALS__.invoke('plugin:fizz-studio-settings|settings_get');
+		 const ws = s.settings.dock.workspaces[s.settings.dock.active];
+		 return { v: ws ? ws.tool_picker ?? null : null };`,
+	);
+	return found.v;
+}
+
+/** The picker's top-left corner measured from the map's. */
+function pickerOffset(l: PickerLayout): { x: number; y: number } {
+	return { x: Math.round(l.picker.x - l.canvas.x), y: Math.round(l.picker.y - l.canvas.y) };
+}
+
+/**
+ * The tools float over the map in a glass pill: it starts at the map's top-left, its keys are
+ * square, named and lit for the current tool, a click on one chooses that tool, a drag of its
+ * grip moves it and is saved in the workspace, and it never leaves the map or covers the status
+ * line. The row above the level holds no tools, and no key in it is clipped.
+ */
+async function toolPickerChecks(bridge: Bridge): Promise<void> {
+	const first = await within(5000, async () => (await measurePicker(bridge)) !== null);
+	const m = await measurePicker(bridge);
+	check('picker: the tools float over the map', first !== null && m !== null);
+	if (!m) return;
+	const inside = (l: PickerLayout) =>
+		l.picker.x >= l.canvas.x + 7 &&
+		l.picker.y >= l.canvas.y + 7 &&
+		l.picker.x + l.picker.w <= l.canvas.x + l.canvas.w - 7 &&
+		l.picker.y + l.picker.h <= l.canvas.y + l.canvas.h - 7 &&
+		l.picker.y + l.picker.h <= l.status.y;
+	const saved0 = await savedPicker(bridge);
+	const at0 = pickerOffset(m);
+	check(
+		'picker: it starts at the top-left of the map, inside it and above the status line',
+		(saved0 !== null || (Math.abs(at0.x - 8) <= 1 && Math.abs(at0.y - 8) <= 1)) && inside(m),
+		JSON.stringify({ offset: at0, saved0 }),
+	);
+	check(
+		'picker: it has the five square tool keys, named, with the shortcut in the tooltip',
+		m.keys.map((k) => k.name).join() === 'Paint,Erase,Pick,Select,Stamp' &&
+			m.keys.every((k) => Math.abs(k.w - k.h) <= 1 && k.w >= 28) &&
+			m.keys[0]!.title === 'Paint (B)',
+		JSON.stringify(m.keys),
+	);
+	const pressed = async () =>
+		(await measurePicker(bridge))?.keys.find((k) => k.pressed)?.name ?? null;
+	const clickTool = (name: string) =>
+		bridge.js<boolean>(
+			`const b = document.querySelector('[data-tool-picker] button[aria-label=${name}]'); if (!b) return false; b.click(); return true;`,
+		);
+	await clickTool('Erase');
+	const erasing = await within(3000, async () => (await pressed()) === 'Erase');
+	check(
+		'picker: a click on Erase chooses the Erase tool',
+		erasing !== null,
+		String(await pressed()),
+	);
+	await clickTool('Paint');
+	await within(3000, async () => (await pressed()) === 'Paint');
+	await checkKeycaps(bridge, 'the tool picker');
+
+	// The row above the level: no tools in it, and every key in it has its whole bottom edge.
+	const row = await bridge.js<{ names: string[]; clipped: string[] } | null>(
+		`const g = document.querySelector('[role=group][aria-label="Editor toolbar"]');
+		 if (!g) return null;
+		 const bar = g.parentElement.getBoundingClientRect();
+		 const keys = [...g.parentElement.querySelectorAll('button, [role=status]')];
+		 const clipped = keys.filter((k) => { const r = k.getBoundingClientRect(); return r.bottom > bar.bottom - 1 || r.top < bar.top; })
+		   .map((k) => (k.getAttribute('aria-label') || k.textContent.trim()) + ' ' + Math.round(k.getBoundingClientRect().bottom) + '>' + Math.round(bar.bottom));
+		 return { names: [...g.querySelectorAll('button')].map((b) => b.getAttribute('aria-label') || b.textContent.trim()), clipped };`,
+	);
+	check(
+		'picker: the row above the level holds no tool keys',
+		row !== null &&
+			!row.names.some((n) => ['Paint', 'Erase', 'Pick', 'Select', 'Stamp'].includes(n)),
+		JSON.stringify(row?.names),
+	);
+	check(
+		"the row above the level shows every key's whole bottom edge",
+		row !== null && row.clipped.length === 0,
+		JSON.stringify(row?.clipped),
+	);
+
+	// A drag moves it by as much as the pointer moved, and the place is saved.
+	await dragPicker(bridge, 140, 70);
+	let found: PickerLayout | null = null;
+	await within(3000, async () => {
+		const l = await measurePicker(bridge);
+		found = l !== null && Math.abs(pickerOffset(l).x - (at0.x + 140)) <= 2 ? l : null;
+		return found !== null;
+	});
+	// Assigned inside the callback, so the type is restated for the checks below.
+	const moved = found as PickerLayout | null;
+	check(
+		'picker: dragging the grip moves it with the pointer',
+		moved !== null && Math.abs(pickerOffset(moved).y - (at0.y + 70)) <= 2 && inside(moved),
+		JSON.stringify({ start: at0, now: moved ? pickerOffset(moved) : null }),
+	);
+	const movedTo = moved ? pickerOffset(moved) : null;
+	const savedMove = await within(5000, async () => {
+		const at = await savedPicker(bridge);
+		return movedTo !== null && at !== null && Math.abs(at.x - movedTo.x) <= 1;
+	});
+	check(
+		'picker: where it was dragged to is saved in the workspace',
+		savedMove !== null,
+		JSON.stringify(await savedPicker(bridge)),
+	);
+
+	// A drag far past the edges leaves it inside the map, above the status line.
+	await dragPicker(bridge, 5000, 5000);
+	// The clamp lands a render after the pointer is released, so wait for it instead of a fixed pause.
+	let far = await measurePicker(bridge);
+	await within(3000, async () => {
+		far = await measurePicker(bridge);
+		return far !== null && inside(far);
+	});
+	check(
+		'picker: a drag past the corner keeps it inside the map',
+		far !== null && inside(far),
+		JSON.stringify(
+			far && { picker: far.picker, canvas: far.canvas, status: far.status, frame: far.frame },
+		),
+	);
+	await dragPicker(bridge, -5000, -5000);
+	let back = await measurePicker(bridge);
+	await within(3000, async () => {
+		back = await measurePicker(bridge);
+		return (
+			back !== null &&
+			Math.abs(pickerOffset(back).x - 8) <= 1 &&
+			Math.abs(pickerOffset(back).y - 8) <= 1
+		);
+	});
+	check(
+		'picker: a drag past the other corner stops at the top-left margin',
+		back !== null &&
+			Math.abs(pickerOffset(back).x - 8) <= 1 &&
+			Math.abs(pickerOffset(back).y - 8) <= 1,
+		JSON.stringify(back && pickerOffset(back)),
+	);
+	// It is left somewhere other than the corner, so the restart can show it kept its place.
+	await dragPicker(bridge, 180, 90);
+	await sleep(200);
+	const left = await measurePicker(bridge);
+	pickerLeftAt = left ? pickerOffset(left) : null;
+	await within(5000, async () => {
+		const at = await savedPicker(bridge);
+		return pickerLeftAt !== null && at !== null && Math.abs(at.x - pickerLeftAt.x) <= 1;
+	});
+}
+
 async function dragAndMaximiseChecks(bridge: Bridge): Promise<void> {
 	const sane = (m: Layout) =>
 		!!m.canvas &&
@@ -1156,6 +1362,17 @@ async function checkPanelWindows(
 	replaceApp(restarted);
 	await bridge.start();
 	check('the app restarts', await bridge.ready());
+	const pickerAgain = await within(15_000, async () => {
+		const l = await measurePicker(bridge).catch(() => null);
+		if (!l || !pickerLeftAt) return false;
+		const at = pickerOffset(l);
+		return Math.abs(at.x - pickerLeftAt.x) <= 1 && Math.abs(at.y - pickerLeftAt.y) <= 1;
+	});
+	check(
+		'picker: after a restart the tools are where they were left',
+		pickerAgain !== null,
+		JSON.stringify({ left: pickerLeftAt, saved: await savedPicker(bridge).catch(() => null) }),
+	);
 	const restored = await within(20_000, async () =>
 		(await bridge.windows()).includes('panel-objects-1'),
 	);
@@ -1252,7 +1469,8 @@ function keycapOffenders(bridge: Bridge, windowLabel = 'main-1'): Promise<string
 			 if (e.matches(skip) || !visible(e)) continue;
 			 const c = getComputedStyle(e);
 			 const edge = c.borderBottomWidth;
-			 const keycap = (edge === '3px' || edge === '1px') && c.backgroundImage.includes('linear-gradient');
+			 const edgePx = parseFloat(edge); // a lit or pressed key is caught mid-transition between 3px and 1px
+			 const keycap = edgePx >= 1 && edgePx <= 3 && c.backgroundImage.includes('linear-gradient');
 			 if (!keycap) {
 				 const name = e.getAttribute('aria-label') || e.textContent.trim().slice(0, 30);
 				 bad.push((e.tagName.toLowerCase()) + ' "' + name + '" (' + String(e.className).split(' ')[0] + '): edge ' + edge + ', ' + (c.backgroundImage === 'none' ? 'flat ' + c.backgroundColor : 'gradient'));
@@ -1347,9 +1565,9 @@ async function main(): Promise<void> {
 			laidOut.canvas > 300,
 			String(laidOut.canvas),
 		);
-		// Save and Close level lead the tool row, so one row sits above the level: the tool row
-		// holds Save, Close level, a divider, the tools and the Panels menu, in that order, and
-		// nothing sits between the title bar and it (the canvas gets the row the buttons used to take).
+		// One row sits above the level: it holds Save, Close level, a divider, the brush chip and
+		// the Panels menu, in that order (the tools float over the map), and nothing sits between
+		// the title bar and it.
 		const rowBox = await bridge.js<{
 			names: string[];
 			titleBottom: number;
@@ -1360,7 +1578,7 @@ async function main(): Promise<void> {
 			canvasTop: number;
 			canvasHeight: number;
 		} | null>(
-			`const tools = document.querySelector('[role=group][aria-label=Tools]');
+			`const tools = document.querySelector('[role=group][aria-label="Editor toolbar"]');
 			 const region = document.querySelector('[role=group][aria-label="Level editor"]');
 			 const title = document.querySelector('[data-title-align]');
 			 const canvas = document.querySelector('canvas');
@@ -1369,7 +1587,7 @@ async function main(): Promise<void> {
 			 const row = tools.getBoundingClientRect();
 			 const p = panels.getBoundingClientRect();
 			 return {
-				 names: [...tools.querySelectorAll('button')].map((b) => b.textContent.trim()),
+				 names: [...tools.querySelectorAll('button, [role=status]')].map((b) => b.getAttribute('aria-label') || b.textContent.trim()),
 				 titleBottom: title.getBoundingClientRect().bottom,
 				 rowTop: row.top, rowBottom: row.bottom, regionTop: region.getBoundingClientRect().top,
 				 panelsMid: (p.top + p.bottom) / 2,
@@ -1379,10 +1597,10 @@ async function main(): Promise<void> {
 		check('the tool row is on screen', rowBox !== null);
 		if (rowBox) {
 			check(
-				'the tool row holds Save, Close level and then the tools',
+				'the tool row holds Save, Close level and then the brush chip',
 				rowBox.names[0] === 'Save' &&
 					rowBox.names[1] === 'Close level' &&
-					rowBox.names[2]?.startsWith('Paint') === true,
+					rowBox.names[2]?.includes('Brush:') === true,
 				JSON.stringify(rowBox.names),
 			);
 			check(
@@ -1404,6 +1622,7 @@ async function main(): Promise<void> {
 		}
 		await dockChecks(bridge);
 		await dragAndMaximiseChecks(bridge);
+		await toolPickerChecks(bridge);
 		// With the default settings there is no menu bar: the title bar's app menu button is the
 		// primary menu, and a real click on it opens File, Edit, View, Window and Help. Choosing
 		// File, then Preferences opens the Preferences window.
@@ -1555,7 +1774,7 @@ async function main(): Promise<void> {
 		const toolPressed = async () =>
 			(
 				await bridge.js<{ v: string }>(
-					`const b = [...document.querySelectorAll('[aria-pressed=true]')].find((x) => x.closest('[role=group][aria-label=Tools]')); return { v: b ? b.textContent : '' };`,
+					`const b = [...document.querySelectorAll('[aria-pressed=true]')].find((x) => x.closest('[role=group][aria-label=Tools]')); return { v: b ? (b.getAttribute('aria-label') ?? '') : '' };`,
 				)
 			).v;
 		await keyOnWindow('P');
@@ -1613,7 +1832,7 @@ async function main(): Promise<void> {
 		);
 		check('the canvas keeps its room after the palette', canvasAfter > 300, String(canvasAfter));
 		await bridge.js<boolean>(
-			`const b = [...document.querySelectorAll('[role=group][aria-label=Tools] button')].find((x) => x.textContent.startsWith('Paint')); b?.click(); return true;`,
+			`const b = document.querySelector('[role=group][aria-label=Tools] button[aria-label=Paint]'); b?.click(); return true;`,
 		);
 
 		const opened = await openLevel(bridge, path);

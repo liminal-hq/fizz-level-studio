@@ -54,6 +54,12 @@ export const enMessages = {
 	'tools.stamp': 'Stamp',
 	// translator: A hint shown while the Stamp tool has nothing copied yet.
 	'tools.stampEmpty': 'Outline an area with Select, then choose Stamp to paste it.',
+	// translator: The accessible name of the row above the level that holds Save, Close level, the brush chip and the Panels menu.
+	'tools.bar': 'Editor toolbar',
+	// translator: Label of the grip a person drags, or moves with the arrow keys, to move the floating group of tools over the level.
+	'tools.move': 'Move the tools',
+	// translator: Tooltip of a tool's key. {tool} is the tool’s name, such as “Paint”; {key} is the letter that chooses it, such as “B”.
+	'tools.keyTitle': '{tool} ({key})',
 	// translator: The brush chip in the toolbar. {kind} is the name of the tile, item or enemy that Paint lays down, such as “cheezie”.
 	'brush.chip': 'Brush: {kind}',
 	// translator: The brush chip when the brush is an item that is spaced out. {kind} is the item; {spacing} says how far apart, such as “Every 3 cells”.

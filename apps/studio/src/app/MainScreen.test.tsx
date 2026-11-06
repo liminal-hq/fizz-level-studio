@@ -376,27 +376,30 @@ describe('opening', () => {
 });
 
 describe('the dirty marker, saving and closing', () => {
-	it('puts Save and Close level at the start of the tool row, with no row of their own', async () => {
+	it('puts Save and Close level at the start of the row above the level, and the tools over the map', async () => {
 		const user = userEvent.setup();
 		setup();
 		await openFromDialog(user);
-		const tools = screen.getByRole('group', { name: 'Tools' });
+		const row = screen.getByRole('group', { name: 'Editor toolbar' });
 		const save = screen.getByRole('button', { name: 'Save' });
 		const close = screen.getByRole('button', { name: 'Close level' });
-		expect(tools).toContainElement(save);
-		expect(tools).toContainElement(close);
-		const order = [save, close, screen.getByRole('button', { name: /Paint/ })];
+		expect(row).toContainElement(save);
+		expect(row).toContainElement(close);
+		expect(save.compareDocumentPosition(close) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+		// The brush chip follows them on the same row; the tools are not in it.
 		expect(
-			order[0]!.compareDocumentPosition(order[1]!) & Node.DOCUMENT_POSITION_FOLLOWING,
+			close.compareDocumentPosition(within(row).getByText(/Brush:/)) &
+				Node.DOCUMENT_POSITION_FOLLOWING,
 		).toBeTruthy();
-		expect(
-			order[1]!.compareDocumentPosition(order[2]!) & Node.DOCUMENT_POSITION_FOLLOWING,
-		).toBeTruthy();
+		expect(within(row).queryByRole('button', { name: 'Paint' })).toBeNull();
+		const tools = screen.getByRole('group', { name: 'Tools' });
+		expect(tools).toContainElement(screen.getByRole('button', { name: 'Paint' }));
+		expect(tools.parentElement).toContainElement(screen.getByRole('application'));
 		// The Panels menu stays at the end of the same row.
-		expect(tools.parentElement).toContainElement(screen.getByRole('button', { name: /Panels/ }));
+		expect(row.parentElement).toContainElement(screen.getByRole('button', { name: /Panels/ }));
 		expect(
 			screen.getByRole('toolbar', { name: 'Level actions' }).parentElement?.parentElement,
-		).toBe(tools);
+		).toBe(row);
 	});
 
 	it('marks the title with a bullet while there are unsaved changes, and Save clears it', async () => {
