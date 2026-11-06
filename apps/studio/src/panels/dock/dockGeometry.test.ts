@@ -9,6 +9,7 @@ import {
 	clampZoneSize,
 	clampZoneSizeAbsolute,
 	contentExtent,
+	dockInsets,
 	levelRect,
 	levelShare,
 	railExtent,
@@ -135,8 +136,49 @@ describe('rails and empty zones', () => {
 	});
 });
 
+describe('the insets the docks lay over the level', () => {
+	it('covers each edge by its rail and open content, and never the top', () => {
+		expect(dockInsets(defaultWorkspace(), big)).toEqual({
+			top: 0,
+			right: RAIL_SIZE + 264,
+			bottom: RAIL_SIZE + 180,
+			left: RAIL_SIZE + 196,
+		});
+	});
+
+	it('covers a folded dock at its rail width and an empty one not at all', () => {
+		const ws = defaultWorkspace();
+		ws.zones.right.collapsed = true;
+		ws.zones.left.groups = [];
+		expect(dockInsets(ws, big)).toEqual({
+			top: 0,
+			right: RAIL_SIZE,
+			bottom: RAIL_SIZE + 180,
+			left: 0,
+		});
+	});
+
+	it('holds an oversized dock to its cap, the rail outside it', () => {
+		const ws = defaultWorkspace();
+		ws.zones.left.size = 5000;
+		expect(dockInsets(ws, small).left).toBe(RAIL_SIZE + zoneCap('left', small));
+	});
+
+	it('leaves the uncovered level the workspace less the insets', () => {
+		const ws = defaultWorkspace();
+		const area = workspaceRect(big);
+		const insets = dockInsets(ws, big);
+		expect(levelRect(ws, big)).toEqual({
+			x: area.x + insets.left,
+			y: area.y,
+			w: area.w - insets.left - insets.right,
+			h: area.h - insets.bottom,
+		});
+	});
+});
+
 describe('the zones themselves', () => {
-	it('lays the side zones and their rails beside the level and the bottom zone under all', () => {
+	it('lays the side zones and their rails over the sides of the level and the bottom zone along it', () => {
 		const rects = zoneRects(defaultWorkspace(), big);
 		expect(rects.left).toEqual({ x: 64, y: 124, w: 232, h: 560 });
 		expect(rects.right).toEqual({ x: 1440 - 300, y: 124, w: 300, h: 560 });

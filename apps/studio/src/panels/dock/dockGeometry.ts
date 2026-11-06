@@ -1,16 +1,19 @@
-// Pure sizes for the dock: the caps on a zone and how much of the window the level keeps
+// Pure sizes for the dock: the caps on a zone, how far the docks cover the level and what they leave
 //
 // (c) Copyright 2026 Liminal HQ, Scott Morris
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 //
 // The window is the whole window. Left of everything is the tool column and above it the title
-// bar, menu row and tool bar; what is left is the workspace, where the zones sit and the level
-// takes what they leave. A zone without panels takes no room. A zone with panels has a rail along
-// the window's edge, always, and an open one has its content beside the rail, held to its cap.
+// bar, menu row and tool bar; what is left is the workspace. The level fills the whole workspace
+// and the zones lie over its edges, so their glass has the level to blur (D69); the level's
+// camera treats only what they leave uncovered as its window. A zone without panels covers
+// nothing. A zone with panels has a rail along the window's edge, always, and an open one has its
+// content beside the rail, held to its cap; a folded one covers its rail's width.
 
 import type { DockSettings } from '@liminal-hq/fizz-studio-protocol/generated/DockSettings';
 import type { Workspace } from '@liminal-hq/fizz-studio-protocol/generated/Workspace';
 import type { ZoneId } from '@liminal-hq/fizz-studio-protocol/generated/ZoneId';
+import type { Insets } from '../../canvas/viewport';
 import type { Rect, Size } from '../float/panelGeometry';
 import { CAP_PERCENT, RAIL_SIZE, TOOL_COLUMN, TOP_CHROME, ZONE_MAX, zoneMin } from './dockModel';
 
@@ -53,6 +56,20 @@ export function zoneExtent(workspace: Workspace, zone: ZoneId, window: Size): nu
 	return railExtent(workspace, zone) + contentExtent(workspace, zone, window);
 }
 
+/**
+ * How far the docks and their rails cover the level from each edge of the workspace: a zone's rail
+ * and, when it is open, its content. Nothing covers the top. The side zones stop above the bottom
+ * zone, which spans the width, so these four numbers describe the covered margins exactly.
+ */
+export function dockInsets(workspace: Workspace, window: Size): Insets {
+	return {
+		top: 0,
+		right: zoneExtent(workspace, 'right', window),
+		bottom: zoneExtent(workspace, 'bottom', window),
+		left: zoneExtent(workspace, 'left', window),
+	};
+}
+
 /** The workspace: the window less the tool column and the bars above. */
 export function workspaceRect(window: Size): Rect {
 	return {
@@ -63,12 +80,13 @@ export function workspaceRect(window: Size): Rect {
 	};
 }
 
-/** The level's rectangle for a layout: the workspace less the zones' room, never negative. */
+/**
+ * The part of the level the docks leave uncovered, in window pixels: the workspace less the
+ * docks' insets, never negative. The level itself spans the whole workspace beneath them.
+ */
 export function levelRect(workspace: Workspace, window: Size): Rect {
 	const area = workspaceRect(window);
-	const left = zoneExtent(workspace, 'left', window);
-	const right = zoneExtent(workspace, 'right', window);
-	const bottom = zoneExtent(workspace, 'bottom', window);
+	const { left, right, bottom } = dockInsets(workspace, window);
 	return {
 		x: area.x + left,
 		y: area.y,
@@ -77,7 +95,7 @@ export function levelRect(workspace: Workspace, window: Size): Rect {
 	};
 }
 
-/** The level's share of the window's area, from 0 to 1. */
+/** The uncovered level's share of the window's area, from 0 to 1. */
 export function levelShare(workspace: Workspace, window: Size): number {
 	const area = window.w * window.h;
 	if (area <= 0) return 0;
@@ -85,12 +103,13 @@ export function levelShare(workspace: Workspace, window: Size): number {
 	return (rect.w * rect.h) / area;
 }
 
-/** The rectangles of the zones themselves, for drawing: each is empty when it takes no room. */
+/**
+ * The rectangles of the zones themselves, rails included, as they lie over the level: each is
+ * empty when it covers nothing.
+ */
 export function zoneRects(workspace: Workspace, window: Size): Record<ZoneId, Rect> {
 	const area = workspaceRect(window);
-	const left = zoneExtent(workspace, 'left', window);
-	const right = zoneExtent(workspace, 'right', window);
-	const bottom = zoneExtent(workspace, 'bottom', window);
+	const { left, right, bottom } = dockInsets(workspace, window);
 	const middleH = Math.max(0, area.h - bottom);
 	return {
 		left: { x: area.x, y: area.y, w: left, h: middleH },
