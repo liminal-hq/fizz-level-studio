@@ -81,7 +81,9 @@ describe('the application menu', () => {
 		act(() => bridge.setFacts({ canUndo: true }));
 		await user.click(button!);
 		await user.click(screen.getByRole('menuitem', { name: 'Edit' }));
-		expect(screen.getByRole('menuitem', { name: /Undo/ })).not.toHaveAttribute('aria-disabled');
+		expect(screen.getByRole('menuitem', { name: /^Undo(?! history)/ })).not.toHaveAttribute(
+			'aria-disabled',
+		);
 	});
 
 	it('toggles on F10 and opens the named menu on Alt+W', async () => {
@@ -104,7 +106,7 @@ describe('the application menu', () => {
 		const { button } = setup((bridge) => bridge.setFacts({ editorOpen: true }));
 		await user.click(button!);
 		await user.click(screen.getByRole('menuitem', { name: 'Help' }));
-		await user.click(screen.getByRole('menuitem', { name: 'About Fizz Level Studio' }));
+		await user.click(screen.getByRole('menuitem', { name: 'About Fizz Level Studio…' }));
 		expect(openWindow).toHaveBeenCalledWith({ kind: 'about' });
 	});
 

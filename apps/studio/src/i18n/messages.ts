@@ -408,8 +408,79 @@ export const enMessages = {
 	'appMenu.quit': 'Quit',
 	// translator: Menu item that opens the Preferences window. The dots mean it opens a window.
 	'appMenu.preferences': 'Preferences…',
-	// translator: Menu item in the Help menu that opens the About window, which names the app and its version. “Fizz Level Studio” is the product name.
-	'appMenu.about': 'About Fizz Level Studio',
+	// translator: Menu item in the Help menu that opens the About window, which names the app and its version. “Fizz Level Studio” is the product name. The dots mean it opens a window.
+	'appMenu.about': 'About Fizz Level Studio…',
+	// translator: Menu item in the Help menu that opens the app’s help. The noun, not the verb.
+	'appMenu.helpTopic': 'Help',
+	// translator: Menu item in the Help menu that opens a window listing the keyboard shortcuts. The dots mean it opens a window.
+	'appMenu.shortcuts': 'Keyboard shortcuts…',
+	// translator: Menu item in the Edit menu that opens a submenu listing the steps Undo and Redo would take. “History” is the list of changes made to the level.
+	'appMenu.history': 'Undo history',
+	// translator: Disabled item in the Undo history submenu, shown while the level has no change to take back or do again.
+	'appMenu.history.empty': 'Nothing in the history yet',
+	// translator: Last item in the Undo history submenu. Opens the command palette, which lists every command. The dots mean it opens a dialog.
+	'appMenu.history.more': 'More in the command palette…',
+	// translator: Item in the Undo history submenu: a step that can be taken back. {label} is the step’s name, such as “Paint grass”; {author} says who made it, such as “You” or “Claude”.
+	'appMenu.history.entryBy': '{label} ({author})',
+	// translator: Item in the Undo history submenu: a step that was taken back and can be done again. {label} is the step’s name, such as “Paint grass”.
+	'appMenu.history.undone': '{label} (undone)',
+	// translator: Item in the Undo history submenu: a step that was taken back and can be done again. {label} is the step’s name, such as “Paint grass”; {author} says who made it, such as “You” or “Claude”.
+	'appMenu.history.undoneBy': '{label} ({author}, undone)',
+	// translator: Who made a change, in the Undo history submenu. The person using the studio. Shown in brackets after a step’s name.
+	'appMenu.history.author.person': 'You',
+	// translator: Who made a change, in the Undo history submenu. Claude is the AI assistant, a name that is not translated.
+	'appMenu.history.author.claude': 'Claude',
+	// translator: Who made a change, in the Undo history submenu: the level’s file was changed by another program.
+	'appMenu.history.author.outside': 'Outside the studio',
+	// translator: Who made a change, in the Undo history submenu: the unsaved changes were brought back after a crash.
+	'appMenu.history.author.recovered': 'Recovered',
+	// translator: Why Undo is disabled in the menus and the command palette: there is no change to take back.
+	'history.nothingToUndo': 'Nothing to undo',
+	// translator: Why Redo is disabled in the menus and the command palette: nothing has been taken back that could be done again.
+	'history.nothingToRedo': 'Nothing to redo',
+	// translator: Why Maximise is disabled on a menu item: the panel it would fill the workspace with is hidden.
+	'view.maximiseNeedsPanel': 'Show the panel first',
+	// translator: Why Show the level only is disabled on a menu item: a panel fills the workspace.
+	'view.levelFirstMaximised': 'Restore the maximised panel first',
+	// translator: Title of the window that lists the keyboard shortcuts.
+	'shortcuts.title': 'Keyboard shortcuts',
+	// translator: Short text under the title of the keyboard shortcuts window. Keys work when the window has focus, and not while typing in a box.
+	'shortcuts.description':
+		'Keys work while the studio has focus and pause while you type in a box.',
+	// translator: Accessible name of the table in the keyboard shortcuts window: a key in one column, what it does in the other.
+	'shortcuts.table': 'Keys and what they do',
+	// translator: Column heading in the keyboard shortcuts window: the keys to press.
+	'shortcuts.keys': 'Keys',
+	// translator: Column heading in the keyboard shortcuts window: what the keys do.
+	'shortcuts.action': 'Action',
+	// translator: Row in the keyboard shortcuts window: the keys that choose a tool (a list of letters). The action names the six tools.
+	'shortcuts.tools': 'Paint, Erase, Pick, Select, Stamp, Inspect',
+	// translator: Row in the keyboard shortcuts window: take back a step, and do a taken-back step again.
+	'shortcuts.undoRedo': 'Undo, redo',
+	// translator: Row in the keyboard shortcuts window. Writes the level to its file.
+	'shortcuts.save': 'Save',
+	// translator: Row in the keyboard shortcuts window. Opens the New level window.
+	'shortcuts.newLevel': 'New level',
+	// translator: Row in the keyboard shortcuts window. Opens a file dialog to choose a level.
+	'shortcuts.openLevel': 'Open level',
+	// translator: Row in the keyboard shortcuts window. Closes the open level, not the window.
+	'shortcuts.closeLevel': 'Close level',
+	// translator: Row in the keyboard shortcuts window. Opens the Preferences window.
+	'shortcuts.preferences': 'Preferences',
+	// translator: Row in the keyboard shortcuts window. Closes the whole app.
+	'shortcuts.quit': 'Quit',
+	// translator: Row in the keyboard shortcuts window. Opens the command palette.
+	'shortcuts.commandPalette': 'Command palette',
+	// translator: Row in the keyboard shortcuts window. Hides every panel so the level has the whole window, and brings them back.
+	'shortcuts.levelFirst': 'Show the level only',
+	// translator: Row in the keyboard shortcuts window. Makes the focused panel fill the workspace, or puts it back.
+	'shortcuts.maximise': 'Maximise or restore the focused panel',
+	// translator: Row in the keyboard shortcuts window. Puts every panel back where it starts.
+	'shortcuts.resetLayout': 'Reset layout',
+	// translator: Row in the keyboard shortcuts window. Opens the app’s help.
+	'shortcuts.help': 'Help',
+	// translator: Row in the keyboard shortcuts window. Shows or hides this window.
+	'shortcuts.shortcuts': 'Show or hide this window',
 	// translator: Accessible name of the row of menus under the title bar.
 	'menuBar.label': 'Application menu',
 	// translator: Accessible name of the button that holds the menus that do not fit in the menu bar.

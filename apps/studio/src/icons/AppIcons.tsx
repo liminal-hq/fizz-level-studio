@@ -143,6 +143,29 @@ export const AboutIcon: IconComponent = ({ size }) => (
 	</Svg>
 );
 
+/** A question mark in a circle: the Help row (Waypoint's help). */
+export const HelpIcon: IconComponent = ({ size }) => (
+	<Svg size={size}>
+		<circle cx="8" cy="8" r="6" />
+		<path d="M6.2 6.3a1.9 1.9 0 0 1 3.7.5c0 1.2-1.9 1.5-1.9 2.7M8 11.4v.1" />
+	</Svg>
+);
+
+/** A keyboard: the Keyboard shortcuts row (Waypoint's keyboard). */
+export const KeyboardIcon: IconComponent = ({ size }) => (
+	<Svg size={size}>
+		<rect x="1.5" y="4" width="13" height="8" rx="1.4" />
+		<path d="M4 6.8h.1M6.4 6.8h.1M8.8 6.8h.1M11.2 6.8h.1M4.5 9.4h7" />
+	</Svg>
+);
+
+/** A clock with a turning-back arrow: the Undo history submenu and its rows (Waypoint's history). */
+export const HistoryIcon: IconComponent = ({ size }) => (
+	<Svg size={size}>
+		<path d="M2.5 8a5.5 5.5 0 1 0 1.7-4M2.5 2.5v3h3M8 5v3.2l2 1.3" />
+	</Svg>
+);
+
 /** A pencil: the Edit menu (Waypoint's edit). */
 export const EditMenuIcon: IconComponent = ({ size }) => (
 	<Svg size={size}>
@@ -259,6 +282,9 @@ export type IconId =
 	| 'tearOff'
 	| 'dockBack'
 	| 'about'
+	| 'help'
+	| 'shortcuts'
+	| 'history'
 	| `panel.${PanelId}`
 	| `tool.${ToolId}`
 	| 'menu.file'
@@ -291,6 +317,9 @@ export const APP_ICONS: Record<IconId, IconComponent> = {
 	tearOff: TearOffIcon,
 	dockBack: DockBackIcon,
 	about: AboutIcon,
+	help: HelpIcon,
+	shortcuts: KeyboardIcon,
+	history: HistoryIcon,
 	...(Object.fromEntries(PANEL_ICON_ENTRIES) as Record<`panel.${PanelId}`, IconComponent>),
 	...(Object.fromEntries(TOOL_ICON_ENTRIES) as Record<`tool.${ToolId}`, IconComponent>),
 	'menu.file': FileMenuIcon,

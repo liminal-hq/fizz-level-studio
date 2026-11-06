@@ -35,33 +35,27 @@ function labelOf(def: CommandDef, checked: boolean | undefined): string {
 	return t(checked ? 'cmdPalette.hidePanel' : 'cmdPalette.showPanel', { panel: name });
 }
 
-/** Every command now, grouped in the palette's order and otherwise in registry order. */
+/** Every command that applies now, grouped in the palette's order and otherwise in registry order. A hidden command is not offered; a disabled one keeps its reason. */
 export function paletteEntries(snapshot: BridgeSnapshot): PaletteEntry[] {
-	const entries = allCommands(snapshot.facts)
-		.filter((def) => def.id !== OPENER && !def.hidden?.(snapshot.facts))
-		.map((def, order) => {
-			const view = viewOf(def, snapshot);
-			const group = paletteGroupOf(def);
-			let reason: string | undefined;
-			if (!view.enabled) {
-				const { hasLevel, editorOpen } = snapshot.facts;
-				reason = def.unavailable
-					? t(def.unavailable)
-					: t(!hasLevel && !editorOpen ? 'cmdPalette.needsLevel' : 'cmdPalette.unavailableNow');
-			}
-			return {
+	const entries = allCommands(snapshot.facts).flatMap((def, order) => {
+		if (def.id === OPENER) return [];
+		const view = viewOf(def, snapshot);
+		if (!view.visible) return [];
+		return [
+			{
 				order,
 				entry: {
 					id: def.id,
 					label: labelOf(def, view.checked),
 					def,
-					group,
+					group: paletteGroupOf(def),
 					shortcut: def.shortcut,
 					enabled: view.enabled,
-					reason,
+					reason: view.reason,
 				} satisfies PaletteEntry,
-			};
-		});
+			},
+		];
+	});
 	entries.sort(
 		(a, b) =>
 			PALETTE_GROUPS.indexOf(a.entry.group) - PALETTE_GROUPS.indexOf(b.entry.group) ||

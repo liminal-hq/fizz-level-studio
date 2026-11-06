@@ -11,7 +11,9 @@ import {
 	useBridgeSnapshot,
 	type CommandBridge,
 } from '../commands/commandBridge';
+import { commandForKey } from '../commands/appShortcuts';
 import { CommandPalette, isCommandPaletteShortcut } from '../commands/CommandPalette';
+import { runCommand } from '../commands/registry';
 import { t, type MessageId } from '../i18n/messages';
 import { launchClient, type LaunchClient } from '../services/launchClient';
 import { flushPendingWrites } from '../services/pendingWrites';
@@ -35,6 +37,7 @@ import type { DockClient } from '../services/dockClient';
 import type { PanelBridge } from '../panels/windows/panelBridge';
 import { CloseLevelDialog } from './CloseLevelDialog';
 import { EditorScreen } from './EditorScreen';
+import { KeyboardShortcutsDialog } from './KeyboardShortcutsDialog';
 import styles from './MainScreen.module.css';
 import { RecoverySection } from './RecoverySection';
 import { newerSnapshot } from './snapshotRule';
@@ -136,6 +139,7 @@ function MainScreenBody({
 	const [busy, setBusy] = useState(false);
 	const launched = useRef(false);
 	const [paletteOpen, setPaletteOpen] = useState(false);
+	const [shortcutsOpen, setShortcutsOpen] = useState(false);
 	const bridgeSnapshot = useBridgeSnapshot();
 	const menuBar = useMenuBar(settings);
 
@@ -450,6 +454,21 @@ function MainScreenBody({
 		return () => window.removeEventListener('keydown', onKey, true);
 	}, []);
 
+	// New level, Open level and Close level (Ctrl+N, Ctrl+O and Ctrl+W), Help (F1) and Keyboard
+	// shortcuts (?) run their menu commands, so a key does exactly what its row does and nothing
+	// while the row is disabled. Ctrl+W closes the level through the same path as Close level, and
+	// never the window.
+	useEffect(() => {
+		const onKey = (event: KeyboardEvent) => {
+			const id = commandForKey(event);
+			if (!id) return;
+			event.preventDefault();
+			runCommand(id, bridge.getSnapshot());
+		};
+		document.addEventListener('keydown', onKey);
+		return () => document.removeEventListener('keydown', onKey);
+	}, [bridge]);
+
 	// The application menu runs these through the bridge; the latest closures are read at call time.
 	const live = useRef({ choose, save, requestClose });
 	live.current = { choose, save, requestClose };
@@ -461,6 +480,7 @@ function MainScreenBody({
 				'file.save': () => void live.current.save(),
 				'file.close': () => live.current.requestClose(),
 				'view.commandPalette': () => setPaletteOpen(true),
+				'help.shortcuts': () => setShortcutsOpen((was) => !was),
 			}),
 		[bridge],
 	);
@@ -558,6 +578,7 @@ function MainScreenBody({
 					onClose={() => setPaletteOpen(false)}
 					snapshot={bridgeSnapshot}
 				/>
+				<KeyboardShortcutsDialog open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
 			</AppWindow>
 		);
 	}
@@ -619,6 +640,7 @@ function MainScreenBody({
 				onClose={() => setPaletteOpen(false)}
 				snapshot={bridgeSnapshot}
 			/>
+			<KeyboardShortcutsDialog open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
 			<CloseLevelDialog
 				open={asking}
 				name={name}

@@ -6,7 +6,12 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
-import { CommandBridgeContext, createCommandBridge } from '../commands/commandBridge';
+import {
+	CommandBridgeContext,
+	createCommandBridge,
+	type CommandFacts,
+	type CommandHandlers,
+} from '../commands/commandBridge';
 
 const openWindow = vi.hoisted(() => vi.fn(async () => {}));
 vi.mock('../services/windowsClient', () => ({ openWindow }));
@@ -14,11 +19,11 @@ vi.mock('../services/windowsClient', () => ({ openWindow }));
 import { AppMenu } from './AppMenu';
 import { AppMenuBar } from './AppMenuBar';
 
-function setup() {
+function setup(facts: Partial<CommandFacts> = {}, handlers: CommandHandlers = {}) {
 	const bridge = createCommandBridge();
 	const save = vi.fn();
-	bridge.setFacts({ hasLevel: true, editorOpen: true });
-	bridge.setHandlers({ 'file.save': save });
+	bridge.setFacts({ hasLevel: true, editorOpen: true, ...facts });
+	bridge.setHandlers({ 'file.save': save, ...handlers });
 	render(
 		<CommandBridgeContext.Provider value={bridge}>
 			<AppMenu menuBar />
@@ -63,17 +68,23 @@ describe('the application menu bar', () => {
 	});
 
 	it('opens a menu with its Alt mnemonic and moves between menus with the arrows', async () => {
-		setup();
+		// With Undo able to run, focus starts on it; a disabled Undo would leave it on Undo history,
+		// whose submenu the right arrow opens.
+		setup({ canUndo: true }, { 'edit.undo': () => {} });
 		fireEvent.keyDown(window, { key: 'e', altKey: true });
-		expect(await screen.findByRole('menuitem', { name: /Undo/ })).toBeInTheDocument();
-		fireEvent.keyDown(screen.getByRole('menuitem', { name: /Undo/ }), { key: 'ArrowRight' });
+		expect(await screen.findByRole('menuitem', { name: /^Undo(?! history)/ })).toBeInTheDocument();
+		fireEvent.keyDown(screen.getByRole('menuitem', { name: /^Undo(?! history)/ }), {
+			key: 'ArrowRight',
+		});
 		expect(await screen.findByRole('menuitemcheckbox', { name: /Palette/ })).toBeInTheDocument();
 	});
 
 	it('opens Help with Alt+H and runs About', async () => {
 		setup();
 		fireEvent.keyDown(window, { key: 'h', altKey: true });
-		await userEvent.click(await screen.findByRole('menuitem', { name: 'About Fizz Level Studio' }));
+		await userEvent.click(
+			await screen.findByRole('menuitem', { name: 'About Fizz Level Studio…' }),
+		);
 		expect(openWindow).toHaveBeenCalledWith({ kind: 'about' });
 	});
 });

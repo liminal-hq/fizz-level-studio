@@ -1350,6 +1350,21 @@ async function appMenuIconChecks(bridge: Bridge) {
 			rows.length > 0 && rows.every((r) => r.svg && r.w === 16 && r.h === 16),
 			JSON.stringify(rows.filter((r) => !r.svg || r.w !== 16 || r.h !== 16)),
 		);
+		// The rows are written as groups with the ellipsis on every row that opens a dialog or a
+		// window and the keys beside them; each row's text is its label then its keys.
+		const expected: Record<string, string[]> = {
+			File: ['New level\u2026Ctrl+N', 'Open level\u2026Ctrl+O', 'SaveCtrl+S', 'Close levelCtrl+W'],
+			Edit: ['Undo history'],
+			Help: ['HelpF1', 'Keyboard shortcuts\u2026?', 'About Fizz Level Studio\u2026'],
+		};
+		const wanted = expected[menu];
+		if (wanted) {
+			check(
+				`the ${menu} menu lists ${wanted.join(', ')}`,
+				wanted.every((text) => rows.some((r) => r.name === text)),
+				JSON.stringify(rows.map((r) => r.name)),
+			);
+		}
 	}
 }
 

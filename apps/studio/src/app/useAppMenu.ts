@@ -4,7 +4,7 @@
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
 import { useCallback, useMemo } from 'react';
-import { appMenuItems } from '../commands/appMenuModel';
+import { appMenuItems, commandIdOfRow } from '../commands/appMenuModel';
 import { useBridgeSnapshot } from '../commands/commandBridge';
 import { runCommand } from '../commands/registry';
 
@@ -13,7 +13,7 @@ export function useAppMenu() {
 	const items = useMemo(() => appMenuItems(snapshot), [snapshot]);
 	const onSelect = useCallback(
 		(item: { id: string }) => {
-			runCommand(item.id, snapshot);
+			runCommand(commandIdOfRow(item.id), snapshot);
 		},
 		[snapshot],
 	);
