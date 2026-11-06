@@ -1,0 +1,7 @@
+/* A line of explanation on the Transparency page: why everything is solid, or why a choice is missing. */
+.note {
+	margin: 0;
+	padding: 0 var(--fls-settings-row-padding);
+	color: var(--fls-text-secondary);
+	font-size: 0.875rem;
+}

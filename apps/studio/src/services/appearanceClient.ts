@@ -15,10 +15,10 @@ import {
 	type AppearancePreferences,
 	type PluginStatus,
 } from '@liminal-hq/plugin-system-appearance';
-import { getStatus as getEffectsStatus, hasFeature } from '@liminal-hq/plugin-window-effects';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import type { AccentSources, AppearanceChoice } from '../theme/followAccent';
 import type { SchemeSources } from '../theme/followColourScheme';
+import { windowEffectsSource } from './windowEffectsClient';
 
 /** Keeps the plugin's unsubscribe function once its promise settles, even if stopped before then. */
 function subscribe(start: () => Promise<() => void>): () => void {
@@ -74,7 +74,7 @@ export const accentSources: AccentSources = {
 			}),
 		);
 	},
-	seeThroughAvailable: async () => hasFeature(await getEffectsStatus(), 'opacity'),
+	seeThroughAvailable: async () => (await windowEffectsSource.availability()).seeThrough,
 	focused: () => getCurrentWindow().isFocused(),
 	onFocusChanged: (listener) =>
 		subscribe(() => getCurrentWindow().onFocusChanged(({ payload }) => listener(payload))),

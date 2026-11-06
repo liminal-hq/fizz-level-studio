@@ -1301,6 +1301,148 @@ async function nativeTitle(bridge: Bridge, label: string): Promise<string | null
 	}
 }
 
+/** The Transparency settings as the store holds them. */
+function savedTransparency(bridge: Bridge): Promise<Record<string, unknown>> {
+	return bridge.js(
+		`return (await window.__TAURI_INTERNALS__.invoke('plugin:fizz-studio-settings|settings_get')).settings.transparency;`,
+	);
+}
+
+/** What the root of a window has: the inline glass blur the settings set, and what it computes to. */
+function rootGlass(bridge: Bridge, windowId: string) {
+	return bridge.js<{ inline: string; computed: string; reduced: boolean }>(
+		`const r = document.documentElement;
+		 return {
+			 inline: r.style.getPropertyValue('--fls-glass-blur'),
+			 computed: getComputedStyle(r).getPropertyValue('--fls-glass-blur').trim(),
+			 reduced: r.dataset.flsTransparency === 'reduced',
+		 };`,
+		windowId,
+	);
+}
+
+/**
+ * The Transparency page in the Preferences window: it is listed, draws its rows and its preview, a
+ * slider moved there sets the glass blur on the root of every window and blurs a real dock zone
+ * with it, and its reset puts the defaults back.
+ */
+async function transparencyChecks(bridge: Bridge): Promise<void> {
+	check(
+		'the Preferences window lists the Transparency page',
+		await bridge.js<boolean>(
+			`const b = [...document.querySelectorAll('button[data-section]')].find((x) => x.textContent.trim() === 'Transparency'); if (!b) return false; b.click(); return true;`,
+			'preferences',
+		),
+	);
+	let seen: { sliders: string[]; switches: string[]; preview: boolean } | null = null;
+	await within(10_000, async () => {
+		seen = await bridge.js<{ sliders: string[]; switches: string[]; preview: boolean }>(
+			`const name = (el) => document.getElementById(el.getAttribute('aria-labelledby') ?? '')?.textContent?.trim() ?? '';
+			 return {
+				 sliders: [...document.querySelectorAll('input[type=range]')].map(name),
+				 switches: [...document.querySelectorAll('[role=switch]')].map(name),
+				 preview: !!document.querySelector('[data-testid=transparency-preview]'),
+			 };`,
+			'preferences',
+		);
+		return seen.sliders.length > 0;
+	});
+	const rows = seen as { sliders: string[]; switches: string[]; preview: boolean } | null;
+	const sliders = ['Blur', 'Saturation', 'Panel opacity', 'Menu opacity'];
+	const switches = [
+		'Docked panels',
+		'Floating panels',
+		'Menus',
+		'Dialogs',
+		'Title bar',
+		'Transparent window',
+		'Solid when unfocused',
+	];
+	check(
+		'the Transparency page draws its sliders, switches and preview',
+		rows !== null &&
+			sliders.every((n) => rows.sliders.includes(n)) &&
+			switches.every((n) => rows.switches.includes(n)) &&
+			rows.preview,
+		JSON.stringify(rows),
+	);
+	// Move the Blur slider as a person does: its value, an input event, then the release.
+	const moved = await bridge.js<boolean>(
+		`const name = (el) => document.getElementById(el.getAttribute('aria-labelledby') ?? '')?.textContent?.trim();
+		 const el = [...document.querySelectorAll('input[type=range]')].find((x) => name(x) === 'Blur');
+		 if (!el) return false;
+		 Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(el, '24');
+		 el.dispatchEvent(new Event('input', { bubbles: true }));
+		 el.dispatchEvent(new Event('change', { bubbles: true }));
+		 return true;`,
+		'preferences',
+	);
+	check('the Blur slider can be moved', moved);
+	const saved = await within(5000, async () => (await savedTransparency(bridge)).blur === 24);
+	check('moving the Blur slider saves it', saved !== null);
+	for (const windowId of ['main-1', 'preferences']) {
+		const applied = await within(
+			5000,
+			async () => (await rootGlass(bridge, windowId)).inline === '24px',
+		);
+		const glass = await rootGlass(bridge, windowId);
+		check(
+			`the Blur slider sets --fls-glass-blur on the root of ${windowId}`,
+			applied !== null,
+			JSON.stringify(glass),
+		);
+		if (!glass.reduced) {
+			check(
+				`the root of ${windowId} computes the new blur`,
+				glass.computed === '24px',
+				JSON.stringify(glass),
+			);
+		}
+	}
+	// A real surface draws it: a dock zone's filter carries the blur and the saturation, and its
+	// glass fill is still a gradient (the tokens' colour mix is valid in this webview).
+	// (The resize handles carry `data-zone` too, so the zone is the section; a maximised panel drops
+	// the zones' blur on purpose.)
+	const zone = await bridge.js<{ filter: string; image: string; maximised: boolean } | null>(
+		`const z = document.querySelector('section[data-zone]'); if (!z) return null; const c = getComputedStyle(z);
+		 return { filter: c.backdropFilter || c.webkitBackdropFilter || '', image: c.backgroundImage, maximised: !!z.closest('[data-has-maximised]') };`,
+	);
+	if (zone !== null && !zone.maximised && !(await rootGlass(bridge, 'main-1')).reduced) {
+		check(
+			'a dock zone blurs and saturates with the saved values',
+			zone.filter.includes('blur(24px)') && zone.filter.includes('saturate('),
+			JSON.stringify(zone),
+		);
+		check(
+			'a dock zone draws its glass fill',
+			zone.image.includes('gradient'),
+			JSON.stringify(zone),
+		);
+	}
+	const reset = await bridge.js<boolean>(
+		`const b = [...document.querySelectorAll('button')].find((x) => x.textContent.trim() === 'Reset to defaults' && !x.disabled); if (!b) return false; b.click(); return true;`,
+		'preferences',
+	);
+	check('the Transparency page offers Reset to defaults', reset);
+	const back = await within(5000, async () => {
+		const t = await savedTransparency(bridge);
+		return (
+			t.blur === 16 &&
+			t.saturation === 120 &&
+			t.panel_opacity === 88 &&
+			t.docks === true &&
+			t.menus === false &&
+			t.window_enabled === false
+		);
+	});
+	check('reset puts the Transparency settings back to their defaults', back !== null);
+	const restored = await within(
+		5000,
+		async () => (await rootGlass(bridge, 'main-1')).inline === '16px',
+	);
+	check('reset puts the default blur back on the main window', restored !== null);
+}
+
 /** Changes the menu bar setting through the settings command, as the Preferences switch does. */
 function setMenuBar(bridge: Bridge, on: boolean): Promise<unknown> {
 	return bridge.js(
@@ -2231,6 +2373,7 @@ async function main(): Promise<void> {
 		await bridge.js(
 			`const cur = await window.__TAURI_INTERNALS__.invoke('plugin:fizz-studio-settings|settings_get'); await window.__TAURI_INTERNALS__.invoke('plugin:fizz-studio-settings|settings_update', { patch: { accent: { kind: 'system' }, glass: 'system' }, basedOn: cur.revision });`,
 		);
+		await transparencyChecks(bridge);
 
 		const clickByText = (text: string, windowId = 'main-1') =>
 			bridge.js<boolean>(

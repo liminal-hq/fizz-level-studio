@@ -25,7 +25,10 @@ const SURFACE_DATA: Record<GlassSurface, string> = {
 };
 
 /** The colours the window's floor is worked out from, read from the tokens in force; `null` where the page cannot read them. */
-function readWindowColours(root: HTMLElement): { text: string | null; surface: string | null } {
+export function readWindowColours(root: HTMLElement): {
+	text: string | null;
+	surface: string | null;
+} {
 	if (typeof globalThis.getComputedStyle !== 'function') return { text: null, surface: null };
 	const style = globalThis.getComputedStyle(root);
 	const read = (name: string): string | null => {

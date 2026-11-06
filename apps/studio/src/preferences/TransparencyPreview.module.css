@@ -1,0 +1,219 @@
+/*
+ * The transparency sample. Its values arrive as `--fls-preview-*` on this box, and every surface
+ * rebuilds the real glass from them with the real tokens (the root's own glass fill is already
+ * worked out at the root, so it cannot follow a value set here). A surface whose switch is off, or
+ * every surface while glass is off, takes the solid fill the real one would.
+ */
+.preview {
+	--fls-preview-filter: blur(var(--fls-preview-blur)) saturate(var(--fls-preview-saturation));
+	--fls-preview-glass: linear-gradient(
+		145deg,
+		color-mix(
+			in srgb,
+			var(--fls-glass-tint-start) calc(var(--fls-preview-alpha) * 100%),
+			transparent
+		),
+		color-mix(
+			in srgb,
+			var(--fls-glass-tint-end) calc(min(1, var(--fls-preview-alpha) + 0.06) * 100%),
+			transparent
+		)
+	);
+	overflow: hidden;
+	border: 1px solid var(--fls-border-subtle);
+	border-radius: 10px;
+	color: var(--fls-text-primary);
+	font-size: 0.8125rem;
+}
+
+/* The desktop behind the sample window: busy diagonal stripes, so the window's own blur and alpha show. */
+.desktop {
+	padding: 14px;
+	background: repeating-linear-gradient(
+		135deg,
+		var(--fls-tile-door-red) 0 12px,
+		var(--fls-tile-crystal) 12px 24px,
+		var(--fls-tile-nature) 24px 36px,
+		var(--fls-tile-door-blue) 36px 48px,
+		var(--fls-canvas-item) 48px 60px
+	);
+}
+
+.window {
+	display: flex;
+	flex-direction: column;
+	overflow: hidden;
+	background: var(--fls-solid-window);
+	border: 1px solid var(--fls-border-subtle);
+	border-radius: 8px;
+	box-shadow: var(--fls-glass-shadow);
+}
+
+.window[data-see-through] {
+	background: color-mix(
+		in srgb,
+		var(--fls-solid-window) calc(var(--fls-preview-window-alpha) * 100%),
+		transparent
+	);
+}
+
+.titleBar {
+	padding: 6px 10px;
+	border-bottom: 1px solid var(--fls-border-subtle);
+	background: var(--fls-bg-chrome);
+	text-align: center;
+	font-weight: 600;
+}
+
+.titleBar[data-glass='on'] {
+	background: color-mix(
+		in srgb,
+		var(--fls-bg-chrome) calc(var(--fls-preview-alpha) * 100%),
+		transparent
+	);
+	-webkit-backdrop-filter: var(--fls-preview-filter);
+	backdrop-filter: var(--fls-preview-filter);
+}
+
+.body {
+	display: grid;
+	grid-template-columns: minmax(7rem, 1fr) 3fr;
+	min-height: 170px;
+}
+
+/* The glass surfaces: a docked panel at the edge and a floating one over the level. */
+.dock,
+.floating {
+	display: grid;
+	align-content: start;
+	gap: 4px;
+	padding: 8px 10px;
+	border: 1px solid var(--fls-glass-border);
+}
+
+.dock {
+	position: relative;
+	z-index: 1;
+	/* Laid over the level's edge, so there is something behind it to blur. */
+	margin-right: -48px;
+	border-width: 0 1px 0 0;
+}
+
+.floating {
+	position: absolute;
+	top: 18px;
+	left: 30%;
+	min-width: 9rem;
+	border-radius: 10px;
+	box-shadow: var(--fls-glass-shadow);
+}
+
+.dock[data-glass='on'],
+.floating[data-glass='on'] {
+	background: var(--fls-preview-glass);
+	-webkit-backdrop-filter: var(--fls-preview-filter);
+	backdrop-filter: var(--fls-preview-filter);
+}
+
+.dock[data-glass='off'],
+.floating[data-glass='off'] {
+	background: var(--fls-glass-bg-solid);
+}
+
+.heading {
+	font-weight: 600;
+}
+
+.stage {
+	position: relative;
+	overflow: hidden;
+	background: var(--fls-solid-stage);
+}
+
+.window[data-see-through] .stage {
+	background: color-mix(
+		in srgb,
+		var(--fls-solid-stage) calc(var(--fls-preview-window-alpha) * 100%),
+		transparent
+	);
+}
+
+/* A busy level: a grid of the game's own tile colours, never themed. */
+.level {
+	position: absolute;
+	inset: 12px 12px 12px 56px;
+	display: grid;
+	grid-template-columns: repeat(4, 1fr);
+	gap: 3px;
+	background: var(--fls-canvas-bg);
+}
+
+.tile[data-tile='solid'] {
+	background: var(--fls-tile-solid);
+}
+.tile[data-tile='crystal'] {
+	background: var(--fls-tile-crystal);
+}
+.tile[data-tile='door-red'] {
+	background: var(--fls-tile-door-red);
+}
+.tile[data-tile='nature'] {
+	background: var(--fls-tile-nature);
+}
+.tile[data-tile='water'] {
+	background: var(--fls-tile-water);
+}
+.tile[data-tile='hazard'] {
+	background: var(--fls-tile-hazard);
+}
+.tile[data-tile='door-blue'] {
+	background: var(--fls-tile-door-blue);
+}
+.tile[data-tile='platform'] {
+	background: var(--fls-tile-platform);
+}
+.tile[data-tile='gate'] {
+	background: var(--fls-tile-gate);
+}
+.tile[data-tile='exit'] {
+	background: var(--fls-tile-exit);
+}
+.tile[data-tile='door-green'] {
+	background: var(--fls-tile-door-green);
+}
+.tile[data-tile='building'] {
+	background: var(--fls-tile-building);
+}
+
+.menu {
+	position: absolute;
+	right: 14px;
+	bottom: 14px;
+	display: grid;
+	min-width: 8rem;
+	padding: 4px;
+	border: 1px solid var(--fls-border-subtle);
+	border-radius: 8px;
+	background: var(--fls-bg-raised);
+	box-shadow: var(--fls-shadow-menu);
+}
+
+.menu[data-glass='on'] {
+	background: color-mix(
+		in srgb,
+		var(--fls-bg-raised) calc(var(--fls-preview-menu-alpha) * 100%),
+		transparent
+	);
+	-webkit-backdrop-filter: var(--fls-preview-filter);
+	backdrop-filter: var(--fls-preview-filter);
+}
+
+.menuRow {
+	padding: 3px 8px;
+	border-radius: 6px;
+}
+
+.menuRow[data-lit] {
+	background: var(--fls-accent);
+	color: var(--fls-accent-contrast);
+}

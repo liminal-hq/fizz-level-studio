@@ -197,6 +197,14 @@ export const AppearanceIcon: IconComponent = ({ size }) => (
 	</Svg>
 );
 
+/** Two overlapping panes, the front one see-through to the one behind: the Transparency page. */
+export const TransparencyIcon: IconComponent = ({ size }) => (
+	<Svg size={size}>
+		<rect x="2" y="2" width="8" height="8" rx="1.5" />
+		<rect x="6" y="6" width="8" height="8" rx="1.5" strokeDasharray="1.6 1.6" />
+	</Svg>
+);
+
 /** A page: the File menu. */
 export const FileMenuIcon: IconComponent = ({ size }) => (
 	<Svg size={size}>

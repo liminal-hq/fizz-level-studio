@@ -71,6 +71,7 @@ describe('usePreferencesSettings', () => {
 			accent: { kind: 'system' },
 			glass: 'system',
 			ui: { menu_bar: false },
+			transparency: TRANSPARENCY_DEFAULTS,
 		});
 	});
 

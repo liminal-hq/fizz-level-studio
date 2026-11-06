@@ -662,6 +662,106 @@ export const enMessages = {
 		'Puts colour mode, accent and glass back to following the system.',
 	// translator: Verb phrase on a button. Puts the page’s settings back to their defaults.
 	'preferences.reset.action': 'Reset to defaults',
+	// translator: The name of a Preferences page about how see-through the panels, menus and windows are. It is the page’s heading and its entry in the list of pages.
+	'preferences.page.transparency': 'Transparency',
+	// translator: The title of a group of settings about the frosted glass on the panels and menus inside a window.
+	'preferences.group.transparencyPanels': 'Panels and menus',
+	// translator: The title of a group of settings about the window itself letting the desktop show through.
+	'preferences.group.transparencyWindow': 'Window',
+	// translator: A note at the top of the Transparency page when the Glass panels setting on the Appearance page is off, or the system asks for less transparency, so everything is drawn solid.
+	'preferences.transparency.solidNote':
+		'Glass is off for now (Glass panels on the Appearance page, or the system asking for less transparency), so every surface is drawn solid.',
+	// translator: The unit after a blur value in pixels, with its leading space, such as “16 px”.
+	'preferences.unit.pixels': ' px',
+	// translator: The unit after a value in percent, such as “88%”.
+	'preferences.unit.percent': '%',
+	// translator: The name of a slider. How strongly a glass panel blurs what is behind it.
+	'preferences.transparency.blur.label': 'Blur',
+	// translator: Explains the Blur slider.
+	'preferences.transparency.blur.description': 'How much the glass blurs what lies behind it.',
+	// translator: The name of a slider. How vivid the colours seen through the glass are.
+	'preferences.transparency.saturation.label': 'Saturation',
+	// translator: Explains the Saturation slider.
+	'preferences.transparency.saturation.description':
+		'How vivid the colours behind the glass look. 100% leaves them as they are.',
+	// translator: The name of a slider. How solid (not see-through) a glass panel’s fill is.
+	'preferences.transparency.panelOpacity.label': 'Panel opacity',
+	// translator: Explains the Panel opacity slider.
+	'preferences.transparency.panelOpacity.description':
+		'How solid a glass panel is. Lower lets more of the level show through.',
+	// translator: The name of a switch that puts glass on the panels docked at the window’s edges.
+	'preferences.transparency.docks.label': 'Docked panels',
+	// translator: Explains the Docked panels switch. A “rail” is the strip of panel buttons at a window edge; “peeked” means shown for a moment from the rail.
+	'preferences.transparency.docks.description':
+		'The panels docked at the edges, their rails, and a panel peeked from a rail.',
+	// translator: The name of a switch that puts glass on the panels floating over the level.
+	'preferences.transparency.floating.label': 'Floating panels',
+	// translator: Explains the Floating panels switch.
+	'preferences.transparency.floating.description':
+		'Floating panels, the tool picker, and the command palette.',
+	// translator: The name of a switch that puts glass on the menus.
+	'preferences.transparency.menus.label': 'Menus',
+	// translator: Explains the Menus switch. “App menu” is the button at the left of the title bar.
+	'preferences.transparency.menus.description':
+		'The app menu, the menu bar’s menus, the Panels menu, and the menus that open on a right-click.',
+	// translator: The name of a slider. How solid (not see-through) a glass menu is.
+	'preferences.transparency.menuOpacity.label': 'Menu opacity',
+	// translator: Explains the Menu opacity slider.
+	'preferences.transparency.menuOpacity.description': 'How solid a glass menu is.',
+	// translator: The name of a switch that puts glass on the dialogs (the boxes that ask a question over a window).
+	'preferences.transparency.dialogs.label': 'Dialogs',
+	// translator: Explains the Dialogs switch.
+	'preferences.transparency.dialogs.description': 'The questions and messages shown over a window.',
+	// translator: The name of a switch that puts glass on the title bar at the top of a window.
+	'preferences.transparency.titleBar.label': 'Title bar',
+	// translator: Explains the Title bar switch.
+	'preferences.transparency.titleBar.description':
+		'The title bar and the menu bar under it. They show the window behind them, or the desktop when the window lets it through.',
+	// translator: The name of a switch. When on, the window’s own background lets the desktop behind it show through.
+	'preferences.transparency.window.label': 'Transparent window',
+	// translator: Explains the Transparent window switch. “The level” is the map being edited.
+	'preferences.transparency.window.description':
+		'Lets the desktop show through the window around the panels. The level itself stays solid, and text stays readable.',
+	// translator: Shown in place of the Transparent window switch’s action when this computer cannot draw see-through windows.
+	'preferences.transparency.window.unavailable': 'This system cannot draw see-through windows.',
+	// translator: The name of a choice of how strongly the desktop behind a see-through window is blurred.
+	'preferences.transparency.windowBlur.label': 'Desktop blur',
+	// translator: Explains the Desktop blur choice. “Low” and “High” are the same on Linux.
+	'preferences.transparency.windowBlur.description':
+		'How strongly the desktop behind the window is blurred. Low and High are the same where the desktop has only one blur.',
+	// translator: A choice for Desktop blur: no blur.
+	'preferences.transparency.windowBlur.off': 'Off',
+	// translator: A choice for Desktop blur: a light blur.
+	'preferences.transparency.windowBlur.low': 'Low',
+	// translator: A choice for Desktop blur: a strong blur.
+	'preferences.transparency.windowBlur.high': 'High',
+	// translator: A line shown instead of the Desktop blur choice when this desktop cannot blur behind windows.
+	'preferences.transparency.windowBlur.unavailable':
+		'This desktop cannot blur behind windows, so the desktop shows through as it is.',
+	// translator: The name of a switch. When on, a window that is not the one in front is drawn solid.
+	'preferences.transparency.solidUnfocused.label': 'Solid when unfocused',
+	// translator: Explains the Solid when unfocused switch.
+	'preferences.transparency.solidUnfocused.description':
+		'Draws a window solid while another window is in front.',
+	// translator: Explains the reset action on the Transparency page.
+	'preferences.reset.descriptionTransparency':
+		'Puts the blur, saturation, opacity, surfaces, and window back to their defaults.',
+	// translator: An error beside a slider when its value was refused as outside the slider’s range.
+	'preferences.error.range': 'That value is outside the range this setting allows.',
+	// translator: Accessible name of the live sample of the transparency settings: panels and a menu over a busy picture.
+	'preferences.transparency.preview.label': 'Transparency preview',
+	// translator: Text in the preview’s sample title bar.
+	'preferences.transparency.preview.title': 'Sample window',
+	// translator: Heading of the sample docked panel in the preview.
+	'preferences.transparency.preview.dock': 'Docked panel',
+	// translator: Heading of the sample floating panel in the preview.
+	'preferences.transparency.preview.floating': 'Floating panel',
+	// translator: A line of sample text inside a panel in the preview.
+	'preferences.transparency.preview.text': 'Text on the glass',
+	// translator: A sample menu row in the preview.
+	'preferences.transparency.preview.menuItem': 'Menu row',
+	// translator: A second sample menu row in the preview.
+	'preferences.transparency.preview.menuItemOther': 'Another row',
 	// translator: A line shown in the About window until it is built.
 	'placeholder.about': 'About is coming.',
 
