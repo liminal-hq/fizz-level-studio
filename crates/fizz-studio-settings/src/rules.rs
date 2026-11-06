@@ -132,6 +132,14 @@ fn validate_workspace(name: &str, workspace: &Workspace) -> Result<(), SettingsE
             ));
         }
     }
+    if let Some(at) = workspace.tool_picker {
+        if !(0..=MAX_EXTENT).contains(&at.x) || !(0..=MAX_EXTENT).contains(&at.y) {
+            return Err(field(
+                SettingsField::WorkspaceRect,
+                format!("the tool picker in the {name} workspace is off the map"),
+            ));
+        }
+    }
     Ok(())
 }
 

@@ -80,7 +80,11 @@ fn workspace(zones: Zones) -> Workspace {
             },
         );
     }
-    Workspace { panels, zones }
+    Workspace {
+        panels,
+        zones,
+        tool_picker: None,
+    }
 }
 
 fn base_zones() -> Zones {

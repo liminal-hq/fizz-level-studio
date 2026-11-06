@@ -15,6 +15,7 @@ import type { WindowPlacement } from '@liminal-hq/fizz-studio-protocol/generated
 import type { Workspace } from '@liminal-hq/fizz-studio-protocol/generated/Workspace';
 import type { ZoneId } from '@liminal-hq/fizz-studio-protocol/generated/ZoneId';
 import type { PanelPlacement } from '@liminal-hq/fizz-studio-protocol/generated/PanelPlacement';
+import type { ToolPickerPlacement } from '@liminal-hq/fizz-studio-protocol/generated/ToolPickerPlacement';
 import type { Size } from '../float/panelGeometry';
 import { clampZoneSize, clampZoneSizeAbsolute } from './dockGeometry';
 import {
@@ -155,6 +156,12 @@ function normaliseWindow(value: unknown): WindowPlacement | null {
 	};
 }
 
+/** The tool picker's place, or null (the map's top-left corner) for anything that is not one. */
+function normalisePicker(value: unknown): ToolPickerPlacement | null {
+	if (!isPlain(value) || typeof value.x !== 'number' || typeof value.y !== 'number') return null;
+	return { x: int(value.x, 0, 0, MAX_EXTENT), y: int(value.y, 0, 0, MAX_EXTENT) };
+}
+
 function normaliseEntry(value: unknown, fallback: PanelEntry): PanelEntry {
 	const v = isPlain(value) ? value : {};
 	const float = normaliseFloat(v.float, fallback.float);
@@ -222,7 +229,7 @@ export function normaliseWorkspace(input: unknown, window?: Size): Workspace {
 		else target.groups.push({ tabs: [id], active: id });
 		placed.add(id);
 	}
-	return { panels, zones };
+	return { panels, zones, tool_picker: normalisePicker(raw.tool_picker) };
 }
 
 /**

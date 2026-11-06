@@ -127,6 +127,15 @@ pub struct PanelEntry {
     pub window_from: PlaceKind,
 }
 
+/// Where the floating tool picker sits over the level: its top-left corner, in pixels from the
+/// top-left of the map. The frontend keeps it inside the map as the window and the docks change.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[ts(export, export_to = "../../../packages/protocol/src/generated/")]
+pub struct ToolPickerPlacement {
+    pub x: i32,
+    pub y: i32,
+}
+
 /// One named arrangement of every panel.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, TS)]
 #[ts(export, export_to = "../../../packages/protocol/src/generated/")]
@@ -134,6 +143,9 @@ pub struct Workspace {
     /// Every panel, by id (`palette`, `script`, ...).
     pub panels: BTreeMap<String, PanelEntry>,
     pub zones: Zones,
+    /// Where the tool picker was moved to; `None` puts it at the map's top-left corner.
+    #[serde(default)]
+    pub tool_picker: Option<ToolPickerPlacement>,
 }
 
 /// The named workspaces and the one in use. With no workspaces saved the settings crate's

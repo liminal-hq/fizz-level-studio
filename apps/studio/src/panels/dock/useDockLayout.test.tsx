@@ -128,4 +128,44 @@ describe('useDockLayout', () => {
 		await act(async () => release?.());
 		expect(dockedIn(result.current.workspace, 'bottom')).toContain('palette');
 	});
+
+	it('keeps the tool picker place per workspace and writes it with the dock', async () => {
+		const dock = defaultDock();
+		dock.workspaces.Script!.tool_picker = { x: 300, y: 50 };
+		const client = fakeDockClient(dock);
+		const { result } = renderHook(() => useDockLayout(client, windowSize, area));
+		await waitFor(() => expect(result.current.loaded).toBe(true));
+		expect(result.current.toolPicker).toBeNull();
+		act(() => result.current.placeToolPicker({ x: 120.6, y: 44.2 }));
+		expect(result.current.toolPicker).toEqual({ x: 121, y: 44 });
+		await act(async () => {
+			await flushPendingWrites();
+		});
+		expect(client.save).toHaveBeenCalledTimes(1);
+		const saved = vi.mocked(client.save).mock.calls[0]![0];
+		expect(saved.workspaces.Paint!.tool_picker).toEqual({ x: 121, y: 44 });
+		expect(saved.workspaces.Script!.tool_picker).toEqual({ x: 300, y: 50 });
+		// The same place again writes nothing new.
+		act(() => result.current.placeToolPicker({ x: 121, y: 44 }));
+		await act(async () => {
+			await flushPendingWrites();
+		});
+		expect(client.save).toHaveBeenCalledTimes(1);
+	});
+
+	it('reads back a saved tool picker place, and resetting the workspace forgets it', async () => {
+		const first = fakeDockClient();
+		const one = renderHook(() => useDockLayout(first, windowSize, area));
+		await waitFor(() => expect(one.result.current.loaded).toBe(true));
+		act(() => one.result.current.placeToolPicker({ x: 410, y: 96 }));
+		await act(async () => {
+			await flushPendingWrites();
+		});
+		const written = vi.mocked(first.save).mock.calls[0]![0];
+		one.unmount();
+		const again = renderHook(() => useDockLayout(fakeDockClient(written), windowSize, area));
+		await waitFor(() => expect(again.result.current.toolPicker).toEqual({ x: 410, y: 96 }));
+		act(() => again.result.current.reset());
+		expect(again.result.current.toolPicker).toBeNull();
+	});
 });

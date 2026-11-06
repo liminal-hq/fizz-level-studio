@@ -136,7 +136,7 @@ fn a_version_one_file_without_layouts_migrates_untouched() {
 #[test]
 fn a_version_with_no_step_is_unreadable_not_guessed() {
     let file = memory_file(Some(r#"{ "version": 0, "settings": {} }"#));
-    assert_eq!(SETTINGS_VERSION, 5);
+    assert_eq!(SETTINGS_VERSION, 6);
     let report = file.load();
     assert!(report
         .problem
@@ -593,7 +593,7 @@ fn the_accent_and_glass_survive_a_save_and_load() {
     store_file.save(&settings).unwrap();
     let saved: Value =
         serde_json::from_str(&store_file.storage().get(SETTINGS_FILE).unwrap()).unwrap();
-    assert_eq!(saved["version"], 5);
+    assert_eq!(saved["version"], SETTINGS_VERSION);
     assert_eq!(saved["settings"]["accent"]["kind"], "custom");
     assert_eq!(saved["settings"]["glass"], "on");
     assert_eq!(store_file.load().settings, settings);

@@ -125,7 +125,8 @@
 					}
 				]
 			}
-		}
+		},
+		"tool_picker": null
 	},
 	"workspaces": {
 		"Paint": {
@@ -245,7 +246,8 @@
 						}
 					]
 				}
-			}
+			},
+			"tool_picker": null
 		},
 		"Review": {
 			"panels": {
@@ -364,7 +366,8 @@
 						}
 					]
 				}
-			}
+			},
+			"tool_picker": null
 		},
 		"Script": {
 			"panels": {
@@ -483,7 +486,8 @@
 						}
 					]
 				}
-			}
+			},
+			"tool_picker": null
 		}
 	}
 }

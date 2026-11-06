@@ -10,6 +10,7 @@
 // is on screen.
 
 import type { DockSettings } from '@liminal-hq/fizz-studio-protocol/generated/DockSettings';
+import type { ToolPickerPlacement } from '@liminal-hq/fizz-studio-protocol/generated/ToolPickerPlacement';
 import type { Workspace } from '@liminal-hq/fizz-studio-protocol/generated/Workspace';
 import type { WindowPlacement } from '@liminal-hq/fizz-studio-protocol/generated/WindowPlacement';
 import type { ZoneId } from '@liminal-hq/fizz-studio-protocol/generated/ZoneId';
@@ -43,7 +44,7 @@ import {
 	type DockSession,
 } from './dockLayout';
 import { dropOnZone } from './dockDrop';
-import { PANEL_IDS, defaultDock, defaultWorkspace } from './dockModel';
+import { MAX_EXTENT, PANEL_IDS, defaultDock, defaultWorkspace } from './dockModel';
 import { normaliseDock, resetWorkspace } from './dockNormalise';
 import { shownPanels, visibleWorkspace } from './dockView';
 
@@ -97,6 +98,10 @@ export interface DockLayoutHandle {
 	bringBack(id: string): void;
 	/** Records where a panel's window is, whatever the panel's place now. */
 	placeWindow(id: string, at: WindowPlacement): void;
+	/** Where the tool picker was moved to in this workspace; null is the map's top-left corner. */
+	toolPicker: ToolPickerPlacement | null;
+	/** Records where the tool picker was moved to, in whole pixels from the map's top-left corner. */
+	placeToolPicker(at: ToolPickerPlacement): void;
 	/** Writes a change waiting on its pause now; resolves when Rust has it. */
 	flush(): Promise<void>;
 }
@@ -241,6 +246,16 @@ export function useDockLayout(client: DockClient, windowSize: Size, area: Size):
 		[edit],
 	);
 	const raise = useCallback((id: PanelId) => edit((ws) => raiseFloat(ws, id)), [edit]);
+	const placeToolPicker = useCallback(
+		(at: ToolPickerPlacement) =>
+			edit((ws) => {
+				const x = Math.max(0, Math.min(Math.round(at.x), MAX_EXTENT));
+				const y = Math.max(0, Math.min(Math.round(at.y), MAX_EXTENT));
+				if (ws.tool_picker?.x === x && ws.tool_picker?.y === y) return ws;
+				return { ...ws, tool_picker: { x, y } };
+			}),
+		[edit],
+	);
 
 	const peek = useCallback(
 		(id: string) => setRawSession((s) => peekPanel(settleSession(s, current()), current(), id)),
@@ -352,6 +367,8 @@ export function useDockLayout(client: DockClient, windowSize: Size, area: Size):
 		sendToWindow: toWindow,
 		bringBack: fromWindow,
 		placeWindow: record,
+		toolPicker: workspace.tool_picker ?? null,
+		placeToolPicker,
 		flush,
 	};
 }
