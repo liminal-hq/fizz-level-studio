@@ -1,22 +1,16 @@
-// One open dock: its tab groups, each with a tab strip, the buttons that move the showing panel, and its content
+// One open dock: its tab groups, each with a header naming the showing panel, the buttons that move it, and its content
 //
 // (c) Copyright 2026 Liminal HQ, Scott Morris
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
 import type { TabGroup } from '@liminal-hq/fizz-studio-protocol/generated/TabGroup';
 import type { ZoneId } from '@liminal-hq/fizz-studio-protocol/generated/ZoneId';
-import {
-	useLayoutEffect,
-	useRef,
-	type KeyboardEvent,
-	type PointerEvent,
-	type ReactNode,
-} from 'react';
+import type { PointerEvent, ReactNode } from 'react';
 import { t, type MessageId } from '../../i18n/messages';
 import { FoldButton } from './FoldButton';
 import { PanelCommands } from './PanelCommands';
 import { PanelExpandButton } from './PanelExpandButton';
-import { PANEL_ICONS } from './panelIcons';
+import { GripIcon, PANEL_ICONS } from './panelIcons';
 import type { PanelId } from '../float/panelSpecs';
 import type { DragSource } from './useDockDrag';
 import styles from './DockZone.module.css';
@@ -26,15 +20,12 @@ export interface DockZoneProps {
 	groups: readonly TabGroup[];
 	titleOf: (id: string) => string;
 	renderPanel: (id: string) => ReactNode;
-	onActivate: (id: string) => void;
 	onDock: (id: string, zone: ZoneId) => void;
 	onFloat: (id: string) => void;
 	/** Tears a panel off into a window of its own; the button is left out when this is absent. */
 	onTearOff?: (id: string) => void;
 	onFold: () => void;
-	/** Moves a docked panel to a place among its group's tabs (the keyboard's way of reordering). */
-	onReorder?: (id: string, index: number) => void;
-	/** A press on a tab or a header that may become a drag. */
+	/** A press on a header that may become a drag. */
 	onDragStart?: (event: PointerEvent<HTMLElement>, id: string, source: DragSource) => void;
 	/** Whether a panel can be maximised, and the action that does it. */
 	expandable?: (id: string) => boolean;
@@ -53,21 +44,21 @@ export const ZONE_LABELS: Record<ZoneId, MessageId> = {
 };
 
 /**
- * The panels docked in a zone. Each group is a tab strip over the showing panel's content; only
- * the showing panel is mounted. The strip follows the tabs pattern: Left and Right move between
- * the tabs, Home and End go to the first and last.
+ * The panels docked in a zone. Each group is a header with a grip, the showing panel's icon and
+ * title, and its buttons, over its content; only the showing panel is mounted. The zone's rail is
+ * where the other panels are chosen and reordered, so the header has no tab strip of its own and
+ * a panel is listed once on the rail and named once here. A press on the header that moves drags
+ * the showing panel.
  */
 export function DockZone({
 	zone,
 	groups,
 	titleOf,
 	renderPanel,
-	onActivate,
 	onDock,
 	onFloat,
 	onTearOff,
 	onFold,
-	onReorder,
 	onDragStart,
 	dragging = null,
 	expandable,
@@ -85,12 +76,10 @@ export function DockZone({
 					index={index}
 					titleOf={titleOf}
 					renderPanel={renderPanel}
-					onActivate={onActivate}
 					onDock={onDock}
 					onFloat={onFloat}
 					onTearOff={onTearOff}
 					onFold={onFold}
-					onReorder={onReorder}
 					onDragStart={onDragStart}
 					dragging={dragging}
 					expandable={expandable}
@@ -114,12 +103,10 @@ function Group({
 	index,
 	titleOf,
 	renderPanel,
-	onActivate,
 	onDock,
 	onFloat,
 	onTearOff,
 	onFold,
-	onReorder,
 	onDragStart,
 	dragging = null,
 	expandable,
@@ -127,41 +114,10 @@ function Group({
 	maximised = null,
 	onRestore,
 }: GroupProps) {
-	const id = `dock-${zone}-${index}`;
-	const strip = useRef<HTMLDivElement>(null);
-	// After a keyboard reorder the tab is drawn again in its new place; give it back the focus.
-	const refocus = useRef<string | null>(null);
-	useLayoutEffect(() => {
-		const tab = refocus.current;
-		if (tab === null) return;
-		refocus.current = null;
-		strip.current?.querySelector<HTMLElement>(`[data-tab="${tab}"]`)?.focus();
-	});
-	const move = (event: KeyboardEvent<HTMLDivElement>) => {
-		if (event.altKey && (event.key === 'ArrowLeft' || event.key === 'ArrowRight')) {
-			const tab = (event.target as HTMLElement).closest<HTMLElement>('[role="tab"]')?.dataset.tab;
-			const from = tab === undefined ? -1 : group.tabs.indexOf(tab);
-			if (from < 0 || !onReorder) return;
-			event.preventDefault();
-			const to = from + (event.key === 'ArrowRight' ? 1 : -1);
-			if (to < 0 || to >= group.tabs.length) return;
-			refocus.current = tab!;
-			onReorder(tab!, to);
-			return;
-		}
-		const at = group.tabs.indexOf(group.active);
-		let to = -1;
-		if (event.key === 'ArrowRight') to = (at + 1) % group.tabs.length;
-		else if (event.key === 'ArrowLeft') to = (at - 1 + group.tabs.length) % group.tabs.length;
-		else if (event.key === 'Home') to = 0;
-		else if (event.key === 'End') to = group.tabs.length - 1;
-		if (to < 0) return;
-		event.preventDefault();
-		onActivate(group.tabs[to]!);
-		event.currentTarget.querySelectorAll<HTMLElement>('[role="tab"]')[to]?.focus();
-	};
 	const active = group.active;
 	const filling = maximised === active;
+	const Icon = PANEL_ICONS[active as PanelId];
+	const title = titleOf(active);
 	return (
 		<div
 			className={styles.group}
@@ -173,6 +129,7 @@ function Group({
 			<div
 				className={styles.header}
 				data-strip=""
+				data-dragging={active === dragging || undefined}
 				onPointerDown={(event) => {
 					if (filling || (event.target as HTMLElement).closest('button')) return;
 					onDragStart?.(event, active, 'header');
@@ -180,50 +137,26 @@ function Group({
 			>
 				{filling ? (
 					<>
-						<h2 className={styles.maximisedTitle}>{titleOf(active)}</h2>
-						<PanelExpandButton title={titleOf(active)} expanded onToggle={() => onRestore?.()} />
+						<h2 className={styles.maximisedTitle}>{title}</h2>
+						<PanelExpandButton title={title} expanded onToggle={() => onRestore?.()} />
 					</>
 				) : (
 					<>
-						<div
-							className={styles.tabs}
-							ref={strip}
-							role="tablist"
-							aria-label={t(ZONE_LABELS[zone])}
-							onKeyDown={move}
-						>
-							{group.tabs.map((tab) => {
-								const Icon = PANEL_ICONS[tab as PanelId];
-								return (
-									<button
-										key={tab}
-										id={`${id}-tab-${tab}`}
-										type="button"
-										role="tab"
-										data-tab={tab}
-										data-dragging={tab === dragging || undefined}
-										className={styles.tab}
-										aria-selected={tab === active}
-										aria-controls={`${id}-panel`}
-										tabIndex={tab === active ? 0 : -1}
-										onClick={() => onActivate(tab)}
-										onPointerDown={(event) => onDragStart?.(event, tab, 'tab')}
-									>
-										{Icon && <Icon size={14} />}
-										{titleOf(tab)}
-									</button>
-								);
-							})}
-						</div>
+						<span className={styles.grip} aria-hidden="true">
+							<GripIcon size={14} />
+						</span>
+						{Icon && <Icon size={14} />}
+						<h2 className={styles.title}>{title}</h2>
+						<span className={styles.spacer} />
 						{onMaximise && expandable?.(active) && (
 							<PanelExpandButton
-								title={titleOf(active)}
+								title={title}
 								expanded={false}
 								onToggle={() => onMaximise(active)}
 							/>
 						)}
 						<PanelCommands
-							title={titleOf(active)}
+							title={title}
 							at={zone}
 							onDock={(to) => onDock(active, to)}
 							onFloat={() => onFloat(active)}
@@ -233,13 +166,7 @@ function Group({
 					</>
 				)}
 			</div>
-			<div
-				className={styles.body}
-				id={`${id}-panel`}
-				data-panel-id={active}
-				role="tabpanel"
-				aria-labelledby={`${id}-tab-${active}`}
-			>
+			<div className={styles.body} data-panel-id={active}>
 				{renderPanel(active)}
 			</div>
 		</div>

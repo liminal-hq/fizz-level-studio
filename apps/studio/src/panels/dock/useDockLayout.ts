@@ -54,7 +54,7 @@ export const FALLBACK_WINDOW: Size = { w: 1280, h: 800 };
 export interface DockLayoutHandle {
 	/** The saved arrangement, hidden panels included. */
 	workspace: Workspace;
-	/** What to draw: hidden panels and, in level-first, the open zones taken out. */
+	/** What to draw: hidden panels taken out and, in level-first, every zone folded to its rail. */
 	view: Workspace;
 	session: DockSession;
 	/** The window the caps are measured against. */

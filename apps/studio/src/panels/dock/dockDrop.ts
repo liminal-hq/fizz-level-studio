@@ -1,13 +1,13 @@
-// Where a dragged panel would land: which dock, which tab group, which place among the tabs
+// Where a dragged panel would land: which dock, which tab group, which place among the group's panels
 //
 // (c) Copyright 2026 Liminal HQ, Scott Morris
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 //
 // The pointer's position is read against the rectangles of the elements the dock draws: a
-// `[data-drop-zone]` for each dock (present even when the dock is empty or folded), a
-// `[data-group-zone]` for each tab group and a `[data-strip]` for each group's tab strip. The
-// functions here are pure apart from reading those rectangles, so the controller and the tests
-// share them.
+// `[data-drop-zone]` for each dock (present even when the dock is empty or folded), the dock's
+// `[data-rail]` with a `[data-rail-item]` for each panel (where the place among a group's panels
+// is chosen), and a `[data-group-zone]` for each tab group. The functions here are pure apart from
+// reading those rectangles, so the controller and the tests share them.
 
 import type { Workspace } from '@liminal-hq/fizz-studio-protocol/generated/Workspace';
 import type { ZoneId } from '@liminal-hq/fizz-studio-protocol/generated/ZoneId';
@@ -20,11 +20,15 @@ export interface Point {
 	y: number;
 }
 
-/** The vertical insertion line drawn in a tab strip, in window coordinates. */
+/**
+ * The insertion line drawn on a rail, in window coordinates: upright on the bottom rail, and
+ * across a side rail, where it has a width (and no height).
+ */
 export interface InsertionLine {
 	x: number;
 	top: number;
 	height: number;
+	width?: number;
 }
 
 export type DropTarget =
@@ -35,7 +39,7 @@ export type DropTarget =
 			group: number | null;
 			/** The place among the group's other tabs, or null for the end. */
 			index: number | null;
-			/** Where the dragged tab would sit, when the pointer is in a tab strip. */
+			/** Where the dragged panel would sit, when the pointer is on the dock's rail. */
 			line: InsertionLine | null;
 	  }
 	| { kind: 'level' };
@@ -65,10 +69,62 @@ function contains(
 	return p.x >= r.left && p.x <= r.right && p.y >= r.top && p.y <= r.bottom;
 }
 
+interface RailEntry {
+	group: number;
+	rect: DOMRect;
+}
+
 /**
- * What the pointer is over: a dock (with the tab group and place when over a strip), the level
- * area, or nothing (outside the workspace, where a drop cancels). `dragged` is left out of the
- * tabs the place is counted among.
+ * The place on a dock's rail under the pointer: before the first entry whose middle is past the
+ * pointer, in that entry's group (or after the last entry, in its group). `dragged` is left out.
+ */
+function railTarget(
+	zone: ZoneId,
+	rail: HTMLElement,
+	railRect: DOMRect,
+	point: Point,
+	dragged: string,
+): DropTarget {
+	const across = zone !== 'bottom';
+	const entries: RailEntry[] = [...rail.querySelectorAll<HTMLElement>('[data-rail-item]')]
+		.filter((entry) => entry.dataset.railItem !== dragged)
+		.map((entry) => ({
+			group: Number(entry.dataset.railGroup ?? 0),
+			rect: entry.getBoundingClientRect(),
+		}));
+	if (entries.length === 0) return { kind: 'zone', zone, group: null, index: null, line: null };
+	const middle = (r: DOMRect) => (across ? (r.top + r.bottom) / 2 : (r.left + r.right) / 2);
+	const at = across ? point.y : point.x;
+	const group = (entries.find((e) => middle(e.rect) >= at) ?? entries[entries.length - 1]!).group;
+	const mates = entries.filter((e) => e.group === group).map((e) => e.rect);
+	const index = mates.filter((r) => middle(r) < at).length;
+	if (!across) {
+		return {
+			kind: 'zone',
+			zone,
+			group,
+			index,
+			line: {
+				x: insertionX(mates, index, railRect.left),
+				top: railRect.top + 2,
+				height: Math.max(0, railRect.height - 4),
+			},
+		};
+	}
+	const y = index < mates.length ? mates[index]!.top - 2 : mates[mates.length - 1]!.bottom + 2;
+	return {
+		kind: 'zone',
+		zone,
+		group,
+		index,
+		line: { x: railRect.left + 2, top: y, height: 0, width: Math.max(0, railRect.width - 4) },
+	};
+}
+
+/**
+ * What the pointer is over: a dock (with the tab group, and the place when over its rail), the
+ * level area, or nothing (outside the workspace, where a drop cancels). `dragged` is left out of
+ * the panels the place is counted among.
  */
 export function locateDropTarget(
 	root: HTMLElement,
@@ -79,30 +135,14 @@ export function locateDropTarget(
 	for (const zone of ZONE_IDS) {
 		const slot = root.querySelector<HTMLElement>(`[data-drop-zone="${zone}"]`);
 		if (!slot || !contains(slot.getBoundingClientRect(), point)) continue;
+		const rail = root.querySelector<HTMLElement>(`[data-rail="${zone}"]`);
+		const railRect = rail?.getBoundingClientRect();
+		if (rail && railRect && contains(railRect, point)) {
+			return railTarget(zone, rail, railRect, point, dragged);
+		}
 		const groups = [...root.querySelectorAll<HTMLElement>(`[data-group-zone="${zone}"]`)];
 		const at = groups.findIndex((group) => contains(group.getBoundingClientRect(), point));
-		if (at < 0) return { kind: 'zone', zone, group: null, index: null, line: null };
-		const group = groups[at]!;
-		const strip = group.querySelector<HTMLElement>('[data-strip]');
-		const stripRect = strip?.getBoundingClientRect();
-		if (!strip || !stripRect || !contains(stripRect, point)) {
-			return { kind: 'zone', zone, group: at, index: null, line: null };
-		}
-		const tabs = [...strip.querySelectorAll<HTMLElement>('[role="tab"]')]
-			.filter((tab) => tab.dataset.tab !== dragged)
-			.map((tab) => tab.getBoundingClientRect());
-		const index = insertionIndex(tabs, point.x);
-		return {
-			kind: 'zone',
-			zone,
-			group: at,
-			index,
-			line: {
-				x: insertionX(tabs, index, stripRect.left),
-				top: stripRect.top + 2,
-				height: Math.max(0, stripRect.height - 4),
-			},
-		};
+		return { kind: 'zone', zone, group: at < 0 ? null : at, index: null, line: null };
 	}
 	return { kind: 'level' };
 }

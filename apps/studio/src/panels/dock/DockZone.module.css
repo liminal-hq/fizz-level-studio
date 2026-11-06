@@ -48,31 +48,35 @@
 	flex: none;
 	align-items: center;
 	flex-wrap: wrap;
-	gap: 0.25rem 0.5rem;
+	gap: 0.25rem 0.4rem;
 	box-sizing: border-box;
 	min-height: var(--fls-float-header);
-	padding: 0.2rem 0.4rem;
+	padding: 0.2rem 0.4rem 0.2rem 0.3rem;
 	border-bottom: 1px solid var(--fls-border-subtle);
 	/* A press here may become a drag, so the webview must not scroll or select with it. */
 	touch-action: none;
 	user-select: none;
 }
 
-.tabs {
-	display: flex;
-	flex: 1 1 8rem;
-	gap: 0.3rem;
-	min-width: 0;
-	overflow-x: auto;
-	/* The tab strip scrolls, so it clips too: leave room for the keys' bottom edge and shadow. */
-	padding-bottom: 6px;
+/* The grip says the header drags; the whole header does, apart from its buttons. */
+.grip {
+	display: inline-flex;
+	flex: none;
+	color: var(--fls-text-muted);
+	cursor: grab;
 }
 
-.tab {
-	composes: keycap from '@liminal-hq/fizz-studio-chrome/Keycap/keycap.module.css';
-	height: var(--fls-hit-target);
-	padding: 0 0.6rem;
-	font-size: 0.85rem;
+.title {
+	margin: 0;
+	overflow: hidden;
+	font-size: 0.95rem;
+	font-weight: 700;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.spacer {
+	flex: 1;
 }
 
 .body {
@@ -83,8 +87,8 @@
 	overflow: auto;
 }
 
-/* The tab being dragged stays where it is, dimmed, until the drop. */
-.tab[data-dragging] {
+/* The panel being dragged by its header stays where it is, dimmed, until the drop. */
+.header[data-dragging] {
 	opacity: 0.5;
 }
 

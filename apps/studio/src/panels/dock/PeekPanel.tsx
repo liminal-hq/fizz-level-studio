@@ -1,4 +1,4 @@
-// A panel peeking over the level from a folded dock's rail, with a pin that makes it a real dock
+// A panel peeking over the level from a folded dock's rail, with a pin that opens the dock on it
 //
 // (c) Copyright 2026 Liminal HQ, Scott Morris
 // SPDX-License-Identifier: Apache-2.0 OR MIT
@@ -21,6 +21,9 @@ export interface PeekPanelProps {
 	onPin: () => void;
 	/** Present when the panel can fill the workspace: the header then offers Maximise. */
 	onMaximise?: () => void;
+	/** The pointer came onto or left the panel: a peek the pointer opened closes once it has gone. */
+	onPointerEnter?: () => void;
+	onPointerLeave?: () => void;
 	children: ReactNode;
 }
 
@@ -29,7 +32,17 @@ export interface PeekPanelProps {
  * so the keyboard can reach its content and its pin; the shell closes it on Escape, on a click
  * elsewhere, or when another rail button is chosen.
  */
-export function PeekPanel({ zone, id, title, size, onPin, onMaximise, children }: PeekPanelProps) {
+export function PeekPanel({
+	zone,
+	id,
+	title,
+	size,
+	onPin,
+	onMaximise,
+	onPointerEnter,
+	onPointerLeave,
+	children,
+}: PeekPanelProps) {
 	const region = useRef<HTMLElement>(null);
 	useEffect(() => {
 		region.current?.focus({ preventScroll: true });
@@ -43,6 +56,8 @@ export function PeekPanel({ zone, id, title, size, onPin, onMaximise, children }
 			style={{ '--fls-peek-size': `${size}px` } as CSSProperties}
 			tabIndex={-1}
 			aria-label={t('dock.peek', { title })}
+			onPointerEnter={onPointerEnter}
+			onPointerLeave={onPointerLeave}
 		>
 			<header className={styles.header}>
 				{Icon && <Icon size={14} />}

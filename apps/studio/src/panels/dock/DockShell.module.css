@@ -1,13 +1,19 @@
-/* The level in the middle; the left and right docks beside it; the bottom dock under all three. */
+/*
+ * The level in the middle; the left and right docks beside it with their rails at the window's
+ * edges; the bottom dock under all of them and its rail along the bottom edge.
+ */
 .shell {
 	position: absolute;
 	inset: 0;
 	display: grid;
-	grid-template-columns: var(--fls-dock-left) minmax(0, 1fr) var(--fls-dock-right);
-	grid-template-rows: minmax(0, 1fr) var(--fls-dock-bottom);
+	grid-template-columns:
+		var(--fls-rail-left) var(--fls-dock-left) minmax(0, 1fr) var(--fls-dock-right)
+		var(--fls-rail-right);
+	grid-template-rows: minmax(0, 1fr) var(--fls-dock-bottom) var(--fls-rail-bottom);
 	grid-template-areas:
-		'left level right'
-		'bottom bottom bottom';
+		'left-rail left level right right-rail'
+		'bottom bottom bottom bottom bottom'
+		'bottom-rail bottom-rail bottom-rail bottom-rail bottom-rail';
 }
 
 .level {
@@ -40,14 +46,29 @@
 	grid-area: bottom;
 }
 
+.slot[data-rail-slot='left'] {
+	grid-area: left-rail;
+}
+
+.slot[data-rail-slot='right'] {
+	grid-area: right-rail;
+}
+
+.slot[data-rail-slot='bottom'] {
+	grid-area: bottom-rail;
+}
+
 /*
- * The places a dragged panel can land, one for each dock. They are always there (a dock that is
- * empty or folded still offers itself, as a strip along its edge) and show only during a drag.
- * The hit test reads their rectangles, so they never take the pointer themselves.
+ * The places a dragged panel can land, one for each dock, its rail included. They are always there
+ * (a dock that is empty or folded still offers itself, as a strip along its edge) and show only
+ * during a drag. The hit test reads their rectangles, so they never take the pointer themselves.
  */
 .drop {
 	--fls-drop-min: 72px;
-	--fls-drop-bottom: max(var(--fls-dock-bottom), var(--fls-drop-min));
+	--fls-drop-bottom: max(
+		calc(var(--fls-dock-bottom) + var(--fls-rail-bottom)),
+		var(--fls-drop-min)
+	);
 	position: absolute;
 	z-index: 20;
 	box-sizing: border-box;
@@ -72,14 +93,14 @@
 	top: 0;
 	bottom: var(--fls-drop-bottom);
 	left: 0;
-	width: max(var(--fls-dock-left), var(--fls-drop-min));
+	width: max(calc(var(--fls-rail-left) + var(--fls-dock-left)), var(--fls-drop-min));
 }
 
 .drop[data-drop-zone='right'] {
 	top: 0;
 	right: 0;
 	bottom: var(--fls-drop-bottom);
-	width: max(var(--fls-dock-right), var(--fls-drop-min));
+	width: max(calc(var(--fls-dock-right) + var(--fls-rail-right)), var(--fls-drop-min));
 }
 
 .drop[data-drop-zone='bottom'] {

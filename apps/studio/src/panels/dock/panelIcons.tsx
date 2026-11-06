@@ -107,3 +107,15 @@ export const TearOffIcon: IconComponent = ({ size }) => (
 		<path d="M11.5 9.5v2.8a1.2 1.2 0 0 1-1.2 1.2H3.7a1.2 1.2 0 0 1-1.2-1.2V5.7a1.2 1.2 0 0 1 1.2-1.2h2.8" />
 	</Svg>
 );
+
+/** Two columns of dots: the grip a docked panel's header is dragged by. */
+export const GripIcon: IconComponent = ({ size }) => (
+	<Svg size={size}>
+		<circle cx="6" cy="4" r="0.9" />
+		<circle cx="10" cy="4" r="0.9" />
+		<circle cx="6" cy="8" r="0.9" />
+		<circle cx="10" cy="8" r="0.9" />
+		<circle cx="6" cy="12" r="0.9" />
+		<circle cx="10" cy="12" r="0.9" />
+	</Svg>
+);

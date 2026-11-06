@@ -11,7 +11,7 @@ import { appMenuItems } from '../commands/appMenuModel';
 import { paletteEntries } from '../commands/paletteModel';
 import { runCommand } from '../commands/registry';
 import { setZoneCollapsed } from '../panels/dock/dockLayout';
-import { fakeDockClient, openDock } from '../test/dockFixtures';
+import { fakeDockClient, openDock, railEntry } from '../test/dockFixtures';
 import { levelSnapshot } from '../test/levelFixtures';
 import { FakeLevelClient } from '../worlds/fakeLevelClient';
 import { EditorScreen } from './EditorScreen';
@@ -39,7 +39,7 @@ describe('maximising a panel', () => {
 		expect(within(left).queryByRole('button', { name: /^Maximise/ })).toBeNull();
 		const bottom = screen.getByRole('region', { name: 'Bottom dock' });
 		expect(within(bottom).getByRole('button', { name: 'Maximise Script' })).toBeInTheDocument();
-		await user.click(within(bottom).getByRole('tab', { name: 'Proposals' }));
+		await user.click(railEntry('Proposals', 'bottom'));
 		expect(within(bottom).getByRole('button', { name: 'Maximise Proposals' })).toBeInTheDocument();
 		const right = screen.getByRole('region', { name: 'Right dock' });
 		expect(within(right).queryByRole('button', { name: /^Maximise/ })).toBeNull();
@@ -86,9 +86,9 @@ describe('maximising a panel', () => {
 	it('toggles with Ctrl+Shift+M on the focused panel, or the Script when none is', async () => {
 		const user = userEvent.setup();
 		await mount();
-		const bottom = screen.getByRole('region', { name: 'Bottom dock' });
-		await user.click(within(bottom).getByRole('tab', { name: 'Proposals' }));
-		within(bottom).getByRole('tab', { name: 'Proposals' }).focus();
+		expect(screen.getByRole('region', { name: 'Bottom dock' })).toBeInTheDocument();
+		await user.click(railEntry('Proposals', 'bottom'));
+		railEntry('Proposals', 'bottom').focus();
 		await user.keyboard('{Control>}{Shift>}m{/Shift}{/Control}');
 		expect(maximised()).toHaveAttribute('data-panel-id', 'proposals');
 		await user.keyboard('{Control>}{Shift>}m{/Shift}{/Control}');
@@ -191,7 +191,9 @@ describe('maximising from a folded dock', () => {
 	it('maximises a peeking Script straight from the rail, pinning the dock', async () => {
 		const user = userEvent.setup();
 		await mount(foldedBottom());
-		await user.click(screen.getByRole('button', { name: 'Script' }));
+		// A folded rail peeks with the arrow key that points into the level.
+		railEntry('Script', 'bottom').focus();
+		await user.keyboard('{ArrowUp}');
 		const peek = await screen.findByRole('region', { name: 'Script, peeking' });
 		await user.click(within(peek).getByRole('button', { name: 'Maximise Script' }));
 		await waitFor(() => expect(maximised()).toHaveAttribute('data-panel-id', 'script'));
@@ -203,7 +205,8 @@ describe('maximising from a folded dock', () => {
 		const dock = openDock();
 		dock.workspaces[dock.active] = setZoneCollapsed(dock.workspaces[dock.active]!, 'left', true);
 		await mount(dock);
-		await user.click(screen.getByRole('button', { name: 'Palette' }));
+		railEntry('Palette', 'left').focus();
+		await user.keyboard('{ArrowRight}');
 		const peek = await screen.findByRole('region', { name: 'Palette, peeking' });
 		expect(within(peek).queryByRole('button', { name: /^Maximise/ })).toBeNull();
 	});

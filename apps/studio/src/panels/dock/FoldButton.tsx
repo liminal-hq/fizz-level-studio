@@ -1,4 +1,4 @@
-// The button that folds a dock to its rail, or opens the rail again
+// The button that folds a dock to its rail, or opens the folded dock again
 //
 // (c) Copyright 2026 Liminal HQ, Scott Morris
 // SPDX-License-Identifier: Apache-2.0 OR MIT
@@ -12,6 +12,7 @@ export interface FoldButtonProps {
 	zone: ZoneId;
 	/** True on a folded dock's rail, where the button opens it. */
 	folded: boolean;
+	disabled?: boolean;
 	onClick: () => void;
 }
 
@@ -19,7 +20,7 @@ export interface FoldButtonProps {
  * A keycap with a chevron that points the way the dock goes: towards its edge to fold it, away
  * from its edge to open it.
  */
-export function FoldButton({ zone, folded, onClick }: FoldButtonProps) {
+export function FoldButton({ zone, folded, disabled = false, onClick }: FoldButtonProps) {
 	const label = folded ? t(`dock.unfold.${zone}`) : t(`dock.fold.${zone}`);
 	// The chevron points right by default; a dock folds towards its own edge.
 	const turn = { left: 'left', right: 'right', bottom: 'down' }[zone];
@@ -31,6 +32,7 @@ export function FoldButton({ zone, folded, onClick }: FoldButtonProps) {
 			aria-label={label}
 			title={label}
 			aria-expanded={!folded}
+			disabled={disabled}
 			onClick={onClick}
 		>
 			<span className={styles.chevron} data-points={folded ? opens : turn}>

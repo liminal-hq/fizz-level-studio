@@ -1,4 +1,4 @@
-// What follows the pointer during a drag: a chip with the panel's title, and the tab insertion line
+// What follows the pointer during a drag: a chip with the panel's title, and the rail's insertion line
 //
 // (c) Copyright 2026 Liminal HQ, Scott Morris
 // SPDX-License-Identifier: Apache-2.0 OR MIT
@@ -36,12 +36,14 @@ export function DragGhost({ drag, title }: DragGhostProps) {
 				<span
 					className={styles.line}
 					data-insertion-line=""
+					data-across={line.width === undefined ? undefined : ''}
 					aria-hidden="true"
 					style={
 						{
 							'--fls-line-x': `${line.x}px`,
 							'--fls-line-top': `${line.top}px`,
 							'--fls-line-height': `${line.height}px`,
+							'--fls-line-width': `${line.width ?? 0}px`,
 						} as CSSProperties
 					}
 				/>

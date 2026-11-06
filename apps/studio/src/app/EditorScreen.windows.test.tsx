@@ -12,7 +12,14 @@ import { runCommand } from '../commands/registry';
 import { PANEL_IDS, defaultDock } from '../panels/dock/dockModel';
 import { sendToWindow } from '../panels/dock/dockLayout';
 import { createBridgeHub } from '../panels/windows/fakePanelBridge';
-import { fakeDockClient, openDock } from '../test/dockFixtures';
+import {
+	fakeDockClient,
+	findRailEntry,
+	openDock,
+	queryRailEntry,
+	railEntry,
+	showFromRail,
+} from '../test/dockFixtures';
 import { levelSnapshot } from '../test/levelFixtures';
 import { fakePanelWindows } from '../test/panelWindowFixtures';
 import { FakeLevelClient } from '../worlds/fakeLevelClient';
@@ -59,16 +66,16 @@ describe('tearing a panel off', () => {
 				proposals: 'Proposals',
 				script: 'Script',
 			}[id]!;
-			// Show the panel to tear off: click its tab.
-			await user.click(screen.getByRole('tab', { name: title }));
+			// Show the panel to tear off from its rail.
+			await showFromRail(user, title);
 			await user.click(
 				screen.getByRole('button', { name: `Tear off ${title} into its own window` }),
 			);
 			await waitFor(() => expect(windows.client.tearOff).toHaveBeenCalledWith(id, null));
 			expect(windows.open.has(`panel-${id}-1`)).toBe(true);
 			// The panel's tab stays, marked away, and its content is the notice with Dock back.
-			const tab = await screen.findByRole('tab', { name: `${title} (own window)` });
-			expect(tab).toHaveAttribute('aria-selected', 'true');
+			const tab = await findRailEntry(`${title} (own window)`);
+			expect(tab).toHaveAttribute('aria-pressed', 'true');
 			expect(screen.getByText(`The ${title} panel is open in its own window.`)).toBeVisible();
 		},
 	);
@@ -80,17 +87,17 @@ describe('tearing a panel off', () => {
 			open: ['panel-history-1'],
 		});
 		const right = screen.getByRole('region', { name: 'Right dock' });
-		await user.click(within(right).getByRole('tab', { name: 'History (own window)' }));
+		await user.click(railEntry('History (own window)', 'right'));
 		await user.click(within(right).getByRole('button', { name: 'Dock back' }));
 		expect(windows.client.dockBack).toHaveBeenCalledWith('history');
-		await waitFor(() => expect(within(right).getByRole('tab', { name: 'History' })).toBeVisible());
+		await waitFor(() => expect(railEntry('History', 'right')).toBeVisible());
 
 		await user.click(
 			within(right).getByRole('button', { name: 'Tear off History into its own window' }),
 		);
-		await within(right).findByRole('tab', { name: 'History (own window)' });
+		await findRailEntry('History (own window)', 'right');
 		act(() => windows.close('panel-history-1'));
-		await waitFor(() => expect(within(right).getByRole('tab', { name: 'History' })).toBeVisible());
+		await waitFor(() => expect(railEntry('History', 'right')).toBeVisible());
 		expect(docks.save).toBeDefined();
 	});
 
@@ -99,13 +106,13 @@ describe('tearing a panel off', () => {
 		await waitFor(() =>
 			expect(windows.client.tearOff).toHaveBeenCalledWith('proposals', expect.anything()),
 		);
-		const bottom = screen.getByRole('region', { name: 'Bottom dock' });
-		expect(within(bottom).getByRole('tab', { name: 'Proposals (own window)' })).toBeVisible();
+		expect(screen.getByRole('region', { name: 'Bottom dock' })).toBeInTheDocument();
+		expect(railEntry('Proposals (own window)', 'bottom')).toBeVisible();
 	});
 
 	it('does not open a window that is already open', async () => {
 		const { windows } = await mount({ dock: dockWithWindow('script'), open: ['panel-script-1'] });
-		await screen.findByRole('tab', { name: 'Script (own window)' });
+		await findRailEntry('Script (own window)');
 		expect(windows.client.tearOff).not.toHaveBeenCalled();
 	});
 
@@ -113,13 +120,13 @@ describe('tearing a panel off', () => {
 		const user = userEvent.setup();
 		const { windows } = await mount({ dock: dockWithWindow('history'), open: ['panel-history-1'] });
 		const right = screen.getByRole('region', { name: 'Right dock' });
-		await user.click(within(right).getByRole('tab', { name: 'History (own window)' }));
+		await user.click(railEntry('History (own window)', 'right'));
 		await user.click(
 			within(right).getByRole('button', { name: 'Dock History (own window) bottom' }),
 		);
 		await waitFor(() => expect(windows.client.dockBack).toHaveBeenCalledWith('history'));
-		const bottom = screen.getByRole('region', { name: 'Bottom dock' });
-		expect(within(bottom).getByRole('tab', { name: 'History' })).toBeVisible();
+		expect(screen.getByRole('region', { name: 'Bottom dock' })).toBeInTheDocument();
+		expect(railEntry('History', 'bottom')).toBeVisible();
 	});
 
 	it('leaves the panel where it was when the window cannot open', async () => {
@@ -132,7 +139,7 @@ describe('tearing a panel off', () => {
 		await user.click(
 			within(right).getByRole('button', { name: 'Tear off Objects into its own window' }),
 		);
-		expect(within(right).getByRole('tab', { name: 'Objects' })).toBeVisible();
+		expect(railEntry('Objects', 'right')).toBeVisible();
 	});
 });
 
@@ -169,13 +176,13 @@ describe('a torn-off panel from floating', () => {
 		// No floating panel over the level; the panel is an away entry in its home (left) dock.
 		await waitFor(() => expect(screen.queryByRole('region', { name: 'Palette' })).toBeNull());
 		const dock = await screen.findByRole('region', { name: 'Left dock' });
-		expect(within(dock).getByRole('tab', { name: 'Palette (own window)' })).toBeVisible();
+		expect(railEntry('Palette (own window)')).toBeVisible();
 		expect(within(dock).getByText('The Palette panel is open in its own window.')).toBeVisible();
 
 		await user.click(within(dock).getByRole('button', { name: 'Dock back' }));
 		const back = await screen.findByRole('region', { name: 'Palette' });
 		expect(rectOf(back)).toBe(placed);
-		expect(screen.queryByRole('tab', { name: 'Palette (own window)' })).toBeNull();
+		expect(queryRailEntry('Palette (own window)')).toBeNull();
 	});
 
 	it('floats back where it was when its window closes by itself', async () => {
@@ -188,7 +195,7 @@ describe('a torn-off panel from floating', () => {
 		await user.click(
 			within(floating).getByRole('button', { name: 'Tear off Palette into its own window' }),
 		);
-		await screen.findByRole('tab', { name: 'Palette (own window)' });
+		await findRailEntry('Palette (own window)');
 		act(() => windows.close('panel-palette-1'));
 		const back = await screen.findByRole('region', { name: 'Palette' });
 		expect(rectOf(back)).toBe(placed);
@@ -275,7 +282,7 @@ describe('remembering where a torn-off window is', () => {
 		await user.click(
 			within(right).getByRole('button', { name: 'Tear off Objects into its own window' }),
 		);
-		await within(right).findByRole('tab', { name: 'Objects (own window)' });
+		await findRailEntry('Objects (own window)', 'right');
 		act(() => {
 			windows.place('panel-objects-1', { x: 5, y: 6, w: 640, h: 480 });
 			windows.place('panel-objects-1', { x: 50, y: 60, w: 700, h: 500 });
@@ -288,7 +295,7 @@ describe('remembering where a torn-off window is', () => {
 		);
 		// Dock it back and tear it off again: the record is passed to Rust, not forgotten.
 		await user.click(within(right).getByRole('button', { name: 'Dock back' }));
-		await within(right).findByRole('tab', { name: 'Objects' });
+		await findRailEntry('Objects', 'right');
 		await user.click(
 			within(right).getByRole('button', { name: 'Tear off Objects into its own window' }),
 		);
@@ -307,7 +314,7 @@ describe('remembering where a torn-off window is', () => {
 		await user.click(
 			within(right).getByRole('button', { name: 'Tear off Objects into its own window' }),
 		);
-		await within(right).findByRole('tab', { name: 'Objects (own window)' });
+		await findRailEntry('Objects (own window)', 'right');
 		act(() => windows.place('panel-objects-1', { x: 0, y: 0, w: 333, h: 444 }, false));
 		await waitFor(
 			() => expect(savedWindow(docks, 'objects')).toEqual({ x: 100, y: 120, w: 333, h: 444 }),
@@ -322,12 +329,12 @@ describe('remembering where a torn-off window is', () => {
 			dock: dockWithWindow('history'),
 			open: ['panel-history-1'],
 		});
-		await screen.findByRole('tab', { name: 'History (own window)' });
+		await findRailEntry('History (own window)');
 		act(() => {
 			windows.place('panel-history-1', { x: 9, y: 8, w: 410, h: 390 });
 			windows.close('panel-history-1');
 		});
-		await waitFor(() => expect(screen.getByRole('tab', { name: 'History' })).toBeVisible());
+		await waitFor(() => expect(railEntry('History')).toBeVisible());
 		await waitFor(
 			() => expect(savedWindow(docks, 'history')).toEqual({ x: 9, y: 8, w: 410, h: 390 }),
 			{

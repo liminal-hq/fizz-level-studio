@@ -85,13 +85,55 @@ function levelCall(
 	);
 }
 
-/** Clicks the tab with this name, as a person would to show a docked panel. */
-function clickTab(bridge: Bridge, name: string): Promise<boolean> {
+/**
+ * Shows a docked panel from its rail entry, as a person would: clicks the entry unless its panel is
+ * already showing (choosing the showing panel folds its dock).
+ */
+function showFromRail(bridge: Bridge, name: string): Promise<boolean> {
 	return bridge.js<boolean>(
-		`const t = [...document.querySelectorAll('[role=tab]')].find((x) => x.textContent.trim() === ${JSON.stringify(name)});
+		`const t = [...document.querySelectorAll('[data-rail-item]')].find((x) => x.textContent.trim() === ${JSON.stringify(name)});
+		 if (!t) return false;
+		 if (t.getAttribute('aria-pressed') !== 'true') t.click();
+		 return true;`,
+	);
+}
+
+/** Clicks the rail entry with this name, whatever it does (shows, opens or folds). */
+function clickRailItem(bridge: Bridge, name: string): Promise<boolean> {
+	return bridge.js<boolean>(
+		`const t = [...document.querySelectorAll('[data-rail-item]')].find((x) => x.textContent.trim() === ${JSON.stringify(name)});
 		 if (!t) return false;
 		 t.click();
 		 return true;`,
+	);
+}
+
+/** Whether the rail entry with this name is pressed (its panel showing), or null when absent. */
+function railItemPressed(bridge: Bridge, name: string): Promise<boolean | null> {
+	return bridge.js<boolean | null>(
+		`const t = [...document.querySelectorAll('[data-rail-item]')].find((x) => x.textContent.trim() === ${JSON.stringify(name)});
+		 return t ? t.getAttribute('aria-pressed') === 'true' : null;`,
+	);
+}
+
+/**
+ * What a rail hides: every entry whose box leaves its rail, or whose content overflows the entry
+ * (a title cut short), named by its title. Empty when nothing is clipped.
+ */
+function railClipping(bridge: Bridge): Promise<string[]> {
+	return bridge.js<string[]>(
+		`const out = [];
+		 for (const rail of document.querySelectorAll('[data-rail]')) {
+		   const r = rail.getBoundingClientRect();
+		   if (rail.scrollHeight > rail.clientHeight + 1 || rail.scrollWidth > rail.clientWidth + 1) out.push(rail.dataset.rail + ' rail overflows');
+		   for (const item of rail.querySelectorAll('[data-rail-item]')) {
+		     const b = item.getBoundingClientRect();
+		     const name = item.textContent.trim();
+		     if (b.left < r.left - 0.5 || b.right > r.right + 0.5 || b.top < r.top - 0.5 || b.bottom > r.bottom + 0.5) out.push(name + ' leaves the ' + rail.dataset.rail + ' rail');
+		     if (item.scrollHeight > item.clientHeight + 1 || item.scrollWidth > item.clientWidth + 1) out.push(name + ' is cut short');
+		   }
+		 }
+		 return out;`,
 	);
 }
 
@@ -164,14 +206,11 @@ async function dockChecks(bridge: Bridge): Promise<void> {
 	// The shipped Paint workspace opens all three docks (board H1 of the design canvas).
 	let m = await measureLayout(bridge);
 	check(
-		'the three docks are open, with no rails, and do not overlap the level',
+		'the three docks are open and do not overlap the level',
 		!!m.left &&
 			!!m.right &&
 			!!m.bottom &&
 			!!m.canvas &&
-			!m.leftRail &&
-			!m.rightRail &&
-			!m.bottomRail &&
 			m.left.w > 100 &&
 			m.right.w > 100 &&
 			m.bottom.h > 60 &&
@@ -179,6 +218,42 @@ async function dockChecks(bridge: Bridge): Promise<void> {
 			apart(m.right, m.canvas) &&
 			apart(m.bottom, m.canvas),
 		JSON.stringify([m.left, m.right, m.bottom, m.canvas]),
+	);
+	// Every dock keeps its rail at the window's edge, outside the dock, while the docks are open.
+	check(
+		'the left, right and bottom rails are there at startup, at the edges and 36 px thick',
+		!!m.leftRail &&
+			!!m.rightRail &&
+			!!m.bottomRail &&
+			!!m.left &&
+			!!m.right &&
+			!!m.bottom &&
+			!!m.canvas &&
+			Math.abs(m.leftRail.w - 36) < 1.5 &&
+			Math.abs(m.rightRail.w - 36) < 1.5 &&
+			Math.abs(m.bottomRail.h - 36) < 1.5 &&
+			m.leftRail.x + m.leftRail.w <= m.left.x + 1 &&
+			m.rightRail.x >= m.right.x + m.right.w - 1 &&
+			m.bottomRail.y >= m.bottom.y + m.bottom.h - 1 &&
+			apart(m.leftRail, m.canvas) &&
+			apart(m.rightRail, m.canvas) &&
+			apart(m.bottomRail, m.canvas),
+		JSON.stringify([m.leftRail, m.rightRail, m.bottomRail, m.window]),
+	);
+	const clipped = await railClipping(bridge);
+	check('nothing on the rails is clipped', clipped.length === 0, clipped.join('; '));
+	check(
+		'the rails mark the showing panels and not the others',
+		(await railItemPressed(bridge, 'Palette')) === true &&
+			(await railItemPressed(bridge, 'Objects')) === true &&
+			(await railItemPressed(bridge, 'History')) === false,
+	);
+	check(
+		'an open dock names its panel once, with no tab strip beside the rail',
+		await bridge.js<boolean>(
+			`const headers = [...document.querySelectorAll('section[aria-label$=" dock"] [data-strip]')];
+			 return headers.length === 3 && headers.every((h) => h.querySelector('[role=tab], [role=tablist]') === null && h.querySelectorAll('h2').length === 1);`,
+		),
 	);
 	const share = m.canvas
 		? Math.round(((m.canvas.w * m.canvas.h) / (m.window.w * m.window.h)) * 100)
@@ -299,6 +374,28 @@ async function dockChecks(bridge: Bridge): Promise<void> {
 		String(m.left?.w),
 	);
 
+	// Choosing the showing panel on its rail folds the dock; choosing it again opens it.
+	const beforeFold = m.canvas!.w;
+	check('the right rail offers Objects', await clickRailItem(bridge, 'Objects'));
+	await sleep(300);
+	m = await measureLayout(bridge);
+	check(
+		'choosing the showing panel on the rail folds its dock and keeps the rail',
+		!m.right && !!m.rightRail && m.canvas!.w > beforeFold,
+		JSON.stringify([m.right, m.rightRail, m.canvas?.w]),
+	);
+	check('the folded rail offers Objects', await clickRailItem(bridge, 'Objects'));
+	await sleep(300);
+	m = await measureLayout(bridge);
+	check(
+		'choosing it again opens the dock on it',
+		!!m.right &&
+			!!m.rightRail &&
+			Math.abs(m.canvas!.w - beforeFold) < 1.5 &&
+			(await railItemPressed(bridge, 'Objects')) === true,
+		JSON.stringify([m.right, m.canvas?.w]),
+	);
+
 	// Folding shows the rail and gives the room back to the level.
 	const wide = m.canvas!.w;
 	check('the left dock folds', await clickLabelled(bridge, 'Fold the left dock'));
@@ -321,8 +418,14 @@ async function dockChecks(bridge: Bridge): Promise<void> {
 	await sleep(300);
 	m = await measureLayout(bridge);
 	check(
-		'Tab on the level hides the docks and gives it the window',
-		!m.left && !m.right && !m.bottom && m.canvas!.w > open,
+		'Tab on the level hides the docks, keeps their rails and gives it the rest',
+		!m.left &&
+			!m.right &&
+			!m.bottom &&
+			!!m.leftRail &&
+			!!m.rightRail &&
+			!!m.bottomRail &&
+			m.canvas!.w > open,
 		JSON.stringify([m.left, m.right, m.bottom]),
 	);
 	await bridge.js(
@@ -380,10 +483,11 @@ function syntheticDrag(
 	);
 }
 
-/** The tab names in a dock, in order. */
+/** The panel names on a dock's rail, in order: the dock is named as its region is. */
 function tabsIn(bridge: Bridge, dock: string): Promise<string[]> {
+	const zone = { 'Left dock': 'left', 'Right dock': 'right', 'Bottom dock': 'bottom' }[dock];
 	return bridge.js<string[]>(
-		`return [...document.querySelectorAll('section[aria-label=' + JSON.stringify(${JSON.stringify(dock)}) + '] [data-tab]')].map((t) => t.textContent.trim());`,
+		`return [...document.querySelectorAll('[data-rail=${JSON.stringify(zone)}] [data-rail-item]')].map((t) => t.textContent.trim());`,
 	);
 }
 
@@ -614,22 +718,25 @@ async function dragAndMaximiseChecks(bridge: Bridge): Promise<void> {
 	// A panel dragged from one dock into another.
 	let m = await measureLayout(bridge);
 	check(
-		'drag: the Palette tab starts in the left dock',
+		'drag: the Palette starts on the left rail',
 		(await tabsIn(bridge, 'Left dock')).join() === 'Palette',
 	);
 	check(
-		'drag: a synthetic drag starts on the Palette tab',
-		await syntheticDrag(bridge, 'section[aria-label="Left dock"] [data-tab="palette"]', {
-			selector: 'section[aria-label="Right dock"] [data-strip]',
-			fx: 0.1,
-			fy: 0.5,
+		'drag: a synthetic drag starts on the Palette rail entry',
+		await syntheticDrag(bridge, '[data-rail="left"] [data-rail-item="palette"]', {
+			// The top of the right rail's first entry: the place before Objects.
+			selector: '[data-rail="right"] [data-rail-item="objects"]',
+			fx: 0.5,
+			fy: 0.1,
 		}),
 	);
 	await sleep(300);
 	m = await measureLayout(bridge);
 	check(
-		'drag: the Palette moves to the right dock as a tab and the left dock goes',
-		(await tabsIn(bridge, 'Right dock')).join() === 'Palette,Objects,History' && !m.left,
+		'drag: the Palette moves to the right rail where it was let go and the left dock and rail go',
+		(await tabsIn(bridge, 'Right dock')).join() === 'Palette,Objects,History' &&
+			!m.left &&
+			!m.leftRail,
 		JSON.stringify(await tabsIn(bridge, 'Right dock')),
 	);
 	check(
@@ -640,8 +747,8 @@ async function dragAndMaximiseChecks(bridge: Bridge): Promise<void> {
 
 	// The now empty left dock still offers itself, and takes the panel back.
 	check(
-		'drag: a synthetic drag starts on the Palette tab again',
-		await syntheticDrag(bridge, 'section[aria-label="Right dock"] [data-tab="palette"]', {
+		'drag: a synthetic drag starts on the Palette rail entry again',
+		await syntheticDrag(bridge, '[data-rail="right"] [data-rail-item="palette"]', {
 			// The empty dock's drop strip only exists during a drag: aim at the left edge of the level.
 			x: (m.canvas?.x ?? 0) + 20,
 			y: (m.canvas?.y ?? 0) + (m.canvas?.h ?? 0) / 2,
@@ -660,7 +767,7 @@ async function dragAndMaximiseChecks(bridge: Bridge): Promise<void> {
 	// Escape during a drag puts everything back.
 	await syntheticDrag(
 		bridge,
-		'section[aria-label="Left dock"] [data-tab="palette"]',
+		'[data-rail="left"] [data-rail-item="palette"]',
 		{ selector: 'section[aria-label="Right dock"] [data-strip]', fx: 0.5, fy: 0.5 },
 		true,
 	);
@@ -677,7 +784,7 @@ async function dragAndMaximiseChecks(bridge: Bridge): Promise<void> {
 		x: before.canvas!.x + before.canvas!.w / 2,
 		y: before.canvas!.y + before.canvas!.h / 2,
 	};
-	await syntheticDrag(bridge, 'section[aria-label="Right dock"] [data-tab="objects"]', target);
+	await syntheticDrag(bridge, '[data-rail="right"] [data-rail-item="objects"]', target);
 	await sleep(300);
 	const floated = await bridge.js<{ x: number; y: number; w: number } | null>(
 		`const e = document.querySelector('section[data-panel="objects"]');
@@ -828,7 +935,7 @@ async function dragAndMaximiseChecks(bridge: Bridge): Promise<void> {
 		JSON.stringify([saved, efull]),
 	);
 
-	// Docking it back puts it at the end; Alt+ArrowLeft on its tab reorders it, with an announcement.
+	// Docking it back puts it at the end; Alt+ArrowUp on its rail entry reorders it, with an announcement.
 	check('drag: the floating panel docks back', await clickLabelled(bridge, 'Dock Objects right'));
 	await sleep(300);
 	check(
@@ -836,17 +943,17 @@ async function dragAndMaximiseChecks(bridge: Bridge): Promise<void> {
 		(await tabsIn(bridge, 'Right dock')).join() === 'History,Objects',
 	);
 	const moved = await bridge.js<{ tabs: string[]; note: string }>(
-		`const tab = [...document.querySelectorAll('section[aria-label="Right dock"] [data-tab]')].find((t) => t.textContent.trim() === 'Objects');
+		`const tab = [...document.querySelectorAll('[data-rail="right"] [data-rail-item]')].find((t) => t.textContent.trim() === 'Objects');
 		 tab.focus();
-		 tab.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft', altKey: true, bubbles: true, cancelable: true }));
+		 tab.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowUp', altKey: true, bubbles: true, cancelable: true }));
 		 await new Promise((res) => setTimeout(res, 300));
 		 return {
-		   tabs: [...document.querySelectorAll('section[aria-label="Right dock"] [data-tab]')].map((t) => t.textContent.trim()),
+		   tabs: [...document.querySelectorAll('[data-rail="right"] [data-rail-item]')].map((t) => t.textContent.trim()),
 		   note: [...document.querySelectorAll('[role=status]')].map((e) => e.textContent).join('|'),
 		 };`,
 	);
 	check(
-		'drag: Alt+ArrowLeft moves a tab and announces its new place',
+		'drag: Alt+ArrowUp moves a rail entry and announces its new place',
 		moved.tabs.join() === 'Objects,History' &&
 			moved.note.includes('Objects moved to position 1 of 2'),
 		JSON.stringify(moved),
@@ -1005,7 +1112,10 @@ async function dragAndMaximiseChecks(bridge: Bridge): Promise<void> {
 	);
 
 	// Proposals can be maximised; the Palette cannot.
-	check('maximise: the Proposals tab shows', await clickTab(bridge, 'Proposals'));
+	check(
+		'maximise: the Proposals panel shows from its rail',
+		await showFromRail(bridge, 'Proposals'),
+	);
 	await sleep(200);
 	const buttons = await bridge.js<{ proposals: boolean; palette: boolean }>(
 		`return {
@@ -1018,7 +1128,7 @@ async function dragAndMaximiseChecks(bridge: Bridge): Promise<void> {
 		buttons.proposals && !buttons.palette,
 		JSON.stringify(buttons),
 	);
-	await clickTab(bridge, 'Script');
+	await showFromRail(bridge, 'Script');
 	await sleep(200);
 	m = await measureLayout(bridge);
 	check(
@@ -1227,7 +1337,7 @@ async function checkPanelWindows(
 
 	for (const panel of PANEL_WINDOWS) {
 		const label = `panel-${panel.id}-1`;
-		await clickTab(bridge, panel.title);
+		await showFromRail(bridge, panel.title);
 		check(`the ${panel.title} panel offers Tear off`, await clickLabel(tearOffLabel(panel.title)));
 		const opened = await within(10_000, async () => (await bridge.windows()).includes(label));
 		check(`tearing off ${panel.title} opens ${label}`, opened !== null);
@@ -1257,7 +1367,7 @@ async function checkPanelWindows(
 		check(
 			`the away ${panel.title} tab says so and offers no Maximise`,
 			await bridge.js<boolean>(
-				`return [...document.querySelectorAll('[role=tab]')].some((t) => t.textContent.trim() === ${JSON.stringify(`${panel.title} (own window)`)}) && !document.querySelector('button[aria-label=' + JSON.stringify(${JSON.stringify(`Maximise ${panel.title}`)}) + ']');`,
+				`return [...document.querySelectorAll('[data-rail-item]')].some((t) => t.textContent.trim() === ${JSON.stringify(`${panel.title} (own window)`)}) && !document.querySelector('button[aria-label=' + JSON.stringify(${JSON.stringify(`Maximise ${panel.title}`)}) + ']');`,
 			),
 		);
 		check(`docking ${panel.title} back closes ${label}`, await dockBackWindow(bridge, panel.id));
@@ -1266,7 +1376,7 @@ async function checkPanelWindows(
 	}
 
 	// An action in a torn-off window reaches the main window: a brush chosen in the Palette window.
-	await clickTab(bridge, 'Palette');
+	await showFromRail(bridge, 'Palette');
 	await clickLabel(tearOffLabel('Palette'));
 	await bridge.ready('panel-palette-1');
 	await within(20_000, async () =>
@@ -1295,7 +1405,7 @@ async function checkPanelWindows(
 	check('docking the Palette back', await dockBackWindow(bridge, 'palette'));
 
 	// An object chosen in the Objects window reveals its cell and script line in the main window.
-	await clickTab(bridge, 'Objects');
+	await showFromRail(bridge, 'Objects');
 	await clickLabel(tearOffLabel('Objects'));
 	await bridge.ready('panel-objects-1');
 	const picked = await within(20_000, async () => {
@@ -1337,7 +1447,7 @@ async function checkPanelWindows(
 		JSON.stringify(saved),
 	);
 	check('docking the Objects panel back', await dockBackWindow(bridge, 'objects'));
-	await clickTab(bridge, 'Objects');
+	await showFromRail(bridge, 'Objects');
 	await clickLabel(tearOffLabel('Objects'));
 	await bridge.ready('panel-objects-1');
 	const again = await within(10_000, async () => {
@@ -1403,7 +1513,7 @@ async function checkPanelWindows(
 		bridge.js<{ x: number; y: number; w: number; h: number } | null>(
 			`const e = document.querySelector('section[data-panel="objects"]'); if (!e) return null; const r = e.getBoundingClientRect(); return { x: r.left, y: r.top, w: r.width, h: r.height };`,
 		);
-	await clickTab(bridge, 'Objects');
+	await showFromRail(bridge, 'Objects');
 	check('floating: Objects floats', await clickLabel('Float Objects'));
 	const floated = await within(3000, async () => (await floatRect()) !== null);
 	const before = await floatRect();
@@ -1417,7 +1527,7 @@ async function checkPanelWindows(
 	check('floating: no floating panel is left over the level', covered !== null);
 	const tab = await within(3000, () =>
 		bridge.js<boolean>(
-			`const dock = document.querySelector('section[aria-label="Right dock"]'); return !!dock && [...dock.querySelectorAll('[role=tab]')].some((t) => t.textContent.trim() === 'Objects (own window)');`,
+			`const rail = document.querySelector('[data-rail="right"]'); return !!rail && [...rail.querySelectorAll('[data-rail-item]')].some((t) => t.textContent.trim() === 'Objects (own window)');`,
 		),
 	);
 	check('floating: the away tab is in its home dock', tab !== null);
@@ -1457,12 +1567,12 @@ function clickLabelOnly(bridge: Bridge, label: string): Promise<boolean> {
  * Lists every visible button-like control in a window that is not drawn as a keycap. A keycap has a
  * raised bottom edge (3px at rest, 1px while pressed or lit) and the key gradient as its
  * background. Controls with a look of their own are left out on purpose: menus and the menu bar,
- * the title bar's buttons, tabs, list and palette rows (the `entry` class), the settings navigation (`navItem`), a floating panel's drag grip and fold chevron, and a palette group's disclosure heading, switches and checkboxes, and the
+ * the title bar's buttons, tabs, the dock rails' entries, list and palette rows (the `entry` class), the settings navigation (`navItem`), a floating panel's drag grip and fold chevron, and a palette group's disclosure heading, switches and checkboxes, and the
  * resize and drag grips.
  */
 function keycapOffenders(bridge: Bridge, windowLabel = 'main-1'): Promise<string[]> {
 	return bridge.js<string[]>(
-		`const skip = '[role=menuitem], [role=menuitemradio], [role=menuitemcheckbox], [role=menubar] *, [role=menu] *, [data-tauri-drag-region] *, [role=tab], [role=option], [role=listbox] *, [role=switch], [role=checkbox], [role=separator], [role=slider], [class*=_entry_], [class*=_navItem_], [data-grip], [class*=_grip_], [class*=_chevron_], [class*=_fold_], [data-keycap-exempt]';
+		`const skip = '[role=menuitem], [role=menuitemradio], [role=menuitemcheckbox], [role=menubar] *, [role=menu] *, [data-tauri-drag-region] *, [role=tab], [role=option], [role=listbox] *, [role=switch], [role=checkbox], [role=separator], [role=slider], [data-rail-item], [class*=_entry_], [class*=_navItem_], [data-grip], [class*=_grip_], [class*=_chevron_], [class*=_fold_], [data-keycap-exempt]';
 		 const visible = (e) => { const r = e.getBoundingClientRect(); const c = getComputedStyle(e); return r.width > 0 && r.height > 0 && c.visibility !== 'hidden' && c.display !== 'none'; };
 		 const bad = [];
 		 for (const e of document.querySelectorAll('button, [role=button]')) {
@@ -1854,8 +1964,8 @@ async function main(): Promise<void> {
 			'the paint is one named step',
 			painted.undoName === 'Paint block' && painted.revision === 1,
 		);
-		// History is the right dock's second tab; show it before reading the undo button.
-		await clickTab(bridge, 'History');
+		// History is the right dock's second panel; show it from the rail before reading the undo button.
+		await showFromRail(bridge, 'History');
 		const history = await within(2000, async () =>
 			bridge.js<boolean>(`return document.body.innerText.includes('Undo Paint block');`),
 		);

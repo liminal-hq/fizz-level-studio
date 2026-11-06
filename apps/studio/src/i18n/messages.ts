@@ -342,19 +342,19 @@ export const enMessages = {
 	'dock.fold.left': 'Fold the left dock',
 	// translator: Verb phrase on an icon button. Opens the folded left dock again.
 	'dock.unfold.left': 'Unfold the left dock',
-	// translator: Name of the thin strip along the left edge that a folded dock leaves. It holds one button for each panel in the dock.
+	// translator: Name of the thin strip along the left edge of the window beside the left dock. It holds one button for each panel in the dock, showing its icon and title.
 	'dock.rail.left': 'Left rail',
 	// translator: Verb phrase on an icon button. Folds the open right dock into a thin rail that shows each panel’s icon and title.
 	'dock.fold.right': 'Fold the right dock',
 	// translator: Verb phrase on an icon button. Opens the folded right dock again.
 	'dock.unfold.right': 'Unfold the right dock',
-	// translator: Name of the thin strip along the right edge that a folded dock leaves. It holds one button for each panel in the dock.
+	// translator: Name of the thin strip along the right edge of the window beside the right dock. It holds one button for each panel in the dock, showing its icon and title.
 	'dock.rail.right': 'Right rail',
 	// translator: Verb phrase on an icon button. Folds the open bottom dock into a thin rail that shows each panel’s icon and title.
 	'dock.fold.bottom': 'Fold the bottom dock',
 	// translator: Verb phrase on an icon button. Opens the folded bottom dock again.
 	'dock.unfold.bottom': 'Unfold the bottom dock',
-	// translator: Name of the thin strip along the bottom edge that a folded dock leaves. It holds one button for each panel in the dock.
+	// translator: Name of the thin strip along the bottom edge of the window beside the bottom dock. It holds one button for each panel in the dock, showing its icon and title.
 	'dock.rail.bottom': 'Bottom rail',
 	// translator: Name of a panel shown briefly over the level from a folded dock’s rail. {title} is the panel’s name.
 	'dock.peek': '{title}, peeking',

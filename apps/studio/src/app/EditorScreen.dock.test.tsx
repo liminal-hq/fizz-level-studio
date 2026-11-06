@@ -1,4 +1,4 @@
-// Tests for the editor's docks: the default arrangement, its tabs and the menus that show and hide panels
+// Tests for the editor's docks: the default arrangement, its rails and the menus that show and hide panels
 //
 // (c) Copyright 2026 Liminal HQ, Scott Morris
 // SPDX-License-Identifier: Apache-2.0 OR MIT
@@ -13,6 +13,11 @@ import { fakeDockClient, openDock } from '../test/dockFixtures';
 import { levelSnapshot } from '../test/levelFixtures';
 import { FakeLevelClient } from '../worlds/fakeLevelClient';
 import { EditorScreen } from './EditorScreen';
+
+/** The entry for a panel on a zone's rail. */
+function railItem(rail: string, name: string): HTMLElement {
+	return within(screen.getByRole('group', { name: rail })).getByRole('button', { name });
+}
 
 async function mount(dock = openDock()) {
 	const snapshot = levelSnapshot();
@@ -34,28 +39,39 @@ describe('the editor’s docks', () => {
 		expect(screen.getByRole('region', { name: 'Left dock' })).toBeInTheDocument();
 		expect(screen.getByRole('region', { name: 'Right dock' })).toBeInTheDocument();
 		expect(screen.getByRole('region', { name: 'Bottom dock' })).toBeInTheDocument();
-		expect(screen.queryByRole('group', { name: 'Right rail' })).toBeNull();
-		expect(screen.queryByRole('group', { name: 'Bottom rail' })).toBeNull();
+		for (const name of ['Left rail', 'Right rail', 'Bottom rail']) {
+			expect(screen.getByRole('group', { name })).toBeInTheDocument();
+		}
 	});
 
 	it('docks the panels around the canvas when every dock is open', async () => {
 		await mount();
 		const left = screen.getByRole('region', { name: 'Left dock' });
-		expect(within(left).getByRole('tab', { name: 'Palette' })).toBeInTheDocument();
+		expect(within(left).getByRole('heading', { name: 'Palette' })).toBeInTheDocument();
+		expect(railItem('Left rail', 'Palette')).toHaveAttribute('aria-pressed', 'true');
 		expect(
-			within(screen.getByRole('region', { name: 'Right dock' })).getAllByRole('tab'),
+			within(screen.getByRole('group', { name: 'Right rail' })).getAllByRole('button'),
 		).toHaveLength(2);
 		const bottom = screen.getByRole('region', { name: 'Bottom dock' });
 		expect(await within(bottom).findByRole('textbox', { name: 'Script text' })).toBeInTheDocument();
 		expect(screen.getByRole('application')).toBeInTheDocument();
 	});
 
-	it('switches a zone’s tabs to the real panel', async () => {
+	it('shows the real panel chosen on the rail, and folds the dock when it is chosen again', async () => {
 		const user = userEvent.setup();
 		await mount();
+		await user.click(railItem('Right rail', 'History'));
 		const right = screen.getByRole('region', { name: 'Right dock' });
-		await user.click(within(right).getByRole('tab', { name: 'History' }));
 		expect(within(right).getByRole('button', { name: /^Undo/ })).toBeInTheDocument();
+		expect(within(right).getByRole('heading', { name: 'History' })).toBeInTheDocument();
+		expect(railItem('Right rail', 'History')).toHaveAttribute('aria-pressed', 'true');
+		expect(railItem('Right rail', 'Objects')).toHaveAttribute('aria-pressed', 'false');
+		await user.click(railItem('Right rail', 'History'));
+		expect(screen.queryByRole('region', { name: 'Right dock' })).toBeNull();
+		expect(screen.getByRole('group', { name: 'Right rail' })).toBeInTheDocument();
+		await user.click(railItem('Right rail', 'Objects'));
+		const opened = screen.getByRole('region', { name: 'Right dock' });
+		expect(within(opened).getByRole('heading', { name: 'Objects' })).toBeInTheDocument();
 	});
 
 	it('floats a docked panel from its header and docks it back from the floating one', async () => {
@@ -67,10 +83,9 @@ describe('the editor’s docks', () => {
 		const floating = screen.getByRole('region', { name: 'Palette' });
 		await user.click(within(floating).getByRole('button', { name: 'Dock Palette bottom' }));
 		const bottom = screen.getByRole('region', { name: 'Bottom dock' });
-		expect(within(bottom).getByRole('tab', { name: 'Palette' })).toHaveAttribute(
-			'aria-selected',
-			'true',
-		);
+		expect(within(bottom).getByRole('heading', { name: 'Palette' })).toBeInTheDocument();
+		expect(railItem('Bottom rail', 'Palette')).toHaveAttribute('aria-pressed', 'true');
+		expect(screen.queryByRole('group', { name: 'Left rail' })).toBeNull();
 	});
 
 	it('hides a docked panel from the Panels menu and shows it as the showing tab', async () => {
@@ -79,16 +94,12 @@ describe('the editor’s docks', () => {
 		const right = screen.getByRole('region', { name: 'Right dock' });
 		await user.click(screen.getByRole('button', { name: 'Panels' }));
 		await user.click(screen.getByRole('menuitemcheckbox', { name: 'Objects' }));
-		expect(within(right).queryByRole('tab', { name: 'Objects' })).toBeNull();
-		expect(within(right).getByRole('tab', { name: 'History' })).toHaveAttribute(
-			'aria-selected',
-			'true',
-		);
+		const rail = screen.getByRole('group', { name: 'Right rail' });
+		expect(within(rail).queryByRole('button', { name: 'Objects' })).toBeNull();
+		expect(railItem('Right rail', 'History')).toHaveAttribute('aria-pressed', 'true');
+		expect(within(right).getByRole('heading', { name: 'History' })).toBeInTheDocument();
 		await user.click(screen.getByRole('menuitemcheckbox', { name: 'Objects' }));
-		expect(within(right).getByRole('tab', { name: 'Objects' })).toHaveAttribute(
-			'aria-selected',
-			'true',
-		);
+		expect(railItem('Right rail', 'Objects')).toHaveAttribute('aria-pressed', 'true');
 	});
 
 	it('runs the View menu’s panel rows against the docks', async () => {
@@ -97,11 +108,14 @@ describe('the editor’s docks', () => {
 		expect(bridge.getSnapshot().facts.panels.history).toBe(true);
 		expect(runCommand('view.panel.history', bridge.getSnapshot())).toBe(true);
 		await waitFor(() => expect(bridge.getSnapshot().facts.panels.history).toBe(false));
-		expect(screen.queryByRole('tab', { name: 'History' })).toBeNull();
+		const rail = () => within(screen.getByRole('group', { name: 'Right rail' }));
+		expect(rail().queryByRole('button', { name: 'History' })).toBeNull();
 		runCommand('view.panel.history', bridge.getSnapshot());
-		await waitFor(() => expect(screen.getByRole('tab', { name: 'History' })).toBeInTheDocument());
+		await waitFor(() =>
+			expect(rail().getByRole('button', { name: 'History' })).toBeInTheDocument(),
+		);
 		runCommand('view.resetLayout', bridge.getSnapshot());
-		expect(screen.getByRole('tab', { name: 'History' })).toBeInTheDocument();
+		expect(rail().getByRole('button', { name: 'History' })).toBeInTheDocument();
 	});
 
 	it('saves the layout after a change', async () => {
@@ -122,16 +136,14 @@ describe('the editor’s docks', () => {
 		await mount();
 		await user.click(screen.getByRole('button', { name: 'Fold the right dock' }));
 		expect(screen.queryByRole('region', { name: 'Right dock' })).toBeNull();
-		const rail = screen.getByRole('group', { name: 'Right rail' });
-		await user.click(within(rail).getByRole('button', { name: 'History' }));
+		railItem('Right rail', 'History').focus();
+		await user.keyboard('{ArrowLeft}');
 		const peek = screen.getByRole('region', { name: 'History, peeking' });
 		expect(within(peek).getByRole('button', { name: /^Undo/ })).toBeInTheDocument();
 		await user.click(within(peek).getByRole('button', { name: 'Pin History' }));
 		const right = screen.getByRole('region', { name: 'Right dock' });
-		expect(within(right).getByRole('tab', { name: 'History' })).toHaveAttribute(
-			'aria-selected',
-			'true',
-		);
+		expect(within(right).getByRole('heading', { name: 'History' })).toBeInTheDocument();
+		expect(railItem('Right rail', 'History')).toHaveAttribute('aria-pressed', 'true');
 		expect(screen.queryByRole('region', { name: 'History, peeking' })).toBeNull();
 	});
 
@@ -142,12 +154,13 @@ describe('the editor’s docks', () => {
 		const item = within(screen.getByRole('group', { name: 'Left rail' })).getByRole('button', {
 			name: 'Palette',
 		});
-		await user.click(item);
-		expect(item).toHaveAttribute('aria-expanded', 'true');
+		item.focus();
+		await user.keyboard('{ArrowRight}');
+		expect(item).toHaveAttribute('data-peeking');
 		await user.keyboard('{Escape}');
 		expect(screen.queryByRole('region', { name: 'Palette, peeking' })).toBeNull();
 		expect(item).toHaveFocus();
-		expect(item).toHaveAttribute('aria-expanded', 'false');
+		expect(item).not.toHaveAttribute('data-peeking');
 	});
 
 	it('opens a folded dock when the Panels menu shows a panel in it', async () => {
@@ -158,10 +171,8 @@ describe('the editor’s docks', () => {
 		await user.click(screen.getByRole('menuitemcheckbox', { name: 'History' }));
 		await user.click(screen.getByRole('menuitemcheckbox', { name: 'History' }));
 		const right = screen.getByRole('region', { name: 'Right dock' });
-		expect(within(right).getByRole('tab', { name: 'History' })).toHaveAttribute(
-			'aria-selected',
-			'true',
-		);
+		expect(within(right).getByRole('heading', { name: 'History' })).toBeInTheDocument();
+		expect(railItem('Right rail', 'History')).toHaveAttribute('aria-pressed', 'true');
 	});
 
 	it('resizes a dock with the keys, held to its cap, and saves the size', async () => {
@@ -215,12 +226,12 @@ describe('the editor’s docks', () => {
 	it('keeps Tab for the focus when it is in a panel', async () => {
 		const user = userEvent.setup();
 		await mount();
-		screen.getByRole('tab', { name: 'Palette' }).focus();
+		railItem('Left rail', 'Palette').focus();
 		await user.keyboard('{Tab}');
 		expect(screen.getByRole('region', { name: 'Right dock' })).toBeInTheDocument();
 	});
 
-	it('keeps the rails of folded docks while the level comes first and restores the same set', async () => {
+	it('keeps every rail while the level comes first and restores the same set', async () => {
 		const user = userEvent.setup();
 		const folded = defaultDock();
 		folded.workspaces.Paint!.zones.right.collapsed = true;
@@ -230,6 +241,7 @@ describe('the editor’s docks', () => {
 		await waitFor(() => expect(bridge.getSnapshot().facts.levelFirst).toBe(true));
 		expect(screen.queryByRole('region', { name: 'Left dock' })).toBeNull();
 		expect(screen.getByRole('button', { name: 'Script' })).toBeDisabled();
+		expect(railItem('Left rail', 'Palette')).toBeDisabled();
 		expect(screen.getByRole('group', { name: 'Right rail' })).toBeInTheDocument();
 		runCommand('view.levelFirst', bridge.getSnapshot());
 		await waitFor(() =>

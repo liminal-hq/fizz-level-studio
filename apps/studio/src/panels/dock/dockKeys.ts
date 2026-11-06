@@ -36,9 +36,9 @@ export function isRestoreKey(event: KeyboardEvent): boolean {
 	return target.closest('.cm-editor, [role="dialog"], dialog, [aria-modal="true"]') === null;
 }
 
-/** The panel a node belongs to, if it is in a docked, floating or maximised panel or on a tab. */
+/** The panel a node belongs to, if it is in a docked, floating or maximised panel or on a rail. */
 export function panelOfNode(node: Element | null): string | null {
-	const holder = node?.closest<HTMLElement>('[data-panel-id], [data-panel], [data-tab]');
+	const holder = node?.closest<HTMLElement>('[data-panel-id], [data-panel], [data-rail-item]');
 	if (!holder) return null;
-	return holder.dataset.panelId ?? holder.dataset.panel ?? holder.dataset.tab ?? null;
+	return holder.dataset.panelId ?? holder.dataset.panel ?? holder.dataset.railItem ?? null;
 }
