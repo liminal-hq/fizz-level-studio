@@ -266,6 +266,17 @@
 	--fls-window-radius: 0px;
 }
 
+/*
+ * A maximised window meets the screen edges: no margin, no rounding. The frame already drops them
+ * through its own `data-maximised` rules; this carries the same to everything that reads the tokens
+ * outside the frame, such as a dialog's scrim in the top layer. The extra type selector keeps it
+ * above the per-platform rules whatever order the sheets load in.
+ */
+html:root:has([data-maximised='true']) {
+	--fls-window-shadow-margin: 0px;
+	--fls-window-radius: 0px;
+}
+
 html,
 body,
 #root {

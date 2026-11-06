@@ -1796,6 +1796,34 @@ async function main(): Promise<void> {
 			)) === true,
 		);
 		await checkKeycaps(bridge, 'the close question');
+		// The scrim covers the window's surface, not the frame's transparent margin that holds the drop
+		// shadow, and follows its rounded corners (the backdrop is the top layer, so it is measured
+		// through its computed style).
+		const scrim = await bridge.js<{
+			top: string;
+			left: string;
+			radius: string;
+			margin: string;
+			surface: string;
+		} | null>(
+			`const d = document.querySelector('dialog[open]'); if (!d) return null;
+			 const b = getComputedStyle(d, '::backdrop');
+			 return { top: b.top, left: b.left, radius: b.borderTopLeftRadius,
+			   margin: getComputedStyle(document.documentElement).getPropertyValue('--fls-window-shadow-margin').trim(),
+			   surface: getComputedStyle(document.documentElement).getPropertyValue('--fls-window-radius').trim() };`,
+		);
+		check(
+			'the dialog scrim stops at the window surface, inside the shadow margin',
+			scrim !== null &&
+				parseFloat(scrim.top) === parseFloat(scrim.margin) &&
+				parseFloat(scrim.left) === parseFloat(scrim.margin),
+			JSON.stringify(scrim),
+		);
+		check(
+			'the dialog scrim follows the surface corners',
+			scrim !== null && parseFloat(scrim.radius) === parseFloat(scrim.surface),
+			JSON.stringify(scrim),
+		);
 		await bridge.js<boolean>(
 			`const b = [...document.querySelectorAll('dialog[open] button, [role=dialog] button')].find((x) => x.textContent.trim() === 'Cancel'); b.click(); return true;`,
 		);

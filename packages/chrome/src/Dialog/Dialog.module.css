@@ -33,6 +33,13 @@
 
 .dialog::backdrop {
 	background: var(--fls-scrim);
+	/*
+	 * The scrim covers the window's surface, not the frame's transparent margin that holds the drop
+	 * shadow (so the shadow stays clear of it), and it follows the surface's rounded corners. Both
+	 * tokens are zero on a maximised window, which meets the screen edges.
+	 */
+	inset: var(--fls-window-shadow-margin);
+	border-radius: var(--fls-window-radius);
 }
 
 /* Without native modal support there is no top layer or backdrop, so draw both by hand. */
