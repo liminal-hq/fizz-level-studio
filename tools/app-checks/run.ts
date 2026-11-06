@@ -1312,6 +1312,61 @@ async function main(): Promise<void> {
 			laidOut.canvas > 300,
 			String(laidOut.canvas),
 		);
+		// Save and Close level lead the tool row, so one row sits above the level: the tool row
+		// holds Save, Close level, a divider, the tools and the Panels menu, in that order, and
+		// nothing sits between the title bar and it (the canvas gets the row the buttons used to take).
+		const rowBox = await bridge.js<{
+			names: string[];
+			titleBottom: number;
+			rowTop: number;
+			rowBottom: number;
+			regionTop: number;
+			panelsMid: number;
+			canvasTop: number;
+			canvasHeight: number;
+		} | null>(
+			`const tools = document.querySelector('[role=group][aria-label=Tools]');
+			 const region = document.querySelector('[role=group][aria-label="Level editor"]');
+			 const title = document.querySelector('[data-title-align]');
+			 const canvas = document.querySelector('canvas');
+			 const panels = [...document.querySelectorAll('button[aria-haspopup=menu]')].find((b) => b.textContent.trim() === 'Panels');
+			 if (!tools || !region || !title || !canvas || !panels) return null;
+			 const row = tools.getBoundingClientRect();
+			 const p = panels.getBoundingClientRect();
+			 return {
+				 names: [...tools.querySelectorAll('button')].map((b) => b.textContent.trim()),
+				 titleBottom: title.getBoundingClientRect().bottom,
+				 rowTop: row.top, rowBottom: row.bottom, regionTop: region.getBoundingClientRect().top,
+				 panelsMid: (p.top + p.bottom) / 2,
+				 canvasTop: canvas.getBoundingClientRect().top, canvasHeight: canvas.getBoundingClientRect().height,
+			 };`,
+		);
+		check('the tool row is on screen', rowBox !== null);
+		if (rowBox) {
+			check(
+				'the tool row holds Save, Close level and then the tools',
+				rowBox.names[0] === 'Save' &&
+					rowBox.names[1] === 'Close level' &&
+					rowBox.names[2]?.startsWith('Paint') === true,
+				JSON.stringify(rowBox.names),
+			);
+			check(
+				'the Panels menu sits on the same row, at its end',
+				rowBox.panelsMid > rowBox.rowTop && rowBox.panelsMid < rowBox.rowBottom,
+				JSON.stringify(rowBox),
+			);
+			check(
+				'nothing sits between the title bar and the tool row',
+				Math.abs(rowBox.regionTop - rowBox.titleBottom) < 2 &&
+					Math.abs(rowBox.rowTop - rowBox.regionTop) < 2,
+				JSON.stringify(rowBox),
+			);
+			check(
+				'the level starts straight under the one tool row',
+				rowBox.canvasTop - rowBox.rowBottom < 40 && rowBox.rowBottom - rowBox.rowTop < 70,
+				JSON.stringify(rowBox),
+			);
+		}
 		await dockChecks(bridge);
 		await dragAndMaximiseChecks(bridge);
 		// With the default settings there is no menu bar: the title bar's app menu button is the

@@ -49,3 +49,14 @@
 .hint {
 	color: var(--fls-text-secondary);
 }
+
+.lead {
+	display: flex;
+	gap: 0.5rem;
+}
+
+.divider {
+	align-self: stretch;
+	width: 1px;
+	background: var(--fls-border-subtle);
+}

@@ -15,6 +15,7 @@ import {
 	useRef,
 	useState,
 	type KeyboardEvent,
+	type ReactNode,
 } from 'react';
 import { LevelCanvas } from '../canvas/LevelCanvas';
 import { enMessages, t, type MessageId } from '../i18n/messages';
@@ -80,6 +81,8 @@ export interface EditorScreenProps {
 	docks?: DockClient;
 	/** The channel to the panels torn off into their own windows; without one they get no state. */
 	panelBridge?: PanelBridge;
+	/** Controls for the start of the tool row, before the tools (the main screen's Save and Close level). */
+	toolLead?: ReactNode;
 }
 
 /** Keys typed into these belong to the control, not to the editor's shortcuts. */
@@ -100,6 +103,7 @@ export function EditorScreen({
 	panelWindows,
 	docks = defaultDockClient,
 	panelBridge,
+	toolLead,
 }: EditorScreenProps) {
 	const [snapshot, setSnapshot] = useState(initial);
 	const held = useRef(initial);
@@ -602,7 +606,7 @@ export function EditorScreen({
 				</p>
 			)}
 			<div className={styles.bar}>
-				<ToolPalette handle={tool} />
+				<ToolPalette handle={tool} lead={toolLead} />
 				<PanelsMenu visible={dock.shown} onToggle={dock.setVisible} onReset={dock.reset} />
 			</div>
 			<div className={styles.body} ref={areaRef}>

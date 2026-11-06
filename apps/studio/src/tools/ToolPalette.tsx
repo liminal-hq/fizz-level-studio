@@ -3,6 +3,7 @@
 // (c) Copyright 2026 Liminal HQ, Scott Morris
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
+import type { ReactNode } from 'react';
 import { t, type MessageId } from '../i18n/messages';
 import { TOOL_KEYS } from './shortcuts';
 import { brushSwatch } from './swatch';
@@ -12,6 +13,8 @@ import type { ToolHandle } from './useTool';
 
 export interface ToolPaletteProps {
 	handle: Pick<ToolHandle, 'tool' | 'setTool' | 'brush' | 'spacing' | 'clip'>;
+	/** Controls for the start of the row (Save and Close level), set off from the tools by a thin divider. */
+	lead?: ReactNode;
 }
 
 const TOOL_LABELS: Record<ToolId, MessageId> = {
@@ -33,11 +36,17 @@ export function spacingText(spacing: number): string {
 	return spacing <= 1 ? t('spacing.everyCell') : t('spacing.everyN', { n: spacing });
 }
 
-export function ToolPalette({ handle }: ToolPaletteProps) {
+export function ToolPalette({ handle, lead }: ToolPaletteProps) {
 	const { brush, spacing } = handle;
 	const spaced = brush.group === 'item';
 	return (
 		<div className={styles.palette} role="group" aria-label={t('tools.group')}>
+			{lead ? (
+				<>
+					<div className={styles.lead}>{lead}</div>
+					<span className={styles.divider} aria-hidden="true" />
+				</>
+			) : null}
 			<div className={styles.tools}>
 				{TOOL_IDS.map((id) => (
 					<button

@@ -376,6 +376,29 @@ describe('opening', () => {
 });
 
 describe('the dirty marker, saving and closing', () => {
+	it('puts Save and Close level at the start of the tool row, with no row of their own', async () => {
+		const user = userEvent.setup();
+		setup();
+		await openFromDialog(user);
+		const tools = screen.getByRole('group', { name: 'Tools' });
+		const save = screen.getByRole('button', { name: 'Save' });
+		const close = screen.getByRole('button', { name: 'Close level' });
+		expect(tools).toContainElement(save);
+		expect(tools).toContainElement(close);
+		const order = [save, close, screen.getByRole('button', { name: /Paint/ })];
+		expect(
+			order[0]!.compareDocumentPosition(order[1]!) & Node.DOCUMENT_POSITION_FOLLOWING,
+		).toBeTruthy();
+		expect(
+			order[1]!.compareDocumentPosition(order[2]!) & Node.DOCUMENT_POSITION_FOLLOWING,
+		).toBeTruthy();
+		// The Panels menu stays at the end of the same row.
+		expect(tools.parentElement).toContainElement(screen.getByRole('button', { name: /Panels/ }));
+		expect(
+			screen.getByRole('toolbar', { name: 'Level actions' }).parentElement?.parentElement,
+		).toBe(tools);
+	});
+
 	it('marks the title with a bullet while there are unsaved changes, and Save clears it', async () => {
 		const user = userEvent.setup();
 		const { client } = setup();

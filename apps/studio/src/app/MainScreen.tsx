@@ -571,14 +571,6 @@ function MainScreenBody({
 			menuBar={menuBar ? <AppMenuBar /> : undefined}
 		>
 			<div className={styles.editor}>
-				<div className={styles.actions} role="toolbar" aria-label={t('main.levelActions')}>
-					<button type="button" className={styles.button} onClick={() => void save()}>
-						{t('main.save')}
-					</button>
-					<button type="button" className={styles.button} onClick={requestClose}>
-						{t('main.closeLevel')}
-					</button>
-				</div>
 				{bannerView}
 				{notice && (
 					<p className={styles.notice} role="status">
@@ -609,6 +601,16 @@ function MainScreenBody({
 						onSnapshot={follow}
 						docks={docks}
 						panelBridge={panelBridge}
+						toolLead={
+							<div className={styles.actions} role="toolbar" aria-label={t('main.levelActions')}>
+								<button type="button" className={styles.button} onClick={() => void save()}>
+									{t('main.save')}
+								</button>
+								<button type="button" className={styles.button} onClick={requestClose}>
+									{t('main.closeLevel')}
+								</button>
+							</div>
+						}
 					/>
 				</div>
 			</div>

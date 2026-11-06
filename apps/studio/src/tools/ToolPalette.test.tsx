@@ -4,6 +4,7 @@
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
 import type { LevelEdit } from '@liminal-hq/fizz-studio-protocol/generated/LevelEdit';
+import type { ReactNode } from 'react';
 import { act, render, renderHook, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
@@ -13,11 +14,11 @@ import { toolForKey } from './shortcuts';
 import { ToolPalette } from './ToolPalette';
 import { useTool } from './useTool';
 
-function Harness({ palette }: { palette: string[] }) {
+function Harness({ palette, lead }: { palette: string[]; lead?: ReactNode }) {
 	const handle = useTool(levelView(4, 4, { palette }));
 	return (
 		<>
-			<ToolPalette handle={handle} />
+			<ToolPalette handle={handle} lead={lead} />
 			<PalettePanel
 				tiles={palette}
 				words={[]}
@@ -189,5 +190,22 @@ describe('useTool', () => {
 			edits = result.current.pointer('down', { x: 5, y: 3 });
 		});
 		expect(edits).toEqual([{ kind: 'paint', tile: 'fill', x: [[5, 7]], y: [[3, 3]] }]);
+	});
+});
+
+describe('the tool row lead', () => {
+	it('puts the leading controls first, then a divider, then the tools', () => {
+		render(<Harness palette={['block']} lead={<button type="button">Lead</button>} />);
+		const row = screen.getByRole('group', { name: 'Tools' });
+		const children = [...row.children];
+		expect(children[0]).toContainElement(screen.getByRole('button', { name: 'Lead' }));
+		expect(children[1]).toHaveAttribute('aria-hidden', 'true');
+		expect(children[2]).toContainElement(screen.getByRole('button', { name: /Paint/ }));
+	});
+
+	it('draws no divider without a lead', () => {
+		render(<Harness palette={['block']} />);
+		const row = screen.getByRole('group', { name: 'Tools' });
+		expect(row.firstElementChild).toContainElement(screen.getByRole('button', { name: /Paint/ }));
 	});
 });

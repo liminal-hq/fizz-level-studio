@@ -119,9 +119,6 @@
 .actions {
 	display: flex;
 	gap: 0.5rem;
-	padding: 0.4rem 0.75rem;
-	background: var(--fls-bg-raised);
-	border-bottom: 1px solid var(--fls-border-subtle);
 }
 
 .editorBody {
