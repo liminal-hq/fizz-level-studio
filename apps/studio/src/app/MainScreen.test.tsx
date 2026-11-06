@@ -664,9 +664,11 @@ describe('the application menu', () => {
 		setup();
 		expect(screen.queryByRole('menubar')).toBeNull();
 		await user.click(await screen.findByRole('button', { name: 'Fizz Level Studio' }));
-		for (const name of ['File', 'Edit', 'View', 'Window', 'Help']) {
+		for (const name of ['File', 'Edit', 'View', 'Help']) {
 			expect(screen.getByRole('menuitem', { name })).toBeInTheDocument();
 		}
+		// The Window menu has only panel rows, so it is left out with no level open.
+		expect(screen.queryByRole('menuitem', { name: 'Window' })).toBeNull();
 		await user.click(screen.getByRole('menuitem', { name: 'Help' }));
 		await user.click(screen.getByRole('menuitem', { name: 'About Fizz Level Studio' }));
 		expect(openWindow).toHaveBeenCalledWith({ kind: 'about' });
@@ -687,9 +689,10 @@ describe('the application menu', () => {
 		const user = userEvent.setup();
 		setup({ menuBar: true });
 		const bar = await screen.findByRole('menubar', { name: 'Application menu' });
-		for (const name of ['File', 'Edit', 'View', 'Window', 'Help']) {
+		for (const name of ['File', 'Edit', 'View', 'Help']) {
 			expect(within(bar).getByRole('menuitem', { name })).toBeInTheDocument();
 		}
+		expect(within(bar).queryByRole('menuitem', { name: 'Window' })).toBeNull();
 		expect(screen.queryByRole('button', { name: 'Fizz Level Studio' })).toBeNull();
 		fireEvent.keyDown(window, { key: 'F10' });
 		expect(screen.queryByRole('menu')).toBeNull();

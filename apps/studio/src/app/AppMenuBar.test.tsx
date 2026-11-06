@@ -17,7 +17,7 @@ import { AppMenuBar } from './AppMenuBar';
 function setup() {
 	const bridge = createCommandBridge();
 	const save = vi.fn();
-	bridge.setFacts({ hasLevel: true });
+	bridge.setFacts({ hasLevel: true, editorOpen: true });
 	bridge.setHandlers({ 'file.save': save });
 	render(
 		<CommandBridgeContext.Provider value={bridge}>

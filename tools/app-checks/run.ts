@@ -949,6 +949,13 @@ async function appMenuIconChecks(bridge: Bridge) {
 	}
 }
 
+/** The names of the top-level rows of the open app menu. */
+function startMenuRows(bridge: Bridge): Promise<string[]> {
+	return bridge.js<string[]>(
+		`return [...(document.querySelector('[role=menu]')?.children ?? [])].filter((r) => r.matches('[role=menuitem]')).map((r) => r.textContent.trim());`,
+	);
+}
+
 /** The text of the title bar's title, without the app menu button beside it. */
 async function titleBarText(bridge: Bridge, windowId = 'main-1'): Promise<string | null> {
 	const found = await bridge.js<{ v: string | null }>(
@@ -1822,6 +1829,20 @@ async function main(): Promise<void> {
 		check(
 			'the relaunched app still has no menu bar',
 			await bridge.js<boolean>(`return document.querySelector('[role=menubar]') === null;`),
+		);
+		// With no level open the Window menu has nothing to show, so it is not in the app menu.
+		await bridge.js<boolean>(
+			`[...document.querySelectorAll('[data-title-align] button[aria-haspopup=menu]')].find((x) => x.textContent.trim() === 'Fizz Level Studio')?.click(); return true;`,
+		);
+		await within(3000, async () => (await startMenuRows(bridge)).length > 0);
+		const startMenu = await startMenuRows(bridge);
+		check(
+			'on the start screen the app menu offers File, Edit, View and Help, without Window',
+			startMenu.join('|') === 'File|Edit|View|Help',
+			JSON.stringify(startMenu),
+		);
+		await bridge.js<boolean>(
+			`document.querySelector('[role=menu]')?.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); return true;`,
 		);
 		const offered = await bridge.js<{ id: string; name: string }[]>(
 			`return await window.__TAURI_INTERNALS__.invoke('plugin:fizz-studio-worlds|recovery_list');`,

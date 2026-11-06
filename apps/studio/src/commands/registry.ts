@@ -100,6 +100,8 @@ export const MAXIMISE_KEYS = 'Ctrl+Shift+M';
 export const QUIT_KEYS = 'Ctrl+Q';
 
 const always = () => true;
+/** Hidden on the start screen, where there is no editor and so no panel to tear off or dock back. */
+const noEditor = (facts: CommandFacts) => !facts.editorOpen;
 const hasLevel = (facts: CommandFacts) => facts.hasLevel;
 
 const panelCommand = (id: PanelId, title: MessageId): CommandDef => ({
@@ -322,6 +324,7 @@ export function panelWindowCommands(facts: CommandFacts): CommandDef[] {
 					section: 0,
 					label: 'cmdPalette.dockPanelBack',
 					labelValues: { panel },
+					hidden: noEditor,
 					enabled: (now) => now.editorOpen && now.away[spec.id],
 				}
 			: {
@@ -332,6 +335,7 @@ export function panelWindowCommands(facts: CommandFacts): CommandDef[] {
 					section: 0,
 					label: 'cmdPalette.tearOffPanel',
 					labelValues: { panel },
+					hidden: noEditor,
 					enabled: (now) => now.editorOpen && !now.away[spec.id],
 				};
 	});

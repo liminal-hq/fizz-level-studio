@@ -39,7 +39,7 @@ describe('the application menu', () => {
 
 	it('opens to File, Edit, View, Window and Help', async () => {
 		const user = userEvent.setup();
-		const { button } = setup();
+		const { button } = setup((bridge) => bridge.setFacts({ editorOpen: true }));
 		await user.click(button!);
 		for (const name of ['File', 'Edit', 'View', 'Window', 'Help']) {
 			expect(screen.getByRole('menuitem', { name })).toBeInTheDocument();
@@ -85,7 +85,7 @@ describe('the application menu', () => {
 	});
 
 	it('toggles on F10 and opens the named menu on Alt+W', async () => {
-		const { button } = setup();
+		const { button } = setup((bridge) => bridge.setFacts({ editorOpen: true }));
 		fireEvent.keyDown(window, { key: 'F10' });
 		expect(await screen.findByRole('menu')).toBeInTheDocument();
 		fireEvent.keyDown(window, { key: 'F10' });
@@ -141,5 +141,15 @@ describe('the application menu', () => {
 		expect(palette.querySelector('svg')).not.toBeNull();
 		const reset = screen.getByRole('menuitem', { name: /Reset layout|Reset/ });
 		expect(reset.querySelector('svg')).not.toBeNull();
+	});
+
+	it('leaves the Window menu out on the start screen', async () => {
+		const user = userEvent.setup();
+		const { button } = setup();
+		await user.click(button!);
+		for (const name of ['File', 'Edit', 'View', 'Help']) {
+			expect(screen.getByRole('menuitem', { name })).toBeInTheDocument();
+		}
+		expect(screen.queryByRole('menuitem', { name: 'Window' })).toBeNull();
 	});
 });

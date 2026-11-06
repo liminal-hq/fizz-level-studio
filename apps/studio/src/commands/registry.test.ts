@@ -124,7 +124,7 @@ describe('the registry', () => {
 	});
 
 	it('arranges File, Edit, View, Window and Help with rules between sections', () => {
-		const items = appMenuItems(snapshot());
+		const items = appMenuItems(snapshot({ editorOpen: true }));
 		expect(items.map((item) => (item.type === 'submenu' ? item.label : null))).toEqual([
 			'File',
 			'Edit',
@@ -162,8 +162,24 @@ describe('the registry', () => {
 		const away = ids({ editorOpen: true, away: { ...NO_FACTS.away, script: true } });
 		expect(away).toContain(dockBackCommandId('script'));
 		expect(away).not.toContain(tearOffCommandId('script'));
-		const rows = rowsOf(appMenuItems(snapshot()), 'menu:window');
-		expect(rows.every((row) => 'disabled' in row && row.disabled)).toBe(true);
+	});
+
+	it('hides the Window rows on the start screen, and the Window menu with them', () => {
+		const items = appMenuItems(snapshot());
+		expect(items.map((item) => item.id)).toEqual([
+			'menu:file',
+			'menu:edit',
+			'menu:view',
+			'menu:help',
+		]);
+		// Edit and View keep their rows, disabled.
+		expect(rowsOf(items, 'menu:edit').length).toBeGreaterThan(0);
+		expect(rowsOf(items, 'menu:view').length).toBeGreaterThan(0);
+		const withEditor = appMenuItems(snapshot({ editorOpen: true }));
+		expect(withEditor.map((item) => item.id)).toContain('menu:window');
+		// The palette does not offer them either.
+		const entries = paletteEntries(snapshot());
+		expect(entries.some((entry) => entry.id.endsWith('.tearOff'))).toBe(false);
 	});
 
 	it('runs Preferences and About by opening their windows, and others through handlers', () => {

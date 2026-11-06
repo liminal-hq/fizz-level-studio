@@ -62,7 +62,8 @@ function row(view: CommandView): MenuItem {
 
 /** The five menus as submenu items, with a rule between a menu's sections. */
 export function appMenuItems(snapshot: BridgeSnapshot): MenuItem[] {
-	return (Object.keys(MENU_IDS) as MenuName[]).map((menu): MenuItem => {
+	const menus: MenuItem[] = [];
+	for (const menu of Object.keys(MENU_IDS) as MenuName[]) {
 		const items: MenuItem[] = [];
 		let section: number | null = null;
 		for (const def of allCommands(snapshot.facts).filter(
@@ -74,12 +75,15 @@ export function appMenuItems(snapshot: BridgeSnapshot): MenuItem[] {
 			section = def.section;
 			items.push(row(viewOf(def, snapshot)));
 		}
-		return {
+		// A menu with no visible row (the Window menu on the start screen) is left out altogether.
+		if (items.length === 0) continue;
+		menus.push({
 			type: 'submenu',
 			id: MENU_IDS[menu],
 			label: t(MENU_LABELS[menu]),
 			icon: iconFor(MENU_ICONS[menu]),
 			items,
-		};
-	});
+		});
+	}
+	return menus;
 }
