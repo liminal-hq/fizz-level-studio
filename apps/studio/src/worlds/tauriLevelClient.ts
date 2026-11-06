@@ -10,6 +10,7 @@ import {
 	languageWords,
 	levelCellLine,
 	levelGhosts,
+	levelSnapshot,
 	onLevelChanged,
 	onLevelConflict,
 	openLevel,
@@ -132,6 +133,10 @@ export class TauriLevelClient implements LevelClient, WorldsClient {
 
 	async redo(id: string, basedOn: bigint): Promise<LevelSnapshot> {
 		return this.take(await redo(id, revisionToWire(basedOn)));
+	}
+
+	async read(id: string): Promise<LevelSnapshot> {
+		return this.take(await levelSnapshot(id));
 	}
 
 	words(): Promise<WordDoc[]> {

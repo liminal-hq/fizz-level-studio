@@ -124,7 +124,7 @@ describe('the command palette', () => {
 
 	it('narrows the list as the query is typed and highlights the match', async () => {
 		const { user } = await openPalette();
-		await user.type(input(), 'eras');
+		await user.type(input(), 'erase');
 		expect(names()).toHaveLength(1);
 		expect(names()[0]).toContain('Erase');
 		const marks = screen.getByRole('option', { name: /Erase/ }).querySelectorAll('mark');
@@ -132,7 +132,7 @@ describe('the command palette', () => {
 			Array.from(marks)
 				.map((mark) => mark.textContent)
 				.join(''),
-		).toBe('Eras');
+		).toBe('Erase');
 	});
 
 	it('shows a message when nothing matches', async () => {

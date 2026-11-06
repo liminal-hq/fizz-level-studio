@@ -68,8 +68,6 @@
 
 .field:focus-visible,
 .switch:focus-visible,
-.segment:focus-visible,
-.button:focus-visible,
 .linkRow:focus-visible {
 	outline: 2px solid var(--fls-focus-ring);
 	outline-offset: 2px;
@@ -137,53 +135,65 @@
 	}
 }
 
+/*
+ * A segmented selector is one joined group of keycaps: the keys sit edge to edge and share their
+ * borders, only the outer ends are rounded, and the chosen key is the lit one. The columns share
+ * the width evenly, with a minimum. Every key has the keycap's fixed height, so the lit key's press
+ * travel moves nothing beside it.
+ */
 .segments {
-	display: inline-flex;
-	padding: 2px;
-	background: var(--fls-field-bg);
-	border: 1px solid var(--fls-border-subtle);
-	border-radius: 8px;
+	display: inline-grid;
+	grid-auto-flow: column;
+	grid-auto-columns: minmax(4.5rem, 1fr);
+	max-inline-size: 100%;
 }
 
 .segment {
-	box-sizing: border-box;
-	min-block-size: calc(var(--fls-control-height) - 4px);
-	padding: 0 12px;
-	color: var(--fls-text-secondary);
-	background: transparent;
-	border: 0;
-	border-radius: 6px;
-	font: inherit;
-	cursor: default;
+	composes: keycap from '../Keycap/keycap.module.css';
+	position: relative;
+	min-inline-size: 0;
+	padding: 0 14px;
+	font-size: inherit;
+	border-radius: 0;
 }
 
-.segment:disabled {
-	opacity: 0.45;
+.segmentFirst,
+.segmentMiddle,
+.segmentLast {
+	margin-inline-start: -1px;
 }
 
+.segmentFirst {
+	margin-inline-start: 0;
+	border-start-start-radius: 8px;
+	border-end-start-radius: 8px;
+}
+
+.segmentLast {
+	border-start-end-radius: 8px;
+	border-end-end-radius: 8px;
+}
+
+/* The lit key and the focused key rise above their neighbours so the glow and the ring are whole. */
 .segmentOn {
-	color: var(--fls-accent-contrast);
-	background: var(--fls-accent);
+	z-index: 1;
+}
+
+.segment:focus-visible {
+	z-index: 2;
 }
 
 .button {
-	box-sizing: border-box;
-	min-block-size: var(--fls-control-height);
+	composes: keycap from '../Keycap/keycap.module.css';
 	padding: 0 14px;
-	color: var(--fls-text-primary);
-	background: var(--fls-control-bg);
-	border: 1px solid transparent;
-	border-radius: 6px;
-	font: inherit;
-	cursor: default;
+	font-size: inherit;
 }
 
-.button:hover:not(:disabled) {
-	background: var(--fls-control-bg-hover);
-}
-
-.buttonDanger {
+/* A plain key with a danger label and edge, never a bright fill. */
+.button.buttonDanger {
 	color: var(--fls-danger);
+	border-color: color-mix(in srgb, var(--fls-danger) 45%, var(--fls-key-border));
+	border-bottom-color: color-mix(in srgb, var(--fls-danger) 55%, var(--fls-key-border-bottom));
 }
 
 .linkRow {

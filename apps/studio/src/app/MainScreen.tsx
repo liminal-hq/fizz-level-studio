@@ -19,6 +19,7 @@ import { quitClient, type QuitClient } from '../services/quitClient';
 import { pickLevelFile, type PickLevelFile } from '../services/filePicker';
 import { openWindow } from '../services/windowsClient';
 import { recentClient, type RecentClient } from '../services/recentClient';
+import { settingsClient, type SettingsClient } from '../services/settingsClient';
 import type { LevelClient } from '../worlds/levelClient';
 import { recoveryClient, type RecoveryClient, type RecoveryEntry } from '../worlds/recoveryClient';
 import {
@@ -31,11 +32,13 @@ import { AppMenu } from './AppMenu';
 import { AppMenuBar } from './AppMenuBar';
 import { AppWindow } from './AppWindow';
 import type { DockClient } from '../services/dockClient';
+import type { PanelBridge } from '../panels/windows/panelBridge';
 import { CloseLevelDialog } from './CloseLevelDialog';
 import { EditorScreen } from './EditorScreen';
 import styles from './MainScreen.module.css';
 import { RecoverySection } from './RecoverySection';
 import { newerSnapshot } from './snapshotRule';
+import { useMenuBar } from './useMenuBar';
 
 export interface MainScreenProps {
 	/** The level backend; defaults to the worlds plugin. */
@@ -52,6 +55,10 @@ export interface MainScreenProps {
 	docks?: DockClient;
 	/** Quitting the app; defaults to the app's commands. */
 	quit?: QuitClient;
+	/** The settings document, read for the menu bar choice; defaults to the settings plugin. */
+	settings?: Pick<SettingsClient, 'get' | 'onChanged'>;
+	/** The channel to panels torn off into their own windows. */
+	panelBridge?: PanelBridge;
 }
 
 // One client for the app: it remembers each level's latest snapshot between calls.
@@ -111,6 +118,8 @@ function MainScreenBody({
 	recovery = recoveryClient,
 	docks,
 	quit = quitClient,
+	settings = settingsClient,
+	panelBridge,
 }: MainScreenProps & { bridge: CommandBridge }) {
 	/** The snapshot the level was opened from; the editor takes later ones from `level`. */
 	const [level, setLevel] = useState<LevelSnapshot | null>(null);
@@ -128,6 +137,7 @@ function MainScreenBody({
 	const launched = useRef(false);
 	const [paletteOpen, setPaletteOpen] = useState(false);
 	const bridgeSnapshot = useBridgeSnapshot();
+	const menuBar = useMenuBar(settings);
 
 	const follow = useCallback((snapshot: LevelSnapshot) => {
 		const kept = levelRef.current ? newerSnapshot(levelRef.current, snapshot) : snapshot;
@@ -471,7 +481,10 @@ function MainScreenBody({
 
 	if (!level) {
 		return (
-			<AppWindow start={<AppMenu menuBar />} menuBar={<AppMenuBar />}>
+			<AppWindow
+				start={<AppMenu menuBar={menuBar} />}
+				menuBar={menuBar ? <AppMenuBar /> : undefined}
+			>
 				<main className={styles.start}>
 					{bannerView}
 					<h1 className={styles.name}>{t('app.name')}</h1>
@@ -554,18 +567,10 @@ function MainScreenBody({
 		<AppWindow
 			documentName={name}
 			dirty={isDirty(level)}
-			start={<AppMenu menuBar />}
-			menuBar={<AppMenuBar />}
+			start={<AppMenu menuBar={menuBar} />}
+			menuBar={menuBar ? <AppMenuBar /> : undefined}
 		>
 			<div className={styles.editor}>
-				<div className={styles.actions} role="toolbar" aria-label={t('main.levelActions')}>
-					<button type="button" className={styles.button} onClick={() => void save()}>
-						{t('main.save')}
-					</button>
-					<button type="button" className={styles.button} onClick={requestClose}>
-						{t('main.closeLevel')}
-					</button>
-				</div>
 				{bannerView}
 				{notice && (
 					<p className={styles.notice} role="status">
@@ -595,6 +600,17 @@ function MainScreenBody({
 						client={client}
 						onSnapshot={follow}
 						docks={docks}
+						panelBridge={panelBridge}
+						toolLead={
+							<div className={styles.actions} role="toolbar" aria-label={t('main.levelActions')}>
+								<button type="button" className={styles.button} onClick={() => void save()}>
+									{t('main.save')}
+								</button>
+								<button type="button" className={styles.button} onClick={requestClose}>
+									{t('main.closeLevel')}
+								</button>
+							</div>
+						}
 					/>
 				</div>
 			</div>

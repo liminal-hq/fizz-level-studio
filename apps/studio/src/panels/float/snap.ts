@@ -3,7 +3,7 @@
 // (c) Copyright 2026 Liminal HQ, Scott Morris
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
-import { HEADER_HEIGHT, clampRect, type Rect, type Size } from './panelGeometry';
+import { HEADER_HEIGHT, clampRect, type Rect, type ResizeHandle, type Size } from './panelGeometry';
 
 /** How close an edge must come to a target before it locks to it. */
 export const SNAP_DISTANCE = 8;
@@ -83,23 +83,47 @@ export function snapMove(rect: Rect, height: number, area: Size, others: readonl
 }
 
 /**
- * A resized panel's rectangle with its right and bottom edges locked to the same kinds of target.
- * The left and top edges stay where they are.
+ * A resized panel's rectangle with the edges `handle` moves locked to the same kinds of target:
+ * the right and bottom edges to the far targets, the left and top edges to the near ones. The
+ * edges that stay where they are never snap. Defaults to the bottom-right corner.
  */
-export function snapResize(rect: Rect, area: Size, others: readonly Rect[]): Snapped {
+export function snapResize(
+	rect: Rect,
+	area: Size,
+	others: readonly Rect[],
+	handle: ResizeHandle = 'se',
+): Snapped {
 	const guides: Guide[] = [];
-	let { w, h } = rect;
-	const sx = nearest([rect.x + rect.w], endTargets(area.w, spans(others, 'x')));
-	if (sx) {
-		w = rect.w + sx.delta;
-		guides.push({ axis: 'x', at: sx.at });
+	let { x, y, w, h } = rect;
+	if (handle.includes('e')) {
+		const sx = nearest([rect.x + rect.w], endTargets(area.w, spans(others, 'x')));
+		if (sx) {
+			w = rect.w + sx.delta;
+			guides.push({ axis: 'x', at: sx.at });
+		}
+	} else if (handle.includes('w')) {
+		const sx = nearest([rect.x], startTargets(spans(others, 'x')));
+		if (sx) {
+			x = rect.x + sx.delta;
+			w = rect.w - sx.delta;
+			guides.push({ axis: 'x', at: sx.at });
+		}
 	}
-	const sy = nearest([rect.y + rect.h], endTargets(area.h, spans(others, 'y')));
-	if (sy) {
-		h = rect.h + sy.delta;
-		guides.push({ axis: 'y', at: sy.at });
+	if (handle.includes('s')) {
+		const sy = nearest([rect.y + rect.h], endTargets(area.h, spans(others, 'y')));
+		if (sy) {
+			h = rect.h + sy.delta;
+			guides.push({ axis: 'y', at: sy.at });
+		}
+	} else if (handle.includes('n')) {
+		const sy = nearest([rect.y], startTargets(spans(others, 'y')));
+		if (sy) {
+			y = rect.y + sy.delta;
+			h = rect.h - sy.delta;
+			guides.push({ axis: 'y', at: sy.at });
+		}
 	}
-	return { rect: { ...rect, w, h }, guides };
+	return { rect: { x, y, w, h }, guides };
 }
 
 /** Snaps a move, then keeps the result inside the area and above the minimum size. */

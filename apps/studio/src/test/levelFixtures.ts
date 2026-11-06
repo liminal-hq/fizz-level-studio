@@ -18,7 +18,8 @@ export function levelView(width = 12, height = 8, overrides: Partial<LevelView> 
 		cells,
 		items: [],
 		spawns: [],
-		start: { x: 1, y: 1 },
+		start: { x: 1, y: 1, line: 2 },
+		markers: [],
 		diagnostics: [],
 		...overrides,
 	};

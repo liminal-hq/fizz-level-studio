@@ -19,6 +19,7 @@ const COMMANDS: &[&str] = &[
     "language_words",
     "level_cell_line",
     "level_ghosts",
+    "level_snapshot",
 ];
 
 fn main() {

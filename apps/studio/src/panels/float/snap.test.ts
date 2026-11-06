@@ -76,6 +76,37 @@ describe('snapResize', () => {
 	});
 });
 
+describe('snapResize from other edges', () => {
+	it('locks the left edge to the area and the margin, shifting the position', () => {
+		const out = snapResize({ x: 3, y: 100, w: 397, h: 200 }, area, [], 'w');
+		expect(out.rect).toEqual({ x: 0, y: 100, w: 400, h: 200 });
+		expect(out.guides).toEqual([{ axis: 'x', at: 0 }]);
+	});
+
+	it('locks the top edge to a neighbour’s bottom edge', () => {
+		const out = snapResize(
+			{ x: 100, y: 297, w: 300, h: 203 },
+			area,
+			[{ x: 0, y: 0, w: 50, h: 300 }],
+			'n',
+		);
+		expect(out.rect).toEqual({ x: 100, y: 300, w: 300, h: 200 });
+		expect(out.guides).toContainEqual({ axis: 'y', at: 300 });
+	});
+
+	it('does not snap the edges that stay put', () => {
+		const out = snapResize({ x: 3, y: 3, w: 897, h: 497 }, area, [], 'e');
+		expect(out.rect).toEqual({ x: 3, y: 3, w: 897, h: 497 });
+		expect(out.guides).toEqual([]);
+	});
+
+	it('snaps both moving edges of a corner', () => {
+		const out = snapResize({ x: 2, y: 2, w: 300, h: 300 }, area, [], 'nw');
+		expect(out.rect).toEqual({ x: 0, y: 0, w: 302, h: 302 });
+		expect(out.guides).toHaveLength(2);
+	});
+});
+
 describe('snapMoveWithin', () => {
 	it('keeps a snapped panel inside the area', () => {
 		const out = snapMoveWithin({ ...panel, x: -3 }, min, area, [], false);

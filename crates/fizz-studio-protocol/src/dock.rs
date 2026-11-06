@@ -99,6 +99,19 @@ pub struct WindowPlacement {
     pub h: i32,
 }
 
+/// Where a panel's window is, as the app reports it when the window opens, moves, resizes or
+/// closes. The frontend writes it into the panel's `window` record in the active workspace.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[ts(export, export_to = "../../../packages/protocol/src/generated/")]
+pub struct PanelPlaced {
+    /// The window's label, such as `panel-script-1`.
+    pub label: String,
+    pub placement: WindowPlacement,
+    /// Whether `placement.x` and `placement.y` are real. A platform that cannot say where a window
+    /// is (Wayland) reports the size only, and the saved position is then left as it was.
+    pub positioned: bool,
+}
+
 /// One panel in a workspace.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, TS)]
 #[ts(export, export_to = "../../../packages/protocol/src/generated/")]
@@ -114,6 +127,15 @@ pub struct PanelEntry {
     pub window_from: PlaceKind,
 }
 
+/// Where the floating tool picker sits over the level: its top-left corner, in pixels from the
+/// top-left of the map. The frontend keeps it inside the map as the window and the docks change.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[ts(export, export_to = "../../../packages/protocol/src/generated/")]
+pub struct ToolPickerPlacement {
+    pub x: i32,
+    pub y: i32,
+}
+
 /// One named arrangement of every panel.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, TS)]
 #[ts(export, export_to = "../../../packages/protocol/src/generated/")]
@@ -121,6 +143,9 @@ pub struct Workspace {
     /// Every panel, by id (`palette`, `script`, ...).
     pub panels: BTreeMap<String, PanelEntry>,
     pub zones: Zones,
+    /// Where the tool picker was moved to; `None` puts it at the map's top-left corner.
+    #[serde(default)]
+    pub tool_picker: Option<ToolPickerPlacement>,
 }
 
 /// The named workspaces and the one in use. With no workspaces saved the settings crate's

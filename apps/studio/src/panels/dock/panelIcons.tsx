@@ -16,7 +16,7 @@ function Svg({ size = 16, children }: { size?: number; children: ReactNode }) {
 		viewBox: '0 0 16 16',
 		fill: 'none',
 		stroke: 'currentColor',
-		strokeWidth: 1.25,
+		strokeWidth: 1.4,
 		strokeLinecap: 'round',
 		strokeLinejoin: 'round',
 		'aria-hidden': true,
@@ -97,5 +97,25 @@ export const FloatIcon: IconComponent = ({ size }) => (
 	<Svg size={size}>
 		<rect x="2" y="2.5" width="8" height="7" rx="1.2" />
 		<rect x="6" y="6.5" width="8" height="7" rx="1.2" />
+	</Svg>
+);
+
+/** A window with an arrow leaving it: a panel torn off into a window of its own. */
+export const TearOffIcon: IconComponent = ({ size }) => (
+	<Svg size={size}>
+		<path d="M9 2.5h4.5V7M13.5 2.5 8 8" />
+		<path d="M11.5 9.5v2.8a1.2 1.2 0 0 1-1.2 1.2H3.7a1.2 1.2 0 0 1-1.2-1.2V5.7a1.2 1.2 0 0 1 1.2-1.2h2.8" />
+	</Svg>
+);
+
+/** Two columns of dots: the grip a docked panel's header is dragged by. */
+export const GripIcon: IconComponent = ({ size }) => (
+	<Svg size={size}>
+		<circle cx="6" cy="4" r="0.9" />
+		<circle cx="10" cy="4" r="0.9" />
+		<circle cx="6" cy="8" r="0.9" />
+		<circle cx="10" cy="8" r="0.9" />
+		<circle cx="6" cy="12" r="0.9" />
+		<circle cx="10" cy="12" r="0.9" />
 	</Svg>
 );

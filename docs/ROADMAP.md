@@ -4,22 +4,22 @@ The milestones in order, each with what it delivers, its exit criteria and what 
 
 **Order.** Fizz 2 is the more important target (D32), so its milestones come first, and making Fizz 1 levels stays a goal (M9 to M12). The milestones were renumbered on 2026-11-04; the old numbers are in the table. The studio is a Tauri v2 desktop app to the Liminal HQ standards ([DESKTOP.md](../spec/DESKTOP.md), D54), so there is no WebAssembly bridge milestone: the games are linked natively (D59).
 
-| Milestone | Depends on | Formerly |
-| --- | --- | --- |
-| M0 Spec | — | M0 |
-| M1 Desktop walking skeleton | M0; F23 | Part of M1 and M2 |
-| M2 World projects and Fizz 2 levels | M1; F1, F2, F4, F10, F15 | Part of M7 and M9 |
-| M3 States and rules | M2; F6, F11, F18 | New |
-| M4 Claude in the studio | M2, M3 | M4 |
-| M5 Lights, panels and the Game view | M2; F3, F5, F12, F13, F19, F22 | M8 |
-| M6 Pixel editor | M2 (M5 for panels in place) | New |
-| M7 Behaviour scripting | M3, M5; F16, F17, F21, F22 | New |
-| M8 Retro art and Fizz 1 conversion | M2, M6; F20; E11 | Part of M7 and M9 |
-| M9 Fizz 1 overworld designer | M1; E1, E2, E10 | M1 |
-| M10 Fizz 1 level editing | M1 | M2 |
-| M11 Fizz 1 registry and progress | M9 (alongside M10) | M3 |
-| M12 Fizz 1 native host and Rust levels | M10, M11; E6 to E9 | M5 and M6 (merged: the WebAssembly bridge became native host work) |
-| M13 Episode 3 profile | M2 (and an Episode 3 repository) | M10 |
+| Milestone                              | Depends on                       | Formerly                                                           |
+| -------------------------------------- | -------------------------------- | ------------------------------------------------------------------ |
+| M0 Spec                                | —                                | M0                                                                 |
+| M1 Desktop walking skeleton            | M0; F23                          | Part of M1 and M2                                                  |
+| M2 World projects and Fizz 2 levels    | M1; F1, F2, F4, F10, F15         | Part of M7 and M9                                                  |
+| M3 States and rules                    | M2; F6, F11, F18                 | New                                                                |
+| M4 Claude in the studio                | M2, M3                           | M4                                                                 |
+| M5 Lights, panels and the Game view    | M2; F3, F5, F12, F13, F19, F22   | M8                                                                 |
+| M6 Pixel editor                        | M2 (M5 for panels in place)      | New                                                                |
+| M7 Behaviour scripting                 | M3, M5; F16, F17, F21, F22       | New                                                                |
+| M8 Retro art and Fizz 1 conversion     | M2, M6; F20; E11                 | Part of M7 and M9                                                  |
+| M9 Fizz 1 overworld designer           | M1; E1, E2, E10                  | M1                                                                 |
+| M10 Fizz 1 level editing               | M1                               | M2                                                                 |
+| M11 Fizz 1 registry and progress       | M9 (alongside M10)               | M3                                                                 |
+| M12 Fizz 1 native host and Rust levels | M10, M11; E6 to E9               | M5 and M6 (merged: the WebAssembly bridge became native host work) |
+| M13 Episode 3 profile                  | M2 (and an Episode 3 repository) | M10                                                                |
 
 M5 and M6 can run alongside each other, and M9 to M13 can run alongside the Fizz 2 milestones when there are hands for both.
 
@@ -167,7 +167,7 @@ The Fizz 1 overworld, on the shell of M1. Its model is already proven (2,640 til
 - `check_overworld` reports every level with exactly one point, all pairs both ways, no cycles, every level reachable from the saucer, for `main.fizz`.
 - Claude can propose a new point and an unlock change over MCP; in propose mode nothing changes until the person accepts in the studio.
 
-**Depends on:** M1 (the shell). Adding a *new* level to the map waits for M11; M9 works with the 16 existing level ids.
+**Depends on:** M1 (the shell). Adding a _new_ level to the map waits for M11; M9 works with the 16 existing level ids.
 
 ## M10 — Fizz 1 level editing
 

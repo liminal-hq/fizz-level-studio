@@ -3,4 +3,8 @@
 /**
  * An enemy or object spawn. `y` is `None` where the line gave none and no ground lies under it.
  */
-export type ViewSpawn = { kind: string, x: number, y: number | null, dir: number | null, ride: boolean, };
+export type ViewSpawn = { kind: string, x: number, y: number | null, dir: number | null, ride: boolean, 
+/**
+ * The script line, counted from 1, of the `spawn` statement; `None` where the view cannot tell.
+ */
+line: number | null, };

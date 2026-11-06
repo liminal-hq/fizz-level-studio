@@ -5,6 +5,7 @@
 
 import type { MenuItem } from '@liminal-hq/fizz-studio-chrome/ContextMenu/types';
 import { describe, expect, it, vi } from 'vitest';
+import { APP_ICONS } from '../icons/AppIcons';
 import { enMessages } from '../i18n/messages';
 import { PANEL_SPECS } from '../panels/float/panelSpecs';
 
@@ -21,8 +22,10 @@ import {
 	brushCommandId,
 	brushCommands,
 	commandLabel,
+	dockBackCommandId,
 	paletteGroupOf,
 	runCommand,
+	tearOffCommandId,
 	toolCommandId,
 	viewOf,
 } from './registry';
@@ -106,27 +109,83 @@ describe('the registry', () => {
 		});
 	});
 
-	it('arranges File, Edit, View and Window with rules between sections', () => {
-		const items = appMenuItems(snapshot());
+	it('puts every menu command in exactly one of the five menus', () => {
+		const names = ['file', 'edit', 'view', 'window', 'help'];
+		for (const command of COMMANDS) expect(names, command.id).toContain(command.menu);
+		for (const command of allCommands(NO_FACTS).filter((def) => def.menu)) {
+			expect(names, command.id).toContain(command.menu);
+		}
+		const rows = appMenuItems(snapshot({ editorOpen: true, hasLevel: true })).flatMap((menu) =>
+			menu.type === 'submenu'
+				? menu.items.filter((row) => row.type !== 'separator').map((row) => row.id)
+				: [],
+		);
+		expect(new Set(rows).size).toBe(rows.length);
+	});
+
+	it('arranges File, Edit, View, Window and Help with rules between sections', () => {
+		const items = appMenuItems(snapshot({ editorOpen: true }));
 		expect(items.map((item) => (item.type === 'submenu' ? item.label : null))).toEqual([
 			'File',
 			'Edit',
 			'View',
 			'Window',
+			'Help',
 		]);
 		expect(Object.values(APP_MENU_MNEMONICS)).toEqual(items.map((item) => item.id));
-		expect(rowsOf(items, 'menu:file').filter((item) => item.type === 'separator')).toHaveLength(2);
-		const window = rowsOf(items, 'menu:window');
-		expect(window).toMatchObject([
-			{ label: 'Preferences…', shortcut: 'Ctrl+,' },
-			{ label: 'About' },
+		expect(Object.keys(APP_MENU_MNEMONICS)).toEqual(['f', 'e', 'v', 'w', 'h']);
+		const file = rowsOf(items, 'menu:file');
+		expect(file.map((item) => (item.type === 'separator' ? '-' : item.id))).toEqual([
+			'file.new',
+			'file.open',
+			'-',
+			'file.save',
+			'-',
+			'file.preferences',
+			'-',
+			'file.close',
+			'file.quit',
+		]);
+		expect(file.find((item) => item.id === 'file.preferences')).toMatchObject({
+			label: 'Preferences…',
+			shortcut: 'Ctrl+,',
+		});
+		expect(rowsOf(items, 'menu:help')).toMatchObject([
+			{ id: 'help.about', label: 'About Fizz Level Studio' },
 		]);
 	});
 
+	it('lists a Tear off row for each panel in the Window menu, and Dock back for one that is away', () => {
+		const ids = (facts: Partial<BridgeSnapshot['facts']>) =>
+			rowsOf(appMenuItems(snapshot(facts)), 'menu:window').map((row) => row.id);
+		expect(ids({ editorOpen: true })).toEqual(PANEL_SPECS.map((spec) => tearOffCommandId(spec.id)));
+		const away = ids({ editorOpen: true, away: { ...NO_FACTS.away, script: true } });
+		expect(away).toContain(dockBackCommandId('script'));
+		expect(away).not.toContain(tearOffCommandId('script'));
+	});
+
+	it('hides the Window rows on the start screen, and the Window menu with them', () => {
+		const items = appMenuItems(snapshot());
+		expect(items.map((item) => item.id)).toEqual([
+			'menu:file',
+			'menu:edit',
+			'menu:view',
+			'menu:help',
+		]);
+		// Edit and View keep their rows, disabled.
+		expect(rowsOf(items, 'menu:edit').length).toBeGreaterThan(0);
+		expect(rowsOf(items, 'menu:view').length).toBeGreaterThan(0);
+		const withEditor = appMenuItems(snapshot({ editorOpen: true }));
+		expect(withEditor.map((item) => item.id)).toContain('menu:window');
+		// The palette does not offer them either.
+		const entries = paletteEntries(snapshot());
+		expect(entries.some((entry) => entry.id.endsWith('.tearOff'))).toBe(false);
+	});
+
 	it('runs Preferences and About by opening their windows, and others through handlers', () => {
-		expect(runCommand('window.preferences', snapshot())).toBe(true);
+		expect(runCommand('file.preferences', snapshot())).toBe(true);
 		expect(openWindow).toHaveBeenCalledWith({ kind: 'preferences' });
-		expect(runCommand('window.about', snapshot())).toBe(true);
+		expect(runCommand('help.about', snapshot())).toBe(true);
 		expect(openWindow).toHaveBeenCalledWith({ kind: 'about' });
 		const save = vi.fn();
 		expect(runCommand('file.save', snapshot({ hasLevel: true }, { 'file.save': save }))).toBe(true);
@@ -240,6 +299,82 @@ describe('the palette additions', () => {
 		expect(save).toMatchObject({ enabled: false, reason: 'Open a level first' });
 		const quit = entries.find((entry) => entry.id === 'file.quit')!;
 		expect(quit).toMatchObject({ enabled: true, shortcut: 'Ctrl+Q' });
-		expect(entries.find((entry) => entry.id === 'window.about')?.enabled).toBe(true);
+		expect(entries.find((entry) => entry.id === 'help.about')?.enabled).toBe(true);
+	});
+});
+
+describe('Tear off and Dock back', () => {
+	it('offers Tear off for each panel in the main window and Dock back for each away', () => {
+		const here = allCommands(NO_FACTS);
+		for (const spec of PANEL_SPECS) {
+			expect(here.some((def) => def.id === tearOffCommandId(spec.id))).toBe(true);
+			expect(here.some((def) => def.id === dockBackCommandId(spec.id))).toBe(false);
+		}
+		const away = allCommands({ ...NO_FACTS, away: { ...NO_FACTS.away, script: true } });
+		expect(away.some((def) => def.id === dockBackCommandId('script'))).toBe(true);
+		expect(away.some((def) => def.id === tearOffCommandId('script'))).toBe(false);
+	});
+
+	it('names the panel in the label and lists them under Panels', () => {
+		const def = allCommands(NO_FACTS).find((d) => d.id === tearOffCommandId('objects'))!;
+		expect(commandLabel(def)).toBe('Tear off Objects');
+		expect(paletteGroupOf(def)).toBe('panels');
+		const back = allCommands({ ...NO_FACTS, away: { ...NO_FACTS.away, history: true } }).find(
+			(d) => d.id === dockBackCommandId('history'),
+		)!;
+		expect(commandLabel(back)).toBe('Dock History back');
+	});
+
+	it('runs through the editor’s handler and only while the editor is open', () => {
+		const run = vi.fn();
+		const id = tearOffCommandId('palette');
+		expect(runCommand(id, snapshot({}, { [id]: run }))).toBe(false);
+		expect(runCommand(id, snapshot({ editorOpen: true }, { [id]: run }))).toBe(true);
+		expect(run).toHaveBeenCalledTimes(1);
+	});
+});
+
+describe('the menu icons', () => {
+	const everything = (facts: Partial<BridgeSnapshot['facts']>) =>
+		allCommands({
+			...NO_FACTS,
+			...facts,
+			brushes: [{ group: 'tile', kind: 'block' }],
+			away: { ...NO_FACTS.away, script: true },
+		});
+
+	// A palette-only command has no `menu`; every command that has one has a row, so an icon.
+	it('gives every command with a menu row an icon the icon set draws', () => {
+		for (const away of [false, true]) {
+			const defs = everything({ away: { ...NO_FACTS.away, script: away } }).filter((d) => d.menu);
+			expect(defs.length).toBeGreaterThan(20);
+			for (const def of defs) {
+				expect(def.icon, def.id).toBeDefined();
+				expect(APP_ICONS, def.id).toHaveProperty(def.icon!);
+			}
+		}
+		for (const def of COMMANDS) expect(def.icon, def.id).toBeDefined();
+	});
+
+	it('leaves the palette-only commands without one', () => {
+		for (const def of PALETTE_COMMANDS) expect(def.menu).toBeUndefined();
+	});
+
+	it('puts an icon on every row and menu of the app menu', () => {
+		const items = appMenuItems(snapshot({ editorOpen: true, hasLevel: true }));
+		const without = (rows: MenuItem[]): string[] =>
+			rows.flatMap((row) => {
+				if (row.type === 'separator' || row.type === 'section') return [];
+				const own = row.icon ? [] : [row.id];
+				return row.type === 'submenu' ? [...own, ...without(row.items)] : own;
+			});
+		expect(without(items)).toEqual([]);
+	});
+
+	it('reuses the rail icons for the panel rows', () => {
+		const view = rowsOf(appMenuItems(snapshot({ editorOpen: true })), 'menu:view');
+		const row = view.find((item) => item.id === 'view.panel.script');
+		expect(row).toMatchObject({ type: 'checkbox' });
+		expect(row && 'icon' in row && row.icon).toBeTruthy();
 	});
 });

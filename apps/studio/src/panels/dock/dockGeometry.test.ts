@@ -8,8 +8,10 @@ import {
 	activeWorkspace,
 	clampZoneSize,
 	clampZoneSizeAbsolute,
+	contentExtent,
 	levelRect,
 	levelShare,
+	railExtent,
 	workspaceRect,
 	zoneCap,
 	zoneExtent,
@@ -58,63 +60,71 @@ describe('zone caps', () => {
 describe('the level in the default layout', () => {
 	const ws = defaultWorkspace();
 
-	it('matches the design at 1440 x 900', () => {
-		expect(levelRect(ws, big)).toEqual({ x: 64 + 196, y: 124, w: 916, h: 596 });
-		expect(zoneExtent(ws, 'left', big)).toBe(196);
-		expect(zoneExtent(ws, 'right', big)).toBe(264);
-		expect(zoneExtent(ws, 'bottom', big)).toBe(180);
-		expect(levelShare(ws, big)).toBeCloseTo((916 * 596) / (1440 * 900), 6);
-		expect(levelShare(ws, big)).toBeGreaterThan(0.42);
+	it('gives each open zone its rail and its content at 1440 x 900', () => {
+		expect(levelRect(ws, big)).toEqual({
+			x: 64 + RAIL_SIZE + 196,
+			y: 124,
+			w: 1440 - 64 - (RAIL_SIZE + 196) - (RAIL_SIZE + 264),
+			h: 900 - 124 - (RAIL_SIZE + 180),
+		});
+		expect(zoneExtent(ws, 'left', big)).toBe(RAIL_SIZE + 196);
+		expect(zoneExtent(ws, 'right', big)).toBe(RAIL_SIZE + 264);
+		expect(zoneExtent(ws, 'bottom', big)).toBe(RAIL_SIZE + 180);
+		expect(contentExtent(ws, 'left', big)).toBe(196);
+		expect(railExtent(ws, 'left')).toBe(RAIL_SIZE);
+		expect(levelShare(ws, big)).toBeCloseTo((844 * 560) / (1440 * 900), 6);
+		expect(levelShare(ws, big)).toBeGreaterThan(0.36);
 	});
 
-	it('leaves 756 x 416 at 1280 x 720', () => {
+	it('leaves 684 x 380 at 1280 x 720', () => {
 		const rect = levelRect(ws, small);
-		expect([rect.w, rect.h]).toEqual([756, 416]);
-		expect(levelShare(ws, small)).toBeCloseTo((756 * 416) / (1280 * 720), 6);
+		expect([rect.w, rect.h]).toEqual([684, 380]);
+		expect(levelShare(ws, small)).toBeCloseTo((684 * 380) / (1280 * 720), 6);
 	});
 
-	it('pulls an oversized zone in to the cap', () => {
+	it('pulls an oversized zone in to the cap, with the rail outside it', () => {
 		const wide = structuredClone(ws);
 		wide.zones.right.size = 2000;
-		expect(zoneExtent(wide, 'right', big)).toBe(432);
+		expect(contentExtent(wide, 'right', big)).toBe(432);
+		expect(zoneExtent(wide, 'right', big)).toBe(432 + RAIL_SIZE);
 	});
 });
 
 describe('rails and empty zones', () => {
-	it('gives a collapsed zone its rail and an empty zone nothing', () => {
+	it('gives a collapsed zone its rail alone and an empty zone nothing, not even a rail', () => {
 		const ws = defaultWorkspace();
 		ws.zones.right.collapsed = true;
 		ws.zones.left.groups = [];
+		ws.zones.bottom.groups = [];
 		expect(zoneExtent(ws, 'right', big)).toBe(RAIL_SIZE);
+		expect(contentExtent(ws, 'right', big)).toBe(0);
 		expect(zoneExtent(ws, 'left', big)).toBe(0);
+		expect(railExtent(ws, 'left')).toBe(0);
+		expect(railExtent(ws, 'bottom')).toBe(0);
 		expect(levelRect(ws, big).w).toBe(1440 - 64 - RAIL_SIZE);
+		expect(levelRect(ws, big).h).toBe(900 - 124);
 	});
 
-	it('opens every dock in the Paint workspace and keeps the level near 42% at 1440 by 900', () => {
+	it('opens every dock in the Paint workspace and keeps the level above a third at 1440 by 900', () => {
 		const paint = defaultWorkspaceFor('Paint');
 		expect(paint).toEqual(defaultWorkspace());
-		expect(levelRect(paint, big)).toEqual({
-			x: 64 + 196,
-			y: 124,
-			w: 1440 - 64 - 196 - 264,
-			h: 900 - 124 - 180,
-		});
-		expect(levelShare(paint, big)).toBeGreaterThan(0.41);
-		expect(levelShare(paint, big)).toBeLessThan(0.43);
+		expect(levelRect(paint, big)).toEqual(levelRect(defaultWorkspace(), big));
+		expect(levelShare(paint, big)).toBeGreaterThan(0.36);
+		expect(levelShare(paint, big)).toBeLessThan(0.37);
 	});
 
 	it('keeps a useful share of the level in every shipped workspace on a small window', () => {
 		for (const name of ['Paint', 'Script', 'Review']) {
 			const share = levelShare(defaultWorkspaceFor(name), small);
-			expect(share).toBeGreaterThan(0.3);
+			expect(share).toBeGreaterThan(0.25);
 		}
 	});
 
-	it('never lets the level fall below 40% of the width less the tool column at the caps', () => {
+	it('never lets the level fall below 40% of the width less the tool column and rails at the caps', () => {
 		const ws = defaultWorkspace();
 		ws.zones.left.size = ws.zones.right.size = 5000;
 		const rect = levelRect(ws, small);
-		expect(rect.w).toBeGreaterThanOrEqual(1280 * 0.4 - 64);
+		expect(rect.w).toBeGreaterThanOrEqual(1280 * 0.4 - 64 - 2 * RAIL_SIZE);
 	});
 
 	it('never reports a negative level in a tiny window', () => {
@@ -126,11 +136,11 @@ describe('rails and empty zones', () => {
 });
 
 describe('the zones themselves', () => {
-	it('lays the side zones beside the level and the bottom zone under all', () => {
+	it('lays the side zones and their rails beside the level and the bottom zone under all', () => {
 		const rects = zoneRects(defaultWorkspace(), big);
-		expect(rects.left).toEqual({ x: 64, y: 124, w: 196, h: 596 });
-		expect(rects.right).toEqual({ x: 1440 - 264, y: 124, w: 264, h: 596 });
-		expect(rects.bottom).toEqual({ x: 64, y: 720, w: 1376, h: 180 });
+		expect(rects.left).toEqual({ x: 64, y: 124, w: 232, h: 560 });
+		expect(rects.right).toEqual({ x: 1440 - 300, y: 124, w: 300, h: 560 });
+		expect(rects.bottom).toEqual({ x: 64, y: 684, w: 1376, h: 216 });
 		expect(workspaceRect(big)).toEqual({ x: 64, y: 124, w: 1376, h: 776 });
 	});
 

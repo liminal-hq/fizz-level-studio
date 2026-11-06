@@ -145,6 +145,16 @@ fn the_words_and_a_cells_line_are_answered_for_an_open_level() {
 }
 
 #[test]
+fn another_window_reads_the_open_levels_current_snapshot() {
+    let app = app();
+    let (_dir, path) = project();
+    let opened = open(&app, &path);
+    let read = commands::level_snapshot(worlds(&app), opened.id.clone()).unwrap();
+    assert_eq!(read, opened);
+    assert!(commands::level_snapshot(worlds(&app), "nope".into()).is_err());
+}
+
+#[test]
 fn a_folder_opens_with_its_levels() {
     let (dir, path) = project();
     let info = commands::project_open(dir.path().to_string_lossy().into_owned()).unwrap();

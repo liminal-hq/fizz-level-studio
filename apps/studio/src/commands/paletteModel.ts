@@ -38,7 +38,7 @@ function labelOf(def: CommandDef, checked: boolean | undefined): string {
 /** Every command now, grouped in the palette's order and otherwise in registry order. */
 export function paletteEntries(snapshot: BridgeSnapshot): PaletteEntry[] {
 	const entries = allCommands(snapshot.facts)
-		.filter((def) => def.id !== OPENER)
+		.filter((def) => def.id !== OPENER && !def.hidden?.(snapshot.facts))
 		.map((def, order) => {
 			const view = viewOf(def, snapshot);
 			const group = paletteGroupOf(def);

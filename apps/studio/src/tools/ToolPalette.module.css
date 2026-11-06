@@ -1,31 +1,21 @@
+/*
+ * The row's height holds a key (its 3px edge included) with a gap above and a deeper one below for
+ * the edge's shadow and the 2px press, so nothing in the row is clipped.
+ */
 .palette {
 	display: flex;
 	flex-wrap: wrap;
 	align-items: center;
 	gap: 0.75rem;
-	padding: 0.5rem 0.75rem;
+	box-sizing: border-box;
+	min-height: calc(var(--fls-key-height) + 0.75rem);
+	padding: 0.3rem 0.75rem 0.45rem;
 	background: var(--fls-bg-window);
 	border-bottom: 1px solid var(--fls-border-subtle);
 }
 
-.tools {
-	display: flex;
-	gap: 0.5rem;
-}
-
-.tool {
-	composes: keycap from '../theme/keycap.module.css';
-}
-
-.key {
-	font-family: var(--fls-font-mono);
-	font-size: 0.75em;
-	font-weight: 400;
-	opacity: 0.75;
-}
-
 .chip {
-	composes: keycap static from '../theme/keycap.module.css';
+	composes: keycap static from '@liminal-hq/fizz-studio-chrome/Keycap/keycap.module.css';
 	padding: 0 0.6rem 0 0.3rem;
 }
 
@@ -46,25 +36,17 @@
 	border-radius: 50%;
 }
 
-.spacing {
-	display: inline-flex;
-	align-items: center;
-	gap: 0.3rem;
-	color: var(--fls-text-secondary);
-}
-
-.spacingValue {
-	min-width: 6.5rem;
-	text-align: center;
-	color: var(--fls-text-primary);
-}
-
-.step {
-	composes: keycap from '../theme/keycap.module.css';
-	min-width: var(--fls-key-height);
-	padding: 0 0.5rem;
-}
-
 .hint {
 	color: var(--fls-text-secondary);
+}
+
+.lead {
+	display: flex;
+	gap: 0.5rem;
+}
+
+.divider {
+	align-self: stretch;
+	width: 1px;
+	background: var(--fls-border-subtle);
 }

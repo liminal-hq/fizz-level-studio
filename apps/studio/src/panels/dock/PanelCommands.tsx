@@ -6,7 +6,7 @@
 import type { ZoneId } from '@liminal-hq/fizz-studio-protocol/generated/ZoneId';
 import { t, type MessageId } from '../../i18n/messages';
 import styles from './PanelCommands.module.css';
-import { FloatIcon, ZoneIcon } from './panelIcons';
+import { FloatIcon, TearOffIcon, ZoneIcon } from './panelIcons';
 
 export interface PanelCommandsProps {
 	title: string;
@@ -14,6 +14,8 @@ export interface PanelCommandsProps {
 	at: ZoneId | 'float';
 	onDock: (zone: ZoneId) => void;
 	onFloat: () => void;
+	/** Moves the panel into a window of its own; the button is left out when this is absent. */
+	onTearOff?: () => void;
 }
 
 const DOCK_LABELS: Record<ZoneId, MessageId> = {
@@ -24,8 +26,12 @@ const DOCK_LABELS: Record<ZoneId, MessageId> = {
 
 const ZONES: readonly ZoneId[] = ['left', 'right', 'bottom'];
 
-/** One keycap per place the panel can go to: Dock left, Dock right, Dock bottom and Float. */
-export function PanelCommands({ title, at, onDock, onFloat }: PanelCommandsProps) {
+/**
+ * One keycap per place the panel can go to: Dock left, Dock right, Dock bottom, Float and, last,
+ * Tear off. In a header they follow the Maximise button (where the panel has one) and come before
+ * the fold button, so the order is: tabs, Maximise, Dock buttons, Float, Tear off, fold.
+ */
+export function PanelCommands({ title, at, onDock, onFloat, onTearOff }: PanelCommandsProps) {
 	return (
 		<span className={styles.commands}>
 			{ZONES.filter((zone) => zone !== at).map((zone) => (
@@ -49,6 +55,17 @@ export function PanelCommands({ title, at, onDock, onFloat }: PanelCommandsProps
 					onClick={onFloat}
 				>
 					<FloatIcon size={14} />
+				</button>
+			)}
+			{onTearOff && (
+				<button
+					type="button"
+					className={styles.key}
+					aria-label={t('dock.tearOff', { title })}
+					title={t('dock.tearOff', { title })}
+					onClick={onTearOff}
+				>
+					<TearOffIcon size={14} />
 				</button>
 			)}
 		</span>

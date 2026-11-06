@@ -5,7 +5,7 @@
 
 use fizz_studio_protocol::{
     DockSettings, PlaceKind, Settings, SettingsError, SettingsField, SettingsPatch, TabGroup,
-    WindowPlacement, Workspace, ZoneId,
+    ToolPickerPlacement, WindowPlacement, Workspace, ZoneId,
 };
 use fizz_studio_settings::{
     apply_patch, default_dock, default_layout, default_workspace, default_workspace_for,
@@ -259,6 +259,16 @@ fn rectangles_that_are_not_on_a_screen_are_refused() {
 }
 
 #[test]
+fn a_tool_picker_off_the_map_is_refused_and_one_on_it_is_accepted() {
+    let off = with_workspace(|ws| ws.tool_picker = Some(ToolPickerPlacement { x: -1, y: 4 }));
+    assert_eq!(field_of(validate(&off)), SettingsField::WorkspaceRect);
+    let far = with_workspace(|ws| ws.tool_picker = Some(ToolPickerPlacement { x: 4, y: 20_001 }));
+    assert_eq!(field_of(validate(&far)), SettingsField::WorkspaceRect);
+    let on = with_workspace(|ws| ws.tool_picker = Some(ToolPickerPlacement { x: 300, y: 40 }));
+    assert!(validate(&on).is_ok());
+}
+
+#[test]
 fn a_window_on_a_screen_to_the_left_is_accepted() {
     let settings = with_workspace(|ws| {
         ws.zones.left.groups.clear();
@@ -357,6 +367,7 @@ fn a_dock_round_trips_through_the_file() {
         w: 700,
         h: 500,
     });
+    moved.tool_picker = Some(ToolPickerPlacement { x: 420, y: 96 });
     settings.dock.active = "Review".to_owned();
     file.save(&settings).unwrap();
     let report = file.load();
@@ -419,6 +430,41 @@ fn a_version_three_file_that_already_has_a_dock_keeps_it() {
     dock.active = "Script".to_owned();
     let text = json!({ "version": 3, "settings": { "dock": dock } }).to_string();
     assert_eq!(memory_file(&text).load().settings.dock.active, "Script");
+}
+
+#[test]
+fn a_version_five_file_gives_every_workspace_an_unset_tool_picker() {
+    let mut dock = serde_json::to_value(default_dock()).unwrap();
+    for workspace in dock["workspaces"].as_object_mut().unwrap().values_mut() {
+        workspace.as_object_mut().unwrap().remove("tool_picker");
+    }
+    let migrated = fizz_studio_settings::migrate(
+        json!({ "dock": dock.clone() }),
+        5,
+        SETTINGS_VERSION,
+        fizz_studio_settings::MIGRATIONS,
+    )
+    .unwrap();
+    for workspace in migrated["dock"]["workspaces"].as_object().unwrap().values() {
+        assert_eq!(workspace["tool_picker"], Value::Null);
+    }
+    let text = json!({ "version": 5, "settings": { "dock": dock } }).to_string();
+    let report = memory_file(&text).load();
+    assert!(report.problem.is_none(), "{:?}", report.problem);
+    assert_eq!(report.settings.dock, default_dock());
+}
+
+#[test]
+fn a_version_five_file_keeps_a_tool_picker_place_already_there() {
+    let mut dock = serde_json::to_value(default_dock()).unwrap();
+    dock["workspaces"]["Paint"]["tool_picker"] = json!({ "x": 50, "y": 60 });
+    let text = json!({ "version": 5, "settings": { "dock": dock } }).to_string();
+    let report = memory_file(&text).load();
+    assert!(report.problem.is_none(), "{:?}", report.problem);
+    assert_eq!(
+        report.settings.dock.workspaces["Paint"].tool_picker,
+        Some(ToolPickerPlacement { x: 50, y: 60 })
+    );
 }
 
 #[test]

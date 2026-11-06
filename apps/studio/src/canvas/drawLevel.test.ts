@@ -86,6 +86,7 @@ const colours: CanvasColours = {
 	glyph: 'glyph',
 	cursor: 'cursor',
 	selection: 'selection',
+	inspected: 'inspected',
 	preview: 'preview',
 	item: 'item',
 	spawn: 'spawn',
@@ -145,9 +146,9 @@ describe('drawLevel', () => {
 
 	it('draws items, spawns, the start, the selection and the cursor', () => {
 		const view = levelView(6, 4, {
-			items: [{ kind: 'cheezie', x: 2, y: 2 }],
-			spawns: [{ kind: 'gloop', x: 4, y: null, dir: null, ride: false }],
-			start: { x: 1, y: 1 },
+			items: [{ kind: 'cheezie', x: 2, y: 2, line: 9 }],
+			spawns: [{ kind: 'gloop', x: 4, y: null, dir: null, ride: false, line: 12 }],
+			start: { x: 1, y: 1, line: 2 },
 		});
 		const { ctx, calls } = recorder();
 		drawLevel(
@@ -164,6 +165,19 @@ describe('drawLevel', () => {
 		expect(letters).toEqual(expect.arrayContaining(['C', 'G', 'B']));
 		expect(calls.filter((c) => c.op === 'strokeRect').length).toBe(3);
 		expect(calls.some((c) => c.op === 'fillRect' && c.fill === 'preview')).toBe(true);
+	});
+
+	it('outlines the inspected cell just outside its edges, and nothing when none is', () => {
+		const view = levelView(6, 4, { start: null });
+		const none = recorder();
+		drawLevel(none.ctx, view, options());
+		expect(none.calls.some((c) => c.stroke === 'inspected')).toBe(false);
+
+		const { ctx, calls } = recorder();
+		drawLevel(ctx, view, options({ inspected: { x: 2, y: 2 } }));
+		// y = 2 of 4 rows is row 1 from the top: 16 px down, at 16 px a cell.
+		const outline = calls.filter((c) => c.op === 'strokeRect' && c.stroke === 'inspected');
+		expect(outline.map((c) => c.args)).toEqual([[30, 14, 20, 20]]);
 	});
 
 	it('draws ghosts as translucent cells by what they would do, and none unless given', () => {

@@ -1,0 +1,36 @@
+/* The chip that follows the pointer: a keycap with the panel's title, set a little below and right. */
+.ghost {
+	composes: keycap from '@liminal-hq/fizz-studio-chrome/Keycap/keycap.module.css';
+	position: fixed;
+	z-index: 1000;
+	top: 0;
+	left: 0;
+	transform: translate(calc(var(--fls-ghost-x) + 12px), calc(var(--fls-ghost-y) + 12px));
+	height: var(--fls-hit-target);
+	padding: 0 0.7rem;
+	pointer-events: none;
+	opacity: 0.92;
+}
+
+/* Where among a group's panels the dragged one would sit: upright on the bottom rail. */
+.line {
+	position: fixed;
+	z-index: 1000;
+	top: var(--fls-line-top);
+	left: var(--fls-line-x);
+	width: 3px;
+	height: var(--fls-line-height);
+	margin-left: -1px;
+	pointer-events: none;
+	background: var(--fls-accent);
+	border-radius: 2px;
+	box-shadow: 0 0 6px var(--fls-accent);
+}
+
+/* Across a side rail, where the panels stand one above another. */
+.line[data-across] {
+	width: var(--fls-line-width);
+	height: 3px;
+	margin-top: -1px;
+	margin-left: 0;
+}

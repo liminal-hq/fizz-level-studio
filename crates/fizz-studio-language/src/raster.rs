@@ -40,6 +40,10 @@ pub struct ItemAt {
     pub x: f64,
     #[serde(serialize_with = "serialize_number")]
     pub y: f64,
+    /// The script line (counted from 1) of the statement that placed it. Not part of the reference's
+    /// output, so it is not serialised.
+    #[serde(skip)]
+    pub line: usize,
 }
 
 /// An enemy or object spawn.
@@ -54,6 +58,9 @@ pub struct SpawnAt {
     #[serde(serialize_with = "opt_number")]
     pub dir: Option<f64>,
     pub ride: bool,
+    /// The script line (counted from 1) of the `spawn` statement. Not serialised.
+    #[serde(skip)]
+    pub line: usize,
 }
 
 /// A moving platform.
@@ -78,6 +85,9 @@ pub struct StartAt {
     pub x: f64,
     #[serde(serialize_with = "serialize_number")]
     pub y: f64,
+    /// The script line (counted from 1) of the `start` statement that won. Not serialised.
+    #[serde(skip)]
+    pub line: usize,
 }
 
 /// The grid and entity lists a script builds.
@@ -94,6 +104,10 @@ pub struct World {
     pub tiles: Vec<String>,
     /// True where a cell holds a pool liquid rather than a tile from the blocks section.
     pub liquid: Vec<bool>,
+    /// The script line (counted from 1) of the last statement that set each cell, index `y * w + x`,
+    /// or 0 where no statement did. A statement that sets a cell to the tile it already held still
+    /// counts, so this is where the cell was last written, not where it last changed.
+    pub lines: Vec<usize>,
     /// The ground height of each column, or -1 where none has been laid.
     pub h_at: Vec<f64>,
     pub items: Vec<ItemAt>,
@@ -116,6 +130,7 @@ impl World {
             ground,
             tiles: vec!["empty".to_string(); w * h],
             liquid: vec![false; w * h],
+            lines: vec![0; w * h],
             h_at: vec![-1.0; w],
             items: Vec::new(),
             spawns: Vec::new(),
@@ -131,6 +146,8 @@ struct Builder {
     x: f64,
     ground: f64,
     liquid_tile: String,
+    /// The line of the statement being applied, recorded beside what it builds.
+    line: usize,
 }
 
 impl Builder {
@@ -149,6 +166,7 @@ impl Builder {
         let at = self.index(x, y);
         self.world.tiles[at] = tile.to_string();
         self.world.liquid[at] = liquid;
+        self.world.lines[at] = self.line;
     }
 
     fn get(&self, x: f64, y: f64) -> &str {
@@ -272,6 +290,7 @@ impl Builder {
             kind: kind.to_string(),
             x,
             y,
+            line: self.line,
         });
     }
 
@@ -315,8 +334,10 @@ pub fn rasterise(ast: &Ast) -> Option<World> {
         x: 0.0,
         ground,
         liquid_tile: "choc".to_string(),
+        line: 0,
     };
     for n in &ast.nodes {
+        b.line = n.line;
         apply(&mut b, n);
     }
     Some(b.world)
@@ -332,6 +353,7 @@ fn apply(b: &mut Builder, n: &Node) {
             b.world.start = Some(StartAt {
                 x: x.value,
                 y: y.value,
+                line: b.line,
             })
         }
         Body::Walls => {
@@ -462,6 +484,7 @@ fn apply(b: &mut Builder, n: &Node) {
                     y: (at >= 0.0).then_some(at),
                     dir: dir.as_ref().map(|d| d.value),
                     ride: *ride,
+                    line: b.line,
                 });
             }
         }

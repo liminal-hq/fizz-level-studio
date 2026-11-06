@@ -19,10 +19,21 @@
 .editor {
 	flex: 1 1 6rem;
 	min-width: 0;
-	min-height: 0;
+	/* The editor is the panel: in a short dock the problems give way, not the code. */
+	min-height: 5rem;
 	border: 1px solid var(--fls-border-subtle);
 	border-radius: 4px;
 	overflow: hidden;
+}
+
+/* The problems get what the editor leaves, and scroll when it is not enough. */
+.footer {
+	display: flex;
+	flex: 0 1 auto;
+	flex-direction: column;
+	min-height: 0;
+	max-height: 45%;
+	overflow-y: auto;
 }
 
 .none {
@@ -59,15 +70,4 @@
 .link:focus-visible {
 	outline: 2px solid var(--fls-focus-ring);
 	outline-offset: -2px;
-}
-
-.header {
-	display: flex;
-	flex: none;
-	justify-content: flex-end;
-	margin-bottom: 0.4rem;
-}
-
-.tearOff {
-	composes: keycap from '../theme/keycap.module.css';
 }

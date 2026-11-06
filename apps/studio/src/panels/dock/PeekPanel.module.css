@@ -18,21 +18,21 @@
 
 .peek[data-peek='left'] {
 	top: 0;
-	bottom: var(--fls-dock-bottom);
-	left: var(--fls-rail);
+	bottom: calc(var(--fls-dock-bottom) + var(--fls-rail-bottom));
+	left: var(--fls-rail-left);
 	width: var(--fls-peek-size);
 }
 
 .peek[data-peek='right'] {
 	top: 0;
-	right: var(--fls-rail);
-	bottom: var(--fls-dock-bottom);
+	right: var(--fls-rail-right);
+	bottom: calc(var(--fls-dock-bottom) + var(--fls-rail-bottom));
 	width: var(--fls-peek-size);
 }
 
 .peek[data-peek='bottom'] {
 	right: 0;
-	bottom: var(--fls-rail);
+	bottom: var(--fls-rail-bottom);
 	left: 0;
 	height: var(--fls-peek-size);
 }
@@ -60,7 +60,7 @@
 }
 
 .pin {
-	composes: keycap from '../../theme/keycap.module.css';
+	composes: keycap from '@liminal-hq/fizz-studio-chrome/Keycap/keycap.module.css';
 	width: var(--fls-hit-target);
 	height: var(--fls-hit-target);
 	padding: 0;

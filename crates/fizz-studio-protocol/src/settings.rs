@@ -105,6 +105,17 @@ pub struct PanelLayout {
     pub panels: BTreeMap<String, PanelPlacement>,
 }
 
+/// What the window chrome shows. These are view choices of the windows, kept here so every window
+/// and every restart agree on them.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[serde(default)]
+#[ts(export, export_to = "../../../packages/protocol/src/generated/")]
+pub struct UiSettings {
+    /// Whether Main windows show a permanent menu bar under the title bar, carrying the menus. Off
+    /// (the default), the application menu in the title bar carries them and is the primary menu.
+    pub menu_bar: bool,
+}
+
 /// The application settings. Every field has a default, so a file written by an older build (or
 /// edited by hand down to a few lines) still loads.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, TS)]
@@ -118,6 +129,8 @@ pub struct Settings {
     pub glass: GlassMode,
     /// Bigger hit targets and text for the controls.
     pub larger_controls: bool,
+    /// What the window chrome shows.
+    pub ui: UiSettings,
     /// The interface language as a BCP 47 tag.
     pub locale: String,
     /// Paths of the worlds last opened, most recent first, no duplicates, at most
@@ -138,6 +151,7 @@ impl Default for Settings {
             accent: AccentChoice::System,
             glass: GlassMode::System,
             larger_controls: false,
+            ui: UiSettings::default(),
             locale: DEFAULT_LOCALE.to_owned(),
             recent_worlds: Vec::new(),
             layout: BTreeMap::new(),
@@ -164,6 +178,10 @@ pub struct SettingsPatch {
     #[serde(skip_serializing_if = "Option::is_none")]
     #[ts(optional)]
     pub larger_controls: Option<bool>,
+    /// Replaces the chrome choices as a whole.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub ui: Option<UiSettings>,
     #[serde(skip_serializing_if = "Option::is_none")]
     #[ts(optional)]
     pub locale: Option<String>,

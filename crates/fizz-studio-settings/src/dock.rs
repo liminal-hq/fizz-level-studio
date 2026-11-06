@@ -17,8 +17,9 @@ use fizz_studio_protocol::{
 
 use crate::layout::{default_layout, MAIN_KIND};
 
-/// Every panel the editor has, in the order the Panels menu lists them.
-pub const PANEL_IDS: [&str; 5] = ["palette", "objects", "history", "proposals", "script"];
+/// Every panel the editor has, in the order the Panels menu lists them (defined beside the window
+/// labels, which a panel window may carry only for these).
+pub use fizz_studio_protocol::PANEL_IDS;
 
 /// The smallest a left or right zone, and the bottom zone, may be, in pixels.
 pub const SIDE_MIN: i32 = 160;
@@ -79,7 +80,11 @@ fn workspace(zones: Zones) -> Workspace {
             },
         );
     }
-    Workspace { panels, zones }
+    Workspace {
+        panels,
+        zones,
+        tool_picker: None,
+    }
 }
 
 fn base_zones() -> Zones {

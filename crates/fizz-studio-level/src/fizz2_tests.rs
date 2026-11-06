@@ -40,7 +40,11 @@ fn the_slice_opens_as_32_by_48_with_no_diagnostics() {
     assert_eq!((view.width, view.height), (32, 48));
     assert_eq!(view.cells.len(), 32 * 48);
     assert_eq!(view.name, "Lighthouse Point");
-    assert_eq!(view.start.map(|s| (s.x, s.y)), Some((2.0, 2.0)));
+    assert_eq!(
+        view.start.map(|s| (s.x, s.y, s.line)),
+        Some((2.0, 2.0, Some(3)))
+    );
+    assert!(view.markers.is_empty());
     assert_eq!(view.palette[0], "empty");
     assert!(view.items.is_empty() && view.spawns.is_empty());
     assert!(view.diagnostics.is_empty(), "{:?}", view.diagnostics);

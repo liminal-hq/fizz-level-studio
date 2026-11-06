@@ -13,6 +13,7 @@ import {
 	dockBack,
 	dockPanel,
 	floatPanel,
+	maximiseDocked,
 	maximisePanel,
 	peekPanel,
 	pinPanel,
@@ -293,6 +294,84 @@ describe('maximise and level-first', () => {
 			INITIAL_SESSION,
 		);
 		expect(maximisePanel(INITIAL_SESSION, ws, 'nope')).toBe(INITIAL_SESSION);
+	});
+
+	describe('maximiseDocked', () => {
+		const foldedBottom = () => setZoneCollapsed(defaultWorkspace(), 'bottom', true);
+
+		it('unfolds a folded zone, shows the tab and maximises; restore leaves the dock open', () => {
+			const ws = foldedBottom();
+			const moved = maximiseDocked(ws, INITIAL_SESSION, 'proposals');
+			expect(moved.session.maximised).toBe('proposals');
+			expect(moved.workspace.zones.bottom.collapsed).toBe(false);
+			expect(
+				moved.workspace.zones.bottom.groups.find((g) => g.tabs.includes('proposals'))!.active,
+			).toBe('proposals');
+			expect(ws.zones.bottom.collapsed).toBe(true);
+			sound(moved.workspace);
+			const back = restorePanel(moved.session);
+			expect(back.maximised).toBeNull();
+			expect(moved.workspace.zones.bottom.collapsed).toBe(false);
+		});
+
+		it('maximises a peeking panel, pinning it and closing the peek', () => {
+			const ws = foldedBottom();
+			const peeking = peekPanel(INITIAL_SESSION, ws, 'script');
+			expect(peeking.peeking).toBe('script');
+			const moved = maximiseDocked(ws, peeking, 'script');
+			expect(moved.session).toMatchObject({ maximised: 'script', peeking: null });
+			expect(moved.workspace.zones.bottom.collapsed).toBe(false);
+		});
+
+		it('leaves an already showing panel in an open dock untouched', () => {
+			const ws = defaultWorkspace();
+			const moved = maximiseDocked(ws, INITIAL_SESSION, 'script');
+			expect(moved.workspace).toBe(ws);
+			expect(moved.session.maximised).toBe('script');
+		});
+
+		it('makes a background tab the showing one', () => {
+			const ws = defaultWorkspace();
+			const group = ws.zones.bottom.groups.find((g) => g.tabs.includes('proposals'))!;
+			expect(group.active).not.toBe('proposals');
+			const moved = maximiseDocked(ws, INITIAL_SESSION, 'proposals');
+			expect(
+				moved.workspace.zones.bottom.groups.find((g) => g.tabs.includes('proposals'))!.active,
+			).toBe('proposals');
+		});
+
+		it('is idempotent when already maximised', () => {
+			const first = maximiseDocked(foldedBottom(), INITIAL_SESSION, 'script');
+			const again = maximiseDocked(first.workspace, first.session, 'script');
+			expect(again.workspace).toBe(first.workspace);
+			expect(again.session.maximised).toBe('script');
+		});
+
+		it('refuses a panel in a window, an unknown one and a hidden floating one', () => {
+			const ws = defaultWorkspace();
+			const windowed = sendToWindow(ws, 'script');
+			expect(maximiseDocked(windowed, INITIAL_SESSION, 'script')).toEqual({
+				workspace: windowed,
+				session: INITIAL_SESSION,
+			});
+			expect(maximiseDocked(ws, INITIAL_SESSION, 'nope').session).toBe(INITIAL_SESSION);
+			const hidden = setPanelVisible(floatPanel(ws, 'script'), 'script', false);
+			expect(maximiseDocked(hidden, INITIAL_SESSION, 'script').session).toBe(INITIAL_SESSION);
+		});
+
+		it('maximises a visible floating panel without touching the layout', () => {
+			const ws = floatPanel(defaultWorkspace(), 'script');
+			const moved = maximiseDocked(ws, INITIAL_SESSION, 'script');
+			expect(moved.workspace).toBe(ws);
+			expect(moved.session.maximised).toBe('script');
+		});
+
+		it('keeps a hidden docked panel’s tab and maximises it', () => {
+			const ws = setPanelVisible(defaultWorkspace(), 'script', false);
+			const moved = maximiseDocked(ws, INITIAL_SESSION, 'script');
+			expect(moved.session.maximised).toBe('script');
+			sound(moved.workspace);
+		});
 	});
 
 	it('toggles level-first without touching the layout', () => {

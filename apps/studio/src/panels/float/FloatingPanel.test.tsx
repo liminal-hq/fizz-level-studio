@@ -99,6 +99,85 @@ describe('FloatingPanel', () => {
 		expect(onChange).toHaveBeenLastCalledWith({ ...rect, w: 200, h: 120 }, false);
 	});
 
+	const handleOf = (container: HTMLElement, name: string) =>
+		container.querySelector(`[data-resize-handle="${name}"]`) as HTMLElement;
+
+	it.each([
+		// handle, pointer travel, then the rectangle it should give: the opposite edges stay put.
+		['e', 30, 99, { ...rect, w: 330 }],
+		['s', 99, 30, { ...rect, h: 230 }],
+		['w', -30, 99, { x: 70, y: 100, w: 330, h: 200 }],
+		['n', 99, -30, { x: 100, y: 70, w: 300, h: 230 }],
+		['ne', 30, -30, { x: 100, y: 70, w: 330, h: 230 }],
+		['nw', -30, -30, { x: 70, y: 70, w: 330, h: 230 }],
+		['sw', -30, 30, { x: 70, y: 100, w: 330, h: 230 }],
+	] as const)('resizes from the %s handle with a pointer sequence', (name, dx, dy, expected) => {
+		const { onChange, container } = setup();
+		const handle = handleOf(container, name);
+		const mx = dx === 99 ? 0 : dx;
+		const my = dy === 99 ? 0 : dy;
+		fireEvent.pointerDown(handle, { pointerId: 5, clientX: 0, clientY: 0, button: 0 });
+		fireEvent.pointerMove(handle, { pointerId: 5, clientX: mx, clientY: my });
+		expect(onChange).toHaveBeenLastCalledWith(expected, false);
+		fireEvent.pointerUp(handle, { pointerId: 5, clientX: mx, clientY: my });
+		expect(onChange).toHaveBeenLastCalledWith(expected, true);
+	});
+
+	it('holds the right edge when a west drag reaches the minimum size', () => {
+		const { onChange, container } = setup();
+		const handle = handleOf(container, 'w');
+		fireEvent.pointerDown(handle, { pointerId: 5, clientX: 0, clientY: 0, button: 0 });
+		fireEvent.pointerMove(handle, { pointerId: 5, clientX: 900, clientY: 0 });
+		expect(onChange).toHaveBeenLastCalledWith({ x: 200, y: 100, w: 200, h: 200 }, false);
+	});
+
+	it('keeps a north-west drag inside the area', () => {
+		const { onChange, container } = setup();
+		const handle = handleOf(container, 'nw');
+		fireEvent.pointerDown(handle, { pointerId: 5, clientX: 0, clientY: 0, button: 0 });
+		fireEvent.pointerMove(handle, { pointerId: 5, clientX: -900, clientY: -900 });
+		expect(onChange).toHaveBeenLastCalledWith({ x: 0, y: 0, w: 400, h: 300 }, false);
+	});
+
+	it('shows a guide for the moving edge only, and clears it on release', () => {
+		const onGuides = vi.fn();
+		const { container } = setup({ onGuides });
+		const handle = handleOf(container, 'w');
+		fireEvent.pointerDown(handle, { pointerId: 5, clientX: 0, clientY: 0, button: 0 });
+		fireEvent.pointerMove(handle, { pointerId: 5, clientX: -97, clientY: 0 });
+		expect(onGuides).toHaveBeenLastCalledWith([{ axis: 'x', at: 0 }]);
+		fireEvent.pointerUp(handle, { pointerId: 5, clientX: -97, clientY: 0 });
+		expect(onGuides).toHaveBeenLastCalledWith([]);
+	});
+
+	it('puts the panel back when Escape cancels an edge resize', () => {
+		const { onChange, container } = setup();
+		const handle = handleOf(container, 'n');
+		fireEvent.pointerDown(handle, { pointerId: 5, clientX: 0, clientY: 0, button: 0 });
+		fireEvent.pointerMove(handle, { pointerId: 5, clientX: 0, clientY: -40 });
+		fireEvent.keyDown(document, { key: 'Escape' });
+		expect(onChange).toHaveBeenLastCalledWith(rect, true);
+	});
+
+	it('hides the edge handles from the keyboard and assistive technology', () => {
+		const { container } = setup();
+		const handles = container.querySelectorAll('[data-resize-handle]');
+		expect(handles).toHaveLength(7);
+		handles.forEach((h) => {
+			expect(h).toHaveAttribute('aria-hidden', 'true');
+			expect(h).not.toHaveAttribute('tabindex');
+		});
+		expect(screen.getAllByRole('button', { name: 'Resize Demo' })).toHaveLength(1);
+	});
+
+	it('has no resize handles when collapsed or maximised', () => {
+		const first = setup({ collapsed: true });
+		expect(first.container.querySelectorAll('[data-resize-handle]')).toHaveLength(0);
+		first.unmount();
+		const second = setup({ maximised: true });
+		expect(second.container.querySelectorAll('[data-resize-handle]')).toHaveLength(0);
+	});
+
 	it('moves with the arrow keys on its grip, and Shift takes a larger step', async () => {
 		const user = userEvent.setup();
 		const { onChange } = setup();

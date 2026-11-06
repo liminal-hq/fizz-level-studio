@@ -112,6 +112,21 @@ describe('normaliseWorkspace', () => {
 			expect(PANEL_IDS.every((id) => ws.panels[id])).toBe(true);
 		}
 		expect(normaliseWorkspace({}, big)).toEqual(defaultWorkspace());
+		expect(normaliseWorkspace({}, big).tool_picker).toBeNull();
+	});
+
+	it('keeps a usable tool picker place, bounds it, and drops one that is not a place', () => {
+		const ws = defaultWorkspace();
+		expect(normaliseWorkspace({ ...ws, tool_picker: { x: 40, y: 12 } }, big).tool_picker).toEqual({
+			x: 40,
+			y: 12,
+		});
+		expect(
+			normaliseWorkspace({ ...ws, tool_picker: { x: -5, y: 99_999.4 } }, big).tool_picker,
+		).toEqual({ x: 0, y: 20_000 });
+		for (const bad of [7, 'x', [], { x: 'a', y: 1 }, { x: 1 }]) {
+			expect(normaliseWorkspace({ ...ws, tool_picker: bad }, big).tool_picker).toBeNull();
+		}
 	});
 
 	it('removes duplicates, unknown panels and empty groups', () => {

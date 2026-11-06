@@ -15,6 +15,7 @@ import {
 	useRef,
 	useState,
 	type KeyboardEvent,
+	type ReactNode,
 } from 'react';
 import { LevelCanvas } from '../canvas/LevelCanvas';
 import { enMessages, t, type MessageId } from '../i18n/messages';
@@ -22,24 +23,47 @@ import { CommandBridgeContext, NO_FACTS } from '../commands/commandBridge';
 import { FloatingPanel } from '../panels/float/FloatingPanel';
 import { neighboursOf } from '../panels/float/usePanelLayout';
 import { DockShell } from '../panels/dock/DockShell';
-import { isLevelFirstKey } from '../panels/dock/dockKeys';
+import { isLevelFirstKey, isMaximiseKey, isRestoreKey, panelOfNode } from '../panels/dock/dockKeys';
+import { PanelExpandButton } from '../panels/dock/PanelExpandButton';
 import { PanelCommands } from '../panels/dock/PanelCommands';
 import { useDockLayout } from '../panels/dock/useDockLayout';
-import { brushCommandId, panelCommandId, toolCommandId } from '../commands/registry';
-import { PANEL_SPECS, type PanelId } from '../panels/float/panelSpecs';
+import {
+	floatRectAt,
+	locateDropTarget,
+	type DropTarget,
+	type Point,
+} from '../panels/dock/dockDrop';
+import { useDockDrag } from '../panels/dock/useDockDrag';
+import { ZONE_LABELS } from '../panels/dock/DockZone';
+import {
+	brushCommandId,
+	dockBackCommandId,
+	maximiseCommandId,
+	panelCommandId,
+	tearOffCommandId,
+	toolCommandId,
+} from '../commands/registry';
+import { PANEL_SPECS, isExpandable, type PanelId } from '../panels/float/panelSpecs';
 import { PanelsMenu } from '../panels/float/PanelsMenu';
 import { SnapGuides } from '../panels/float/SnapGuides';
 import { useElementSize } from '../panels/float/useElementSize';
 import type { Guide } from '../panels/float/snap';
 import { historyShortcut } from '../panels/HistoryPanel';
-import { usePanelDock } from '../panels/usePanelDock';
+import { TornOffNotice } from '../panels/TornOffNotice';
+import { withAwayTabs } from '../panels/windows/awayTabs';
+import { type EditorShare, type PanelBridge } from '../panels/windows/panelBridge';
+import { useEditorBridgeHost } from '../panels/windows/useEditorBridgeHost';
+import { usePanelWindows } from '../panels/windows/usePanelWindows';
+import { zoneOf } from '../panels/dock/dockModel';
+import { visibleWorkspace } from '../panels/dock/dockView';
 import { dockClient as defaultDockClient, type DockClient } from '../services/dockClient';
 import type { PanelWindowClient } from '../services/panelWindowClient';
 import { BRUSH_GROUPS, brushWords, type Brush } from '../tools/brush';
 import { pasteRect } from '../tools/clip';
 import { SPACING_KEYS, toolForKey } from '../tools/shortcuts';
 import { ToolPalette } from '../tools/ToolPalette';
-import { TOOL_IDS, type Cell, type PointerPhase } from '../tools/tool';
+import { ToolPicker } from '../tools/ToolPicker';
+import { TOOL_IDS, thingAt, type Cell, type PointerPhase, type Thing } from '../tools/tool';
 import { useTool } from '../tools/useTool';
 import { isLevelError, type LevelClient } from '../worlds/levelClient';
 import styles from './EditorScreen.module.css';
@@ -56,6 +80,10 @@ export interface EditorScreenProps {
 	panelWindows?: PanelWindowClient;
 	/** Reads and saves the dock layout; defaults to the settings document. */
 	docks?: DockClient;
+	/** The channel to the panels torn off into their own windows; without one they get no state. */
+	panelBridge?: PanelBridge;
+	/** Controls for the start of the row above the level, before the brush (the main screen's Save and Close level). */
+	toolLead?: ReactNode;
 }
 
 /** Keys typed into these belong to the control, not to the editor's shortcuts. */
@@ -75,6 +103,8 @@ export function EditorScreen({
 	onSnapshot,
 	panelWindows,
 	docks = defaultDockClient,
+	panelBridge,
+	toolLead,
 }: EditorScreenProps) {
 	const [snapshot, setSnapshot] = useState(initial);
 	const held = useRef(initial);
@@ -86,12 +116,14 @@ export function EditorScreen({
 	const cellRequests = useRef(0);
 	const [problem, setProblem] = useState<MessageId | null>(null);
 	const tool = useTool(snapshot.view);
+	// What Inspect selected. It lives here, above the tool, so it outlasts a change of tool, never
+	// touches Select's rectangle, and the canvas, the objects list and the inspector read one value.
+	const [selectedThing, setSelectedThing] = useState<Thing | null>(null);
 	const [words, setWords] = useState<WordDoc[]>([]);
 	const [proposals, setProposals] = useState<GhostProposal[]>([]);
 	const [showGhosts, setShowGhosts] = useState(true);
 	const levelId = snapshot.id;
 	const revision = snapshot.revision;
-	const scriptDock = usePanelDock('script', panelWindows);
 	const areaRef = useRef<HTMLDivElement>(null);
 	const area = useElementSize(areaRef);
 	const windowRef = useRef<HTMLElement>(
@@ -99,7 +131,30 @@ export function EditorScreen({
 	);
 	const windowSize = useElementSize(windowRef);
 	const dock = useDockLayout(docks, windowSize, area);
+	const windows = usePanelWindows(dock, panelWindows);
+	const anyAway = Object.values(windows.away).some(Boolean);
+	// An away panel's tab cannot be made the showing tab in the saved arrangement (the panel is in
+	// no zone), so which away tabs show is kept here; tearing a panel off shows its notice at once.
+	const [shownAway, setShownAway] = useState<string[]>([]);
+	const dockView = useMemo(
+		() => visibleWorkspace(withAwayTabs(dock.workspace, shownAway), dock.session.levelFirst),
+		[dock.workspace, dock.session.levelFirst, shownAway],
+	);
+	const activateTab = (id: string) => {
+		if (windows.away[id as PanelId]) {
+			setShownAway((was) => (was.includes(id) ? was : [...was, id]));
+			return;
+		}
+		const zone = zoneOf(dock.workspace, id);
+		setShownAway((was) => was.filter((away) => dock.workspace.panels[away]?.home !== zone));
+		dock.activate(id);
+	};
+	const tearOffPanel = (id: string) => {
+		setShownAway((was) => (was.includes(id) ? was : [...was, id]));
+		windows.tearOff(id as PanelId);
+	};
 	const [guides, setGuides] = useState<Guide[]>([]);
+	const [dragNote, setDragNote] = useState('');
 	const [reveal, setReveal] = useState<{ cell: Cell; serial: number } | null>(null);
 
 	const follow = useRef(onSnapshot);
@@ -213,13 +268,24 @@ export function EditorScreen({
 		[onCellChosen],
 	);
 
+	// Inspect selects the topmost thing on the pressed cell (null outside the level) and edits nothing.
+	const levelView = snapshot.view;
 	const onToolEvent = useCallback(
 		(phase: PointerPhase, cell: Cell) => {
+			if (tool.tool === 'inspect') {
+				if (phase === 'down') setSelectedThing(thingAt(levelView, cell));
+				return;
+			}
 			const edits = tool.pointer(phase, cell);
 			if (edits.length > 0) sendStroke(edits);
 		},
-		[tool, sendStroke],
+		[tool, sendStroke, levelView],
 	);
+	const inspected = useMemo(
+		() => (selectedThing ? { x: selectedThing.x, y: selectedThing.y } : null),
+		[selectedThing],
+	);
+	const clearInspected = useCallback(() => setSelectedThing(null), []);
 
 	const undo = useCallback(
 		() =>
@@ -250,6 +316,10 @@ export function EditorScreen({
 		setBrush: tool.setBrush,
 		showLine,
 		levelFirst: dock.toggleLevelFirst,
+		maximise: dock.maximise,
+		restore: dock.restore,
+		tearOff: windows.tearOff,
+		dockBack: windows.dockBack,
 	});
 	live.current = {
 		undo,
@@ -260,6 +330,10 @@ export function EditorScreen({
 		setBrush: tool.setBrush,
 		showLine,
 		levelFirst: dock.toggleLevelFirst,
+		maximise: dock.maximise,
+		restore: dock.restore,
+		tearOff: windows.tearOff,
+		dockBack: windows.dockBack,
 	};
 	const panelsShown = dock.shown;
 	const panelsKey = PANEL_SPECS.map((spec) => (panelsShown[spec.id] ? '1' : '0')).join('');
@@ -274,6 +348,12 @@ export function EditorScreen({
 		for (const spec of PANEL_SPECS) {
 			handlers[panelCommandId(spec.id)] = () =>
 				live.current.setVisible(spec.id, !panelsRef.current[spec.id]);
+			handlers[tearOffCommandId(spec.id)] = () => live.current.tearOff(spec.id);
+			handlers[dockBackCommandId(spec.id)] = () => live.current.dockBack(spec.id);
+		}
+		for (const spec of PANEL_SPECS.filter((candidate) => candidate.expandable)) {
+			handlers[maximiseCommandId(spec.id, false)] = () => live.current.maximise(spec.id);
+			handlers[maximiseCommandId(spec.id, true)] = () => live.current.restore();
 		}
 		for (const id of TOOL_IDS) handlers[toolCommandId(id)] = () => live.current.setTool(id);
 		// Go to line shows the Script panel if it is hidden, then reveals the line in it.
@@ -291,7 +371,9 @@ export function EditorScreen({
 				canUndo: false,
 				canRedo: false,
 				levelFirst: false,
+				maximised: null,
 				panels: NO_FACTS.panels,
+				away: NO_FACTS.away,
 				brushes: NO_FACTS.brushes,
 				lineCount: 0,
 			});
@@ -323,7 +405,9 @@ export function EditorScreen({
 			canUndo: snapshot.can_undo,
 			canRedo: snapshot.can_redo,
 			levelFirst: dock.session.levelFirst,
+			maximised: (dock.session.maximised as PanelId | null) ?? null,
 			panels: panelsRef.current,
+			away: windows.away,
 			brushes,
 			lineCount,
 		});
@@ -332,9 +416,11 @@ export function EditorScreen({
 		snapshot.can_undo,
 		snapshot.can_redo,
 		panelsKey,
+		windows.away,
 		brushes,
 		lineCount,
 		dock.session.levelFirst,
+		dock.session.maximised,
 	]);
 
 	// Tab, on the level or on nothing, shows the level only and brings the panels back.
@@ -348,6 +434,43 @@ export function EditorScreen({
 		window.addEventListener('keydown', onKey);
 		return () => window.removeEventListener('keydown', onKey);
 	}, [toggleLevelFirst]);
+
+	// Ctrl+Shift+M maximises the focused expandable panel (else the last one used, else the
+	// Script) or restores the maximised one; Escape restores where it is free.
+	// While a panel is maximised, Tab (level-first) is ignored: maximising wins.
+	const lastPanel = useRef<PanelId>('script');
+	const maximised = dock.session.maximised;
+	const { maximise, restore } = dock;
+	useEffect(() => {
+		const note = (event: Event) => {
+			const id = panelOfNode(event.target instanceof Element ? event.target : null);
+			if (id !== null && isExpandable(id)) lastPanel.current = id as PanelId;
+		};
+		const onKey = (event: globalThis.KeyboardEvent) => {
+			if (isMaximiseKey(event)) {
+				event.preventDefault();
+				if (maximised !== null) {
+					restore();
+					return;
+				}
+				const focused = panelOfNode(
+					document.activeElement instanceof Element ? document.activeElement : null,
+				);
+				maximise(focused !== null && isExpandable(focused) ? focused : lastPanel.current);
+			} else if (maximised !== null && isRestoreKey(event)) {
+				event.preventDefault();
+				restore();
+			}
+		};
+		document.addEventListener('focusin', note);
+		document.addEventListener('pointerdown', note);
+		window.addEventListener('keydown', onKey);
+		return () => {
+			document.removeEventListener('focusin', note);
+			document.removeEventListener('pointerdown', note);
+			window.removeEventListener('keydown', onKey);
+		};
+	}, [maximised, maximise, restore]);
 
 	const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
 		if (isTyping(event.target)) return;
@@ -377,28 +500,103 @@ export function EditorScreen({
 	const noteText =
 		snapshot.banner && snapshot.banner in enMessages ? t(snapshot.banner as MessageId) : null;
 
-	const content = (id: PanelId) =>
-		panelContent(id, {
-			snapshot,
-			words,
-			brush: tool.brush,
-			onBrush: tool.setBrush,
-			onObjectChosen,
-			showLine,
-			undo,
-			redo,
-			proposals,
-			showGhosts,
-			onToggleGhosts: setShowGhosts,
-			onRefreshProposals: () => setReads((n) => n + 1),
-			scriptDock,
-			focusLine,
-			focusSerial,
-		});
 	const titleOf = (id: string) => {
 		const spec = PANEL_SPECS.find((candidate) => candidate.id === id);
 		return spec ? t(spec.title) : id;
 	};
+
+	// Dragging a panel: the docks and the level are the places it can be let go.
+	const dragLive = useRef({ dock, titleOf, area });
+	dragLive.current = { dock, titleOf, area };
+	const drag = useDockDrag({
+		locate: (point: Point, id: string) =>
+			areaRef.current ? locateDropTarget(areaRef.current, point, id) : null,
+		onDrop: (id: string, target: DropTarget, point: Point) => {
+			const { dock: layout, titleOf: nameOf, area: room } = dragLive.current;
+			const title = nameOf(id);
+			if (target.kind === 'zone') {
+				layout.dropOn(id, target.zone, target.group, target.index);
+				setDragNote(t('dock.drag.docked', { title, zone: t(ZONE_LABELS[target.zone]) }));
+				return;
+			}
+			const spec = PANEL_SPECS.find((candidate) => candidate.id === id);
+			const origin = areaRef.current?.getBoundingClientRect();
+			const entry = layout.workspace.panels[id];
+			if (!spec || !origin || !entry) return;
+			layout.floatAt(
+				id,
+				floatRectAt(
+					point,
+					{ x: origin.left, y: origin.top },
+					{ w: entry.float.w, h: entry.float.h },
+					spec.min,
+					room,
+				),
+			);
+			setDragNote(t('dock.drag.floated', { title }));
+		},
+		onCancel: (id: string) =>
+			setDragNote(t('dock.drag.cancelled', { title: dragLive.current.titleOf(id) })),
+	});
+
+	// A panel in a window of its own keeps its tab and its place; its content is the notice.
+	const tabTitleOf = (id: string) =>
+		windows.away[id as PanelId] ? t('panel.awayTitle', { title: titleOf(id) }) : titleOf(id);
+
+	const brushGroup = tool.brush.group;
+	const brushKind = tool.brush.kind;
+	const share = useMemo<EditorShare>(
+		() => ({
+			levelId,
+			tool: tool.tool,
+			brush: { group: brushGroup, kind: brushKind },
+			spacing: tool.spacing,
+			ghostsShown: showGhosts,
+			focus: focusLine === null ? null : { line: focusLine, serial: focusSerial },
+		}),
+		[levelId, tool.tool, brushGroup, brushKind, tool.spacing, showGhosts, focusLine, focusSerial],
+	);
+	useEditorBridgeHost(panelBridge ?? null, share, anyAway, {
+		setTool: tool.setTool,
+		setBrush: tool.setBrush,
+		setSpacing: tool.setSpacing,
+		chooseObject: onObjectChosen,
+		showLine,
+		setGhostsShown: setShowGhosts,
+	});
+
+	// A panel in a window of its own cannot be dragged in the main window; its tab only docks it
+	// elsewhere through the Dock buttons.
+	const dragFromHere = {
+		...drag,
+		begin: (...args: Parameters<typeof drag.begin>) => {
+			if (!windows.away[args[1] as PanelId]) drag.begin(...args);
+		},
+	};
+
+	const content = (id: PanelId) =>
+		windows.away[id] ? (
+			<TornOffNotice title={titleOf(id)} onDockBack={() => windows.dockBack(id)} />
+		) : (
+			panelContent(id, {
+				snapshot,
+				words,
+				brush: tool.brush,
+				onBrush: tool.setBrush,
+				spacing: tool.spacing,
+				onSpacing: tool.setSpacing,
+				onObjectChosen,
+				showLine,
+				undo,
+				redo,
+				proposals,
+				showGhosts,
+				onToggleGhosts: setShowGhosts,
+				onRefreshProposals: () => setReads((n) => n + 1),
+				focusLine,
+				focusSerial,
+			})
+		);
 
 	return (
 		<div
@@ -423,17 +621,21 @@ export function EditorScreen({
 				</p>
 			)}
 			<div className={styles.bar}>
-				<ToolPalette handle={tool} />
+				<ToolPalette handle={tool} lead={toolLead} />
 				<PanelsMenu visible={dock.shown} onToggle={dock.setVisible} onReset={dock.reset} />
 			</div>
 			<div className={styles.body} ref={areaRef}>
 				<DockShell
-					view={dock.view}
+					view={dockView}
 					window={dock.window}
 					session={dock.session}
-					titleOf={titleOf}
+					titleOf={tabTitleOf}
 					renderPanel={(id) => content(id as PanelId)}
-					actions={dock}
+					expandable={(id) => isExpandable(id) && !windows.away[id as PanelId]}
+					maximised={maximised}
+					actions={{ ...dock, activate: activateTab, tearOff: tearOffPanel }}
+					drag={dragFromHere}
+					announcement={dragNote}
 				>
 					<div className={styles.canvas}>
 						<LevelCanvas
@@ -445,14 +647,27 @@ export function EditorScreen({
 							previewShape={tool.tool === 'paint' && tool.brush.group === 'item' ? 'item' : 'cell'}
 							paste={tool.tool === 'stamp' && tool.clip ? pasteRect(tool.clip, cursor) : null}
 							selection={tool.selection}
+							inspected={inspected}
+							onClearInspected={clearInspected}
 							ghosts={ghostCells}
 							reveal={reveal}
 							onCellChosen={onCellChosen}
+							overlay={(map) => (
+								<ToolPicker
+									tool={tool.tool}
+									onTool={tool.setTool}
+									map={map}
+									place={dock.toolPicker}
+									onPlace={dock.placeToolPicker}
+								/>
+							)}
 						/>
 					</div>
 				</DockShell>
 				{PANEL_SPECS.map((spec) => {
-					const view = dock.floating[spec.id];
+					const floating = dock.floating[spec.id];
+					// A panel torn off never floats here: it is a tab in its home dock until it is back.
+					const view = floating;
 					if (!view.visible) return null;
 					return (
 						<FloatingPanel
@@ -467,16 +682,34 @@ export function EditorScreen({
 							area={area}
 							neighbours={neighboursOf(spec.id, dock.floating)}
 							onGuides={setGuides}
+							onDockHover={(point) => drag.hoverFloat(spec.id, point)}
+							onDockDrop={(point) => drag.dropFloat(spec.id, point)}
 							onChange={(rect) => dock.changeFloat(spec.id, rect)}
 							onToggleCollapsed={() => dock.toggleFloatCollapsed(spec.id)}
 							onRaise={() => dock.raise(spec.id)}
+							maximised={maximised === spec.id}
+							suppressed={maximised !== null && maximised !== spec.id}
 							actions={
-								<PanelCommands
-									title={t(spec.title)}
-									at="float"
-									onDock={(zone) => dock.dockTo(spec.id, zone)}
-									onFloat={() => {}}
-								/>
+								maximised === spec.id ? (
+									<PanelExpandButton title={t(spec.title)} expanded onToggle={dock.restore} />
+								) : (
+									<>
+										{spec.expandable && !view.collapsed && !windows.away[spec.id] && (
+											<PanelExpandButton
+												title={t(spec.title)}
+												expanded={false}
+												onToggle={() => dock.maximise(spec.id)}
+											/>
+										)}
+										<PanelCommands
+											title={t(spec.title)}
+											at="float"
+											onDock={(zone) => dock.dockTo(spec.id, zone)}
+											onFloat={() => {}}
+											onTearOff={() => tearOffPanel(spec.id)}
+										/>
+									</>
+								)
 							}
 						>
 							{content(spec.id)}

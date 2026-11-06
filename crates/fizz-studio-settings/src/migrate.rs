@@ -34,7 +34,45 @@ pub const MIGRATIONS: &[Migration] = &[
         from: 3,
         apply: add_dock,
     },
+    Migration {
+        from: 4,
+        apply: add_ui,
+    },
+    Migration {
+        from: 5,
+        apply: add_tool_picker,
+    },
 ];
+
+/// Version 6 gives each workspace the place of the floating tool picker, unset (the map's top-left
+/// corner). A workspace that already has one keeps it.
+fn add_tool_picker(mut settings: Value) -> Result<Value, String> {
+    let Some(workspaces) = settings
+        .get_mut("dock")
+        .and_then(|dock| dock.get_mut("workspaces"))
+        .and_then(Value::as_object_mut)
+    else {
+        return Ok(settings);
+    };
+    for workspace in workspaces.values_mut() {
+        if let Some(object) = workspace.as_object_mut() {
+            object.entry("tool_picker").or_insert(Value::Null);
+        }
+    }
+    Ok(settings)
+}
+
+/// Version 5 adds the chrome choices (`ui`), the menu bar among them, off. A file that already has
+/// them keeps them.
+fn add_ui(mut settings: Value) -> Result<Value, String> {
+    let object = settings
+        .as_object_mut()
+        .ok_or("settings is not an object")?;
+    object
+        .entry("ui")
+        .or_insert_with(|| json!({ "menu_bar": false }));
+    Ok(settings)
+}
 
 /// Version 4 adds the dock: named workspaces of docked, floating and torn-off panels.
 ///

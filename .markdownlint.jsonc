@@ -5,6 +5,9 @@
 	"MD013": false,
 	// Prettier indents code blocks with tabs, matching the repository's editorconfig.
 	"MD010": { "code_blocks": false },
+	// Prettier lays out the tables (it is run on Markdown, see `format`), and it measures some wide
+	// characters differently, so the aligned-table rule would only ever disagree with it.
+	"MD060": false,
 	// The README opens with a centred hero banner and badge row, which need inline HTML.
 	"MD033": { "allowed_elements": ["p", "a", "img"] },
 }

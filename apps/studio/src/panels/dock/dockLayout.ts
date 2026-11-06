@@ -192,6 +192,23 @@ export function sendToWindow(workspace: Workspace, id: string, at?: WindowPlacem
 	return next;
 }
 
+/**
+ * Records where a panel's own window is, whatever the panel's place: a window that moves while it
+ * closes reports after the panel has come back, and the record is kept for the next time it is torn
+ * off. The place itself is not touched.
+ */
+export function placeWindow(workspace: Workspace, id: string, at: WindowPlacement): Workspace {
+	const entry = entryOf(workspace, id);
+	if (!entry) return workspace;
+	const was = entry.window;
+	if (was && was.x === at.x && was.y === at.y && was.w === at.w && was.h === at.h) {
+		return workspace;
+	}
+	const next = structuredClone(workspace);
+	next.panels[id]!.window = { ...at };
+	return next;
+}
+
 /** Brings a panel in its own window back to where it was before: its zone, or floating. */
 export function bringBack(workspace: Workspace, id: string): Workspace {
 	const entry = entryOf(workspace, id);
@@ -257,6 +274,31 @@ export function maximisePanel(session: DockSession, workspace: Workspace, id: st
 	const entry = entryOf(workspace, id);
 	if (!entry || entry.place === 'window') return session;
 	return { ...session, maximised: id, peeking: null };
+}
+
+/**
+ * Maximises a panel wherever it is shown or reachable. A docked panel is made the showing tab and
+ * its zone is unfolded first, so a panel in a folded dock (or peeking from its rail) can fill the
+ * workspace; the dock is left open when it is restored. A panel in a window, an unknown one and a
+ * hidden floating one are refused, and the input is returned unchanged.
+ */
+export function maximiseDocked(
+	workspace: Workspace,
+	session: DockSession,
+	id: string,
+): { workspace: Workspace; session: DockSession } {
+	const entry = entryOf(workspace, id);
+	if (!entry || entry.place === 'window') return { workspace, session };
+	if (entry.place === 'floating' && !entry.float.visible) return { workspace, session };
+	const zone = zoneOf(workspace, id);
+	// Nothing is rewritten when the panel already shows in an open dock, so no save follows.
+	const showing =
+		zone !== null &&
+		!workspace.zones[zone].collapsed &&
+		workspace.zones[zone].groups.some((g) => g.tabs.includes(id) && g.active === id);
+	const ready =
+		zone && !showing ? setZoneCollapsed(activateTab(workspace, id), zone, false) : workspace;
+	return { workspace: ready, session: maximisePanel(session, ready, id) };
 }
 
 export function restorePanel(session: DockSession): DockSession {

@@ -63,11 +63,79 @@ export function moveRect(
 	return clampRect({ ...start, x: start.x + dx, y: start.y + dy }, min, area, collapsed);
 }
 
+/** The edge or corner a resize drag holds: letters name the edges that move with the pointer. */
+export type ResizeHandle = 'n' | 's' | 'e' | 'w' | 'ne' | 'nw' | 'se' | 'sw';
+
+export const RESIZE_HANDLES: readonly ResizeHandle[] = ['n', 's', 'e', 'w', 'ne', 'nw', 'se', 'sw'];
+
+/** Moves one axis' edges: `from` and `to` are the near and far edges, one of them following `delta`. */
+function resizeAxis(
+	from: number,
+	to: number,
+	delta: number,
+	moves: 'from' | 'to' | null,
+	min: number,
+	length: number,
+): [number, number] {
+	if (moves === 'to') {
+		// The far edge stops at the minimum size and at the area; the near edge stays put.
+		const lower = from + min;
+		return [from, Math.max(lower, Math.min(to + delta, Math.max(length, lower)))];
+	}
+	if (moves === 'from') {
+		// The near edge stops at the area and at the minimum size; the far edge stays put.
+		const upper = Math.max(0, to - min);
+		const next = Math.max(0, Math.min(from + delta, upper));
+		// A far edge too close to the origin for the minimum size is pushed out, never a negative size.
+		return [next, Math.max(to, next + min)];
+	}
+	return [from, to];
+}
+
+/**
+ * `start` with the edges `handle` names moved by a pointer's travel. The opposite edges stay where
+ * they are: the minimum size and the area stop the moving edges, never slide the panel. West and
+ * north moves change the position as well as the size.
+ */
+export function resizeRectFrom(
+	start: Rect,
+	handle: ResizeHandle,
+	dx: number,
+	dy: number,
+	min: Size,
+	area: Size,
+): Rect {
+	const [left, right] = resizeAxis(
+		start.x,
+		start.x + start.w,
+		dx,
+		handle.includes('w') ? 'from' : handle.includes('e') ? 'to' : null,
+		min.w,
+		area.w,
+	);
+	const [top, bottom] = resizeAxis(
+		start.y,
+		start.y + start.h,
+		dy,
+		handle.includes('n') ? 'from' : handle.includes('s') ? 'to' : null,
+		min.h,
+		area.h,
+	);
+	return clampRect(
+		{
+			x: Math.round(left),
+			y: Math.round(top),
+			w: Math.round(right - left),
+			h: Math.round(bottom - top),
+		},
+		min,
+		area,
+	);
+}
+
 /** `start` with its bottom-right corner moved by a pointer's travel, down to the minimum size. */
 export function resizeRect(start: Rect, dx: number, dy: number, min: Size, area: Size): Rect {
-	const w = Math.max(min.w, Math.min(start.w + dx, area.w - start.x));
-	const h = Math.max(min.h, Math.min(start.h + dy, area.h - start.y));
-	return clampRect({ x: start.x, y: start.y, w, h }, min, area);
+	return resizeRectFrom(start, 'se', dx, dy, min, area);
 }
 
 export interface KeyDelta {

@@ -8,17 +8,17 @@ In Fizz 2 a world is a set of levels that load together from one pack: `docs/FAP
 
 A world project holds:
 
-| Part | What it is | Lands in the world pack as |
-| --- | --- | --- |
-| Levels | `script fizz2 N` level files, each with its map, objects, states, rules, lights and strings | One `LEVL` section each (version 2, F10) |
-| Overworld | The world's map, if the target has one (Fizz 2 has none today; `OVERWORLD.md` section 10) | To be decided with the overworld (Q22) |
-| Enemy and item definitions | Custom enemies and items: sprite, hitbox, stats, behaviours, reactions and effects ([SCRIPTING.md](SCRIPTING.md)) | A definitions section (`DEFS`, F16) and a bytecode section (`BHVR`, F17) |
-| States | Shared state definitions a level can reuse (names, value sets, start values) | Copied into each level's state table at bake; world-scoped states are open (Q27) |
-| Sounds | The world's sound library: the effects its rules and objects may raise, by name | A world sound section (F18) |
-| Strings | Shared floating words and captions, beside each level's own | Copied into each level's string table at bake |
-| Sprites | The world's sprite sets (Fizz 2's JSON grid format), including the retro art set when imported | `SPRT` (F7) |
-| Parallax panels | Bitmap background panels with their scroll settings | `BDRP` (F19) |
-| Theme | The world's default theme: back-wall material, panel stack, night ambient | The theme format (F3) |
+| Part                       | What it is                                                                                                        | Lands in the world pack as                                                       |
+| -------------------------- | ----------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| Levels                     | `script fizz2 N` level files, each with its map, objects, states, rules, lights and strings                       | One `LEVL` section each (version 2, F10)                                         |
+| Overworld                  | The world's map, if the target has one (Fizz 2 has none today; `OVERWORLD.md` section 10)                         | To be decided with the overworld (Q22)                                           |
+| Enemy and item definitions | Custom enemies and items: sprite, hitbox, stats, behaviours, reactions and effects ([SCRIPTING.md](SCRIPTING.md)) | A definitions section (`DEFS`, F16) and a bytecode section (`BHVR`, F17)         |
+| States                     | Shared state definitions a level can reuse (names, value sets, start values)                                      | Copied into each level's state table at bake; world-scoped states are open (Q27) |
+| Sounds                     | The world's sound library: the effects its rules and objects may raise, by name                                   | A world sound section (F18)                                                      |
+| Strings                    | Shared floating words and captions, beside each level's own                                                       | Copied into each level's string table at bake                                    |
+| Sprites                    | The world's sprite sets (Fizz 2's JSON grid format), including the retro art set when imported                    | `SPRT` (F7)                                                                      |
+| Parallax panels            | Bitmap background panels with their scroll settings                                                               | `BDRP` (F19)                                                                     |
+| Theme                      | The world's default theme: back-wall material, panel stack, night ambient                                         | The theme format (F3)                                                            |
 
 Things that are not in the world pack: Ben's own sprites and the HUD (in `SHARED.FAP`), music (the `MUSIC.*` files and the `MUSC` table), saves and settings.
 

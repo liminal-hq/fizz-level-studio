@@ -17,6 +17,9 @@ pub struct ViewItem {
     pub kind: String,
     pub x: f64,
     pub y: f64,
+    /// The script line, counted from 1, of the statement that placed it; `None` where the view
+    /// cannot tell.
+    pub line: Option<u32>,
 }
 
 /// An enemy or object spawn. `y` is `None` where the line gave none and no ground lies under it.
@@ -28,6 +31,8 @@ pub struct ViewSpawn {
     pub y: Option<f64>,
     pub dir: Option<f64>,
     pub ride: bool,
+    /// The script line, counted from 1, of the `spawn` statement; `None` where the view cannot tell.
+    pub line: Option<u32>,
 }
 
 /// Where Ben starts, in tiles.
@@ -36,6 +41,24 @@ pub struct ViewSpawn {
 pub struct ViewStart {
     pub x: f64,
     pub y: f64,
+    /// The script line, counted from 1, of the `start` statement that holds; `None` where the view
+    /// cannot tell.
+    pub line: Option<u32>,
+}
+
+/// A tile that is a thing in its own right, an exit or a door, as one column of like cells: `x`
+/// and `y` are its bottom cell and `height` counts the cells upward.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS)]
+#[ts(export, export_to = "../../../packages/protocol/src/generated/")]
+pub struct ViewMarker {
+    /// The tile word, such as `exit` or `red-door`.
+    pub kind: String,
+    pub x: f64,
+    pub y: f64,
+    pub height: u32,
+    /// The script line, counted from 1, of the statement that last set these cells; `None` where
+    /// the view cannot tell.
+    pub line: Option<u32>,
 }
 
 /// A problem in the script, on a line counted from 1. Fizz 1 errors carry a line and no column.
@@ -62,6 +85,8 @@ pub struct LevelView {
     pub items: Vec<ViewItem>,
     pub spawns: Vec<ViewSpawn>,
     pub start: Option<ViewStart>,
+    /// The exits and doors, in column order and then from the bottom up.
+    pub markers: Vec<ViewMarker>,
     pub diagnostics: Vec<ViewDiagnostic>,
 }
 

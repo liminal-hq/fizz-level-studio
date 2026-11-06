@@ -1,12 +1,14 @@
-// Tests for the dock shell: the zones around the level, their tabs and the buttons in their headers
+// Tests for the dock shell: the zones around the level, their rails and the buttons in their headers
 //
 // (c) Copyright 2026 Liminal HQ, Scott Morris
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
-import { act, fireEvent, render, screen, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react';
+import { useState } from 'react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
-import { DockShell, type DockActions } from './DockShell';
+import { PEEK_DELAY_MS } from './DockRail';
+import { DockShell, PEEK_LEAVE_MS, type DockActions } from './DockShell';
 import { INITIAL_SESSION, setPanelVisible, setZoneCollapsed, type DockSession } from './dockLayout';
 import { defaultWorkspace } from './dockModel';
 import { visibleWorkspace } from './dockView';
@@ -30,6 +32,9 @@ function actions(): DockActions {
 		pin: vi.fn(),
 		resizeZone: vi.fn(),
 		resetZoneSize: vi.fn(),
+		reorder: vi.fn(),
+		maximise: vi.fn(),
+		restore: vi.fn(),
 	};
 }
 
@@ -53,6 +58,10 @@ function mount(
 	return a;
 }
 
+function shellOf(): HTMLElement {
+	return screen.getByTestId('level').parentElement!.parentElement!;
+}
+
 describe('DockShell', () => {
 	it('draws the three docks around the level', () => {
 		mount();
@@ -62,27 +71,15 @@ describe('DockShell', () => {
 		expect(screen.getByTestId('level')).toBeInTheDocument();
 	});
 
-	it('shows only the showing tab of each group, with its tab strip', () => {
+	it('names the showing panel once in its header, with no tab strip', () => {
 		mount();
 		const right = screen.getByRole('region', { name: 'Right dock' });
 		expect(within(right).getByText('content of objects')).toBeInTheDocument();
 		expect(within(right).queryByText('content of history')).toBeNull();
-		const tabs = within(right).getAllByRole('tab');
-		expect(tabs.map((tab) => tab.textContent)).toEqual(['Objects', 'History']);
-		expect(tabs[0]).toHaveAttribute('aria-selected', 'true');
-		expect(within(right).getByRole('tabpanel')).toHaveAccessibleName('Objects');
-	});
-
-	it('asks to show a tab when it is chosen, by click and by arrow key', async () => {
-		const user = userEvent.setup();
-		const a = mount();
-		await user.click(screen.getByRole('tab', { name: 'History' }));
-		expect(a.activate).toHaveBeenCalledWith('history');
-		screen.getByRole('tab', { name: 'Objects' }).focus();
-		await user.keyboard('{ArrowRight}');
-		expect(a.activate).toHaveBeenLastCalledWith('history');
-		await user.keyboard('{ArrowLeft}');
-		expect(a.activate).toHaveBeenLastCalledWith('history');
+		expect(screen.queryAllByRole('tab')).toEqual([]);
+		expect(within(right).getByRole('heading', { name: 'Objects' })).toBeInTheDocument();
+		expect(within(right).queryByText('History')).toBeNull();
+		expect(within(right).queryByRole('region', { name: 'Objects' })).toBeNull();
 	});
 
 	it('moves the showing panel with the header buttons', async () => {
@@ -98,28 +95,119 @@ describe('DockShell', () => {
 		expect(within(left).queryByRole('button', { name: 'Dock Palette left' })).toBeNull();
 	});
 
-	it('names the showing panel in the buttons of a group with several tabs', () => {
+	it('names the showing panel in the buttons of a group with several panels', () => {
 		mount();
 		const bottom = screen.getByRole('region', { name: 'Bottom dock' });
 		expect(within(bottom).getByRole('button', { name: 'Float Script' })).toBeInTheDocument();
 	});
 
-	it('takes no room for a dock with nothing showing, and leaves the level that room', () => {
+	it('takes no room for a dock with nothing showing, not even a rail', () => {
 		const ws = setPanelVisible(defaultWorkspace(), 'palette', false);
 		mount(visibleWorkspace(ws));
 		expect(screen.queryByRole('region', { name: 'Left dock' })).toBeNull();
-		const shell = screen.getByTestId('level').parentElement!.parentElement!;
+		expect(screen.queryByRole('group', { name: 'Left rail' })).toBeNull();
+		const shell = shellOf();
 		expect(shell.style.getPropertyValue('--fls-dock-left')).toBe('0px');
+		expect(shell.style.getPropertyValue('--fls-rail-left')).toBe('0px');
 	});
 
 	it('sizes the docks from the model, held to their caps', () => {
 		const ws = defaultWorkspace();
 		ws.zones.right.size = 5000;
 		mount(visibleWorkspace(ws));
-		const shell = screen.getByTestId('level').parentElement!.parentElement!;
+		const shell = shellOf();
 		expect(shell.style.getPropertyValue('--fls-dock-right')).toBe('432px');
 		expect(shell.style.getPropertyValue('--fls-dock-left')).toBe('196px');
 		expect(shell.style.getPropertyValue('--fls-dock-bottom')).toBe('180px');
+	});
+});
+
+describe('the rails', () => {
+	const rail = (name: string) => screen.getByRole('group', { name });
+
+	it('draws a rail on the left, the right and the bottom while the docks are open', () => {
+		mount();
+		for (const name of ['Left rail', 'Right rail', 'Bottom rail']) {
+			expect(rail(name)).toBeInTheDocument();
+		}
+		const shell = shellOf();
+		for (const zone of ['left', 'right', 'bottom']) {
+			expect(shell.style.getPropertyValue(`--fls-rail-${zone}`)).toBe('36px');
+		}
+	});
+
+	it('lists every panel of the zone by its title, with its icon', () => {
+		mount();
+		const right = within(rail('Right rail')).getAllByRole('button');
+		expect(right.map((b) => b.textContent)).toEqual(['Objects', 'History']);
+		expect(right.map((b) => b.getAttribute('title'))).toEqual(['Objects', 'History']);
+		expect(within(rail('Left rail')).getByRole('button', { name: 'Palette' })).toBeInTheDocument();
+		const bottom = within(rail('Bottom rail')).getAllByRole('button');
+		expect(bottom.map((b) => b.textContent)).toEqual(['Script', 'Proposals']);
+		expect(rail('Right rail').querySelectorAll('svg').length).toBe(2);
+	});
+
+	it('marks the showing panel of an open dock pressed, and the others not', () => {
+		mount();
+		const right = rail('Right rail');
+		expect(within(right).getByRole('button', { name: 'Objects' })).toHaveAttribute(
+			'aria-pressed',
+			'true',
+		);
+		expect(within(right).getByRole('button', { name: 'History' })).toHaveAttribute(
+			'aria-pressed',
+			'false',
+		);
+	});
+
+	it('follows the showing panel when another is active', () => {
+		const ws = defaultWorkspace();
+		ws.zones.right.groups[0]!.active = 'history';
+		mount(visibleWorkspace(ws));
+		expect(
+			within(rail('Right rail')).getByRole('button', { name: 'History', pressed: true }),
+		).toBeInTheDocument();
+		const right = screen.getByRole('region', { name: 'Right dock' });
+		expect(within(right).getByRole('heading', { name: 'History' })).toBeInTheDocument();
+	});
+
+	it('shows a panel that is not showing when its entry is clicked, and leaves the dock open', async () => {
+		const user = userEvent.setup();
+		const a = mount();
+		await user.click(within(rail('Right rail')).getByRole('button', { name: 'History' }));
+		expect(a.activate).toHaveBeenCalledWith('history');
+		expect(a.toggleZone).not.toHaveBeenCalled();
+	});
+
+	it('folds the dock when the showing panel’s entry is clicked', async () => {
+		const user = userEvent.setup();
+		const a = mount();
+		await user.click(within(rail('Left rail')).getByRole('button', { name: 'Palette' }));
+		expect(a.toggleZone).toHaveBeenCalledWith('left');
+		expect(a.activate).not.toHaveBeenCalled();
+		await user.click(within(rail('Bottom rail')).getByRole('button', { name: 'Script' }));
+		expect(a.toggleZone).toHaveBeenLastCalledWith('bottom');
+	});
+
+	it('moves along a side rail with the up and down keys, and the bottom one with left and right', async () => {
+		const user = userEvent.setup();
+		mount();
+		within(rail('Right rail')).getByRole('button', { name: 'Objects' }).focus();
+		await user.keyboard('{ArrowDown}');
+		expect(screen.getByRole('button', { name: 'History' })).toHaveFocus();
+		await user.keyboard('{ArrowDown}');
+		expect(screen.getByRole('button', { name: 'Objects' })).toHaveFocus();
+		within(rail('Bottom rail')).getByRole('button', { name: 'Script' }).focus();
+		await user.keyboard('{ArrowRight}');
+		expect(screen.getByRole('button', { name: 'Proposals' })).toHaveFocus();
+		await user.keyboard('{Home}');
+		expect(screen.getByRole('button', { name: 'Script' })).toHaveFocus();
+	});
+
+	it('has no unfold button while the dock is open', () => {
+		mount();
+		expect(screen.queryByRole('button', { name: 'Unfold the left dock' })).toBeNull();
+		expect(screen.getByRole('button', { name: 'Fold the left dock' })).toBeInTheDocument();
 	});
 });
 
@@ -130,7 +218,17 @@ describe('folded docks', () => {
 		return visibleWorkspace(ws);
 	};
 
-	it('shows a rail of buttons with each panel’s title, and no tabs', () => {
+	/** Runs `body` with fake timers, putting the real ones back however it ends. */
+	const withFakeTimers = (body: () => void) => {
+		vi.useFakeTimers();
+		try {
+			body();
+		} finally {
+			vi.useRealTimers();
+		}
+	};
+
+	it('keeps the rail with an unfold button, and takes the dock away', () => {
 		mount(folded());
 		const rail = screen.getByRole('group', { name: 'Right rail' });
 		const items = within(rail).getAllByRole('button');
@@ -138,43 +236,121 @@ describe('folded docks', () => {
 		expect(within(rail).getByRole('button', { name: 'Unfold the right dock' })).toBeInTheDocument();
 		expect(screen.queryByRole('region', { name: 'Right dock' })).toBeNull();
 		expect(rail.querySelectorAll('svg').length).toBeGreaterThanOrEqual(3);
+		expect(within(rail).getByRole('button', { name: 'Objects' })).toHaveAttribute(
+			'aria-pressed',
+			'false',
+		);
 	});
 
 	it('gives the rail the rail’s room, and the level the rest', () => {
 		mount(folded());
-		const shell = screen.getByTestId('level').parentElement!.parentElement!;
-		expect(shell.style.getPropertyValue('--fls-dock-left')).toBe('36px');
-		expect(shell.style.getPropertyValue('--fls-dock-right')).toBe('36px');
+		const shell = shellOf();
+		expect(shell.style.getPropertyValue('--fls-dock-left')).toBe('0px');
+		expect(shell.style.getPropertyValue('--fls-rail-left')).toBe('36px');
+		expect(shell.style.getPropertyValue('--fls-dock-right')).toBe('0px');
+		expect(shell.style.getPropertyValue('--fls-rail-right')).toBe('36px');
 	});
 
-	it('peeks a panel from its rail button and closes it from the same button', async () => {
+	it('opens the dock on a panel when its entry is clicked', async () => {
 		const user = userEvent.setup();
 		const a = mount(folded());
 		await user.click(screen.getByRole('button', { name: 'History' }));
-		expect(a.peek).toHaveBeenCalledWith('history');
+		expect(a.activate).toHaveBeenCalledWith('history');
+		expect(a.toggleZone).toHaveBeenCalledWith('right');
+		expect(a.peek).not.toHaveBeenCalled();
 	});
 
-	it('marks the peeking button expanded and shows the panel with a pin', async () => {
+	it('peeks a panel when the pointer rests on its entry', () =>
+		withFakeTimers(() => {
+			const a = mount(folded());
+			fireEvent.pointerEnter(screen.getByRole('button', { name: 'History' }));
+			act(() => vi.advanceTimersByTime(PEEK_DELAY_MS - 50));
+			expect(a.peek).not.toHaveBeenCalled();
+			act(() => vi.advanceTimersByTime(100));
+			expect(a.peek).toHaveBeenCalledWith('history');
+		}));
+
+	it('does not peek when the pointer only passes over an entry', () =>
+		withFakeTimers(() => {
+			const a = mount(folded());
+			const history = screen.getByRole('button', { name: 'History' });
+			fireEvent.pointerEnter(history);
+			fireEvent.pointerLeave(history);
+			act(() => vi.advanceTimersByTime(PEEK_DELAY_MS * 2));
+			expect(a.peek).not.toHaveBeenCalled();
+		}));
+
+	it('does not peek from an open dock’s rail', () =>
+		withFakeTimers(() => {
+			const a = mount();
+			fireEvent.pointerEnter(screen.getByRole('button', { name: 'History' }));
+			act(() => vi.advanceTimersByTime(PEEK_DELAY_MS * 2));
+			expect(a.peek).not.toHaveBeenCalled();
+		}));
+
+	it('peeks with the arrow key that points into the level', async () => {
+		const user = userEvent.setup();
+		const a = mount(folded());
+		screen.getByRole('button', { name: 'History' }).focus();
+		await user.keyboard('{ArrowLeft}');
+		expect(a.peek).toHaveBeenCalledWith('history');
+		screen.getByRole('button', { name: 'Palette' }).focus();
+		await user.keyboard('{ArrowRight}');
+		expect(a.peek).toHaveBeenLastCalledWith('palette');
+	});
+
+	it('closes a peek the pointer opened once the pointer has left the rail', () =>
+		withFakeTimers(() => {
+			const a = mount(folded());
+			const history = screen.getByRole('button', { name: 'History' });
+			fireEvent.pointerEnter(history);
+			act(() => vi.advanceTimersByTime(PEEK_DELAY_MS));
+			expect(a.peek).toHaveBeenCalledWith('history');
+			fireEvent.pointerLeave(history.closest('[data-rail-slot]')!);
+			act(() => vi.advanceTimersByTime(PEEK_LEAVE_MS + 10));
+			expect(a.closePeek).toHaveBeenCalledTimes(1);
+		}));
+
+	it('marks the peeking entry and shows the panel with a pin', async () => {
 		const user = userEvent.setup();
 		const a = mount(folded(), actions(), { ...INITIAL_SESSION, peeking: 'history' });
 		const rail = screen.getByRole('group', { name: 'Right rail' });
-		expect(within(rail).getByRole('button', { name: 'History' })).toHaveAttribute(
-			'aria-expanded',
-			'true',
-		);
-		expect(within(rail).getByRole('button', { name: 'Objects' })).toHaveAttribute(
-			'aria-expanded',
-			'false',
+		expect(within(rail).getByRole('button', { name: 'History' })).toHaveAttribute('data-peeking');
+		expect(within(rail).getByRole('button', { name: 'Objects' })).not.toHaveAttribute(
+			'data-peeking',
 		);
 		const peek = screen.getByRole('region', { name: 'History, peeking' });
 		expect(within(peek).getByText('content of history')).toBeInTheDocument();
 		await user.click(within(peek).getByRole('button', { name: 'Pin History' }));
 		expect(a.pin).toHaveBeenCalledWith('history');
-		await user.click(within(rail).getByRole('button', { name: 'History' }));
-		expect(a.closePeek).toHaveBeenCalled();
 	});
 
-	it('closes a peek on Escape and returns focus to its rail button', async () => {
+	it('offers Maximise in the peek header for an expandable panel only', async () => {
+		const user = userEvent.setup();
+		const a = mount(folded(), actions(), { ...INITIAL_SESSION, peeking: 'history' });
+		const peek = screen.getByRole('region', { name: 'History, peeking' });
+		expect(within(peek).queryByRole('button', { name: /^Maximise/ })).toBeNull();
+		cleanup();
+		const b = actions();
+		render(
+			<DockShell
+				view={folded()}
+				window={{ w: 1440, h: 900 }}
+				session={{ ...INITIAL_SESSION, peeking: 'history' }}
+				titleOf={(id) => titles[id]!}
+				renderPanel={(id) => <p>{`content of ${id}`}</p>}
+				expandable={(id) => id === 'history'}
+				actions={b}
+			>
+				<div data-testid="level" />
+			</DockShell>,
+		);
+		await user.click(screen.getByRole('button', { name: 'Maximise History' }));
+		expect(b.maximise).toHaveBeenCalledWith('history');
+		expect(a.maximise).not.toHaveBeenCalled();
+	});
+
+	it('closes a peek on Escape and returns focus to its rail entry', async () => {
 		const user = userEvent.setup();
 		const a = mount(folded(), actions(), { ...INITIAL_SESSION, peeking: 'history' });
 		const peek = screen.getByRole('region', { name: 'History, peeking' });
@@ -194,7 +370,7 @@ describe('folded docks', () => {
 		expect(a.closePeek).toHaveBeenCalledTimes(1);
 	});
 
-	it('folds an open dock from its header and unfolds a rail', async () => {
+	it('folds an open dock from its header', async () => {
 		const user = userEvent.setup();
 		const a = mount();
 		await user.click(screen.getByRole('button', { name: 'Fold the left dock' }));
@@ -208,9 +384,19 @@ describe('folded docks', () => {
 		expect(a.toggleZone).toHaveBeenCalledWith('left');
 	});
 
-	it('leaves the rails in place but not usable while the level comes first', () => {
-		mount(folded(), actions(), { ...INITIAL_SESSION, levelFirst: true });
+	it('keeps every rail in level-first, folded and not usable until it ends', () => {
+		mount(visibleWorkspace(defaultWorkspace(), true), actions(), {
+			...INITIAL_SESSION,
+			levelFirst: true,
+		});
+		for (const name of ['Left dock', 'Right dock', 'Bottom dock']) {
+			expect(screen.queryByRole('region', { name })).toBeNull();
+		}
+		for (const name of ['Left rail', 'Right rail', 'Bottom rail']) {
+			expect(screen.getByRole('group', { name })).toBeInTheDocument();
+		}
 		expect(screen.getByRole('button', { name: 'Objects' })).toBeDisabled();
+		expect(screen.getByRole('button', { name: 'Unfold the left dock' })).toBeDisabled();
 	});
 });
 
@@ -308,5 +494,76 @@ describe('resizing a dock', () => {
 		expect(screen.getByText('196 px')).toBeInTheDocument();
 		act(() => handle('Resize the left dock').blur());
 		expect(screen.queryByText('196 px')).toBeNull();
+	});
+});
+
+describe('a maximised panel', () => {
+	function Counter({ id }: { id: string }) {
+		const [n, setN] = useState(0);
+		return (
+			<button data-counter={id} onClick={() => setN(n + 1)}>
+				{`count ${n}`}
+			</button>
+		);
+	}
+
+	const shell = (maximised: string | null) => (
+		<DockShell
+			view={visibleWorkspace(defaultWorkspace())}
+			window={{ w: 1440, h: 900 }}
+			session={INITIAL_SESSION}
+			titleOf={(id) => titles[id]!}
+			renderPanel={(id) => (
+				<div data-body={id}>
+					<Counter id={id} />
+				</div>
+			)}
+			actions={actions()}
+			maximised={maximised}
+		>
+			<div data-testid="level" />
+		</DockShell>
+	);
+
+	it('stays the same DOM node with its state while it is maximised and restored', async () => {
+		const user = userEvent.setup();
+		const { rerender } = render(shell(null));
+		const body = document.querySelector<HTMLElement>('[data-body="script"]')!;
+		const counter = within(body).getByRole('button');
+		await user.click(counter);
+		await user.click(counter);
+		body.scrollTop = 12;
+		const groupBefore = body.closest('[data-group-zone]');
+
+		rerender(shell('script'));
+		expect(document.querySelector('[data-body="script"]')).toBe(body);
+		expect(within(body).getByRole('button')).toBe(counter);
+		expect(counter).toHaveTextContent('count 2');
+		expect(body.scrollTop).toBe(12);
+		expect(body.closest('[data-group-zone]')).toBe(groupBefore);
+		expect(groupBefore).toHaveAttribute('data-panel-maximised');
+		expect(document.querySelector('[data-has-maximised]')).toBeInTheDocument();
+		// The other docks and the level are still mounted, only hidden by the stylesheet.
+		expect(screen.getByTestId('level')).toBeInTheDocument();
+		expect(document.querySelector('[data-body="palette"]')).toBeInTheDocument();
+		// Inside the maximised group the header offers Restore, not the dock's buttons.
+		expect(
+			within(groupBefore as HTMLElement).getByRole('button', { name: 'Restore Script' }),
+		).toBeInTheDocument();
+		expect(
+			within(groupBefore as HTMLElement).queryByRole('heading', { name: 'Script' }),
+		).toBeInTheDocument();
+		expect(
+			within(groupBefore as HTMLElement).queryByRole('button', { name: 'Float Script' }),
+		).toBeNull();
+
+		rerender(shell(null));
+		expect(document.querySelector('[data-body="script"]')).toBe(body);
+		expect(counter).toHaveTextContent('count 2');
+		expect(body.scrollTop).toBe(12);
+		expect(document.querySelector('[data-panel-maximised]')).toBeNull();
+		const bottom = screen.getByRole('region', { name: 'Bottom dock' });
+		expect(within(bottom).getByRole('heading', { name: 'Script' })).toBeInTheDocument();
+		expect(within(bottom).getByRole('button', { name: 'Float Script' })).toBeInTheDocument();
 	});
 });

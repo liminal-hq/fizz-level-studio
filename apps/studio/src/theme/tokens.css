@@ -266,6 +266,17 @@
 	--fls-window-radius: 0px;
 }
 
+/*
+ * A maximised window meets the screen edges: no margin, no rounding. The frame already drops them
+ * through its own `data-maximised` rules; this carries the same to everything that reads the tokens
+ * outside the frame, such as a dialog's scrim in the top layer. The extra type selector keeps it
+ * above the per-platform rules whatever order the sheets load in.
+ */
+html:root:has([data-maximised='true']) {
+	--fls-window-shadow-margin: 0px;
+	--fls-window-radius: 0px;
+}
+
 html,
 body,
 #root {
@@ -289,6 +300,8 @@ body,
 	--fls-canvas-glyph-dark: rgba(20, 20, 30, 0.85);
 	--fls-canvas-cursor: #ffe14d;
 	--fls-canvas-selection: #4dd2ff;
+	/* The thing Inspect selected: apart from the cursor's yellow and Select's cyan. */
+	--fls-canvas-inspected: #ff7ad9;
 	--fls-canvas-preview: rgba(255, 225, 77, 0.45);
 	--fls-canvas-item: #ffd23f;
 	--fls-canvas-spawn: #ff6b6b;

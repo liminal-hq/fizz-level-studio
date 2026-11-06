@@ -6,18 +6,18 @@ How Fizz Level Studio behaves, screen by screen, for Fizz 1 and, in sections 13 
 
 The **Ultimate** layout is home: the level is the canvas and fills the window; every other part is a window floating over it. The prototype's starting arrangement, at 1440 × 900:
 
-| Window | Holds | Start position (x, y, w, h) | Minimum size |
-| --- | --- | --- | --- |
-| Tool rail | Paint, Erase, Pick, Select, Stamp; in a level also Lift, Room, Arena; on an overworld also Point; Pan shown muted | 8, 8, 60, 318 | — |
-| Palette / Outliner (tabs) | Every tile, item and enemy kind, grouped terrain, hazards, treats, enemies, objects, then the start, exit and moving-platform markers | 76, 8, 252, 300 | 200 × 120 |
-| Objects | The level's objects, or the overworld's points and areas, and the selected one's fields | 336, 196, 420, 300 | 240 × 120 |
-| History | Who changed what, with Claude's pending ideas after a Now marker | 336, 8, 560, 120 | 380 × 96 |
-| Checks | Start, exit and the playtest bot | 904, 8, 220, 120 | 190 × 96 |
-| Lens bar | The lens toggles, the gap rule, and Run playtest bot | 336, 136, 788, 52 | — |
-| Inspector | The selected thing: name, position, facing and patrol for enemies, its script line, Show in script, Delete | 1132, 8, 300, 328 | 270 × 220 |
-| Review changes / Claude (tabs) | Pending hunks; the mode switch and Ask | 1132, 344, 300, 474 | 270 × 260 |
-| Script / Playtest (tabs) | The script, the typed-line box | 76, 570, 600, 248 | 320 × 140 |
-| Navigator | The whole level, a frame for what is visible, zoom buttons | 684, 570, 440, 248 | 380 × 200 |
+| Window                         | Holds                                                                                                                                 | Start position (x, y, w, h) | Minimum size |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------- | --------------------------- | ------------ |
+| Tool rail                      | Paint, Erase, Pick, Select, Stamp, Inspect; in a level also Lift, Room, Arena; on an overworld also Point; Pan shown muted            | 8, 8, 60, 318               | —            |
+| Palette / Outliner (tabs)      | Every tile, item and enemy kind, grouped terrain, hazards, treats, enemies, objects, then the start, exit and moving-platform markers | 76, 8, 252, 300             | 200 × 120    |
+| Objects                        | The level's objects, or the overworld's points and areas, and the selected one's fields                                               | 336, 196, 420, 300          | 240 × 120    |
+| History                        | Who changed what, with Claude's pending ideas after a Now marker                                                                      | 336, 8, 560, 120            | 380 × 96     |
+| Checks                         | Start, exit and the playtest bot                                                                                                      | 904, 8, 220, 120            | 190 × 96     |
+| Lens bar                       | The lens toggles, the gap rule, and Run playtest bot                                                                                  | 336, 136, 788, 52           | —            |
+| Inspector                      | The selected thing: name, position, facing and patrol for enemies, its script line, Show in script, Delete                            | 1132, 8, 300, 328           | 270 × 220    |
+| Review changes / Claude (tabs) | Pending hunks; the mode switch and Ask                                                                                                | 1132, 344, 300, 474         | 270 × 260    |
+| Script / Playtest (tabs)       | The script, the typed-line box                                                                                                        | 76, 570, 600, 248           | 320 × 140    |
+| Navigator                      | The whole level, a frame for what is visible, zoom buttons                                                                            | 684, 570, 440, 248          | 380 × 200    |
 
 Window behaviour:
 
@@ -32,16 +32,16 @@ Window behaviour:
 
 ## 2. Menus
 
-| Menu | Items |
-| --- | --- |
+| Menu                           | Items                                                                                                                                                                                   |
+| ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | App menu (hamburger, far left) | New level…, Open starter level…; Save (Ctrl+S), Save as…, Export ▸; Lenses ▸ (each lens, Grid, Hide all lenses), Reset window layout; Preferences…, Keyboard shortcuts (?), About; Quit |
-| File | New level…, Open starter level…; Save, Save as…, Export ▸; Quit |
-| Edit | Undo: *step name* (Ctrl+Z), Redo: *step name* (Ctrl+Shift+Z); Cut, Copy (with the area size when an area is selected), Duplicate (Ctrl+D), Delete (Del) |
-| View | Each lens with Alt+1 onwards; Grid, Hide all lenses (Ctrl+Shift+L), Centre the level; Zoom in (=), Zoom out (-) |
-| Level | Run playtest bot, Level properties…; Go to start, Go to exit |
-| Claude | Ask Claude for an idea (Ctrl+K), Check the gaps (rule-based); Propose changes, Edit directly; Accept all pending, Reject all pending, Show Review changes |
-| Window | Reset window layout; Save layout for this session, Restore saved layout; Pop out the script / Dock the script; Collapse all windows, Expand all windows |
-| Help | About this prototype, Keyboard shortcuts, Builder language reference |
+| File                           | New level…, Open starter level…; Save, Save as…, Export ▸; Quit                                                                                                                         |
+| Edit                           | Undo: _step name_ (Ctrl+Z), Redo: _step name_ (Ctrl+Shift+Z); Cut, Copy (with the area size when an area is selected), Duplicate (Ctrl+D), Delete (Del)                                 |
+| View                           | Each lens with Alt+1 onwards; Grid, Hide all lenses (Ctrl+Shift+L), Centre the level; Zoom in (=), Zoom out (-)                                                                         |
+| Level                          | Run playtest bot, Level properties…; Go to start, Go to exit                                                                                                                            |
+| Claude                         | Ask Claude for an idea (Ctrl+K), Check the gaps (rule-based); Propose changes, Edit directly; Accept all pending, Reject all pending, Show Review changes                               |
+| Window                         | Reset window layout; Save layout for this session, Restore saved layout; Pop out the script / Dock the script; Collapse all windows, Expand all windows                                 |
+| Help                           | About this prototype, Keyboard shortcuts, Builder language reference                                                                                                                    |
 
 Click a menu, then hover along the bar to move between menus. Items that are not built are shown muted.
 
@@ -53,26 +53,26 @@ Not built in the prototype: New level, Save as, Export, Preferences, Quit, Level
 
 Keys work while the studio has focus (click the level first) and pause while typing in a box. The prototype's root element owns the handler; nothing listens on the document.
 
-| Key | Action |
-| --- | --- |
-| B, E, I, S, T | Paint, Erase, Pick, Select, Stamp |
-| L, R, A | Lift, Room, Arena (in a level) |
-| P | Point (on an overworld) |
-| Ctrl+Z, Ctrl+Shift+Z (or Ctrl+Y) | Undo, redo |
-| Ctrl+C, Ctrl+X | Copy, cut the selection (filled cells only) |
-| Ctrl+D | Duplicate |
-| Del or Backspace | Delete the selection, or the selected object |
-| Arrows | Move the selected thing one tile; with an empty cell selected, move the cursor |
-| F | Flip the selected enemy's facing |
-| Ctrl+K | Ask Claude (about the selection when there is one) |
-| Ctrl+J | Show the selection's line in the script |
-| Alt+1 to Alt+5 | Toggle lenses one to five (the lenses on offer, in order) |
-| Ctrl+Shift+L | Hide all lenses |
-| = and - | Zoom in and out through 16, 24, 32 and 48 px |
-| Ctrl+Shift+0 | Reset window layout |
-| Ctrl+S | Save (writes nothing in the prototype) |
-| Esc | Close menus, cards and the ring; then clear the object selection; then clear the selection |
-| ? | Show or hide the shortcuts card |
+| Key                              | Action                                                                                     |
+| -------------------------------- | ------------------------------------------------------------------------------------------ |
+| B, E, I, S, T, Q                 | Paint, Erase, Pick, Select, Stamp, Inspect                                                 |
+| L, R, A                          | Lift, Room, Arena (in a level)                                                             |
+| P                                | Point (on an overworld)                                                                    |
+| Ctrl+Z, Ctrl+Shift+Z (or Ctrl+Y) | Undo, redo                                                                                 |
+| Ctrl+C, Ctrl+X                   | Copy, cut the selection (filled cells only)                                                |
+| Ctrl+D                           | Duplicate                                                                                  |
+| Del or Backspace                 | Delete the selection, or the selected object                                               |
+| Arrows                           | Move the selected thing one tile; with an empty cell selected, move the cursor             |
+| F                                | Flip the selected enemy's facing                                                           |
+| Ctrl+K                           | Ask Claude (about the selection when there is one)                                         |
+| Ctrl+J                           | Show the selection's line in the script                                                    |
+| Alt+1 to Alt+5                   | Toggle lenses one to five (the lenses on offer, in order)                                  |
+| Ctrl+Shift+L                     | Hide all lenses                                                                            |
+| = and -                          | Zoom in and out through 16, 24, 32 and 48 px                                               |
+| Ctrl+Shift+0                     | Reset window layout                                                                        |
+| Ctrl+S                           | Save (writes nothing in the prototype)                                                     |
+| Esc                              | Close menus, cards and the ring; then clear the object selection; then clear the selection |
+| ?                                | Show or hide the shortcuts card                                                            |
 
 Tool behaviour:
 
@@ -80,6 +80,7 @@ Tool behaviour:
 - **Erase** clears cells. **Pick** copies a cell's thing into the palette and switches to Paint.
 - **Select** selects a cell; dragging selects a rectangle, labelled with its size and "Ctrl+C to copy". With Select, objects can be dragged (see §4).
 - **Stamp** pastes the copied cells with the top-left on the clicked cell, with a dashed preview that follows the pointer and says when part of it is past the edge. A stamp is one undo step; cells past the edge are skipped. With nothing copied, the preview says "Nothing to stamp: select an area, then Ctrl+C".
+- **Inspect** (Q) selects the topmost thing on the clicked cell (an item, then an enemy, then Ben's start), or the cell itself with its tile when nothing is on it, and outlines it on the canvas. It edits nothing and adds no undo step. The selected thing is the editor's, not the tool's: it stays when another tool is chosen, it is separate from Select's rectangle, and Esc on the canvas clears it. The objects list and the inspector (both planned to show it) are meant to read the same selection.
 - **Lift** (L): drag from one end to the other. A click without a drag makes a lift 4 tiles long. New lifts start at speed 0.3, size 2 × 0.5, no rest.
 - **Room** (R): drag a rectangle. The room's facade fills the empty cells of the rectangle.
 - **Arena** (A): drag a width; a click makes it 10 tiles wide. Its floor is the row the drag started on.
@@ -91,17 +92,17 @@ Zoom steps through 16, 24, 32 and 48 px from the Navigator's buttons or the keys
 
 Tiles are painted. **Objects** are placed, selected and tuned, and each is a single line in the script:
 
-| Object | Script line | Fields in the Objects window | Drag handles |
-| --- | --- | --- | --- |
-| Lift | `hover from=X,Y to=X,Y speed=S [size=WxH] [dwell=S]` | From x, From y, To x, To y, Width, Speed, Rests (s) | The A and B ends |
-| Room | `room x=A..B y=A..B` or `secret-room ...` | Left x, Right x, Bottom y, Top y; Secret toggle | The body |
-| Boss arena | `arena x=A..B floor=N` | Left x, Right x, Floor y | None |
-| Switch channels | `channel LIST on` | A chip per channel that starts on | — (no place on the map) |
-| Level point | `level SLUG at=X,Y [req=LIST] [big] [hidden]` | Level (cycles through the levels), x, y; Big, Hidden; Unlocks chips | The point |
-| Teleporter | `tele NAME at=X,Y with=NAME [req=LIST] [hidden]` | Pairs with (cycles through the teleporters), x, y; Hidden; Unlocks chips | The point |
-| Saucer | `saucer at=X,Y` | x, y | The point |
-| Sign | `sign N at=X,Y` | Sign, x, y | The point |
-| Area | `area NAME x=A..B y=A..B` | Area (cycles through the five), Left x, Right x, Bottom y, Top y | None |
+| Object          | Script line                                          | Fields in the Objects window                                             | Drag handles            |
+| --------------- | ---------------------------------------------------- | ------------------------------------------------------------------------ | ----------------------- |
+| Lift            | `hover from=X,Y to=X,Y speed=S [size=WxH] [dwell=S]` | From x, From y, To x, To y, Width, Speed, Rests (s)                      | The A and B ends        |
+| Room            | `room x=A..B y=A..B` or `secret-room ...`            | Left x, Right x, Bottom y, Top y; Secret toggle                          | The body                |
+| Boss arena      | `arena x=A..B floor=N`                               | Left x, Right x, Floor y                                                 | None                    |
+| Switch channels | `channel LIST on`                                    | A chip per channel that starts on                                        | — (no place on the map) |
+| Level point     | `level SLUG at=X,Y [req=LIST] [big] [hidden]`        | Level (cycles through the levels), x, y; Big, Hidden; Unlocks chips      | The point               |
+| Teleporter      | `tele NAME at=X,Y with=NAME [req=LIST] [hidden]`     | Pairs with (cycles through the teleporters), x, y; Hidden; Unlocks chips | The point               |
+| Saucer          | `saucer at=X,Y`                                      | x, y                                                                     | The point               |
+| Sign            | `sign N at=X,Y`                                      | Sign, x, y                                                               | The point               |
+| Area            | `area NAME x=A..B y=A..B`                            | Area (cycles through the five), Left x, Right x, Bottom y, Top y         | None                    |
 
 The rule, as the prototype implements it:
 
@@ -109,7 +110,7 @@ The rule, as the prototype implements it:
 2. When an object changes (a field, a drag, a toggle), the studio **rewrites its one line in place**, in canonical form (`objText`), keeping the line's indentation. Moving a lift never adds a second one.
 3. An object the studio adds goes under `edits`.
 4. An object the person deletes has its line replaced by `// removed in the studio: <original line>`; Undo brings it back.
-5. A hand-written line the studio did not touch is never rewritten. Tile edits are never written into hand-written lines.
+5. A statement the studio did not touch prints exactly as it was, comments and spacing included. D68 replaces the old rule that hand-written lines are never rewritten: an edit to an object rewrites that object's own statement in place (splitting or expanding a statement that places several objects or is generated), with its comments kept, as one named undo step. Tile painting keeps the `edits` log and folds it.
 6. A drag is one undo step: the first move records the step, later moves of the same drag only update the object.
 
 Moving a room moves its facade: the old facade cells go back to empty and the empty cells of the new rectangle take the facade.
@@ -134,13 +135,13 @@ Moving a room moves its facade: the old facade cells go back to empty and the em
 
 Lenses draw over the level and change nothing. In a level the lens bar offers, in order (so Alt+1 to Alt+5):
 
-| Lens | Shows |
-| --- | --- |
-| Gaps | Every gap, coloured by the rule: up to 3 wide green "a jump clears it", exactly 4 amber "tight: a tenth of a second", 5 or more rose "needs a ledge". A gap is a run of non-solid cells on a surface row, bounded by standing surfaces, with nothing to stand on below (a valley with a bare floor is not a gap). Paint a gap wider or narrower and the colour follows. |
-| Ghosts | Claude's pending cells, dashed purple |
-| Reach | A rough three-tile box around the selection, labelled a rough guide |
-| Hazards | Outlines spikes and chocolate |
-| Paths | Where walking enemies go: a solid bar for a gloop's walk with its length ("gloop: 12 tiles"), a dashed bar for a marshmallow ("marsh: turns only at walls"), a dashed oval 5.2 × 2.8 tiles for a drone ("drone: a fixed loop"), and a 20 × 8 tile box for a hopper ("hopper: jumps when Ben is behind it, inside this box") |
+| Lens    | Shows                                                                                                                                                                                                                                                                                                                                                                   |
+| ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Gaps    | Every gap, coloured by the rule: up to 3 wide green "a jump clears it", exactly 4 amber "tight: a tenth of a second", 5 or more rose "needs a ledge". A gap is a run of non-solid cells on a surface row, bounded by standing surfaces, with nothing to stand on below (a valley with a bare floor is not a gap). Paint a gap wider or narrower and the colour follows. |
+| Ghosts  | Claude's pending cells, dashed purple                                                                                                                                                                                                                                                                                                                                   |
+| Reach   | A rough three-tile box around the selection, labelled a rough guide                                                                                                                                                                                                                                                                                                     |
+| Hazards | Outlines spikes and chocolate                                                                                                                                                                                                                                                                                                                                           |
+| Paths   | Where walking enemies go: a solid bar for a gloop's walk with its length ("gloop: 12 tiles"), a dashed bar for a marshmallow ("marsh: turns only at walls"), a dashed oval 5.2 × 2.8 tiles for a drone ("drone: a fixed loop"), and a 20 × 8 tile box for a hopper ("hopper: jumps when Ben is behind it, inside this box")                                             |
 
 On an overworld: **Links** (cyan lines from each required level to the point it unlocks, and dashed purple lines between paired teleporters), **Areas** (dashed outlines of each `area` rectangle with its name), and **Ghosts**.
 
@@ -197,18 +198,18 @@ In the prototype there is no AI: Ask cycles through three canned ideas per level
 
 ## 11. What each screen shows
 
-| Screen | Shows |
-| --- | --- |
-| Level canvas | Tiles, items and enemies as glyphs on coloured cells, objects as shapes (lift ends A and B with a dashed path, rooms as dashed rectangles labelled room or secret room, the arena as a dashed box nine tiles high), the selection, the dragged area, the stamp preview, ghosts and lenses |
-| Overworld canvas | The map tiles, points as circles (level initials, ⇄ for teleporters, S for the saucer, sign numbers in squares; hidden points dashed; big level points larger), names under level points and teleporters from 24 px zoom, and the Links and Areas lenses |
-| Inspector | The selected thing's name and kind, x and y with steppers, facing (Left, Right) and patrol for enemies, its script line with Show in script, Delete, and the last change's author |
-| Checks | Has a start, has an exit, the playtest bot (stand-in) |
-| Navigator | The whole level with an orange frame for what the canvas shows, shading under windows, the selection in white, and the zoom |
-| History | Steps by You and Claude, Now, then proposed steps |
-| Review changes | The pending idea's title and why, its hunks and lines, Accept and Reject per hunk and for all |
-| Script | Line numbers, the `+` marks, tinted pending lines, the scroll track, Following, the typed-line box, errors with Use this fix, completion |
-| Shortcuts card | The key table in §3 |
-| Starter levels card | §9 |
+| Screen              | Shows                                                                                                                                                                                                                                                                                     |
+| ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Level canvas        | Tiles, items and enemies as glyphs on coloured cells, objects as shapes (lift ends A and B with a dashed path, rooms as dashed rectangles labelled room or secret room, the arena as a dashed box nine tiles high), the selection, the dragged area, the stamp preview, ghosts and lenses |
+| Overworld canvas    | The map tiles, points as circles (level initials, ⇄ for teleporters, S for the saucer, sign numbers in squares; hidden points dashed; big level points larger), names under level points and teleporters from 24 px zoom, and the Links and Areas lenses                                  |
+| Inspector           | The selected thing's name and kind, x and y with steppers, facing (Left, Right) and patrol for enemies, its script line with Show in script, Delete, and the last change's author                                                                                                         |
+| Checks              | Has a start, has an exit, the playtest bot (stand-in)                                                                                                                                                                                                                                     |
+| Navigator           | The whole level with an orange frame for what the canvas shows, shading under windows, the selection in white, and the zoom                                                                                                                                                               |
+| History             | Steps by You and Claude, Now, then proposed steps                                                                                                                                                                                                                                         |
+| Review changes      | The pending idea's title and why, its hunks and lines, Accept and Reject per hunk and for all                                                                                                                                                                                             |
+| Script              | Line numbers, the `+` marks, tinted pending lines, the scroll track, Following, errors with Use this fix, completion in the editor                                                                                                                                                        |
+| Shortcuts card      | The key table in §3                                                                                                                                                                                                                                                                       |
+| Starter levels card | §9                                                                                                                                                                                                                                                                                        |
 
 ## 12. What is canned or not built in the prototype
 
@@ -263,17 +264,17 @@ Nothing in this section is built. It says what the editor needs so that one edit
 
 A **Budget window** shows meters for what a level and its world cost, each saying where its number came from:
 
-| Meter | Limit | Source |
-| --- | --- | --- |
-| Rules, states, strings | 32 each per level (states of up to 8 values) | The profile (F10, F11) |
-| Objects | `u16`; the practical limit is the state hash and the drawing | `LEVL` header |
-| `LEVL` section size | Decoded and stored bytes | `fizz-bake`; otherwise an estimate, labelled "estimate" |
-| World pack | Its levels, definitions, bytecode, sprites (with the retro set), panels and sounds | `fizz-bake`'s world build report ([WORLD.md](WORLD.md#4-building-the-world-pack)) |
-| Floppy | `BUDGET 1100000` bytes for `FIZZ2.EXE` and the packs together (provisional), with the 8 KB and 64 KB reserves of the two images | Fizz 2's `docs/PLATFORM.md` and `docs/FAP.md`; `FIZZ2.EXE` is 374,272 bytes on #146 |
-| Section limit | 96 KB decoded per section by default | `SECTION_LIMIT` in `fizz-pack` |
-| Lights | 16 active (15 in view kept as a margin), a pool of 32; DOS frame cost | #146; frame cost from the game's bench (F22) |
-| Behaviour cost | Worst-case instructions per entity and per level per tick against the profile's step budgets; `BHVR` and `DEFS` sizes; an estimated DOS cost per tick | The compiler; the game's bench (F22) |
-| Panels | Panel bytes and the DOS cost of drawing them at Full and Light Sky detail | `fizz-bake`; the game's bench (F22) |
+| Meter                  | Limit                                                                                                                                                 | Source                                                                              |
+| ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| Rules, states, strings | 32 each per level (states of up to 8 values)                                                                                                          | The profile (F10, F11)                                                              |
+| Objects                | `u16`; the practical limit is the state hash and the drawing                                                                                          | `LEVL` header                                                                       |
+| `LEVL` section size    | Decoded and stored bytes                                                                                                                              | `fizz-bake`; otherwise an estimate, labelled "estimate"                             |
+| World pack             | Its levels, definitions, bytecode, sprites (with the retro set), panels and sounds                                                                    | `fizz-bake`'s world build report ([WORLD.md](WORLD.md#4-building-the-world-pack))   |
+| Floppy                 | `BUDGET 1100000` bytes for `FIZZ2.EXE` and the packs together (provisional), with the 8 KB and 64 KB reserves of the two images                       | Fizz 2's `docs/PLATFORM.md` and `docs/FAP.md`; `FIZZ2.EXE` is 374,272 bytes on #146 |
+| Section limit          | 96 KB decoded per section by default                                                                                                                  | `SECTION_LIMIT` in `fizz-pack`                                                      |
+| Lights                 | 16 active (15 in view kept as a margin), a pool of 32; DOS frame cost                                                                                 | #146; frame cost from the game's bench (F22)                                        |
+| Behaviour cost         | Worst-case instructions per entity and per level per tick against the profile's step budgets; `BHVR` and `DEFS` sizes; an estimated DOS cost per tick | The compiler; the game's bench (F22)                                                |
+| Panels                 | Panel bytes and the DOS cost of drawing them at Full and Light Sky detail                                                                             | `fizz-bake`; the game's bench (F22)                                                 |
 
 - A meter never claims a number it did not get: an estimate says so, and a meter whose source is not available reads "not run" (G-TRUST-4).
 - The DOS floor (a 486DX with 4 MB, #143) and the 60 Hz frame are the reference for the cost meters; today Full night averages 17.1 ms on the 486DX2-66 model against the 16.7 ms step (#146), which is the kind of figure the lights and panels meters show.
@@ -332,13 +333,13 @@ Nothing in this section is built. The pixel editor is the studio's one tool for 
 
 ### What it paints
 
-| Art | Reach | Why |
-| --- | --- | --- |
-| Parallax panels | Full: import, paint, touch up, set panel properties | Panels are world art in the world's `panels/`, packed in `BDRP` (F19) |
-| Sprites in `drawn` sets | Full: paint frames, set anchors, add and order frames, preview animation | Fizz 2's `docs/SPRITES.md` says `drawn` sprites are editable in an editor, written back canonically |
-| Sprites in generated sets and the retro set | View and copy only: a copy can become a new `drawn` sprite | Generated sets change only through their generator |
-| Tile textures | Not at first. Fizz 2's tile looks are generated code tables (`oblique_data.rs` from `tools/tiles/emit-oblique.ts`, #143), chosen by tile class, not data | Reaches tiles only if the Fizz 2 repository moves tile textures to data (F14, Q34) |
-| HUD, fonts, title art | Out of scope | They belong to the game, not to a world |
+| Art                                         | Reach                                                                                                                                                    | Why                                                                                                 |
+| ------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| Parallax panels                             | Full: import, paint, touch up, set panel properties                                                                                                      | Panels are world art in the world's `panels/`, packed in `BDRP` (F19)                               |
+| Sprites in `drawn` sets                     | Full: paint frames, set anchors, add and order frames, preview animation                                                                                 | Fizz 2's `docs/SPRITES.md` says `drawn` sprites are editable in an editor, written back canonically |
+| Sprites in generated sets and the retro set | View and copy only: a copy can become a new `drawn` sprite                                                                                               | Generated sets change only through their generator                                                  |
+| Tile textures                               | Not at first. Fizz 2's tile looks are generated code tables (`oblique_data.rs` from `tools/tiles/emit-oblique.ts`, #143), chosen by tile class, not data | Reaches tiles only if the Fizz 2 repository moves tile textures to data (F14, Q34)                  |
+| HUD, fonts, title art                       | Out of scope                                                                                                                                             | They belong to the game, not to a world                                                             |
 
 ### Parallax panels
 

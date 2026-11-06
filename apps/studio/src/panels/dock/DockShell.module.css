@@ -1,13 +1,19 @@
-/* The level in the middle; the left and right docks beside it; the bottom dock under all three. */
+/*
+ * The level in the middle; the left and right docks beside it with their rails at the window's
+ * edges; the bottom dock under all of them and its rail along the bottom edge.
+ */
 .shell {
 	position: absolute;
 	inset: 0;
 	display: grid;
-	grid-template-columns: var(--fls-dock-left) minmax(0, 1fr) var(--fls-dock-right);
-	grid-template-rows: minmax(0, 1fr) var(--fls-dock-bottom);
+	grid-template-columns:
+		var(--fls-rail-left) var(--fls-dock-left) minmax(0, 1fr) var(--fls-dock-right)
+		var(--fls-rail-right);
+	grid-template-rows: minmax(0, 1fr) var(--fls-dock-bottom) var(--fls-rail-bottom);
 	grid-template-areas:
-		'left level right'
-		'bottom bottom bottom';
+		'left-rail left level right right-rail'
+		'bottom bottom bottom bottom bottom'
+		'bottom-rail bottom-rail bottom-rail bottom-rail bottom-rail';
 }
 
 .level {
@@ -38,4 +44,115 @@
 
 .slot[data-slot='bottom'] {
 	grid-area: bottom;
+}
+
+.slot[data-rail-slot='left'] {
+	grid-area: left-rail;
+}
+
+.slot[data-rail-slot='right'] {
+	grid-area: right-rail;
+}
+
+.slot[data-rail-slot='bottom'] {
+	grid-area: bottom-rail;
+}
+
+/*
+ * The places a dragged panel can land, one for each dock, its rail included. They are always there
+ * (a dock that is empty or folded still offers itself, as a strip along its edge) and show only
+ * during a drag. The hit test reads their rectangles, so they never take the pointer themselves.
+ */
+.drop {
+	--fls-drop-min: 72px;
+	--fls-drop-bottom: max(
+		calc(var(--fls-dock-bottom) + var(--fls-rail-bottom)),
+		var(--fls-drop-min)
+	);
+	position: absolute;
+	z-index: 20;
+	box-sizing: border-box;
+	display: none;
+	pointer-events: none;
+	border: 2px dashed color-mix(in srgb, var(--fls-accent) 55%, transparent);
+	background: color-mix(in srgb, var(--fls-accent) 8%, transparent);
+	border-radius: 6px;
+}
+
+.shell[data-dragging] .drop {
+	display: block;
+}
+
+.drop[data-lit] {
+	border-style: solid;
+	border-color: var(--fls-accent);
+	background: color-mix(in srgb, var(--fls-accent) 22%, transparent);
+}
+
+.drop[data-drop-zone='left'] {
+	top: 0;
+	bottom: var(--fls-drop-bottom);
+	left: 0;
+	width: max(calc(var(--fls-rail-left) + var(--fls-dock-left)), var(--fls-drop-min));
+}
+
+.drop[data-drop-zone='right'] {
+	top: 0;
+	right: 0;
+	bottom: var(--fls-drop-bottom);
+	width: max(calc(var(--fls-dock-right) + var(--fls-rail-right)), var(--fls-drop-min));
+}
+
+.drop[data-drop-zone='bottom'] {
+	right: 0;
+	bottom: 0;
+	left: 0;
+	height: var(--fls-drop-bottom);
+}
+
+/* Read by screen readers, not seen. */
+.hidden {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	margin: -1px;
+	padding: 0;
+	overflow: hidden;
+	clip-path: inset(50%);
+	white-space: nowrap;
+	border: 0;
+}
+
+/*
+ * A maximised panel is not moved in the tree. Everything in the shell is hidden (visibility keeps
+ * the layout and takes the hidden controls out of the tab order) except the panel's own group,
+ * which is laid over the workspace. The ancestors that would clip it or make it their containing
+ * block (the slot, the glass zone) are made plain for as long as it lasts.
+ */
+.shell[data-has-maximised] {
+	visibility: hidden;
+}
+
+/* The keycaps transition every property, which would keep a hidden button visible for a moment. */
+.shell[data-has-maximised] * {
+	transition: none;
+}
+
+.shell[data-has-maximised] .slot {
+	position: static;
+}
+
+.shell[data-has-maximised] [data-zone] {
+	overflow: visible;
+	backdrop-filter: none;
+	-webkit-backdrop-filter: none;
+}
+
+.shell[data-has-maximised] [data-panel-maximised] {
+	position: absolute;
+	inset: 0;
+	z-index: 30;
+	visibility: visible;
+	border: 0;
+	background: var(--fls-bg-content);
 }

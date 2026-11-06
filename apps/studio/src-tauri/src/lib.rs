@@ -6,6 +6,7 @@
 pub mod close_gate;
 pub mod launch;
 pub mod logging;
+pub mod panel_place;
 pub mod quit;
 pub mod quit_round;
 pub mod windows;
@@ -30,7 +31,7 @@ fn settings_storage<R: tauri::Runtime>(app: &tauri::AppHandle<R>) -> Arc<dyn Blo
 
 /// The tear-off ghost: one shared window the plugin creates once the event loop runs, which loads
 /// the app bundle and is routed by its label (`tear-ghost`, one of the window labels in
-/// `windows.rs`). No window-state plugin is registered, so the ghost needs no denylist entry.
+/// `windows.rs`). No window-state plugin is registered (D65), so the ghost needs no denylist entry.
 fn tear_off_options() -> tauri_plugin_window_tearoff::Options {
     tauri_plugin_window_tearoff::Options {
         ghost_label: WindowId::TearGhost.label(),
@@ -38,6 +39,28 @@ fn tear_off_options() -> tauri_plugin_window_tearoff::Options {
         ghost_size: (240.0, 160.0),
         toplevel_drag_mime: "application/x-fizz-studio-panel".into(),
     }
+}
+
+/// The single-instance guard. On Linux it takes its name from the app's identifier, so every copy on
+/// the machine competes for it. A debug build can be given its own name with `FIZZ_INSTANCE_ID`, which
+/// the check harness sets for each run, so runs, helpers and a copy tried by hand never hand their
+/// paths to each other and quit. A release build ignores it.
+fn single_instance<R: tauri::Runtime>() -> tauri::plugin::TauriPlugin<R> {
+    #[allow(unused_mut)]
+    let mut builder = tauri_plugin_single_instance::Builder::new().callback(|app, args, cwd| {
+        launch::handle_second_launch(app, args, &cwd);
+    });
+    #[cfg(debug_assertions)]
+    if let Ok(id) = std::env::var("FIZZ_INSTANCE_ID") {
+        let id: String = id
+            .chars()
+            .map(|c| if c.is_ascii_alphanumeric() { c } else { '_' })
+            .collect();
+        if !id.is_empty() {
+            builder = builder.dbus_id(format!("ca.liminalhq.fizzstudio.run{id}"));
+        }
+    }
+    builder.build()
 }
 
 /// Starts the app. Every window is created in Rust (`windows.rs`); `tauri.conf.json` lists none.
@@ -48,9 +71,7 @@ pub fn run() {
         // First, so a second launch (a double-clicked level while the studio is open) stops here
         // and brings the running app forward instead of starting another, handing it the level
         // paths it was given.
-        .plugin(tauri_plugin_single_instance::init(|app, args, cwd| {
-            launch::handle_second_launch(app, args, &cwd);
-        }))
+        .plugin(single_instance())
         // The webview's `console.*` calls are forwarded into this plugin's stream by
         // `src/services/logger.ts`.
         .plugin(logging::plugin())
@@ -86,7 +107,9 @@ pub fn run() {
         .plugin(tauri_plugin_window_tearoff::init(tear_off_options()))
         .invoke_handler(tauri::generate_handler![
             windows::open_window,
+            windows::set_window_title,
             windows::open_panels,
+            windows::tear_off_panel,
             windows::close_panel,
             launch::app_launch_paths,
             quit::app_quit,
@@ -105,6 +128,14 @@ pub fn run() {
         // can show the panel in its place again.
         .on_window_event(|window, event| {
             quit::request_close(window, event);
+            if matches!(
+                event,
+                tauri::WindowEvent::Moved(_)
+                    | tauri::WindowEvent::Resized(_)
+                    | tauri::WindowEvent::CloseRequested { .. }
+            ) {
+                windows::report_panel_placed(window);
+            }
             if matches!(event, tauri::WindowEvent::Destroyed) {
                 windows::announce_panel_closed(window.app_handle(), window.label());
                 quit::window_gone(window.app_handle(), window.label());
@@ -123,9 +154,16 @@ pub fn run() {
     #[cfg(all(debug_assertions, not(windows)))]
     {
         // Localhost only: the default binds every network interface, and nothing remote needs it.
-        builder = builder.plugin(tauri_plugin_mcp_bridge::init_with_config(
-            tauri_plugin_mcp_bridge::Config::localhost_only(),
-        ));
+        let mut bridge = tauri_plugin_mcp_bridge::Config::localhost_only();
+        // The check harness gives each run its own port, so runs and hand-started copies never
+        // collide; without it the bridge starts at its default.
+        if let Some(port) = std::env::var("FIZZ_BRIDGE_PORT")
+            .ok()
+            .and_then(|port| port.parse::<u16>().ok())
+        {
+            bridge.base_port = port;
+        }
+        builder = builder.plugin(tauri_plugin_mcp_bridge::init_with_config(bridge));
     }
 
     builder

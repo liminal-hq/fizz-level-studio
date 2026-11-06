@@ -5,7 +5,15 @@
 
 import type { GhostCell } from '@liminal-hq/fizz-studio-protocol/generated/GhostCell';
 import type { LevelView } from '@liminal-hq/fizz-studio-protocol/generated/LevelView';
-import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent } from 'react';
+import {
+	useEffect,
+	useMemo,
+	useRef,
+	useState,
+	type KeyboardEvent,
+	type PointerEvent,
+	type ReactNode,
+} from 'react';
 import { t } from '../i18n/messages';
 import type { Cell, PointerPhase, Rect } from '../tools/tool';
 import { drawLevel, readCanvasColours, type DrawContext } from './drawLevel';
@@ -41,6 +49,10 @@ export interface LevelCanvasProps {
 	paste?: Rect | null;
 	/** Select's rectangle, drawn as an outline. */
 	selection?: Rect | null;
+	/** The cell of the thing Inspect selected, drawn as an outline and named by `data-inspected`. */
+	inspected?: Cell | null;
+	/** Called on Escape while the canvas has focus and something is inspected, to clear it. */
+	onClearInspected?: () => void;
 	/** Claude's pending proposals to draw as ghosts; leave out to draw none. */
 	ghosts?: readonly GhostCell[];
 	/** Called when the person clicks a cell of the grid. */
@@ -50,6 +62,11 @@ export interface LevelCanvasProps {
 	 * `serial` asks again for the same cell.
 	 */
 	reveal?: { cell: Cell; serial: number } | null;
+	/**
+	 * Controls that float over the map (the tool picker), given the map's size so they can keep
+	 * inside it. They sit above the canvas and below the status line, which they never cover.
+	 */
+	overlay?: (map: { w: number; h: number }) => ReactNode;
 }
 
 const NO_CELLS: readonly Cell[] = [];
@@ -66,9 +83,12 @@ export function LevelCanvas({
 	previewShape = 'cell',
 	paste = null,
 	selection = null,
+	inspected = null,
+	onClearInspected,
 	ghosts = NO_GHOSTS,
 	reveal = null,
 	onCellChosen,
+	overlay,
 }: LevelCanvasProps) {
 	const canvasRef = useRef<HTMLCanvasElement>(null);
 	const frameRef = useRef<HTMLDivElement>(null);
@@ -154,8 +174,9 @@ export function LevelCanvas({
 			ghosts,
 			previewShape,
 			paste,
+			inspected,
 		});
-	}, [view, viewport, size, cursor, selection, preview, ghosts, previewShape, paste]);
+	}, [view, viewport, size, cursor, selection, preview, ghosts, previewShape, paste, inspected]);
 
 	const cellAt = (event: PointerEvent<HTMLCanvasElement>): Cell => {
 		const rect = event.currentTarget.getBoundingClientRect();
@@ -220,6 +241,8 @@ export function LevelCanvas({
 			zoomBy(1);
 		} else if (key === '-' || key === '_') {
 			zoomBy(-1);
+		} else if (key === 'Escape' && inspected && onClearInspected) {
+			onClearInspected();
 		} else {
 			return;
 		}
@@ -242,12 +265,14 @@ export function LevelCanvas({
 							width: view.width,
 							height: view.height,
 						})}
+						data-inspected={inspected ? `${inspected.x},${inspected.y}` : undefined}
 						onKeyDown={onKeyDown}
 						onPointerDown={onPointerDown}
 						onPointerMove={onPointerMove}
 						onPointerUp={onPointerEnd}
 						onPointerCancel={onPointerEnd}
 					/>
+					{overlay?.({ w: size.width, h: size.height })}
 				</div>
 				<div className={styles.bar}>
 					<span className={styles.status} role="status">

@@ -17,15 +17,22 @@ export interface PanelSpec {
 	id: PanelId;
 	title: MessageId;
 	min: Size;
+	/** The panel can be maximised to fill the workspace. A new panel, such as a sprite editor, opts in. */
+	expandable?: boolean;
 }
 
 /** The panels in the order the Panels menu lists them. */
+/** Whether a panel can be maximised. */
+export function isExpandable(id: string): boolean {
+	return PANEL_SPECS.some((spec) => spec.id === id && spec.expandable === true);
+}
+
 export const PANEL_SPECS: readonly PanelSpec[] = [
 	{ id: 'palette', title: 'palette.title', min: { w: 200, h: 120 } },
 	{ id: 'objects', title: 'objects.list', min: { w: 200, h: 120 } },
 	{ id: 'history', title: 'history.title', min: { w: 240, h: 96 } },
-	{ id: 'proposals', title: 'ghosts.title', min: { w: 200, h: 120 } },
-	{ id: 'script', title: 'script.title', min: { w: 320, h: 200 } },
+	{ id: 'proposals', title: 'ghosts.title', min: { w: 200, h: 120 }, expandable: true },
+	{ id: 'script', title: 'script.title', min: { w: 320, h: 200 }, expandable: true },
 ];
 
 /**

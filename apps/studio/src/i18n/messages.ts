@@ -19,8 +19,8 @@ export const enMessages = {
 	// translator: The product name, “Fizz Level Studio”. “Fizz” is the game’s hero and is not translated.
 	'app.name': 'Fizz Level Studio',
 
-	// translator: The title of the main editor window, shown in its title bar.
-	'window.main.title': 'Fizz Level Studio',
+	// translator: The title of the main window while no level is open, shown in its title bar and in the taskbar. It names the start screen, not the app.
+	'window.main.start': 'Start',
 
 	// translator: Verb. Puts a maximised window back to its earlier size. Appears on a window button.
 	'chrome.restore': 'Restore',
@@ -52,8 +52,16 @@ export const enMessages = {
 	'tools.select': 'Select',
 	// translator: Verb. A tool that pastes the outlined rectangle, copied when the tool is chosen, where the pointer presses, like a rubber stamp.
 	'tools.stamp': 'Stamp',
+	// translator: Verb. A tool that selects what is on the cell the pointer presses (an item, an enemy, Ben's start, or the cell and its tile) so it can be looked at; it changes nothing.
+	'tools.inspect': 'Inspect',
 	// translator: A hint shown while the Stamp tool has nothing copied yet.
 	'tools.stampEmpty': 'Outline an area with Select, then choose Stamp to paste it.',
+	// translator: The accessible name of the row above the level that holds Save, Close level, the brush chip and the Panels menu.
+	'tools.bar': 'Editor toolbar',
+	// translator: Label of the grip a person drags, or moves with the arrow keys, to move the floating group of tools over the level.
+	'tools.move': 'Move the tools',
+	// translator: Tooltip of a tool's key. {tool} is the tool’s name, such as “Paint”; {key} is the letter that chooses it, such as “B”.
+	'tools.keyTitle': '{tool} ({key})',
 	// translator: The brush chip in the toolbar. {kind} is the name of the tile, item or enemy that Paint lays down, such as “cheezie”.
 	'brush.chip': 'Brush: {kind}',
 	// translator: The brush chip when the brush is an item that is spaced out. {kind} is the item; {spacing} says how far apart, such as “Every 3 cells”.
@@ -80,11 +88,6 @@ export const enMessages = {
 	'spacing.less': 'Place items closer together',
 	// translator: Accessible name of the button that puts dragged items further apart.
 	'spacing.more': 'Place items further apart',
-
-	// translator: Accessible name of the row of tabs that switch the palette between tiles, items and enemies.
-	'palette.groups': 'Palette groups',
-	// translator: Accessible name of the list of choices in the palette. {group} is the tab’s name.
-	'palette.list': '{group} to paint',
 
 	// translator: Accessible name of the level canvas. {name} is the level’s name; the size is in cells.
 	'canvas.label': 'Level canvas, {name}, {width} by {height} cells',
@@ -207,37 +210,18 @@ export const enMessages = {
 
 	// translator: Heading of the panel that lists the words the person can paint or place with.
 	'palette.title': 'Palette',
-	// translator: Heading of the Palette’s list of tile words (the kinds of ground and wall).
-	'palette.tiles': 'Tiles',
-	// translator: Heading of the Palette’s list of item words (collectables, such as a key).
-	'palette.items': 'Items',
-	// translator: Heading of the Palette’s list of enemy words.
-	'palette.enemies': 'Enemies',
+	// translator: Heading of the Palette section with the kinds of ground and wall: blocks, slopes, doors and the like.
+	'palette.section.terrain': 'Terrain',
+	// translator: Heading of the Palette section with the things that hurt, such as spikes.
+	'palette.section.hazards': 'Hazards',
+	// translator: Heading of the Palette section with the collectable items, such as a cookie or a key.
+	'palette.section.treats': 'Treats',
+	// translator: Heading of the Palette section with the enemies and the props that are placed like enemies.
+	'palette.section.enemies': 'Enemies',
+	// translator: Heading of the Palette section with the markers of a level, such as its exit.
+	'palette.section.markers': 'Markers',
 	// translator: Shown in place of the Palette’s item and enemy lists while the words are loading or unavailable.
 	'palette.unavailable': 'The word list is not available.',
-
-	// translator: Label of the text field in which a line of script is typed, with word completion.
-	'compose.label': 'Script line',
-	// translator: Hint for the script line field. “Tab” and “Enter” are key names.
-	'compose.hint': 'Type a word, then press Tab or Enter to complete it.',
-	// translator: Accessible name of the list of suggested words under the script line field.
-	'compose.suggestions': 'Word suggestions',
-	// translator: Spoken when suggestions appear. {count} is how many.
-	'compose.count.one': '{count} suggestion',
-	// translator: Spoken when suggestions appear. {count} is how many.
-	'compose.count.other': '{count} suggestions',
-	// translator: What kind of word a suggestion is. A statement is a line of the script, such as “paint”.
-	'compose.kind.statement': 'statement',
-	// translator: What kind of word a suggestion is. A section is a heading in the script, such as “edits”.
-	'compose.kind.section': 'section',
-	// translator: What kind of word a suggestion is. A segment is a kind of terrain.
-	'compose.kind.segment': 'terrain',
-	// translator: What kind of word a suggestion is. A tile is a kind of ground or wall.
-	'compose.kind.tile': 'tile',
-	// translator: What kind of word a suggestion is. An item is a collectable.
-	'compose.kind.item': 'item',
-	// translator: What kind of word a suggestion is.
-	'compose.kind.enemy': 'enemy',
 
 	// translator: Heading of the panel that shows what Claude has proposed and the person has not yet answered.
 	'ghosts.title': 'Proposals',
@@ -254,12 +238,12 @@ export const enMessages = {
 	// translator: Note that the proposals can be seen but not yet accepted or rejected here.
 	'ghosts.readOnly': 'You can see proposals here. Accepting and rejecting them comes later.',
 
-	// translator: Verb phrase on a button. Moves the Script panel out of the main window into a window of its own.
-	'panel.tearOff': 'Tear off',
 	// translator: Verb phrase on a button. Closes a panel’s own window and puts the panel back in the main window.
 	'panel.dockBack': 'Dock back',
-	// translator: Shown in the main window in place of the Script panel while the panel is in its own window.
-	'panel.scriptTornOff': 'The Script panel is open in its own window.',
+	// translator: Shown in the main window in place of a panel while the panel is in its own window. {title} is the panel’s name, such as “Script”.
+	'panel.tornOff': 'The {title} panel is open in its own window.',
+	// translator: Name of a docked panel’s tab, or of its folded dock’s rail button, while the panel is in its own window. {title} is the panel’s name.
+	'panel.awayTitle': '{title} (own window)',
 	// translator: Label of the grip a person drags, or moves with the arrow keys, to move a floating panel. {title} is the panel’s name.
 	'float.move': 'Move {title}',
 	// translator: Label of the corner grip a person drags, or presses the arrow keys on, to resize a floating panel. {title} is the panel’s name.
@@ -301,6 +285,8 @@ export const enMessages = {
 	'cmdPalette.group.view': 'View',
 	// translator: Heading in the command palette above the commands from the Window menu.
 	'cmdPalette.group.window': 'Window',
+	// translator: Heading in the command palette above the commands from the Help menu.
+	'cmdPalette.group.help': 'Help',
 	// translator: Heading in the command palette above the commands that move to a place in the level, such as a line of its script.
 	'cmdPalette.group.goto': 'Go to',
 	// translator: Why a command in the command palette is dimmed: no level is open yet.
@@ -311,6 +297,10 @@ export const enMessages = {
 	'cmdPalette.showPanel': 'Show {panel}',
 	// translator: A command in the command palette. {panel} is the name of a panel, such as “Script”. Verb phrase.
 	'cmdPalette.hidePanel': 'Hide {panel}',
+	// translator: A command in the command palette. Moves a panel out of the main window into a window of its own. {panel} is the name of a panel, such as “Script”. Verb phrase.
+	'cmdPalette.tearOffPanel': 'Tear off {panel}',
+	// translator: A command in the command palette. Closes a panel’s own window and puts the panel back where it was. {panel} is the name of a panel, such as “Script”. Verb phrase.
+	'cmdPalette.dockPanelBack': 'Dock {panel} back',
 	// translator: A command in the command palette that chooses the brush. {name} is the tile, item or enemy, such as “cheezie”.
 	'cmdPalette.brush': 'Brush: {name}',
 	// translator: A command in the command palette. It asks for a line number, then shows that line of the level’s script. The three dots mean it asks for more input.
@@ -347,23 +337,26 @@ export const enMessages = {
 	// translator: Verb phrase on an icon button. Lets a docked panel float over the level. {title} is the panel’s name.
 	'dock.float': 'Float {title}',
 
+	// translator: Verb phrase on an icon button. Moves a panel out of the main window into a window of its own. {title} is the panel’s name.
+	'dock.tearOff': 'Tear off {title} into its own window',
+
 	// translator: Verb phrase on an icon button. Folds the open left dock into a thin rail that shows each panel’s icon and title.
 	'dock.fold.left': 'Fold the left dock',
 	// translator: Verb phrase on an icon button. Opens the folded left dock again.
 	'dock.unfold.left': 'Unfold the left dock',
-	// translator: Name of the thin strip along the left edge that a folded dock leaves. It holds one button for each panel in the dock.
+	// translator: Name of the thin strip along the left edge of the window beside the left dock. It holds one button for each panel in the dock, showing its icon and title.
 	'dock.rail.left': 'Left rail',
 	// translator: Verb phrase on an icon button. Folds the open right dock into a thin rail that shows each panel’s icon and title.
 	'dock.fold.right': 'Fold the right dock',
 	// translator: Verb phrase on an icon button. Opens the folded right dock again.
 	'dock.unfold.right': 'Unfold the right dock',
-	// translator: Name of the thin strip along the right edge that a folded dock leaves. It holds one button for each panel in the dock.
+	// translator: Name of the thin strip along the right edge of the window beside the right dock. It holds one button for each panel in the dock, showing its icon and title.
 	'dock.rail.right': 'Right rail',
 	// translator: Verb phrase on an icon button. Folds the open bottom dock into a thin rail that shows each panel’s icon and title.
 	'dock.fold.bottom': 'Fold the bottom dock',
 	// translator: Verb phrase on an icon button. Opens the folded bottom dock again.
 	'dock.unfold.bottom': 'Unfold the bottom dock',
-	// translator: Name of the thin strip along the bottom edge that a folded dock leaves. It holds one button for each panel in the dock.
+	// translator: Name of the thin strip along the bottom edge of the window beside the bottom dock. It holds one button for each panel in the dock, showing its icon and title.
 	'dock.rail.bottom': 'Bottom rail',
 	// translator: Name of a panel shown briefly over the level from a folded dock’s rail. {title} is the panel’s name.
 	'dock.peek': '{title}, peeking',
@@ -378,31 +371,51 @@ export const enMessages = {
 	'dock.resize.bottom': 'Resize the bottom dock',
 	// translator: The size of a dock shown while it is dragged. {size} is a number of pixels, so “264 px”.
 	'dock.size': '{size} px',
+	// translator: Announced to screen readers after a tab is moved with the keyboard. {title} is the panel’s name, {position} the tab’s new place counting from 1 and {total} how many tabs the dock group has.
+	'dock.tab.moved': '{title} moved to position {position} of {total}.',
+	// translator: Announced to screen readers after a panel is dragged into a dock. {title} is the panel’s name and {zone} the dock’s name, such as “Left dock”.
+	'dock.drag.docked': '{title} moved to the {zone}.',
+	// translator: Announced to screen readers after a docked panel is dragged out onto the level, where it floats. {title} is the panel’s name.
+	'dock.drag.floated': '{title} is floating over the level.',
+	// translator: Announced to screen readers when a drag of a panel is cancelled and the panel stays where it was. {title} is the panel’s name.
+	'dock.drag.cancelled': 'Move cancelled. {title} stays where it was.',
+	// translator: Name and tooltip of a button in a panel’s header. Makes the panel fill the editor’s whole workspace, with the level and the other panels hidden behind it. This is not the window’s own maximise button. {title} is the panel’s name.
+	'panel.maximise': 'Maximise {title}',
+	// translator: Tooltip of the button that maximises a panel. {title} is the panel’s name and {keys} the keys that do the same, such as “Ctrl+Shift+M”.
+	'panel.maximise.tip': 'Maximise {title} ({keys})',
+	// translator: Name and tooltip of a button in a maximised panel’s header. Puts the panel back where it was in the layout. {title} is the panel’s name.
+	'panel.restore': 'Restore {title}',
+	// translator: Tooltip of the button that restores a maximised panel. {title} is the panel’s name and {keys} the keys that do the same, such as “Ctrl+Shift+M”.
+	'panel.restore.tip': 'Restore {title} ({keys})',
+	// translator: Menu item and command in the View menu. Makes a panel fill the editor’s workspace. {panel} is the panel’s name.
+	'view.maximise': 'Maximise {panel}',
+	// translator: Menu item and command in the View menu, shown while a panel is maximised. Puts the panel back in the layout. {panel} is the panel’s name.
+	'view.restore': 'Restore {panel}',
 	// translator: Menu item in the View menu. Hides every docked and floating panel so the level has the whole window, and brings the same panels back when chosen again.
 	'view.levelFirst': 'Show the level only',
 
-	// translator: The name of the File menu in the application menu. Level files are opened, saved and closed from it.
+	// translator: The name of the File menu in the application menu. Level files are opened, saved and closed from it, and Preferences and Quit are in it.
 	'appMenu.file': 'File',
 	// translator: The name of the Edit menu in the application menu. Undo and Redo are in it.
 	'appMenu.edit': 'Edit',
 	// translator: The name of the View menu in the application menu. It shows or hides the editor’s panels.
 	'appMenu.view': 'View',
-	// translator: The name of the Window menu in the application menu. Preferences and About are in it.
+	// translator: The name of the Window menu in the application menu. Tearing a panel off into its own window, and docking it back, are in it.
 	'appMenu.window': 'Window',
+	// translator: The name of the Help menu in the application menu. About and the command palette are in it.
+	'appMenu.help': 'Help',
 	// translator: Verb on a File menu item. Closes the whole app.
 	'appMenu.quit': 'Quit',
 	// translator: Menu item that opens the Preferences window. The dots mean it opens a window.
 	'appMenu.preferences': 'Preferences…',
-	// translator: Menu item that opens the About window, which names the app and its version.
-	'appMenu.about': 'About',
+	// translator: Menu item in the Help menu that opens the About window, which names the app and its version. “Fizz Level Studio” is the product name.
+	'appMenu.about': 'About Fizz Level Studio',
 	// translator: Accessible name of the row of menus under the title bar.
 	'menuBar.label': 'Application menu',
 	// translator: Accessible name of the button that holds the menus that do not fit in the menu bar.
 	'menuBar.more': 'More menus',
-	// translator: The title of the Script panel’s own window.
-	'window.panelScript.title': 'Script',
-	// translator: A line shown in the Script panel’s own window until it is built.
-	'placeholder.panelScript': 'The script will appear here.',
+	// translator: A line shown in a panel’s own window while the main window has no level open, so the panel has nothing to show.
+	'panelWindow.noLevel': 'Open a level in the main window to use this panel.',
 
 	// translator: Heading of the panel with the undo and redo buttons.
 	'history.title': 'History',
@@ -427,10 +440,10 @@ export const enMessages = {
 	// translator: Accessible name of the editor’s main area, which holds the canvas, tools and panels.
 	'editor.region': 'Level editor',
 
-	// translator: Title bar text for a window showing a level. {name} is the level’s name.
-	'window.main.titled': '{name} — Fizz Level Studio',
-	// translator: Title bar text for a level with unsaved changes; the “•” marks them. {name} is the level’s name.
-	'window.main.titledDirty': '• {name} — Fizz Level Studio',
+	// translator: Title bar text and taskbar title for a window showing a level. {name} is the level’s name, and nothing else is added.
+	'window.main.titled': '{name}',
+	// translator: Title bar text and taskbar title for a level with unsaved changes; the “•” after the name marks them. {name} is the level’s name.
+	'window.main.titledDirty': '{name} •',
 	// translator: The title of the New level window, shown in its title bar.
 	'window.newWorld.title': 'New level',
 	// translator: The title of the Preferences window, shown in its title bar.
@@ -499,6 +512,17 @@ export const enMessages = {
 	'newLevel.createFailed': 'The level could not be created: {message}',
 	// translator: Accessible name of the list of pages in the Preferences window.
 	'preferences.navigation': 'Preferences pages',
+	// translator: The name of a Preferences page about how the app behaves in general, such as its title bar. It is the page’s heading and its entry in the list of pages.
+	'preferences.page.general': 'General',
+	// translator: The title of a group of settings about the window’s title bar and the menus under it.
+	'preferences.group.titleBar': 'Title bar',
+	// translator: The name of a switch. When on, the application’s menus sit in a row under the title bar.
+	'preferences.menuBar.label': 'Show the menu bar',
+	// translator: Explains the Show the menu bar switch. “App menu” is the button at the left of the title bar that shows the app’s name.
+	'preferences.menuBar.description':
+		'Puts the menus in a bar below the title bar. The app menu in the title bar then becomes plain text.',
+	// translator: Explains the reset action on the General page.
+	'preferences.reset.descriptionGeneral': 'Puts the title bar choices back to their defaults.',
 	// translator: The name of a Preferences page about how the app looks. It is the page’s heading and its entry in the list of pages.
 	'preferences.page.appearance': 'Appearance',
 	// translator: The title of a group of settings about colour.

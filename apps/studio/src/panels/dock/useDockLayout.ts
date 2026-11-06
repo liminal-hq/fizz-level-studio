@@ -3,14 +3,16 @@
 // (c) Copyright 2026 Liminal HQ, Scott Morris
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 //
-// The name differs from `usePanelDock`, which follows the Script panel's own window. This hook owns
+// Panels in windows of their own are followed by `usePanelWindows`. This hook owns
 // the active workspace (where each panel is) and the session (what is peeking, what is hidden for
 // the level). Every move goes through the pure reducers; the workspace is written back after a
 // short pause and once more when the editor closes. A failed read or write leaves the layout as it
 // is on screen.
 
 import type { DockSettings } from '@liminal-hq/fizz-studio-protocol/generated/DockSettings';
+import type { ToolPickerPlacement } from '@liminal-hq/fizz-studio-protocol/generated/ToolPickerPlacement';
 import type { Workspace } from '@liminal-hq/fizz-studio-protocol/generated/Workspace';
+import type { WindowPlacement } from '@liminal-hq/fizz-studio-protocol/generated/WindowPlacement';
 import type { ZoneId } from '@liminal-hq/fizz-studio-protocol/generated/ZoneId';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { DockClient } from '../../services/dockClient';
@@ -23,19 +25,26 @@ import { moveFloat, raiseFloat, toggleFloatCollapsed } from './dockFloat';
 import {
 	INITIAL_SESSION,
 	activateTab,
+	bringBack,
 	closePeek,
+	maximiseDocked,
+	restorePanel,
 	dockPanel,
 	floatPanel,
 	peekPanel,
+	placeWindow,
+	reorderTab,
 	pinPanel,
 	resizeZone,
+	sendToWindow,
 	setPanelVisible,
 	settleSession,
 	toggleLevelFirst,
 	toggleZone,
 	type DockSession,
 } from './dockLayout';
-import { PANEL_IDS, defaultDock, defaultWorkspace } from './dockModel';
+import { dropOnZone } from './dockDrop';
+import { MAX_EXTENT, PANEL_IDS, defaultDock, defaultWorkspace } from './dockModel';
 import { normaliseDock, resetWorkspace } from './dockNormalise';
 import { shownPanels, visibleWorkspace } from './dockView';
 
@@ -45,7 +54,7 @@ export const FALLBACK_WINDOW: Size = { w: 1280, h: 800 };
 export interface DockLayoutHandle {
 	/** The saved arrangement, hidden panels included. */
 	workspace: Workspace;
-	/** What to draw: hidden panels and, in level-first, the open zones taken out. */
+	/** What to draw: hidden panels taken out and, in level-first, every zone folded to its rail. */
 	view: Workspace;
 	session: DockSession;
 	/** The window the caps are measured against. */
@@ -57,6 +66,12 @@ export interface DockLayoutHandle {
 	activate(id: string): void;
 	dockTo(id: string, zone: ZoneId): void;
 	floatPanel(id: string): void;
+	/** Floats a panel at a rectangle, as a drop on the level does. */
+	floatAt(id: string, rect: Rect): void;
+	/** Docks a panel where a drop put it: the dock, the tab group and the place among its tabs. */
+	dropOn(id: string, zone: ZoneId, group: number | null, index: number | null): void;
+	/** Moves a docked panel to a place among its group's tabs. */
+	reorder(id: string, index: number): void;
 	setVisible(id: string, visible: boolean): void;
 	toggleZone(zone: ZoneId): void;
 	resizeZone(zone: ZoneId, size: number): void;
@@ -69,8 +84,26 @@ export interface DockLayoutHandle {
 	closePeek(): void;
 	pin(id: string): void;
 	toggleLevelFirst(): void;
+	/** Makes an expandable panel fill the workspace (not saved). */
+	maximise(id: string): void;
+	/** Puts the maximised panel back. */
+	restore(): void;
 	/** Puts the active workspace back to its shipped arrangement. */
 	reset(): void;
+	/** True once the saved arrangement has been read (or could not be). */
+	loaded: boolean;
+	/** Records a panel as in a window of its own, and where that window is when `at` is given. */
+	sendToWindow(id: string, at?: WindowPlacement): void;
+	/** Brings a panel in a window of its own back to its zone, or to floating. */
+	bringBack(id: string): void;
+	/** Records where a panel's window is, whatever the panel's place now. */
+	placeWindow(id: string, at: WindowPlacement): void;
+	/** Where the tool picker was moved to in this workspace; null is the map's top-left corner. */
+	toolPicker: ToolPickerPlacement | null;
+	/** Records where the tool picker was moved to, in whole pixels from the map's top-left corner. */
+	placeToolPicker(at: ToolPickerPlacement): void;
+	/** Writes a change waiting on its pause now; resolves when Rust has it. */
+	flush(): Promise<void>;
 }
 
 /**
@@ -89,6 +122,7 @@ export function useDockLayout(client: DockClient, windowSize: Size, area: Size):
 	rawSessionRef.current = rawSession;
 	const latest = useRef(dock);
 	const touched = useRef(false);
+	const [loaded, setLoaded] = useState(false);
 	const dirty = useRef(false);
 	const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -122,15 +156,17 @@ export function useDockLayout(client: DockClient, windowSize: Size, area: Size):
 		let live = true;
 		client.get().then(
 			(saved) => {
-				if (!live || touched.current) return;
+				if (!live) return;
+				if (touched.current) return setLoaded(true);
 				const repaired = normaliseDock(
 					saved,
 					isMeasured(sized.current) ? sized.current : undefined,
 				);
 				latest.current = repaired;
 				setDock(repaired);
+				setLoaded(true);
 			},
-			() => {},
+			() => live && setLoaded(true),
 		);
 		return () => {
 			live = false;
@@ -165,7 +201,29 @@ export function useDockLayout(client: DockClient, windowSize: Size, area: Size):
 		(id: string, zone: ZoneId) => edit((ws) => dockPanel(ws, id, zone)),
 		[edit],
 	);
+	const toWindow = useCallback(
+		(id: string, at?: WindowPlacement) => edit((ws) => sendToWindow(ws, id, at)),
+		[edit],
+	);
+	const record = useCallback(
+		(id: string, at: WindowPlacement) => edit((ws) => placeWindow(ws, id, at)),
+		[edit],
+	);
+	const fromWindow = useCallback((id: string) => edit((ws) => bringBack(ws, id)), [edit]);
 	const float = useCallback((id: string) => edit((ws) => floatPanel(ws, id)), [edit]);
+	const floatAt = useCallback(
+		(id: string, rect: Rect) => edit((ws) => floatPanel(ws, id, rect)),
+		[edit],
+	);
+	const dropOn = useCallback(
+		(id: string, zone: ZoneId, group: number | null, index: number | null) =>
+			edit((ws) => dropOnZone(ws, id, zone, group, index)),
+		[edit],
+	);
+	const reorder = useCallback(
+		(id: string, index: number) => edit((ws) => reorderTab(ws, id, index)),
+		[edit],
+	);
 	const setVisible = useCallback(
 		(id: string, visible: boolean) => edit((ws) => setPanelVisible(ws, id, visible)),
 		[edit],
@@ -188,6 +246,16 @@ export function useDockLayout(client: DockClient, windowSize: Size, area: Size):
 		[edit],
 	);
 	const raise = useCallback((id: PanelId) => edit((ws) => raiseFloat(ws, id)), [edit]);
+	const placeToolPicker = useCallback(
+		(at: ToolPickerPlacement) =>
+			edit((ws) => {
+				const x = Math.max(0, Math.min(Math.round(at.x), MAX_EXTENT));
+				const y = Math.max(0, Math.min(Math.round(at.y), MAX_EXTENT));
+				if (ws.tool_picker?.x === x && ws.tool_picker?.y === y) return ws;
+				return { ...ws, tool_picker: { x, y } };
+			}),
+		[edit],
+	);
 
 	const peek = useCallback(
 		(id: string) => setRawSession((s) => peekPanel(settleSession(s, current()), current(), id)),
@@ -203,7 +271,25 @@ export function useDockLayout(client: DockClient, windowSize: Size, area: Size):
 		},
 		[edit],
 	);
-	const levelFirst = useCallback(() => setRawSession((s) => toggleLevelFirst(s)), []);
+	// Maximising wins over level-first: while a panel fills the workspace, level-first is ignored.
+	const levelFirst = useCallback(
+		() => setRawSession((s) => (s.maximised !== null ? s : toggleLevelFirst(s))),
+		[],
+	);
+	// A panel stays where it is when maximised. A panel in a folded dock (or peeking from its rail)
+	// first unfolds its zone and becomes the showing tab; Restore leaves the dock open. The
+	// panel is drawn once, in the open dock, and stays mounted while it fills the workspace.
+	const maximise = useCallback(
+		(id: string) => {
+			const settled = settleSession(rawSessionRef.current, current());
+			const moved = maximiseDocked(current(), settled, id);
+			if (moved.workspace === current() && moved.session === settled) return;
+			edit(() => moved.workspace);
+			setRawSession(moved.session);
+		},
+		[edit],
+	);
+	const restore = useCallback(() => setRawSession((s) => restorePanel(s)), []);
 
 	const reset = useCallback(() => {
 		if (timer.current) clearTimeout(timer.current);
@@ -260,6 +346,9 @@ export function useDockLayout(client: DockClient, windowSize: Size, area: Size):
 		activate,
 		dockTo,
 		floatPanel: float,
+		floatAt,
+		dropOn,
+		reorder,
 		setVisible,
 		toggleZone: toggleZoneFold,
 		resizeZone: resize,
@@ -271,6 +360,15 @@ export function useDockLayout(client: DockClient, windowSize: Size, area: Size):
 		closePeek: closePeekNow,
 		pin,
 		toggleLevelFirst: levelFirst,
+		maximise,
+		restore,
 		reset,
+		loaded,
+		sendToWindow: toWindow,
+		bringBack: fromWindow,
+		placeWindow: record,
+		toolPicker: workspace.tool_picker ?? null,
+		placeToolPicker,
+		flush,
 	};
 }

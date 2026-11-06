@@ -50,6 +50,7 @@ function cloneSnapshot(snapshot: LevelSnapshot): LevelSnapshot {
 			cells: [...snapshot.view.cells],
 			items: snapshot.view.items.map((item) => ({ ...item })),
 			spawns: snapshot.view.spawns.map((spawn) => ({ ...spawn })),
+			markers: snapshot.view.markers.map((marker) => ({ ...marker })),
 		},
 	};
 }
@@ -101,9 +102,10 @@ export class FakeLevelClient implements LevelClient {
 		const joins = mergeKey !== undefined && this.openKey === mergeKey && this.undoStack.length > 0;
 		const before = this.current;
 		const next = cloneSnapshot(before);
-		this.apply(next, edit);
-		next.revision = before.revision + 1n;
 		next.text = `${before.text.replace(/\n?$/, '\n')}${editLine(edit)}\n`;
+		// The edit's line is the last one, before the text's final newline.
+		this.apply(next, edit, next.text.split('\n').length - 1);
+		next.revision = before.revision + 1n;
 		next.author = 'person';
 		next.can_redo = false;
 		next.redo_name = null;
@@ -139,6 +141,11 @@ export class FakeLevelClient implements LevelClient {
 		const next = cloneSnapshot(entry.before);
 		next.revision = this.current.revision + 1n;
 		return this.settle(next);
+	}
+
+	async read(id: string): Promise<LevelSnapshot> {
+		this.check(id);
+		return this.snapshot();
 	}
 
 	async cellLine(id: string, x: number, y: number): Promise<number | null> {
@@ -180,18 +187,25 @@ export class FakeLevelClient implements LevelClient {
 		return this.snapshot();
 	}
 
-	private apply(snapshot: LevelSnapshot, edit: LevelEdit): void {
+	private apply(snapshot: LevelSnapshot, edit: LevelEdit, line: number): void {
 		const { view } = snapshot;
 		if (edit.kind === 'row') {
 			for (let x = edit.x[0]; x <= edit.x[1]; x += Math.max(edit.by, 1)) {
 				if (x >= 0 && x < view.width && edit.y < view.height) {
-					view.items.push({ kind: edit.item, x, y: edit.y });
+					view.items.push({ kind: edit.item, x, y: edit.y, line });
 				}
 			}
 			return;
 		}
 		if (edit.kind === 'spawn') {
-			view.spawns.push({ kind: edit.enemy, x: edit.x, y: edit.y, dir: null, ride: false });
+			view.spawns.push({
+				kind: edit.enemy,
+				x: edit.x,
+				y: edit.y,
+				dir: null,
+				ride: false,
+				line,
+			});
 			return;
 		}
 		const columns = edit.x.flatMap(([from, to]) => span(from, to));
@@ -200,7 +214,7 @@ export class FakeLevelClient implements LevelClient {
 		if (edit.kind === 'place') {
 			for (const y of rows) {
 				for (const x of columns) {
-					if (inside(x, y)) view.items.push({ kind: edit.item, x, y });
+					if (inside(x, y)) view.items.push({ kind: edit.item, x, y, line });
 				}
 			}
 			return;

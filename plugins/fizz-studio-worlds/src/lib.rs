@@ -58,6 +58,7 @@ pub fn init_with<R: Runtime>(config: RecoveryConfig) -> TauriPlugin<R> {
             commands::language_words,
             commands::level_cell_line,
             commands::level_ghosts,
+            commands::level_snapshot,
         ])
         .setup(move |app, _api| {
             app.manage(Worlds::from_config(app, config));

@@ -23,11 +23,11 @@
 }
 
 .button {
-	composes: keycap from '../theme/keycap.module.css';
+	composes: keycap from '@liminal-hq/fizz-studio-chrome/Keycap/keycap.module.css';
 }
 
 .entry {
-	composes: keycap from '../theme/keycap.module.css';
+	composes: keycap from '@liminal-hq/fizz-studio-chrome/Keycap/keycap.module.css';
 }
 
 .marked:focus-visible {
@@ -36,7 +36,7 @@
 }
 
 .primary {
-	composes: keycap lit from '../theme/keycap.module.css';
+	composes: keycap lit from '@liminal-hq/fizz-studio-chrome/Keycap/keycap.module.css';
 }
 
 .recent {
@@ -119,9 +119,6 @@
 .actions {
 	display: flex;
 	gap: 0.5rem;
-	padding: 0.4rem 0.75rem;
-	background: var(--fls-bg-raised);
-	border-bottom: 1px solid var(--fls-border-subtle);
 }
 
 .editorBody {

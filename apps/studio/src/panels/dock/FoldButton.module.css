@@ -1,5 +1,5 @@
 .key {
-	composes: keycap from '../../theme/keycap.module.css';
+	composes: keycap from '@liminal-hq/fizz-studio-chrome/Keycap/keycap.module.css';
 	flex: none;
 	width: var(--fls-hit-target);
 	height: var(--fls-hit-target);

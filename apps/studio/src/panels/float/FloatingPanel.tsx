@@ -1,4 +1,4 @@
-// A panel that floats over the editor: dragged by its header, resized by its corner, collapsible
+// A panel that floats over the editor: dragged by its header, resized from any edge, collapsible
 //
 // (c) Copyright 2026 Liminal HQ, Scott Morris
 // SPDX-License-Identifier: Apache-2.0 OR MIT
@@ -13,7 +13,16 @@ import {
 } from 'react';
 import { t } from '../../i18n/messages';
 import styles from './FloatingPanel.module.css';
-import { isMeasured, keyDelta, moveRect, resizeRect, type Rect, type Size } from './panelGeometry';
+import {
+	isMeasured,
+	keyDelta,
+	moveRect,
+	resizeRect,
+	resizeRectFrom,
+	type Rect,
+	type ResizeHandle,
+	type Size,
+} from './panelGeometry';
 import { snapMoveWithin, snapResize, type Guide } from './snap';
 
 export interface FloatingPanelProps {
@@ -39,6 +48,17 @@ export interface FloatingPanelProps {
 	neighbours?: readonly Rect[];
 	/** The guide lines for the edges a drag is locked to; empty when the drag ends. */
 	onGuides?: (guides: Guide[]) => void;
+	/**
+	 * Where the pointer is while the header moves the panel (null when the move ends or is
+	 * cancelled), so the docks can light up under it.
+	 */
+	onDockHover?: (point: { x: number; y: number } | null) => void;
+	/** The header was let go at this point: return true when that docked the panel (it is then not placed). */
+	onDockDrop?: (point: { x: number; y: number }) => boolean;
+	/** The panel fills the workspace: its header offers only `actions`, and it cannot be moved. */
+	maximised?: boolean;
+	/** Another panel is maximised: this one stays mounted, hidden. */
+	suppressed?: boolean;
 	/** Extra controls in the header, such as a Tear off button. */
 	actions?: ReactNode;
 	children: ReactNode;
@@ -52,7 +72,11 @@ interface Gesture {
 	x: number;
 	y: number;
 	start: Rect;
+	handle: ResizeHandle;
 }
+
+/** The handles that only a pointer uses; the corner grip is the one a keyboard reaches. */
+const POINTER_HANDLES: readonly ResizeHandle[] = ['n', 's', 'e', 'w', 'ne', 'nw', 'sw'];
 
 /**
  * A positioned window inside an editor area. It is controlled: the caller keeps the rectangle and
@@ -74,6 +98,10 @@ export function FloatingPanel({
 	onRaise,
 	neighbours = NO_NEIGHBOURS,
 	onGuides,
+	onDockHover,
+	onDockDrop,
+	maximised = false,
+	suppressed = false,
 	actions,
 	children,
 }: FloatingPanelProps) {
@@ -89,6 +117,8 @@ export function FloatingPanel({
 	onChangeRef.current = onChange;
 	const onGuidesRef = useRef(onGuides);
 	onGuidesRef.current = onGuides;
+	const onDockHoverRef = useRef(onDockHover);
+	onDockHoverRef.current = onDockHover;
 	const stopEscape = useRef<(() => void) | null>(null);
 
 	// Escape ends a pointer drag wherever the keyboard focus is, putting the panel back.
@@ -99,6 +129,7 @@ export function FloatingPanel({
 			gesture.current = null;
 			stopEscape.current?.();
 			onGuidesRef.current?.([]);
+			onDockHoverRef.current?.(null);
 			onChangeRef.current(g.start, true);
 		};
 		document.addEventListener('keydown', hear);
@@ -109,27 +140,38 @@ export function FloatingPanel({
 	};
 	useEffect(() => () => stopEscape.current?.(), []);
 
-	const begin = (event: PointerEvent<HTMLElement>) => {
-		if (event.button !== 0) return;
+	const begin = (event: PointerEvent<HTMLElement>, handle: ResizeHandle = 'se') => {
+		if (event.button !== 0 || maximised) return;
 		watchEscape();
-		event.currentTarget.setPointerCapture?.(event.pointerId);
 		gesture.current = {
 			pointer: event.pointerId,
 			x: event.clientX,
 			y: event.clientY,
 			start: live.current,
+			handle,
 		};
+		// Capture keeps the drag going outside the handle; it throws for a pointer that is no
+		// longer active, and the gesture still works from the events the handle receives.
+		try {
+			event.currentTarget.setPointerCapture?.(event.pointerId);
+		} catch {
+			// Ignored: see above.
+		}
 	};
 
 	// A pointer drag snaps to the area and the neighbours; the keys place a panel exactly.
-	const drag = (start: Rect, dx: number, dy: number, kind: 'move' | 'resize') => {
+	const drag = (g: Gesture, dx: number, dy: number, kind: 'move' | 'resize') => {
+		const { start, handle } = g;
 		if (kind === 'move') {
 			const moved = moveRect(start, dx, dy, min, area, collapsed);
 			return snapMoveWithin(moved, min, area, neighbours, collapsed);
 		}
-		const resized = resizeRect(start, dx, dy, min, area);
-		const snapped = snapResize(resized, area, neighbours);
-		return { rect: resizeRect(snapped.rect, 0, 0, min, area), guides: snapped.guides };
+		const resized = resizeRectFrom(start, handle, dx, dy, min, area);
+		const snapped = snapResize(resized, area, neighbours, handle);
+		return {
+			rect: resizeRectFrom(snapped.rect, handle, 0, 0, min, area),
+			guides: snapped.guides,
+		};
 	};
 
 	const follow = (event: PointerEvent<HTMLElement>, kind: 'move' | 'resize') => {
@@ -137,8 +179,9 @@ export function FloatingPanel({
 		if (!g || g.pointer !== event.pointerId) return;
 		const dx = event.clientX - g.x;
 		const dy = event.clientY - g.y;
-		const { rect: next, guides } = drag(g.start, dx, dy, kind);
+		const { rect: next, guides } = drag(g, dx, dy, kind);
 		onGuides?.(guides);
+		if (kind === 'move') onDockHover?.({ x: event.clientX, y: event.clientY });
 		onChange(next, false);
 	};
 
@@ -147,15 +190,21 @@ export function FloatingPanel({
 		if (!g || g.pointer !== event.pointerId) return;
 		gesture.current = null;
 		stopEscape.current?.();
-		event.currentTarget.releasePointerCapture?.(event.pointerId);
+		try {
+			event.currentTarget.releasePointerCapture?.(event.pointerId);
+		} catch {
+			// The pointer is already gone.
+		}
 		onGuides?.([]);
+		if (kind === 'move') onDockHover?.(null);
 		if (cancelled) {
 			onChange(g.start, true);
 			return;
 		}
+		if (kind === 'move' && onDockDrop?.({ x: event.clientX, y: event.clientY })) return;
 		const dx = event.clientX - g.x;
 		const dy = event.clientY - g.y;
-		onChange(drag(g.start, dx, dy, kind).rect, true);
+		onChange(drag(g, dx, dy, kind).rect, true);
 	};
 
 	const escapeDrag = (event: KeyboardEvent<HTMLElement>): boolean => {
@@ -166,6 +215,7 @@ export function FloatingPanel({
 		gesture.current = null;
 		keyOrigin.current = null;
 		event.preventDefault();
+		onDockHover?.(null);
 		onChange(origin, true);
 		return true;
 	};
@@ -201,67 +251,85 @@ export function FloatingPanel({
 			className={styles.panel}
 			style={style}
 			data-collapsed={collapsed || undefined}
+			data-panel-maximised={maximised ? '' : undefined}
+			data-suppressed={suppressed ? '' : undefined}
 			data-panel={id}
 			aria-labelledby={titleId}
 			onPointerDownCapture={onRaise}
 			onFocusCapture={onRaise}
 		>
-			<header
-				className={styles.header}
-				onPointerDown={(event) => {
-					const button = (event.target as HTMLElement).closest('button');
-					if (button && !button.hasAttribute('data-grip')) return;
-					begin(event);
-				}}
-				onPointerMove={(event) => follow(event, 'move')}
-				onPointerUp={(event) => end(event, 'move')}
-				onPointerCancel={(event) => end(event, 'move', true)}
-			>
-				<button
-					type="button"
-					className={styles.grip}
-					data-grip=""
-					aria-label={t('float.move', { title })}
-					onKeyDown={(event) => onGripKey(event, 'move')}
-					onBlur={() => (keyOrigin.current = null)}
+			<div className={styles.frame}>
+				<header
+					className={styles.header}
+					onPointerDown={(event) => {
+						const button = (event.target as HTMLElement).closest('button');
+						if (button && !button.hasAttribute('data-grip')) return;
+						begin(event);
+					}}
+					onPointerMove={(event) => follow(event, 'move')}
+					onPointerUp={(event) => end(event, 'move')}
+					onPointerCancel={(event) => end(event, 'move', true)}
 				>
-					<svg aria-hidden="true" width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
-						<circle cx="3" cy="3" r="1.2" />
-						<circle cx="9" cy="3" r="1.2" />
-						<circle cx="3" cy="6" r="1.2" />
-						<circle cx="9" cy="6" r="1.2" />
-						<circle cx="3" cy="9" r="1.2" />
-						<circle cx="9" cy="9" r="1.2" />
-					</svg>
-				</button>
-				<h2 id={titleId} className={styles.title}>
-					{title}
-				</h2>
-				{subtitle && <span className={styles.subtitle}>{subtitle}</span>}
-				<span className={styles.spacer} />
-				{actions}
-				<button
-					type="button"
-					className={styles.chevron}
-					aria-expanded={!collapsed}
-					aria-label={t(label, { title })}
-					title={t(label, { title })}
-					onClick={onToggleCollapsed}
-				>
-					<svg
-						aria-hidden="true"
-						width="14"
-						height="14"
-						viewBox="0 0 16 16"
-						fill="none"
-						stroke="currentColor"
-						strokeWidth="1.5"
+					<button
+						type="button"
+						className={styles.grip}
+						data-grip=""
+						aria-label={t('float.move', { title })}
+						onKeyDown={(event) => onGripKey(event, 'move')}
+						onBlur={() => (keyOrigin.current = null)}
 					>
-						<path d={collapsed ? 'M4 6l4 4 4-4' : 'M4 10l4-4 4 4'} />
-					</svg>
-				</button>
-			</header>
-			<div className={styles.body}>{children}</div>
+						<svg aria-hidden="true" width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
+							<circle cx="3" cy="3" r="1.2" />
+							<circle cx="9" cy="3" r="1.2" />
+							<circle cx="3" cy="6" r="1.2" />
+							<circle cx="9" cy="6" r="1.2" />
+							<circle cx="3" cy="9" r="1.2" />
+							<circle cx="9" cy="9" r="1.2" />
+						</svg>
+					</button>
+					<h2 id={titleId} className={styles.title}>
+						{title}
+					</h2>
+					{subtitle && <span className={styles.subtitle}>{subtitle}</span>}
+					<span className={styles.spacer} />
+					{actions}
+					<button
+						type="button"
+						className={styles.chevron}
+						aria-expanded={!collapsed}
+						aria-label={t(label, { title })}
+						title={t(label, { title })}
+						onClick={onToggleCollapsed}
+					>
+						<svg
+							aria-hidden="true"
+							width="14"
+							height="14"
+							viewBox="0 0 16 16"
+							fill="none"
+							stroke="currentColor"
+							strokeWidth="1.5"
+						>
+							<path d={collapsed ? 'M4 6l4 4 4-4' : 'M4 10l4-4 4 4'} />
+						</svg>
+					</button>
+				</header>
+				<div className={styles.body}>{children}</div>
+			</div>
+			{!collapsed &&
+				!maximised &&
+				POINTER_HANDLES.map((handle) => (
+					<div
+						key={handle}
+						className={`${styles.edge} ${styles[`edge-${handle}`]}`}
+						data-resize-handle={handle}
+						aria-hidden="true"
+						onPointerDown={(event) => begin(event, handle)}
+						onPointerMove={(event) => follow(event, 'resize')}
+						onPointerUp={(event) => end(event, 'resize')}
+						onPointerCancel={(event) => end(event, 'resize', true)}
+					/>
+				))}
 			{!collapsed && (
 				<button
 					type="button"

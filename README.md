@@ -67,8 +67,10 @@ import { print } from './packages/language/src/printer.ts';
 import { toRust } from './packages/language/src/rust.ts';
 
 const ast = parseOrThrow(text);
-const rust = toRust(ast, 'crater_fizz');          // Rust source for the level
-const next = print(appendEdits(ast, [{ op: 'clear', xs: [{ lo: 12, hi: 14 }], ys: [{ lo: 8, hi: 8 }] }]));
+const rust = toRust(ast, 'crater_fizz'); // Rust source for the level
+const next = print(
+	appendEdits(ast, [{ op: 'clear', xs: [{ lo: 12, hi: 14 }], ys: [{ lo: 8, hi: 8 }] }]),
+);
 ```
 
 The generated level function calls the private `Builder` and `Seg`, so it must live in `levels.rs` or in a child module of it that starts with `use super::*;` (the scratch copy does the latter with `include!`). The generated overworld function needs `OverworldBuilder`, which is not in the game yet.
@@ -107,15 +109,15 @@ Or, as a project `.mcp.json`:
 
 ```json
 {
-  "mcpServers": {
-    "fizz-level-studio": {
-      "command": "bun",
-      "args": [
-        "/path/to/fizz-level-studio/packages/mcp/src/server.ts",
-        "/path/to/fizz-level-studio/levels/crater-play.fizz"
-      ]
-    }
-  }
+	"mcpServers": {
+		"fizz-level-studio": {
+			"command": "bun",
+			"args": [
+				"/path/to/fizz-level-studio/packages/mcp/src/server.ts",
+				"/path/to/fizz-level-studio/levels/crater-play.fizz"
+			]
+		}
+	}
 }
 ```
 
@@ -161,17 +163,17 @@ Claude  : undo -> Undid h2.          (refused with a clear message if the person
 
 ### Tools
 
-| Tool | What it does |
-| --- | --- |
-| `get_level` | Header (name, id, size, ground, theme, area), the script with line numbers, counts (tiles, enemies, treats), start, exit, the mode (read-only), pending proposals and notes. |
-| `get_region` | A text picture of a rectangle `{x0,y0,x1,y1}` (one character per cell, ruler, legend), the entities inside it and any notes. With `include_pending` true, pending proposals appear in a second, separate picture showing only the cells they would change. |
-| `list_kinds` | Every tile, item, enemy, terrain segment, liquid, level id, theme and area word, read from the language package, with the statement that places each. |
-| `edit_level` | `{lines, title, why?}`; appends validated `paint`, `clear` and `place` lines. Returns the mode, the id and the status (`pending` or `applied`). |
-| `get_proposal_state` | Status of one history entry or all, with the person's reason when given. |
-| `add_note` | Pins text to a tile `{x,y}` or a rectangle `{x0,y0,x1,y1}`; kept in the sidecar and shown by `get_level` and `get_region`. |
-| `run_checks` | Has a start, has an exit, treats placed, edits in bounds; and the gap check. |
-| `undo` | Reverts only Claude's own last applied step. Refuses if the file was edited after it in a way that conflicts (its lines are no longer the last statements in the file). |
-| `get_changes` | History entries since an id (`since:"h4"`) or the last N. |
+| Tool                 | What it does                                                                                                                                                                                                                                               |
+| -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `get_level`          | Header (name, id, size, ground, theme, area), the script with line numbers, counts (tiles, enemies, treats), start, exit, the mode (read-only), pending proposals and notes.                                                                               |
+| `get_region`         | A text picture of a rectangle `{x0,y0,x1,y1}` (one character per cell, ruler, legend), the entities inside it and any notes. With `include_pending` true, pending proposals appear in a second, separate picture showing only the cells they would change. |
+| `list_kinds`         | Every tile, item, enemy, terrain segment, liquid, level id, theme and area word, read from the language package, with the statement that places each.                                                                                                      |
+| `edit_level`         | `{lines, title, why?}`; appends validated `paint`, `clear` and `place` lines. Returns the mode, the id and the status (`pending` or `applied`).                                                                                                            |
+| `get_proposal_state` | Status of one history entry or all, with the person's reason when given.                                                                                                                                                                                   |
+| `add_note`           | Pins text to a tile `{x,y}` or a rectangle `{x0,y0,x1,y1}`; kept in the sidecar and shown by `get_level` and `get_region`.                                                                                                                                 |
+| `run_checks`         | Has a start, has an exit, treats placed, edits in bounds; and the gap check.                                                                                                                                                                               |
+| `undo`               | Reverts only Claude's own last applied step. Refuses if the file was edited after it in a way that conflicts (its lines are no longer the last statements in the file).                                                                                    |
+| `get_changes`        | History entries since an id (`since:"h4"`) or the last N.                                                                                                                                                                                                  |
 
 `get_selection` is not implemented: there is no studio window yet, so there is no selection to read.
 

@@ -70,6 +70,39 @@ describe('EditorScreen', () => {
 		expect(screen.getByRole('button', { name: 'Undo' })).toBeDisabled();
 	});
 
+	it('floats the tools over the map, outside the canvas and above the status line', async () => {
+		await mount();
+		const tools = screen.getByRole('group', { name: 'Tools' });
+		const canvas = screen.getByRole('application');
+		expect(tools.parentElement).toBe(canvas.parentElement);
+		expect(tools).not.toContainElement(canvas);
+		// The status line is below the map, not inside it.
+		const status = screen.getByText(/^Cell /);
+		expect(tools.parentElement).not.toContainElement(status);
+		expect(screen.getByRole('group', { name: 'Editor toolbar' })).not.toContainElement(
+			screen.getByRole('button', { name: 'Paint' }),
+		);
+	});
+
+	it('saves where the tools were moved to in the workspace', async () => {
+		const snapshot = levelSnapshot();
+		const docks = floating();
+		render(
+			<EditorScreen snapshot={snapshot} client={new FakeLevelClient(snapshot)} docks={docks} />,
+		);
+		await screen.findByRole('region', { name: 'History' });
+		const grip = screen.getByRole('button', { name: 'Move the tools' });
+		fireEvent.pointerDown(grip, { pointerId: 3, button: 0, clientX: 20, clientY: 20 });
+		fireEvent.pointerMove(grip, { pointerId: 3, clientX: 120, clientY: 70 });
+		fireEvent.pointerUp(grip, { pointerId: 3, clientX: 120, clientY: 70 });
+		const tools = screen.getByRole('group', { name: 'Tools' });
+		expect(tools.style.getPropertyValue('--fls-picker-x')).toBe('108px');
+		expect(tools.style.getPropertyValue('--fls-picker-y')).toBe('58px');
+		await waitFor(() => expect(docks.save).toHaveBeenCalled(), { timeout: 3000 });
+		const saved = vi.mocked(docks.save).mock.calls.at(-1)![0];
+		expect(saved.workspaces[saved.active]!.tool_picker).toEqual({ x: 108, y: 58 });
+	});
+
 	it('works on a level built from the Crater Fields fixture', () => {
 		const palette = Object.keys(crater.palette);
 		const ids = Object.values(crater.palette) as number[];
@@ -96,7 +129,7 @@ describe('EditorScreen', () => {
 	it('sends a one-row stroke as one applyEdit sharing a merge key, then ends the step', async () => {
 		const { client, canvas } = await mount();
 		const endStep = vi.spyOn(client, 'endStep');
-		await userEvent.click(screen.getByRole('button', { name: 'grass' }));
+		await userEvent.click(screen.getByRole('option', { name: 'grass' }));
 		stroke(canvas, [
 			[2, 3],
 			[3, 3],
@@ -181,8 +214,7 @@ describe('EditorScreen', () => {
 	it('drops one item per cell along a drag, as one undo step named for the run', async () => {
 		const user = userEvent.setup();
 		const { client, canvas } = await mount();
-		await user.click(screen.getByRole('tab', { name: 'Items' }));
-		await user.click(screen.getByRole('button', { name: 'cheezie' }));
+		await user.click(screen.getByRole('option', { name: 'cheezie' }));
 		stroke(canvas, [
 			[2, 4],
 			[3, 4],
@@ -206,8 +238,9 @@ describe('EditorScreen', () => {
 	it('spaces the items by the chosen step and writes it as by=', async () => {
 		const user = userEvent.setup();
 		const { client, canvas } = await mount();
-		await user.click(screen.getByRole('tab', { name: 'Items' }));
-		await user.click(screen.getByRole('button', { name: 'choc' }));
+		await user.click(
+			within(screen.getByRole('group', { name: 'Treats' })).getByRole('option', { name: 'choc' }),
+		);
 		await user.click(screen.getByRole('button', { name: 'Place items further apart' }));
 		await user.click(screen.getByRole('button', { name: 'Place items further apart' }));
 		stroke(
@@ -222,8 +255,7 @@ describe('EditorScreen', () => {
 	it('steps the spacing with the bracket keys', async () => {
 		const user = userEvent.setup();
 		await mount();
-		await user.click(screen.getByRole('tab', { name: 'Items' }));
-		await user.click(screen.getByRole('button', { name: 'cheezie' }));
+		await user.click(screen.getByRole('option', { name: 'cheezie' }));
 		screen.getByRole('application').focus();
 		await user.keyboard(']]');
 		expect(screen.getByRole('group', { name: 'Item spacing' })).toHaveTextContent('Every 3 cells');
@@ -234,8 +266,7 @@ describe('EditorScreen', () => {
 	it('places one enemy per click and none along a drag', async () => {
 		const user = userEvent.setup();
 		const { client, canvas } = await mount();
-		await user.click(screen.getByRole('tab', { name: 'Enemies' }));
-		await user.click(screen.getByRole('button', { name: 'drone' }));
+		await user.click(screen.getByRole('option', { name: 'drone' }));
 		stroke(canvas, [
 			[3, 4],
 			[4, 4],
@@ -248,7 +279,10 @@ describe('EditorScreen', () => {
 
 	it('picks an item into the brush and goes back to Paint', async () => {
 		const user = userEvent.setup();
-		const snapshot = levelSnapshot({}, levelView(12, 8, { items: [{ kind: 'soda', x: 4, y: 3 }] }));
+		const snapshot = levelSnapshot(
+			{},
+			levelView(12, 8, { items: [{ kind: 'soda', x: 4, y: 3, line: 7 }] }),
+		);
 		render(
 			<EditorScreen
 				snapshot={snapshot}
@@ -262,6 +296,41 @@ describe('EditorScreen', () => {
 			expect(screen.getByRole('button', { name: 'Paint' })).toHaveAttribute('aria-pressed', 'true'),
 		);
 		expect(screen.getByText('Brush: soda, Every cell')).toBeInTheDocument();
+	});
+
+	it('inspects what is on a cell with Q, editing nothing, keeps it across tools, and clears on Escape', async () => {
+		const user = userEvent.setup();
+		const snapshot = levelSnapshot(
+			{},
+			levelView(12, 8, { items: [{ kind: 'soda', x: 4, y: 3, line: null }] }),
+		);
+		const client = new FakeLevelClient(snapshot);
+		const endStep = vi.spyOn(client, 'endStep');
+		render(<EditorScreen snapshot={snapshot} client={client} docks={floating()} />);
+		await screen.findByRole('region', { name: 'History' });
+		const canvas = screen.getByRole('application');
+		canvas.focus();
+		await user.keyboard('q');
+		expect(screen.getByRole('button', { name: 'Inspect' })).toHaveAttribute('aria-pressed', 'true');
+		expect(canvas).not.toHaveAttribute('data-inspected');
+
+		stroke(canvas, [[4, 3]]);
+		expect(canvas).toHaveAttribute('data-inspected', '4,3');
+		// An empty cell is selected as the cell itself.
+		stroke(canvas, [[8, 5]]);
+		expect(canvas).toHaveAttribute('data-inspected', '8,5');
+		await Promise.resolve();
+		expect(client.applied).toHaveLength(0);
+		expect(endStep).not.toHaveBeenCalled();
+		expect(screen.getByRole('button', { name: 'Undo' })).toBeDisabled();
+
+		await user.keyboard('b');
+		expect(screen.getByRole('button', { name: 'Paint' })).toHaveAttribute('aria-pressed', 'true');
+		expect(canvas).toHaveAttribute('data-inspected', '8,5');
+
+		canvas.focus();
+		await user.keyboard('{Escape}');
+		expect(canvas).not.toHaveAttribute('data-inspected');
 	});
 
 	it('copies the outlined area with Stamp and pastes it as one undo step', async () => {
@@ -346,7 +415,7 @@ describe('EditorScreen', () => {
 
 	it('reveals the script line that set an object when it is chosen in the list', async () => {
 		const text = 'line one\nline two\nline three\n';
-		const view = levelView(12, 8, { items: [{ kind: 'soda', x: 3, y: 2 }] });
+		const view = levelView(12, 8, { items: [{ kind: 'soda', x: 3, y: 2, line: 7 }] });
 		const snapshot = levelSnapshot({ text }, view);
 		const client = new FakeLevelClient(snapshot);
 		client.cellLines.set('3,2', 3);
@@ -421,8 +490,11 @@ describe('EditorScreen panels', () => {
 		screen.getByRole('application').focus();
 		await user.keyboard('e');
 		expect(screen.getByRole('button', { name: 'Erase' })).toHaveAttribute('aria-pressed', 'true');
-		(await screen.findByRole('combobox', { name: 'Script line' })).focus();
+		const field = document.createElement('input');
+		document.body.append(field);
+		field.focus();
 		await user.keyboard('p');
+		field.remove();
 		expect(screen.getByRole('button', { name: 'Erase' })).toHaveAttribute('aria-pressed', 'true');
 	});
 
@@ -431,27 +503,16 @@ describe('EditorScreen panels', () => {
 		await mountWithWords();
 		const region = await screen.findByRole('region', { name: 'Palette' });
 		await user.click(screen.getByRole('button', { name: 'Stamp' }));
-		await user.click(within(region).getByRole('button', { name: 'grass' }));
+		await user.click(within(region).getByRole('option', { name: 'grass' }));
 		expect(screen.getByRole('button', { name: /^Paint/ })).toHaveAttribute('aria-pressed', 'true');
-		expect(within(region).getByRole('button', { name: 'grass' })).toHaveAttribute(
-			'aria-pressed',
+		expect(within(region).getByRole('option', { name: 'grass' })).toHaveAttribute(
+			'aria-selected',
 			'true',
 		);
 		expect(screen.getByText('Brush: grass')).toBeInTheDocument();
-		await user.click(within(region).getByRole('tab', { name: 'Items' }));
-		await user.click(await within(region).findByRole('button', { name: 'soda' }));
+		await user.click(await within(region).findByRole('option', { name: 'soda' }));
 		expect(screen.getByRole('button', { name: /^Paint/ })).toHaveAttribute('aria-pressed', 'true');
 		expect(screen.getByText(/^Brush: soda/)).toBeInTheDocument();
-	});
-
-	it('offers paint for pa in the Script panel from the backend words', async () => {
-		const user = userEvent.setup();
-		await mountWithWords();
-		const field = await screen.findByRole('combobox', { name: 'Script line' });
-		await user.type(field, 'pa');
-		expect(await screen.findByRole('option', { name: /^paint/ })).toBeInTheDocument();
-		await user.keyboard('{Tab}');
-		expect(field).toHaveValue('paint');
 	});
 
 	it("lists Claude's pending proposals from the backend", async () => {

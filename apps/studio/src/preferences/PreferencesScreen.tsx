@@ -1,4 +1,4 @@
-// The Preferences window: a settings shell with its pages, today the Appearance page
+// The Preferences window: a settings shell with its pages, General and Appearance
 //
 // (c) Copyright 2026 Liminal HQ, Scott Morris
 // SPDX-License-Identifier: Apache-2.0 OR MIT
@@ -8,13 +8,15 @@ import type { SettingsSectionDef } from '@liminal-hq/fizz-studio-chrome/Settings
 import { useEffect, useMemo, useState } from 'react';
 import { AppWindow } from '../app/AppWindow';
 import { t } from '../i18n/messages';
+import { AppearanceIcon, PreferencesIcon } from '../icons/AppIcons';
 import { accentSources, schemeSources } from '../services/appearanceClient';
 import { settingsClient, type SettingsClient } from '../services/settingsClient';
 import type { AccentSources } from '../theme/followAccent';
 import type { SchemeSources } from '../theme/followColourScheme';
+import { GeneralPage } from './GeneralPage';
 import { AppearancePage, type SystemAppearance } from './AppearancePage';
 import styles from './PreferencesScreen.module.css';
-import { useAppearanceSettings } from './useAppearanceSettings';
+import { usePreferencesSettings } from './usePreferencesSettings';
 
 export interface PreferencesScreenProps {
 	/** The settings; defaults to the settings plugin. */
@@ -35,9 +37,9 @@ export function PreferencesScreen({
 	accent = accentSources,
 	scheme = schemeSources,
 }: PreferencesScreenProps) {
-	const editor = useAppearanceSettings(client);
+	const editor = usePreferencesSettings(client);
 	const [system, setSystem] = useState<SystemAppearance>(NO_SYSTEM);
-	const [activeId, setActiveId] = useState('appearance');
+	const [activeId, setActiveId] = useState('general');
 
 	useEffect(() => {
 		let gone = false;
@@ -61,8 +63,15 @@ export function PreferencesScreen({
 	const sections = useMemo<SettingsSectionDef[]>(
 		() => [
 			{
+				id: 'general',
+				label: t('preferences.page.general'),
+				icon: <PreferencesIcon />,
+				render: () => <GeneralPage editor={editor} />,
+			},
+			{
 				id: 'appearance',
 				label: t('preferences.page.appearance'),
+				icon: <AppearanceIcon />,
 				render: () => <AppearancePage editor={editor} system={system} />,
 			},
 		],

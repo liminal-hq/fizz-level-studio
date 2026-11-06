@@ -58,7 +58,7 @@ function Segments<T extends string>({
 			className={styles.segments}
 			onKeyDown={onKeyDown}
 		>
-			{options.map((option) => {
+			{options.map((option, index) => {
 				const checked = option.value === value;
 				return (
 					<button
@@ -69,7 +69,16 @@ function Segments<T extends string>({
 						data-value={option.value}
 						tabIndex={checked ? 0 : -1}
 						disabled={disabled || option.disabled}
-						className={`${styles.segment} ${checked ? styles.segmentOn : ''}`}
+						data-lit={checked ? '' : undefined}
+						className={[
+							styles.segment,
+							index === 0 && styles.segmentFirst,
+							index > 0 && index < options.length - 1 && styles.segmentMiddle,
+							index === options.length - 1 && styles.segmentLast,
+							checked && styles.segmentOn,
+						]
+							.filter(Boolean)
+							.join(' ')}
 						onClick={() => onChange(option.value)}
 					>
 						{option.label}

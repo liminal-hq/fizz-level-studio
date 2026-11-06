@@ -17,8 +17,12 @@ export interface CommandFacts {
 	canRedo: boolean;
 	/** Every docked and floating panel is hidden so the level has the room. */
 	levelFirst: boolean;
+	/** The panel maximised to fill the workspace, if any. */
+	maximised: PanelId | null;
 	/** Whether each panel is shown. */
 	panels: Record<PanelId, boolean>;
+	/** Whether each panel is in a window of its own. */
+	away: Record<PanelId, boolean>;
 	/** The brushes the palette offers (tiles of the open level, items and enemies), for the command palette. */
 	brushes: readonly Brush[];
 	/** How many lines the open level's script has; Go to line accepts 1 to this. */
@@ -31,7 +35,9 @@ export const NO_FACTS: CommandFacts = {
 	canUndo: false,
 	canRedo: false,
 	levelFirst: false,
+	maximised: null,
 	panels: { palette: false, objects: false, history: false, proposals: false, script: false },
+	away: { palette: false, objects: false, history: false, proposals: false, script: false },
 	brushes: [],
 	lineCount: 0,
 };
@@ -89,7 +95,9 @@ export function createCommandBridge(): CommandBridge {
 				next.lineCount === was.lineCount &&
 				sameBrushes(next.brushes, was.brushes) &&
 				next.levelFirst === was.levelFirst &&
-				samePanels(next.panels, was.panels);
+				next.maximised === was.maximised &&
+				samePanels(next.panels, was.panels) &&
+				samePanels(next.away, was.away);
 			if (!same) set({ ...snapshot, facts: next });
 		},
 		setHandlers(handlers) {

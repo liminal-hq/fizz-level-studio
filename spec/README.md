@@ -4,22 +4,22 @@ Fizz Level Studio is the level and overworld editor for Lieutenant Fizz (`limina
 
 This document is the main spec. The companion documents go deeper:
 
-| Document | What it covers |
-| --- | --- |
-| [spec/GOALS.md](GOALS.md) | The goals, ranked, each with a measure of success |
-| [spec/ARCHITECTURE.md](ARCHITECTURE.md) | Packages, data flow, what the game owns, the game host, the file layout |
-| [spec/DESKTOP.md](DESKTOP.md) | The Tauri v2 desktop app to the Liminal HQ standards: platforms, stack, layout, crates and plugins, state, windows, settings, files, packaging, CI |
-| [spec/EDITOR.md](EDITOR.md) | The editor's behaviour, screen by screen |
-| [spec/MCP.md](MCP.md) | The MCP server as built, and the tools still to add |
-| [spec/OVERWORLD.md](OVERWORLD.md) | The overworld model, its script, its exporter and the steps to add a level |
-| [docs/ENGINE-CHANGES.md](../docs/ENGINE-CHANGES.md) | What the game itself must change |
-| [docs/TESTING.md](../docs/TESTING.md) | What is tested today, what each test proves, and the gaps |
-| [docs/ROADMAP.md](../docs/ROADMAP.md) | Milestones, exit criteria and dependencies |
-| [docs/DECISIONS.md](../docs/DECISIONS.md) | The decisions taken, with reasons and the alternatives set aside |
-| [spec/LANGUAGE.md](LANGUAGE.md) | The language reference: grammar, Builder equivalents, errors, the Fizz 2 dialect and the target profiles |
-| [docs/FIZZ2-COVERAGE.md](../docs/FIZZ2-COVERAGE.md) | Every Fizz 2 feature an author controls, against the document that handles it |
-| [spec/WORLD.md](WORLD.md) | World projects: a world's levels, definitions, sprites, panels, sounds and strings, built into one world pack; the retro art set |
-| [spec/SCRIPTING.md](SCRIPTING.md) | Custom enemies and items with behaviour scripts compiled to bytecode, the step budget, the behaviour editor and debugger |
+| Document                                            | What it covers                                                                                                                                     |
+| --------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [spec/GOALS.md](GOALS.md)                           | The goals, ranked, each with a measure of success                                                                                                  |
+| [spec/ARCHITECTURE.md](ARCHITECTURE.md)             | Packages, data flow, what the game owns, the game host, the file layout                                                                            |
+| [spec/DESKTOP.md](DESKTOP.md)                       | The Tauri v2 desktop app to the Liminal HQ standards: platforms, stack, layout, crates and plugins, state, windows, settings, files, packaging, CI |
+| [spec/EDITOR.md](EDITOR.md)                         | The editor's behaviour, screen by screen                                                                                                           |
+| [spec/MCP.md](MCP.md)                               | The MCP server as built, and the tools still to add                                                                                                |
+| [spec/OVERWORLD.md](OVERWORLD.md)                   | The overworld model, its script, its exporter and the steps to add a level                                                                         |
+| [docs/ENGINE-CHANGES.md](../docs/ENGINE-CHANGES.md) | What the game itself must change                                                                                                                   |
+| [docs/TESTING.md](../docs/TESTING.md)               | What is tested today, what each test proves, and the gaps                                                                                          |
+| [docs/ROADMAP.md](../docs/ROADMAP.md)               | Milestones, exit criteria and dependencies                                                                                                         |
+| [docs/DECISIONS.md](../docs/DECISIONS.md)           | The decisions taken, with reasons and the alternatives set aside                                                                                   |
+| [spec/LANGUAGE.md](LANGUAGE.md)                     | The language reference: grammar, Builder equivalents, errors, the Fizz 2 dialect and the target profiles                                           |
+| [docs/FIZZ2-COVERAGE.md](../docs/FIZZ2-COVERAGE.md) | Every Fizz 2 feature an author controls, against the document that handles it                                                                      |
+| [spec/WORLD.md](WORLD.md)                           | World projects: a world's levels, definitions, sprites, panels, sounds and strings, built into one world pack; the retro art set                   |
+| [spec/SCRIPTING.md](SCRIPTING.md)                   | Custom enemies and items with behaviour scripts compiled to bytecode, the step budget, the behaviour editor and debugger                           |
 
 ## 1. Summary
 
@@ -69,7 +69,7 @@ Each goal is specific and testable. [spec/GOALS.md](GOALS.md) ranks them and giv
 ### Correctness and trust
 
 - **G-TRUST-1** A script that exports, compiles and runs produces a level whose fingerprint equals the one the studio shows; any difference is a failing test.
-- **G-TRUST-2** Hand-written lines are never rewritten: after any number of studio edits, every hand-written line the studio did not own prints byte for byte as written.
+- **G-TRUST-2** Nothing the person wrote is lost or reformatted unless an edit touches it (D68): after any number of edits, every statement the edits did not touch prints byte for byte as written, and comments travel with their statements.
 - **G-TRUST-3** Nothing Claude writes reaches the level file without passing the language parser, and in propose mode nothing reaches it without the person's accept.
 - **G-TRUST-4** The studio never claims what it has not checked: a check that did not run says so (as `run_checks` does with `playtest_bot: "not run"`).
 
@@ -109,12 +109,12 @@ Each goal is specific and testable. [spec/GOALS.md](GOALS.md) ranks them and giv
 
 ## 4. Users and scenarios
 
-| User | Wants |
-| --- | --- |
+| User                       | Wants                                                                                                                 |
+| -------------------------- | --------------------------------------------------------------------------------------------------------------------- |
 | Level designer (the owner) | Paint a level fast, see what is wrong with it, try Claude's ideas without risk, and get Rust that drops into the game |
-| Claude, over MCP | Read the level precisely, propose small reviewable changes, explain why, and learn what the person kept |
-| Engine developer | Generated Rust that is obviously correct, proofs that fail loudly, and no surprises in `levels.rs` |
-| A later contributor | Scripts that read as a description of the level, and docs that say what each word does |
+| Claude, over MCP           | Read the level precisely, propose small reviewable changes, explain why, and learn what the person kept               |
+| Engine developer           | Generated Rust that is obviously correct, proofs that fail loudly, and no surprises in `levels.rs`                    |
+| A later contributor        | Scripts that read as a description of the level, and docs that say what each word does                                |
 
 Scenarios the product must support:
 
@@ -137,18 +137,18 @@ The **Ultimate** layout is home: the level fills the window, and every other pan
 
 ### 5.2 Tools
 
-| Tool | Key | Where | Does |
-| --- | --- | --- | --- |
-| Paint | B | both | Places the chosen tile, item or enemy; a dragged stroke is one undo step |
-| Erase | E | both | Clears cells |
-| Pick | I | both | Copies a cell into the palette and switches to Paint |
-| Select | S | both | Selects a cell, or drags a rectangle; drags objects |
-| Stamp | T | both | Pastes the copied area with its top-left on the clicked cell; one undo step; cells past the edge are skipped |
-| Lift | L | level | Drag from one end to the other to add a moving platform |
-| Room | R | level | Drag a rectangle to add a room |
-| Arena | A | level | Drag a width to add the boss arena |
-| Point | P | overworld | Click to add the point kind chosen in the Objects window |
-| Pan | H (in the Ultimate design) | both | Not built |
+| Tool   | Key                        | Where     | Does                                                                                                         |
+| ------ | -------------------------- | --------- | ------------------------------------------------------------------------------------------------------------ |
+| Paint  | B                          | both      | Places the chosen tile, item or enemy; a dragged stroke is one undo step                                     |
+| Erase  | E                          | both      | Clears cells                                                                                                 |
+| Pick   | I                          | both      | Copies a cell into the palette and switches to Paint                                                         |
+| Select | S                          | both      | Selects a cell, or drags a rectangle; drags objects                                                          |
+| Stamp  | T                          | both      | Pastes the copied area with its top-left on the clicked cell; one undo step; cells past the edge are skipped |
+| Lift   | L                          | level     | Drag from one end to the other to add a moving platform                                                      |
+| Room   | R                          | level     | Drag a rectangle to add a room                                                                               |
+| Arena  | A                          | level     | Drag a width to add the boss arena                                                                           |
+| Point  | P                          | overworld | Click to add the point kind chosen in the Objects window                                                     |
+| Pan    | H (in the Ultimate design) | both      | Not built                                                                                                    |
 
 ### 5.3 Tiles and objects
 
@@ -231,15 +231,15 @@ Note: the "What v0 does not cover" list at the end of `spec/LANGUAGE.md` predate
 
 [spec/ARCHITECTURE.md](ARCHITECTURE.md) has the detail. The layers, and which owns what:
 
-| Layer | Owns | Today |
-| --- | --- | --- |
-| The game (Rust, `episodes/episode-1/game`, `crates/sim`) | The simulation, the `Builder`, the level and overworld tables, fingerprints, the playtest bot | In the game repository; copied into `scratch/rust/` for the proofs |
-| Language package (`packages/language`) | Text ↔ AST, the edits rule, Rust export, the overworld model and rasteriser, the language docs | Built |
-| Level rasteriser (`packages/mcp/src/world.ts`) | A picture of a level script, for drawing and structural checks | Built; agrees with the game on all 16 levels |
-| MCP server (`packages/mcp`) | Claude's tools, proposals, modes, history, notes | Built for one level file |
-| Studio app (`apps/studio`, Tauri v2) | The windows, the canvas and panels, the chrome; it renders and sends intents | Prototype only; planned in `spec/DESKTOP.md` |
-| Studio crates (`crates/fizz-studio-*`) | The session (state, revisions, history), the Fizz 1 dialect port, the Fizz 2 dialect on `fizz-script`, profiles, states, art, budgets, export, the baker adapter, the MCP server | Not built |
-| Game host (`fizz-studio-host`) | Both games linked natively: level data, building from a script, the Game view's frames, rule previews, the behaviour debugger, enemy paths, the playtest bot, streamed over Channels | Not built |
+| Layer                                                    | Owns                                                                                                                                                                                 | Today                                                              |
+| -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------ |
+| The game (Rust, `episodes/episode-1/game`, `crates/sim`) | The simulation, the `Builder`, the level and overworld tables, fingerprints, the playtest bot                                                                                        | In the game repository; copied into `scratch/rust/` for the proofs |
+| Language package (`packages/language`)                   | Text ⟷ AST, the edits rule, Rust export, the overworld model and rasteriser, the language docs                                                                                       | Built                                                              |
+| Level rasteriser (`packages/mcp/src/world.ts`)           | A picture of a level script, for drawing and structural checks                                                                                                                       | Built; agrees with the game on all 16 levels                       |
+| MCP server (`packages/mcp`)                              | Claude's tools, proposals, modes, history, notes                                                                                                                                     | Built for one level file                                           |
+| Studio app (`apps/studio`, Tauri v2)                     | The windows, the canvas and panels, the chrome; it renders and sends intents                                                                                                         | Prototype only; planned in `spec/DESKTOP.md`                       |
+| Studio crates (`crates/fizz-studio-*`)                   | The session (state, revisions, history), the Fizz 1 dialect port, the Fizz 2 dialect on `fizz-script`, profiles, states, art, budgets, export, the baker adapter, the MCP server     | Not built                                                          |
+| Game host (`fizz-studio-host`)                           | Both games linked natively: level data, building from a script, the Game view's frames, rule previews, the behaviour debugger, enemy paths, the playtest bot, streamed over Channels | Not built                                                          |
 
 The boundary rule: **the games' Rust owns the simulation, the studio's Rust owns the domain, and the webview only renders.** The rasteriser mirrors level construction (the `Builder`), which is proven equal to the game on every level; anything that needs simulation rules (how an enemy walks, whether a jump lands, whether a level can be finished) is asked of the game's own code in the game host, never re-derived. Today's TypeScript packages are the reference for the Rust port (D56).
 
@@ -247,14 +247,14 @@ Data flow: script text → `parse` → AST (one node per line, with its raw text
 
 ## 8. Data and files
 
-| File | Format | Owner |
-| --- | --- | --- |
-| `levels/<slug>.fizz` | A level script | The person, the studio (edits block and owned object lines), Claude (through the MCP server) |
-| `overworlds/<id>.fizz` | An overworld script | As above |
-| `<level>.studio.json` | The sidecar: `version`, `mode`, `nextId`, `nextNote`, `history`, `notes` | The MCP server and the person's CLI |
-| Generated Rust (`fn <slug>_fizz() -> LevelData`, `fn <name>() -> MapData`) | Rust source with a "generated from a Fizz script; edit the script" doc comment | The exporter only |
-| `design/project/levels-data.js`, `lang-docs.js` | Generated data for the prototype | `tools/gen-proto-levels.ts`, `tools/gen-lang-docs.ts` |
-| `scratch/truth/*.json` | The game's own level and overworld data, dumped by tests | `dump_all_truth`, `dump_overworld_truth` |
+| File                                                                       | Format                                                                         | Owner                                                                                        |
+| -------------------------------------------------------------------------- | ------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------- |
+| `levels/<slug>.fizz`                                                       | A level script                                                                 | The person, the studio (edits block and owned object lines), Claude (through the MCP server) |
+| `overworlds/<id>.fizz`                                                     | An overworld script                                                            | As above                                                                                     |
+| `<level>.studio.json`                                                      | The sidecar: `version`, `mode`, `nextId`, `nextNote`, `history`, `notes`       | The MCP server and the person's CLI                                                          |
+| Generated Rust (`fn <slug>_fizz() -> LevelData`, `fn <name>() -> MapData`) | Rust source with a "generated from a Fizz script; edit the script" doc comment | The exporter only                                                                            |
+| `design/project/levels-data.js`, `lang-docs.js`                            | Generated data for the prototype                                               | `tools/gen-proto-levels.ts`, `tools/gen-lang-docs.ts`                                        |
+| `scratch/truth/*.json`                                                     | The game's own level and overworld data, dumped by tests                       | `dump_all_truth`, `dump_overworld_truth`                                                     |
 
 Writes are atomic: a temporary file in the same folder, then a rename (`writeAtomic` in `packages/mcp/src/studio.ts`). The level file is reloaded on every MCP call, so an edit made in a text editor shows on the next read.
 
@@ -262,13 +262,13 @@ Writes are atomic: a temporary file in the same folder, then a rename (`writeAto
 
 Correctness rests on proofs against the game's own data, not on reading the code. [docs/TESTING.md](../docs/TESTING.md) lists every test.
 
-| Proof | Command | Proves |
-| --- | --- | --- |
-| Language unit tests | `bun test packages/language` | Parser, printer round trip, edits rule, every error code, exporter output, overworld parsing and export, docs completeness (76 tests) |
-| MCP tests | `bun test packages/mcp` | Propose, direct, accept, reject, undo, refusals, rendering, checks, a real stdio session (21 tests) |
-| Crater and kitchen sink | `bash scripts/prove-crater.sh` | The hand-written `levels/crater.fizz` equals `crater()` field by field and by fingerprint; `scratch/kitchen-sink.fizz`, which uses each v0 statement once, compiles and runs |
-| Every level and the overworld | `bash scripts/prove-all.sh` | All 16 scripts in `levels/real/` equal the game's levels (tiles, switches, spawns, items, platforms, start, arena, rooms, fingerprint); `overworlds/main.fizz` equals `build_overworld()`; the TypeScript rasterisers agree with the game's dumped data |
-| Design harness | `tools/design-harness/*.cjs` | The prototype's behaviours in a real headless Chromium, with audio muted |
+| Proof                         | Command                        | Proves                                                                                                                                                                                                                                                  |
+| ----------------------------- | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Language unit tests           | `bun test packages/language`   | Parser, printer round trip, edits rule, every error code, exporter output, overworld parsing and export, docs completeness (76 tests)                                                                                                                   |
+| MCP tests                     | `bun test packages/mcp`        | Propose, direct, accept, reject, undo, refusals, rendering, checks, a real stdio session (21 tests)                                                                                                                                                     |
+| Crater and kitchen sink       | `bash scripts/prove-crater.sh` | The hand-written `levels/crater.fizz` equals `crater()` field by field and by fingerprint; `scratch/kitchen-sink.fizz`, which uses each v0 statement once, compiles and runs                                                                            |
+| Every level and the overworld | `bash scripts/prove-all.sh`    | All 16 scripts in `levels/real/` equal the game's levels (tiles, switches, spawns, items, platforms, start, arena, rooms, fingerprint); `overworlds/main.fizz` equals `build_overworld()`; the TypeScript rasterisers agree with the game's dumped data |
+| Design harness                | `tools/design-harness/*.cjs`   | The prototype's behaviours in a real headless Chromium, with audio muted                                                                                                                                                                                |
 
 The proofs need Rust and the crates already in the local Cargo cache (`--offline`); they build only inside `scratch/rust/`, a copy of the game's `crates/sim` and `episodes/episode-1/game` that differs from the game only by the proof modules: four `#[cfg(test)]` declarations at the end of `levels.rs` and the files they include (checked with `diff` on 2026-10-18).
 
@@ -276,19 +276,19 @@ The proofs need Rust and the crates already in the local Cargo cache (`--offline
 
 [docs/ROADMAP.md](../docs/ROADMAP.md) has exit criteria and dependencies.
 
-| Milestone | Delivers |
-| --- | --- |
-| M0 Spec | This document and `docs/` |
-| M1 Desktop walking skeleton | The Tauri v2 app to the Liminal HQ standards (layout, gate, CI, chrome, windows, settings, i18n, the Rust session, native files), the editor shell, the game crates linked, opening a Fizz 1 level and a Fizz 2 world |
-| M2 World projects and Fizz 2 levels | World projects and Build world, target profiles, the Fizz 2 dialect without states, map painting, objects, the Sprites window, the Fizz 1 export check, the dump view and the first MCP tools |
-| M3 States and rules | States, bindings, rules, `lock` sugar, raised words and sounds, the States and Rules windows and the States lens |
-| M4 Claude in the studio | The MCP server attached to the live studio, Fizz 2 first: selection, ghosts, accept and reject buttons, object, state and rule tools |
-| M5 Lights, panels and the Game view | The game's oblique look as the Fizz 2 canvas, placed lights, bitmap parallax panels, the theme, the cost meters |
-| M6 Pixel editor | Painting and importing panels and drawn sprites in the 16 EGA colours |
-| M7 Behaviour scripting | Custom enemies and items, the behaviour editor, the debugger and the behaviour budgets |
-| M8 Retro art and Fizz 1 conversion | The retro art set in a world pack, and Convert to Fizz 2 with its report |
-| M9 Fizz 1 overworld designer | Points, unlock rules, teleporters, the Links and Areas lenses, level sprites, `OverworldBuilder` in the game |
-| M10 Fizz 1 level editing | The Fizz 1 level tools, objects and lenses on the shell |
-| M11 Fizz 1 registry and progress | A level and overworld registry, the wider mask, export that registers a level |
-| M12 Fizz 1 native host and Rust levels | Level data from the game, a level built from a script inside the sim, enemy paths and the playtest bot, all linked natively; editing on top of Rust-written levels |
-| M13 Episode 3 profile | A third profile on the Fizz 2 dialect family, from Episode 3's own tables, with no change to the editor's code |
+| Milestone                              | Delivers                                                                                                                                                                                                              |
+| -------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| M0 Spec                                | This document and `docs/`                                                                                                                                                                                             |
+| M1 Desktop walking skeleton            | The Tauri v2 app to the Liminal HQ standards (layout, gate, CI, chrome, windows, settings, i18n, the Rust session, native files), the editor shell, the game crates linked, opening a Fizz 1 level and a Fizz 2 world |
+| M2 World projects and Fizz 2 levels    | World projects and Build world, target profiles, the Fizz 2 dialect without states, map painting, objects, the Sprites window, the Fizz 1 export check, the dump view and the first MCP tools                         |
+| M3 States and rules                    | States, bindings, rules, `lock` sugar, raised words and sounds, the States and Rules windows and the States lens                                                                                                      |
+| M4 Claude in the studio                | The MCP server attached to the live studio, Fizz 2 first: selection, ghosts, accept and reject buttons, object, state and rule tools                                                                                  |
+| M5 Lights, panels and the Game view    | The game's oblique look as the Fizz 2 canvas, placed lights, bitmap parallax panels, the theme, the cost meters                                                                                                       |
+| M6 Pixel editor                        | Painting and importing panels and drawn sprites in the 16 EGA colours                                                                                                                                                 |
+| M7 Behaviour scripting                 | Custom enemies and items, the behaviour editor, the debugger and the behaviour budgets                                                                                                                                |
+| M8 Retro art and Fizz 1 conversion     | The retro art set in a world pack, and Convert to Fizz 2 with its report                                                                                                                                              |
+| M9 Fizz 1 overworld designer           | Points, unlock rules, teleporters, the Links and Areas lenses, level sprites, `OverworldBuilder` in the game                                                                                                          |
+| M10 Fizz 1 level editing               | The Fizz 1 level tools, objects and lenses on the shell                                                                                                                                                               |
+| M11 Fizz 1 registry and progress       | A level and overworld registry, the wider mask, export that registers a level                                                                                                                                         |
+| M12 Fizz 1 native host and Rust levels | Level data from the game, a level built from a script inside the sim, enemy paths and the playtest bot, all linked natively; editing on top of Rust-written levels                                                    |
+| M13 Episode 3 profile                  | A third profile on the Fizz 2 dialect family, from Episode 3's own tables, with no change to the editor's code                                                                                                        |

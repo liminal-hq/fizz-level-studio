@@ -5,7 +5,8 @@
 //
 // Every panel is in exactly one state: docked in a zone (left, right or bottom), floating over the
 // level, or in its own window. A zone holds tab groups of docked panels and has a size, a
-// collapsed flag (a collapsed zone folds to a rail) and caps. A workspace is one named
+// collapsed flag (a collapsed zone folds away to its rail) and caps; every zone with panels has a
+// rail along the window's edge listing them. A workspace is one named
 // arrangement of all of that. The types are the ones `ts-rs` generates from the protocol crate
 // (`packages/protocol/src/generated/`: `Workspace`, `Zone`, `PanelEntry`, `DockSettings` and so
 // on), and the defaults are read from the fixture the settings crate's tests also check, so the
@@ -51,7 +52,7 @@ export const BOTTOM_MIN = fixture.limits.bottom_min;
 /** A zone never exceeds this share of the window dimension in its direction (percent). */
 export const CAP_PERCENT = fixture.limits.cap_percent;
 
-/** The thickness of a collapsed zone's rail. */
+/** The thickness of a zone's rail, which is drawn whenever the zone has panels. */
 export const RAIL_SIZE = fixture.limits.rail;
 
 /** The tool column left of everything, and the title bar, menu row and tool bar above. */

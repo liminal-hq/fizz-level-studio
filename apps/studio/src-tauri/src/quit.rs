@@ -20,6 +20,7 @@
 // it); the child windows (panel, Preferences, About, ghost) close at once. `exit_requested`
 // holds back an exit that did not come from a finished round.
 
+use std::collections::HashSet;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex;
 
@@ -56,11 +57,33 @@ pub struct QuitState {
     gate: Mutex<CloseGate>,
     /// Set once a finished round has decided to exit, so `exit_requested` lets that exit through.
     exiting: AtomicBool,
+    /// Panel windows being closed because their main window is, so their closing is not announced
+    /// as the person docking the panel back (the saved arrangement keeps them in their windows).
+    leaving: Mutex<HashSet<String>>,
 }
 
 impl QuitState {
     fn with_gate<T>(&self, f: impl FnOnce(&mut CloseGate) -> T) -> T {
         f(&mut self.gate.lock().unwrap_or_else(|e| e.into_inner()))
+    }
+
+    /// Whether the panel window `label` is going away with its main window or with the app. The
+    /// answer for a window closed on its own (its X, Dock back) is no. A window that was marked
+    /// is unmarked by asking.
+    pub fn panel_goes_with_owner(&self, label: &str) -> bool {
+        let marked = self
+            .leaving
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .remove(label);
+        marked || self.exiting.load(Ordering::SeqCst)
+    }
+
+    pub(crate) fn mark_leaving(&self, label: &str) {
+        self.leaving
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .insert(label.to_owned());
     }
 
     fn with<T>(&self, f: impl FnOnce(&mut QuitRounds) -> T) -> T {
@@ -137,6 +160,9 @@ fn close_main_window<R: Runtime>(app: &AppHandle<R>, label: &str) {
     };
     for (panel_label, window) in app.webview_windows() {
         if matches!(WindowId::parse(&panel_label), Some(WindowId::Panel { n: m, .. }) if m == n) {
+            if let Some(state) = app.try_state::<QuitState>() {
+                state.mark_leaving(&panel_label);
+            }
             let _ = window.destroy();
         }
     }
@@ -336,6 +362,18 @@ pub fn window_gone<R: Runtime>(app: &AppHandle<R>, label: &str) {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn a_panel_goes_with_its_owner_once_marked_or_while_the_app_exits() {
+        let state = QuitState::default();
+        assert!(!state.panel_goes_with_owner("panel-script-1"));
+        state.mark_leaving("panel-script-1");
+        assert!(state.panel_goes_with_owner("panel-script-1"));
+        // The mark is spent: a later close of a window with that label is the person's.
+        assert!(!state.panel_goes_with_owner("panel-script-1"));
+        state.exiting.store(true, Ordering::SeqCst);
+        assert!(state.panel_goes_with_owner("panel-objects-1"));
+    }
+
     use super::*;
 
     #[test]

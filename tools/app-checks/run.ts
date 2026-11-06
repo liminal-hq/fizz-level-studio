@@ -17,7 +17,17 @@ import {
 	writeFileSync,
 } from 'node:fs';
 import { join } from 'node:path';
-import { App, Bridge, binary, makeProfile, root, sleep, within } from './driver';
+import {
+	App,
+	Bridge,
+	binary,
+	makeProfile,
+	chooseBridgePort,
+	root,
+	sleep,
+	within,
+	type Profile,
+} from './driver';
 
 const failures: string[] = [];
 
@@ -75,15 +85,60 @@ function levelCall(
 	);
 }
 
-/** Clicks the tab with this name, as a person would to show a docked panel. */
-function clickTab(bridge: Bridge, name: string): Promise<boolean> {
+/**
+ * Shows a docked panel from its rail entry, as a person would: clicks the entry unless its panel is
+ * already showing (choosing the showing panel folds its dock).
+ */
+function showFromRail(bridge: Bridge, name: string): Promise<boolean> {
 	return bridge.js<boolean>(
-		`const t = [...document.querySelectorAll('[role=tab]')].find((x) => x.textContent.trim() === ${JSON.stringify(name)});
+		`const t = [...document.querySelectorAll('[data-rail-item]')].find((x) => x.textContent.trim() === ${JSON.stringify(name)});
+		 if (!t) return false;
+		 if (t.getAttribute('aria-pressed') !== 'true') t.click();
+		 return true;`,
+	);
+}
+
+/** Clicks the rail entry with this name, whatever it does (shows, opens or folds). */
+function clickRailItem(bridge: Bridge, name: string): Promise<boolean> {
+	return bridge.js<boolean>(
+		`const t = [...document.querySelectorAll('[data-rail-item]')].find((x) => x.textContent.trim() === ${JSON.stringify(name)});
 		 if (!t) return false;
 		 t.click();
 		 return true;`,
 	);
 }
+
+/** Whether the rail entry with this name is pressed (its panel showing), or null when absent. */
+function railItemPressed(bridge: Bridge, name: string): Promise<boolean | null> {
+	return bridge.js<boolean | null>(
+		`const t = [...document.querySelectorAll('[data-rail-item]')].find((x) => x.textContent.trim() === ${JSON.stringify(name)});
+		 return t ? t.getAttribute('aria-pressed') === 'true' : null;`,
+	);
+}
+
+/**
+ * What a rail hides: every entry whose box leaves its rail, or whose content overflows the entry
+ * (a title cut short), named by its title. Empty when nothing is clipped.
+ */
+function railClipping(bridge: Bridge): Promise<string[]> {
+	return bridge.js<string[]>(
+		`const out = [];
+		 for (const rail of document.querySelectorAll('[data-rail]')) {
+		   const r = rail.getBoundingClientRect();
+		   if (rail.scrollHeight > rail.clientHeight + 1 || rail.scrollWidth > rail.clientWidth + 1) out.push(rail.dataset.rail + ' rail overflows');
+		   for (const item of rail.querySelectorAll('[data-rail-item]')) {
+		     const b = item.getBoundingClientRect();
+		     const name = item.textContent.trim();
+		     if (b.left < r.left - 0.5 || b.right > r.right + 0.5 || b.top < r.top - 0.5 || b.bottom > r.bottom + 0.5) out.push(name + ' leaves the ' + rail.dataset.rail + ' rail');
+		     if (item.scrollHeight > item.clientHeight + 1 || item.scrollWidth > item.clientWidth + 1) out.push(name + ' is cut short');
+		   }
+		 }
+		 return out;`,
+	);
+}
+
+/** The accessible name of the Script panel's Tear off button. */
+const TEAR_OFF_SCRIPT = 'Tear off Script into its own window';
 
 /** Clicks the button with this accessible name. */
 function clickLabelled(bridge: Bridge, label: string): Promise<boolean> {
@@ -151,14 +206,11 @@ async function dockChecks(bridge: Bridge): Promise<void> {
 	// The shipped Paint workspace opens all three docks (board H1 of the design canvas).
 	let m = await measureLayout(bridge);
 	check(
-		'the three docks are open, with no rails, and do not overlap the level',
+		'the three docks are open and do not overlap the level',
 		!!m.left &&
 			!!m.right &&
 			!!m.bottom &&
 			!!m.canvas &&
-			!m.leftRail &&
-			!m.rightRail &&
-			!m.bottomRail &&
 			m.left.w > 100 &&
 			m.right.w > 100 &&
 			m.bottom.h > 60 &&
@@ -166,6 +218,42 @@ async function dockChecks(bridge: Bridge): Promise<void> {
 			apart(m.right, m.canvas) &&
 			apart(m.bottom, m.canvas),
 		JSON.stringify([m.left, m.right, m.bottom, m.canvas]),
+	);
+	// Every dock keeps its rail at the window's edge, outside the dock, while the docks are open.
+	check(
+		'the left, right and bottom rails are there at startup, at the edges and 36 px thick',
+		!!m.leftRail &&
+			!!m.rightRail &&
+			!!m.bottomRail &&
+			!!m.left &&
+			!!m.right &&
+			!!m.bottom &&
+			!!m.canvas &&
+			Math.abs(m.leftRail.w - 36) < 1.5 &&
+			Math.abs(m.rightRail.w - 36) < 1.5 &&
+			Math.abs(m.bottomRail.h - 36) < 1.5 &&
+			m.leftRail.x + m.leftRail.w <= m.left.x + 1 &&
+			m.rightRail.x >= m.right.x + m.right.w - 1 &&
+			m.bottomRail.y >= m.bottom.y + m.bottom.h - 1 &&
+			apart(m.leftRail, m.canvas) &&
+			apart(m.rightRail, m.canvas) &&
+			apart(m.bottomRail, m.canvas),
+		JSON.stringify([m.leftRail, m.rightRail, m.bottomRail, m.window]),
+	);
+	const clipped = await railClipping(bridge);
+	check('nothing on the rails is clipped', clipped.length === 0, clipped.join('; '));
+	check(
+		'the rails mark the showing panels and not the others',
+		(await railItemPressed(bridge, 'Palette')) === true &&
+			(await railItemPressed(bridge, 'Objects')) === true &&
+			(await railItemPressed(bridge, 'History')) === false,
+	);
+	check(
+		'an open dock names its panel once, with no tab strip beside the rail',
+		await bridge.js<boolean>(
+			`const headers = [...document.querySelectorAll('section[aria-label$=" dock"] [data-strip]')];
+			 return headers.length === 3 && headers.every((h) => h.querySelector('[role=tab], [role=tablist]') === null && h.querySelectorAll('h2').length === 1);`,
+		),
 	);
 	const share = m.canvas
 		? Math.round(((m.canvas.w * m.canvas.h) / (m.window.w * m.window.h)) * 100)
@@ -177,6 +265,63 @@ async function dockChecks(bridge: Bridge): Promise<void> {
 		'the canvas keeps its room with all three docks open',
 		(m.canvas?.h ?? 0) > 300,
 		String(m.canvas?.h),
+	);
+
+	// Content must fit the dock it sits in: the Palette's last tab was once cut off by the left dock,
+	// and the Script editor once had no height at all in the bottom dock, which no jsdom test can see.
+	const fit = await bridge.js<{
+		headings: string[];
+		options: number;
+		clipped: number;
+		scrollW: number;
+		clientW: number;
+		editorH: number;
+	}>(
+		`const hs = [...document.querySelectorAll('section[aria-label="Left dock"] h3')].map((h) => h.textContent.trim());
+		 const opts = [...document.querySelectorAll('section[aria-label="Left dock"] [role=option]')];
+		 const zone = document.querySelector('section[aria-label="Left dock"]');
+		 const edge = zone ? zone.getBoundingClientRect().right : 0;
+		 const clipped = opts.filter((o) => o.getBoundingClientRect().right > edge + 0.5 || o.scrollWidth > o.clientWidth + 1).length;
+		 const panel = opts[0]?.closest('[role=group]')?.parentElement;
+		 const ed = document.querySelector('[data-zone=bottom] .cm-editor');
+		 return { headings: hs, options: opts.length, clipped, scrollW: panel ? panel.scrollWidth : -1, clientW: panel ? panel.clientWidth : -1, editorH: ed ? ed.getBoundingClientRect().height : 0 };`,
+	);
+	check(
+		'the Palette shows every section heading in the default window',
+		['Terrain', 'Hazards', 'Treats', 'Enemies'].every((h) => fit.headings.includes(h)),
+		JSON.stringify(fit.headings),
+	);
+	check(
+		'no Palette entry is clipped by the left dock',
+		fit.options > 10 && fit.clipped === 0,
+		JSON.stringify(fit),
+	);
+	check(
+		'the Palette does not scroll sideways',
+		fit.clientW > 0 && fit.scrollW <= fit.clientW,
+		`${fit.scrollW} in ${fit.clientW}`,
+	);
+	const pickedAt = await bridge.js<{ kind: string | null }>(
+		`const o = document.querySelector('section[aria-label="Left dock"] [role=option][data-group=enemy]'); if (!o) return { kind: null }; o.click(); return { kind: o.dataset.kind };`,
+	);
+	const picked = pickedAt.kind;
+	const enemyChip = await within(3000, () =>
+		bridge.js<boolean>(
+			`return [...document.querySelectorAll('[role=status]')].some((e) => e.textContent.includes('Brush: ' + ${JSON.stringify(picked)}));`,
+		),
+	);
+	check(
+		'choosing an entry from a lower section changes the brush chip',
+		picked !== null && enemyChip !== null,
+		String(picked),
+	);
+	await bridge.js<boolean>(
+		`const o = document.querySelector('section[aria-label="Left dock"] [role=option][data-group=tile]'); o?.click(); return true;`,
+	);
+	check(
+		'the Script editor has room in the default bottom dock',
+		fit.editorH > 60,
+		String(fit.editorH),
 	);
 
 	// Resizing: the keys step a dock and hold it to its cap (30% of the window).
@@ -229,6 +374,28 @@ async function dockChecks(bridge: Bridge): Promise<void> {
 		String(m.left?.w),
 	);
 
+	// Choosing the showing panel on its rail folds the dock; choosing it again opens it.
+	const beforeFold = m.canvas!.w;
+	check('the right rail offers Objects', await clickRailItem(bridge, 'Objects'));
+	await sleep(300);
+	m = await measureLayout(bridge);
+	check(
+		'choosing the showing panel on the rail folds its dock and keeps the rail',
+		!m.right && !!m.rightRail && m.canvas!.w > beforeFold,
+		JSON.stringify([m.right, m.rightRail, m.canvas?.w]),
+	);
+	check('the folded rail offers Objects', await clickRailItem(bridge, 'Objects'));
+	await sleep(300);
+	m = await measureLayout(bridge);
+	check(
+		'choosing it again opens the dock on it',
+		!!m.right &&
+			!!m.rightRail &&
+			Math.abs(m.canvas!.w - beforeFold) < 1.5 &&
+			(await railItemPressed(bridge, 'Objects')) === true,
+		JSON.stringify([m.right, m.canvas?.w]),
+	);
+
 	// Folding shows the rail and gives the room back to the level.
 	const wide = m.canvas!.w;
 	check('the left dock folds', await clickLabelled(bridge, 'Fold the left dock'));
@@ -251,8 +418,14 @@ async function dockChecks(bridge: Bridge): Promise<void> {
 	await sleep(300);
 	m = await measureLayout(bridge);
 	check(
-		'Tab on the level hides the docks and gives it the window',
-		!m.left && !m.right && !m.bottom && m.canvas!.w > open,
+		'Tab on the level hides the docks, keeps their rails and gives it the rest',
+		!m.left &&
+			!m.right &&
+			!m.bottom &&
+			!!m.leftRail &&
+			!!m.rightRail &&
+			!!m.bottomRail &&
+			m.canvas!.w > open,
 		JSON.stringify([m.left, m.right, m.bottom]),
 	);
 	await bridge.js(
@@ -267,11 +440,1281 @@ async function dockChecks(bridge: Bridge): Promise<void> {
 	);
 }
 
+/**
+ * A synthetic pointer drag: pointerdown on the element found by `from`, two moves and a pointerup
+ * at the point `to` gives (all dispatched on the source, as a captured pointer would deliver
+ * them). Real pointer events are unreliable under the automation bridge. `escape` presses Escape
+ * before letting go. Returns false when the source is not there.
+ */
+function syntheticDrag(
+	bridge: Bridge,
+	from: string,
+	to: { x: number; y: number } | { selector: string; fx: number; fy: number },
+	escape = false,
+): Promise<boolean> {
+	return bridge.js<boolean>(
+		`const src = document.querySelector(${JSON.stringify(from)});
+		 if (!src) return false;
+		 const r = src.getBoundingClientRect();
+		 const start = { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+		 const spec = ${JSON.stringify(to)};
+		 let end;
+		 if ('selector' in spec) {
+		   const t = document.querySelector(spec.selector).getBoundingClientRect();
+		   end = { x: t.left + t.width * spec.fx, y: t.top + t.height * spec.fy };
+		 } else end = spec;
+		 const wait = () => new Promise((res) => setTimeout(res, 60));
+		 const fire = (type, p) => src.dispatchEvent(new PointerEvent(type, {
+		   bubbles: true, cancelable: true, pointerId: 41, button: 0, clientX: p.x, clientY: p.y,
+		 }));
+		 fire('pointerdown', start);
+		 await wait();
+		 fire('pointermove', { x: start.x + 12, y: start.y + 12 });
+		 await wait();
+		 fire('pointermove', end);
+		 await wait();
+		 if (${escape}) {
+		   document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+		   await wait();
+		 }
+		 fire('pointerup', end);
+		 await wait();
+		 return true;`,
+	);
+}
+
+/** The panel names on a dock's rail, in order: the dock is named as its region is. */
+function tabsIn(bridge: Bridge, dock: string): Promise<string[]> {
+	const zone = { 'Left dock': 'left', 'Right dock': 'right', 'Bottom dock': 'bottom' }[dock];
+	return bridge.js<string[]>(
+		`return [...document.querySelectorAll('[data-rail=${JSON.stringify(zone)}] [data-rail-item]')].map((t) => t.textContent.trim());`,
+	);
+}
+
+const sameBox = (a: Box | null, b: Box | null) =>
+	a === null || b === null
+		? a === b
+		: Math.abs(a.x - b.x) < 1 &&
+			Math.abs(a.y - b.y) < 1 &&
+			Math.abs(a.w - b.w) < 1 &&
+			Math.abs(a.h - b.h) < 1;
+
+/**
+ * Dragging panels between docks, onto the level and among tabs, and maximising a panel, measured in
+ * the real window. It leaves the default arrangement as it found it.
+ */
+/** Where the tool picker was left by `toolPickerChecks`, for the restart to find it again. */
+let pickerLeftAt: { x: number; y: number } | null = null;
+
+interface PickerLayout {
+	picker: Box;
+	canvas: Box;
+	status: Box;
+	frame: Box | null;
+	keys: { name: string; w: number; h: number; pressed: boolean; title: string }[];
+}
+
+/** The tool picker, the map it floats over and the status line under the map. */
+function measurePicker(bridge: Bridge): Promise<PickerLayout | null> {
+	return bridge.js<PickerLayout | null>(
+		`const box = (e) => { const r = e.getBoundingClientRect(); return { x: r.left, y: r.top, w: r.width, h: r.height }; };
+		 const p = document.querySelector('[data-tool-picker]');
+		 const c = document.querySelector('canvas');
+		 const s = [...document.querySelectorAll('[role=status]')].find((e) => e.textContent.startsWith('Cell '));
+		 if (!p || !c || !s) return null;
+		 return {
+		   picker: box(p), canvas: box(c), status: box(s), frame: p.offsetParent ? box(p.offsetParent) : null,
+		   keys: [...p.querySelectorAll('button[data-tool]')].map((b) => ({
+		     name: b.getAttribute('aria-label'), w: b.getBoundingClientRect().width, h: b.getBoundingClientRect().height,
+		     pressed: b.getAttribute('aria-pressed') === 'true', title: b.getAttribute('title'),
+		   })),
+		 };`,
+	);
+}
+
+/** Drags the tool picker's grip by `dx`, `dy` with pointer events, as a person would. */
+function dragPicker(bridge: Bridge, dx: number, dy: number): Promise<boolean> {
+	return bridge.js<boolean>(
+		`const src = document.querySelector('[data-tool-picker] button[data-grip]');
+		 if (!src) return false;
+		 const r = src.getBoundingClientRect();
+		 const p = { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+		 const wait = () => new Promise((res) => setTimeout(res, 60));
+		 const fire = (type, x, y) => src.dispatchEvent(new PointerEvent(type, {
+		   bubbles: true, cancelable: true, pointerId: 43, button: 0, clientX: x, clientY: y,
+		 }));
+		 fire('pointerdown', p.x, p.y);
+		 await wait();
+		 fire('pointermove', p.x + ${dx} / 2, p.y + ${dy} / 2);
+		 await wait();
+		 fire('pointermove', p.x + ${dx}, p.y + ${dy});
+		 await wait();
+		 fire('pointerup', p.x + ${dx}, p.y + ${dy});
+		 await wait();
+		 return true;`,
+	);
+}
+
+/** The tool picker's saved place in the active workspace (null when it was never moved). */
+async function savedPicker(bridge: Bridge): Promise<{ x: number; y: number } | null> {
+	const found = await bridge.js<{ v: { x: number; y: number } | null }>(
+		`const s = await window.__TAURI_INTERNALS__.invoke('plugin:fizz-studio-settings|settings_get');
+		 const ws = s.settings.dock.workspaces[s.settings.dock.active];
+		 return { v: ws ? ws.tool_picker ?? null : null };`,
+	);
+	return found.v;
+}
+
+/** The picker's top-left corner measured from the map's. */
+function pickerOffset(l: PickerLayout): { x: number; y: number } {
+	return { x: Math.round(l.picker.x - l.canvas.x), y: Math.round(l.picker.y - l.canvas.y) };
+}
+
+/**
+ * The tools float over the map in a glass pill: it starts at the map's top-left, its keys are
+ * square, named and lit for the current tool, a click on one chooses that tool, a drag of its
+ * grip moves it and is saved in the workspace, and it never leaves the map or covers the status
+ * line. The row above the level holds no tools, and no key in it is clipped.
+ */
+async function toolPickerChecks(bridge: Bridge): Promise<void> {
+	const first = await within(5000, async () => (await measurePicker(bridge)) !== null);
+	const m = await measurePicker(bridge);
+	check('picker: the tools float over the map', first !== null && m !== null);
+	if (!m) return;
+	const inside = (l: PickerLayout) =>
+		l.picker.x >= l.canvas.x + 7 &&
+		l.picker.y >= l.canvas.y + 7 &&
+		l.picker.x + l.picker.w <= l.canvas.x + l.canvas.w - 7 &&
+		l.picker.y + l.picker.h <= l.canvas.y + l.canvas.h - 7 &&
+		l.picker.y + l.picker.h <= l.status.y;
+	const saved0 = await savedPicker(bridge);
+	const at0 = pickerOffset(m);
+	check(
+		'picker: it starts at the top-left of the map, inside it and above the status line',
+		(saved0 !== null || (Math.abs(at0.x - 8) <= 1 && Math.abs(at0.y - 8) <= 1)) && inside(m),
+		JSON.stringify({ offset: at0, saved0 }),
+	);
+	check(
+		'picker: it has the six square tool keys, named, with the shortcut in the tooltip',
+		m.keys.map((k) => k.name).join() === 'Paint,Erase,Pick,Select,Stamp,Inspect' &&
+			m.keys.every((k) => Math.abs(k.w - k.h) <= 1 && k.w >= 28) &&
+			m.keys[0]!.title === 'Paint (B)',
+		JSON.stringify(m.keys),
+	);
+	const pressed = async () =>
+		(await measurePicker(bridge))?.keys.find((k) => k.pressed)?.name ?? null;
+	const clickTool = (name: string) =>
+		bridge.js<boolean>(
+			`const b = document.querySelector('[data-tool-picker] button[aria-label=${name}]'); if (!b) return false; b.click(); return true;`,
+		);
+	await clickTool('Erase');
+	const erasing = await within(3000, async () => (await pressed()) === 'Erase');
+	check(
+		'picker: a click on Erase chooses the Erase tool',
+		erasing !== null,
+		String(await pressed()),
+	);
+	await clickTool('Paint');
+	await within(3000, async () => (await pressed()) === 'Paint');
+	await checkKeycaps(bridge, 'the tool picker');
+	await inspectChecks(bridge, pressed);
+
+	// The row above the level: no tools in it, and every key in it has its whole bottom edge.
+	const row = await bridge.js<{ names: string[]; clipped: string[] } | null>(
+		`const g = document.querySelector('[role=group][aria-label="Editor toolbar"]');
+		 if (!g) return null;
+		 const bar = g.parentElement.getBoundingClientRect();
+		 const keys = [...g.parentElement.querySelectorAll('button, [role=status]')];
+		 const clipped = keys.filter((k) => { const r = k.getBoundingClientRect(); return r.bottom > bar.bottom - 1 || r.top < bar.top; })
+		   .map((k) => (k.getAttribute('aria-label') || k.textContent.trim()) + ' ' + Math.round(k.getBoundingClientRect().bottom) + '>' + Math.round(bar.bottom));
+		 return { names: [...g.querySelectorAll('button')].map((b) => b.getAttribute('aria-label') || b.textContent.trim()), clipped };`,
+	);
+	check(
+		'picker: the row above the level holds no tool keys',
+		row !== null &&
+			!row.names.some((n) => ['Paint', 'Erase', 'Pick', 'Select', 'Stamp', 'Inspect'].includes(n)),
+		JSON.stringify(row?.names),
+	);
+	check(
+		"the row above the level shows every key's whole bottom edge",
+		row !== null && row.clipped.length === 0,
+		JSON.stringify(row?.clipped),
+	);
+
+	// A drag moves it by as much as the pointer moved, and the place is saved.
+	await dragPicker(bridge, 140, 70);
+	let found: PickerLayout | null = null;
+	await within(3000, async () => {
+		const l = await measurePicker(bridge);
+		found = l !== null && Math.abs(pickerOffset(l).x - (at0.x + 140)) <= 2 ? l : null;
+		return found !== null;
+	});
+	// Assigned inside the callback, so the type is restated for the checks below.
+	const moved = found as PickerLayout | null;
+	check(
+		'picker: dragging the grip moves it with the pointer',
+		moved !== null && Math.abs(pickerOffset(moved).y - (at0.y + 70)) <= 2 && inside(moved),
+		JSON.stringify({ start: at0, now: moved ? pickerOffset(moved) : null }),
+	);
+	const movedTo = moved ? pickerOffset(moved) : null;
+	const savedMove = await within(5000, async () => {
+		const at = await savedPicker(bridge);
+		return movedTo !== null && at !== null && Math.abs(at.x - movedTo.x) <= 1;
+	});
+	check(
+		'picker: where it was dragged to is saved in the workspace',
+		savedMove !== null,
+		JSON.stringify(await savedPicker(bridge)),
+	);
+
+	// A drag far past the edges leaves it inside the map, above the status line.
+	await dragPicker(bridge, 5000, 5000);
+	// The clamp lands a render after the pointer is released, so wait for it instead of a fixed pause.
+	let far = await measurePicker(bridge);
+	await within(3000, async () => {
+		far = await measurePicker(bridge);
+		return far !== null && inside(far);
+	});
+	check(
+		'picker: a drag past the corner keeps it inside the map',
+		far !== null && inside(far),
+		JSON.stringify(
+			far && { picker: far.picker, canvas: far.canvas, status: far.status, frame: far.frame },
+		),
+	);
+	await dragPicker(bridge, -5000, -5000);
+	let back = await measurePicker(bridge);
+	await within(3000, async () => {
+		back = await measurePicker(bridge);
+		return (
+			back !== null &&
+			Math.abs(pickerOffset(back).x - 8) <= 1 &&
+			Math.abs(pickerOffset(back).y - 8) <= 1
+		);
+	});
+	check(
+		'picker: a drag past the other corner stops at the top-left margin',
+		back !== null &&
+			Math.abs(pickerOffset(back).x - 8) <= 1 &&
+			Math.abs(pickerOffset(back).y - 8) <= 1,
+		JSON.stringify(back && pickerOffset(back)),
+	);
+	// It is left somewhere other than the corner, so the restart can show it kept its place.
+	await dragPicker(bridge, 180, 90);
+	await sleep(200);
+	const left = await measurePicker(bridge);
+	pickerLeftAt = left ? pickerOffset(left) : null;
+	await within(5000, async () => {
+		const at = await savedPicker(bridge);
+		return pickerLeftAt !== null && at !== null && Math.abs(at.x - pickerLeftAt.x) <= 1;
+	});
+}
+
+/** The keyboard cursor's cell, read from the status line under the map. */
+async function cursorCell(bridge: Bridge): Promise<{ x: number; y: number } | null> {
+	return bridge.js<{ x: number; y: number } | null>(
+		`const s = [...document.querySelectorAll('[role=status]')].map((e) => e.textContent.trim()).find((t) => /^Cell \\d+, \\d+:/.test(t));
+		 const m = s && s.match(/^Cell (\\d+), (\\d+):/);
+		 return m ? { x: Number(m[1]), y: Number(m[2]) } : null;`,
+	);
+}
+
+/**
+ * Inspect, in the running app: Q chooses it, Space on a cell with an item selects that cell (the
+ * canvas names it in `data-inspected`) without editing the level, the selection outlasts a change
+ * of tool, and Escape on the canvas clears it. The cursor is walked to the item with the arrow
+ * keys, so the check needs no pixel arithmetic. It leaves Paint chosen and nothing inspected.
+ */
+async function inspectChecks(bridge: Bridge, pressed: () => Promise<string | null>): Promise<void> {
+	const canvas = 'canvas[role=application]';
+	const target = await bridge.js<{ x: number; y: number }>(
+		`const b = [...document.querySelectorAll('[role=list][aria-label=Objects] button')].map((e) => e.textContent.trim().match(/^Item \\S+ at (\\d+), (\\d+)$/)).find(Boolean);
+		 return b ? { x: Number(b[1]), y: Number(b[2]) } : { x: 17, y: 7 };`,
+	);
+	await pressKey(bridge, canvas, 'q');
+	const inspecting = await within(3000, async () => (await pressed()) === 'Inspect');
+	check('inspect: Q on the canvas chooses the Inspect tool', inspecting !== null);
+
+	const from = await cursorCell(bridge);
+	if (from) {
+		const steps = [
+			...Array(Math.abs(target.x - from.x)).fill(target.x > from.x ? 'ArrowRight' : 'ArrowLeft'),
+			...Array(Math.abs(target.y - from.y)).fill(target.y > from.y ? 'ArrowUp' : 'ArrowDown'),
+		] as string[];
+		for (const key of steps) await pressKey(bridge, canvas, key);
+	}
+	const reached = await within(3000, async () => {
+		const at = await cursorCell(bridge);
+		return at !== null && at.x === target.x && at.y === target.y;
+	});
+	const titleBefore = await titleBarText(bridge);
+	await pressKey(bridge, canvas, ' ');
+	const marked = `${target.x},${target.y}`;
+	const selected = await within(3000, () =>
+		bridge.js<boolean>(
+			`return document.querySelector(${JSON.stringify(canvas)})?.dataset.inspected === ${JSON.stringify(marked)};`,
+		),
+	);
+	check(
+		'inspect: Space on a cell with an item marks it as the selection',
+		reached !== null && selected !== null,
+		JSON.stringify({ from, target, now: await cursorCell(bridge) }),
+	);
+	await sleep(300);
+	check(
+		'inspect: selecting changes nothing in the level',
+		titleBefore !== null && (await titleBarText(bridge)) === titleBefore,
+	);
+
+	const clickPaint = await bridge.js<boolean>(
+		`const b = document.querySelector('[data-tool-picker] button[aria-label=Paint]'); if (!b) return false; b.click(); return true;`,
+	);
+	await within(3000, async () => (await pressed()) === 'Paint');
+	check(
+		'inspect: the selection stays when another tool is chosen',
+		clickPaint &&
+			(await bridge.js<boolean>(
+				`return document.querySelector(${JSON.stringify(canvas)})?.dataset.inspected === ${JSON.stringify(marked)};`,
+			)),
+	);
+	await pressKey(bridge, canvas, 'Escape');
+	const cleared = await within(3000, () =>
+		bridge.js<boolean>(
+			`return document.querySelector(${JSON.stringify(canvas)})?.dataset.inspected === undefined;`,
+		),
+	);
+	check('inspect: Escape on the canvas clears the selection', cleared !== null);
+}
+
+async function dragAndMaximiseChecks(bridge: Bridge): Promise<void> {
+	const sane = (m: Layout) =>
+		!!m.canvas &&
+		m.canvas.h > 300 &&
+		[m.left, m.right, m.bottom].every((d) => d === null || apart(d, m.canvas!));
+
+	// A panel dragged from one dock into another.
+	let m = await measureLayout(bridge);
+	check(
+		'drag: the Palette starts on the left rail',
+		(await tabsIn(bridge, 'Left dock')).join() === 'Palette',
+	);
+	check(
+		'drag: a synthetic drag starts on the Palette rail entry',
+		await syntheticDrag(bridge, '[data-rail="left"] [data-rail-item="palette"]', {
+			// The top of the right rail's first entry: the place before Objects.
+			selector: '[data-rail="right"] [data-rail-item="objects"]',
+			fx: 0.5,
+			fy: 0.1,
+		}),
+	);
+	await sleep(300);
+	m = await measureLayout(bridge);
+	check(
+		'drag: the Palette moves to the right rail where it was let go and the left dock and rail go',
+		(await tabsIn(bridge, 'Right dock')).join() === 'Palette,Objects,History' &&
+			!m.left &&
+			!m.leftRail,
+		JSON.stringify(await tabsIn(bridge, 'Right dock')),
+	);
+	check(
+		'drag: the canvas keeps its room and no dock overlaps it',
+		sane(m),
+		JSON.stringify([m.left, m.right, m.bottom, m.canvas]),
+	);
+
+	// The now empty left dock still offers itself, and takes the panel back.
+	check(
+		'drag: a synthetic drag starts on the Palette rail entry again',
+		await syntheticDrag(bridge, '[data-rail="right"] [data-rail-item="palette"]', {
+			// The empty dock's drop strip only exists during a drag: aim at the left edge of the level.
+			x: (m.canvas?.x ?? 0) + 20,
+			y: (m.canvas?.y ?? 0) + (m.canvas?.h ?? 0) / 2,
+		}),
+	);
+	await sleep(300);
+	m = await measureLayout(bridge);
+	check(
+		'drag: an empty dock takes the panel back and the sizes are sane',
+		(await tabsIn(bridge, 'Left dock')).join() === 'Palette' &&
+			(await tabsIn(bridge, 'Right dock')).join() === 'Objects,History' &&
+			sane(m),
+		JSON.stringify([m.left, m.right, m.bottom, m.canvas]),
+	);
+
+	// Escape during a drag puts everything back.
+	await syntheticDrag(
+		bridge,
+		'[data-rail="left"] [data-rail-item="palette"]',
+		{ selector: 'section[aria-label="Right dock"] [data-strip]', fx: 0.5, fy: 0.5 },
+		true,
+	);
+	await sleep(300);
+	check(
+		'drag: Escape during a drag cancels it',
+		(await tabsIn(bridge, 'Left dock')).join() === 'Palette' &&
+			(await tabsIn(bridge, 'Right dock')).join() === 'Objects,History',
+	);
+
+	// A panel dragged onto the level floats where it was let go.
+	const before = await measureLayout(bridge);
+	const target = {
+		x: before.canvas!.x + before.canvas!.w / 2,
+		y: before.canvas!.y + before.canvas!.h / 2,
+	};
+	await syntheticDrag(bridge, '[data-rail="right"] [data-rail-item="objects"]', target);
+	await sleep(300);
+	const floated = await bridge.js<{ x: number; y: number; w: number } | null>(
+		`const e = document.querySelector('section[data-panel="objects"]');
+		 if (!e) return null;
+		 const r = e.getBoundingClientRect();
+		 return { x: r.left + r.width / 2, y: r.top, w: r.width };`,
+	);
+	m = await measureLayout(bridge);
+	check(
+		'drag: a panel dragged onto the level floats where it was let go',
+		floated !== null &&
+			Math.abs(floated.x - target.x) < 40 &&
+			(await tabsIn(bridge, 'Right dock')).join() === 'History' &&
+			sane(m),
+		JSON.stringify([floated, target]),
+	);
+
+	// A floating panel resizes from every edge and corner: the opposite edges stay where they are,
+	// the panel stays inside the area and above its minimum size, and the size is saved.
+	interface Edges {
+		l: number;
+		t: number;
+		r: number;
+		b: number;
+		areaW: number;
+		areaH: number;
+	}
+	const edges = () =>
+		bridge.js<Edges | null>(
+			`const e = document.querySelector('section[data-panel="objects"]');
+			 if (!e) return null;
+			 const r = e.getBoundingClientRect();
+			 const a = e.offsetParent.getBoundingClientRect();
+			 return { l: r.left - a.left, t: r.top - a.top, r: r.right - a.left, b: r.bottom - a.top, areaW: a.width, areaH: a.height };`,
+		);
+	const resizeFrom = (handle: string, dx: number, dy: number) =>
+		bridge.js<boolean>(
+			`const src = document.querySelector(${JSON.stringify(handle === 'se' ? 'section[data-panel="objects"] button[aria-label="Resize Objects"]' : `section[data-panel="objects"] [data-resize-handle="${handle}"]`)});
+			 if (!src) return false;
+			 const r = src.getBoundingClientRect();
+			 const p = { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+			 const wait = () => new Promise((res) => setTimeout(res, 60));
+			 const fire = (type, x, y) => src.dispatchEvent(new PointerEvent(type, {
+			   bubbles: true, cancelable: true, pointerId: 41, button: 0, clientX: x, clientY: y,
+			 }));
+			 fire('pointerdown', p.x, p.y);
+			 await wait();
+			 fire('pointermove', p.x + ${dx}, p.y + ${dy});
+			 await wait();
+			 fire('pointerup', p.x + ${dx}, p.y + ${dy});
+			 await wait();
+			 return true;`,
+		);
+	const near = (a: number, b: number) => Math.abs(a - b) <= 1;
+	// Snapping may nudge a moving edge by a few pixels, so a drag is judged by its direction and
+	// by the opposite edges, which never move.
+	const e0 = await edges();
+	const had = e0 !== null && (await resizeFrom('w', -60, 0));
+	await sleep(200);
+	const ew = await edges();
+	check(
+		'resize: dragging the west edge moves the left edge and keeps the right edge',
+		!!e0 &&
+			!!ew &&
+			had &&
+			ew.l < e0.l - 40 &&
+			near(ew.r, e0.r) &&
+			near(ew.t, e0.t) &&
+			near(ew.b, e0.b),
+		JSON.stringify([had, e0, ew]),
+	);
+	await resizeFrom('n', 0, -40);
+	await sleep(200);
+	const en = await edges();
+	check(
+		'resize: dragging the north edge moves the top edge and keeps the bottom edge',
+		!!ew && !!en && en.t < ew.t - 25 && near(en.b, ew.b) && near(en.l, ew.l) && near(en.r, ew.r),
+		JSON.stringify([ew, en]),
+	);
+	await resizeFrom('ne', 40, 30);
+	await sleep(200);
+	const ene = await edges();
+	check(
+		'resize: dragging the north-east corner moves the top and right edges only',
+		!!en &&
+			!!ene &&
+			ene.r > en.r + 25 &&
+			ene.t > en.t + 15 &&
+			near(ene.l, en.l) &&
+			near(ene.b, en.b),
+		JSON.stringify([en, ene]),
+	);
+	await resizeFrom('w', 5000, 0);
+	await resizeFrom('n', 0, 5000);
+	await sleep(200);
+	const emin = await edges();
+	check(
+		'resize: dragging past the minimum size holds the opposite edges instead of sliding',
+		!!ene &&
+			!!emin &&
+			near(emin.r, ene.r) &&
+			near(emin.b, ene.b) &&
+			emin.r - emin.l >= 199 &&
+			emin.r - emin.l <= 201 &&
+			emin.b - emin.t >= 119 &&
+			emin.b - emin.t <= 121,
+		JSON.stringify([ene, emin]),
+	);
+	await resizeFrom('nw', -5000, -5000);
+	await sleep(200);
+	const emax = await edges();
+	check(
+		'resize: dragging past the area stops at its edges and keeps the opposite corner',
+		!!emin &&
+			!!emax &&
+			near(emax.l, 0) &&
+			near(emax.t, 0) &&
+			near(emax.r, emin.r) &&
+			near(emax.b, emin.b),
+		JSON.stringify([emin, emax]),
+	);
+	await resizeFrom('se', 5000, 5000);
+	await sleep(200);
+	const efull = await edges();
+	check(
+		'resize: the south-east corner grows to the area and no further',
+		!!emax &&
+			!!efull &&
+			near(efull.l, emax.l) &&
+			near(efull.t, emax.t) &&
+			near(efull.r, efull.areaW) &&
+			near(efull.b, efull.areaH),
+		JSON.stringify(efull),
+	);
+	await sleep(1000);
+	const saved = await bridge.js<{ x: number; y: number; w: number; h: number }>(
+		`const s = await window.__TAURI_INTERNALS__.invoke('plugin:fizz-studio-settings|settings_get');
+		 const f = s.settings.dock.workspaces[s.settings.dock.active].panels.objects.float;
+		 return { x: f.x, y: f.y, w: f.w, h: f.h };`,
+	);
+	check(
+		'resize: the resized rectangle is saved in the workspace',
+		!!efull &&
+			near(saved.x, efull.l) &&
+			near(saved.y, efull.t) &&
+			near(saved.w, efull.r - efull.l) &&
+			near(saved.h, efull.b - efull.t),
+		JSON.stringify([saved, efull]),
+	);
+
+	// Docking it back puts it at the end; Alt+ArrowUp on its rail entry reorders it, with an announcement.
+	check('drag: the floating panel docks back', await clickLabelled(bridge, 'Dock Objects right'));
+	await sleep(300);
+	check(
+		'drag: it sits after History until moved',
+		(await tabsIn(bridge, 'Right dock')).join() === 'History,Objects',
+	);
+	const moved = await bridge.js<{ tabs: string[]; note: string }>(
+		`const tab = [...document.querySelectorAll('[data-rail="right"] [data-rail-item]')].find((t) => t.textContent.trim() === 'Objects');
+		 tab.focus();
+		 tab.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowUp', altKey: true, bubbles: true, cancelable: true }));
+		 await new Promise((res) => setTimeout(res, 300));
+		 return {
+		   tabs: [...document.querySelectorAll('[data-rail="right"] [data-rail-item]')].map((t) => t.textContent.trim()),
+		   note: [...document.querySelectorAll('[role=status]')].map((e) => e.textContent).join('|'),
+		 };`,
+	);
+	check(
+		'drag: Alt+ArrowUp moves a rail entry and announces its new place',
+		moved.tabs.join() === 'Objects,History' &&
+			moved.note.includes('Objects moved to position 1 of 2'),
+		JSON.stringify(moved),
+	);
+
+	// Maximise: Script fills the area under the tool bar, hides the level, and keeps its editor.
+	const normal = await measureLayout(bridge);
+	const probe = await bridge.js<{
+		lines: number;
+		scroll: number;
+		anchor: number;
+		head: number;
+	} | null>(
+		`const content = document.querySelector('.cm-content');
+		 const view = content && (content.cmView || content.cmTile) && (content.cmView || content.cmTile).view;
+		 if (!view) return { diag: String(!!content) + ' ' + (content ? Object.keys(content).join(',') + ' ' + Object.keys(content.cmTile || {}).join(',') : '') };
+		 window.__scriptNode = content;
+		 const to = Math.min(view.state.doc.length, 40);
+		 view.dispatch({ selection: { anchor: 5, head: to } });
+		 view.scrollDOM.scrollTop = 40;
+		 await new Promise((res) => setTimeout(res, 100));
+		 return { lines: view.state.doc.lines, scroll: view.scrollDOM.scrollTop, anchor: 5, head: to };`,
+	);
+	check(
+		'maximise: the Script editor has a selection and a scroll position set',
+		probe !== null && probe.scroll > 0,
+		JSON.stringify(probe),
+	);
+	const editorState = () =>
+		bridge.js<{ same: boolean; scroll: number; anchor: number; head: number } | null>(
+			`const content = document.querySelector('.cm-content');
+			 const view = content && (content.cmView || content.cmTile) && (content.cmView || content.cmTile).view;
+			 if (!view) return null;
+			 const sel = view.state.selection.main;
+			 return { same: content === window.__scriptNode, scroll: view.scrollDOM.scrollTop, anchor: sel.anchor, head: sel.head };`,
+		);
+	check('maximise: Script offers the button', await clickLabelled(bridge, 'Maximise Script'));
+	await sleep(400);
+	const full = await bridge.js<{ fill: Box | null; area: Box | null; canvasHidden: boolean }>(
+		`const box = (e) => { if (!e) return null; const r = e.getBoundingClientRect(); return { x: r.left, y: r.top, w: r.width, h: r.height }; };
+		 const f = document.querySelector('[data-panel-maximised]');
+		 const canvas = document.querySelector('canvas');
+		 return { fill: box(f), area: box(f && f.closest('[data-has-maximised]') && f.closest('[data-has-maximised]').parentElement), canvasHidden: !!canvas && getComputedStyle(canvas).visibility === 'hidden' };`,
+	);
+	// Hidden docks and floating panels are mounted but cannot take the focus: nothing outside the
+	// maximised panel that a Tab press could reach is visible.
+	const reachable = await bridge.js<string[]>(
+		`const max = document.querySelector('[data-panel-maximised]');
+		 return [...document.querySelectorAll('[data-has-maximised] button, [data-has-maximised] [tabindex], [data-has-maximised] canvas, [data-has-maximised] textarea, [data-has-maximised] [contenteditable]')]
+		   .filter((e) => !max.contains(e) && getComputedStyle(e).visibility !== 'hidden')
+		   .map((e) => e.tagName + '|' + (e.getAttribute('aria-label') || '') + '|' + '');`,
+	);
+	check(
+		'maximise: the Script fills the workspace area under the tool bar and the level is hidden',
+		!!full.fill &&
+			!!full.area &&
+			sameBox(full.fill, full.area) &&
+			full.fill.w > normal.window.w * 0.6 &&
+			full.fill.h > 300 &&
+			// The area starts where the level started: right under the tool bar.
+			Math.abs(full.fill.y - normal.canvas!.y) < 2 &&
+			full.canvasHidden,
+		JSON.stringify(full),
+	);
+	check(
+		'maximise: the hidden docks cannot be reached by Tab',
+		reachable.length === 0,
+		reachable.slice(0, 5).join(' ; '),
+	);
+	const during = await editorState();
+	check(
+		'maximise: the same editor, scroll position and selection survive maximising',
+		!!during &&
+			during.same &&
+			Math.abs(during.scroll - probe!.scroll) <= 1 &&
+			during.anchor === probe!.anchor &&
+			during.head === probe!.head,
+		JSON.stringify([probe, during]),
+	);
+	check('maximise: Restore is offered', await clickLabelled(bridge, 'Restore Script'));
+	await sleep(400);
+	const back = await measureLayout(bridge);
+	const after = await editorState();
+	check(
+		'maximise: the same editor, scroll position and selection survive restoring',
+		!!after &&
+			after.same &&
+			Math.abs(after.scroll - probe!.scroll) <= 1 &&
+			after.anchor === probe!.anchor &&
+			after.head === probe!.head,
+		JSON.stringify([probe, after]),
+	);
+	check(
+		'maximise: Restore returns the previous sizes exactly',
+		sameBox(back.canvas, normal.canvas) &&
+			sameBox(back.left, normal.left) &&
+			sameBox(back.right, normal.right) &&
+			sameBox(back.bottom, normal.bottom),
+		JSON.stringify([normal.canvas, back.canvas]),
+	);
+
+	// Ctrl+Shift+M and Escape.
+	await bridge.js(
+		`window.dispatchEvent(new KeyboardEvent('keydown', { key: 'M', ctrlKey: true, shiftKey: true, bubbles: true, cancelable: true }));`,
+	);
+	await sleep(300);
+	const keyed = await bridge.js<boolean>(
+		`return !!document.querySelector('[data-panel-maximised]');`,
+	);
+	await bridge.js(
+		`document.querySelector('[data-panel-maximised] button').dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));`,
+	);
+	await sleep(300);
+	const escaped = await bridge.js<boolean>(
+		`return !document.querySelector('[data-panel-maximised]');`,
+	);
+	check('maximise: Ctrl+Shift+M maximises and Escape restores', keyed && escaped);
+
+	// A folded dock: Ctrl+Shift+M unfolds it and maximises the Script, which mounts once.
+	check('maximise: the bottom dock folds', await clickLabelled(bridge, 'Fold the bottom dock'));
+	await sleep(300);
+	const foldedAway = await bridge.js<boolean>(
+		`return !document.querySelector('.cm-content') && !document.querySelector('[aria-label="Bottom dock"]');`,
+	);
+	check('maximise: a folded dock draws no Script editor', foldedAway);
+	await bridge.js(
+		`window.dispatchEvent(new KeyboardEvent('keydown', { key: 'M', ctrlKey: true, shiftKey: true, bubbles: true, cancelable: true }));`,
+	);
+	await sleep(500);
+	const foldedFull = await bridge.js<{ fill: Box | null; area: Box | null; editor: boolean }>(
+		`const box = (e) => { if (!e) return null; const r = e.getBoundingClientRect(); return { x: r.left, y: r.top, w: r.width, h: r.height }; };
+		 const f = document.querySelector('[data-panel-maximised]');
+		 const content = document.querySelector('.cm-content');
+		 window.__foldedNode = content;
+		 return { fill: box(f), area: box(f && f.closest('[data-has-maximised]') && f.closest('[data-has-maximised]').parentElement), editor: !!content && f.contains(content) };`,
+	);
+	check(
+		'maximise: from a folded dock the Script fills the workspace',
+		!!foldedFull.fill &&
+			!!foldedFull.area &&
+			sameBox(foldedFull.fill, foldedFull.area) &&
+			foldedFull.fill.w > normal.window.w * 0.6 &&
+			foldedFull.fill.h > 300 &&
+			foldedFull.editor,
+		JSON.stringify(foldedFull),
+	);
+	check('maximise: Restore after a folded start', await clickLabelled(bridge, 'Restore Script'));
+	await sleep(400);
+	const foldedBack = await bridge.js<{ open: boolean; same: boolean; rail: boolean }>(
+		`return { open: !!document.querySelector('[aria-label="Bottom dock"]'), same: document.querySelector('.cm-content') === window.__foldedNode, rail: !!document.querySelector('button[aria-label="Unfold the bottom dock"]') };`,
+	);
+	check(
+		'maximise: the dock is left open after Restore and the Script editor node survived',
+		foldedBack.open && foldedBack.same && !foldedBack.rail,
+		JSON.stringify(foldedBack),
+	);
+
+	// Proposals can be maximised; the Palette cannot.
+	check(
+		'maximise: the Proposals panel shows from its rail',
+		await showFromRail(bridge, 'Proposals'),
+	);
+	await sleep(200);
+	const buttons = await bridge.js<{ proposals: boolean; palette: boolean }>(
+		`return {
+		   proposals: !!document.querySelector('button[aria-label="Maximise Proposals"]'),
+		   palette: !!document.querySelector('button[aria-label="Maximise Palette"]'),
+		 };`,
+	);
+	check(
+		'maximise: Proposals is expandable and the Palette has no button',
+		buttons.proposals && !buttons.palette,
+		JSON.stringify(buttons),
+	);
+	await showFromRail(bridge, 'Script');
+	await sleep(200);
+	m = await measureLayout(bridge);
+	check(
+		'drag: the arrangement is back as it was and the canvas keeps its room',
+		sane(m) && (await tabsIn(bridge, 'Bottom dock')).join() === 'Script,Proposals',
+	);
+}
+
+/** The panels, with the title of their tab, the label of their window and a probe of their content. */
+const PANEL_WINDOWS = [
+	{
+		id: 'palette',
+		title: 'Palette',
+		probe: `return [...document.querySelectorAll('h3')].some((h) => h.textContent.trim() === 'Terrain');`,
+	},
+	{
+		id: 'objects',
+		title: 'Objects',
+		probe: `return [...document.querySelectorAll('button')].some((b) => b.textContent.startsWith('Item '));`,
+	},
+	{
+		id: 'history',
+		title: 'History',
+		probe: `return [...document.querySelectorAll('button')].some((b) => b.textContent.startsWith('Undo'));`,
+	},
+	{
+		id: 'proposals',
+		title: 'Proposals',
+		probe: `return !!document.querySelector('[role=switch]');`,
+	},
+	{
+		id: 'script',
+		title: 'Script',
+		probe: `return !!document.querySelector('[aria-label="Script text"]');`,
+	},
+] as const;
+
+const tearOffLabel = (title: string) => `Tear off ${title} into its own window`;
+
+/** The width and height a `manage_window` info answer holds, wherever it nests them. */
+function sizeIn(value: unknown): { w: number; h: number } | null {
+	if (typeof value !== 'object' || value === null) return null;
+	const v = value as Record<string, unknown>;
+	if (typeof v.width === 'number' && typeof v.height === 'number') {
+		return { w: v.width, h: v.height };
+	}
+	for (const inner of Object.values(v)) {
+		const found = sizeIn(inner);
+		if (found) return found;
+	}
+	return null;
+}
+
+async function windowSize(bridge: Bridge, label: string): Promise<{ w: number; h: number } | null> {
+	const text = await bridge.call('manage_window', { action: 'info', windowId: label });
+	try {
+		return sizeIn(JSON.parse(text));
+	} catch {
+		const w = /"?(?:inner)?[Ww]idth"?\D+(\d+)/.exec(text);
+		const h = /"?(?:inner)?[Hh]eight"?\D+(\d+)/.exec(text);
+		return w && h ? { w: Number(w[1]), h: Number(h[1]) } : null;
+	}
+}
+
+/** The native title the window manager shows for a window, when the bridge reports one. */
+async function nativeTitle(bridge: Bridge, label: string): Promise<string | null> {
+	const text = await bridge.call('manage_window', { action: 'info', windowId: label });
+	const find = (value: unknown): string | null => {
+		if (typeof value !== 'object' || value === null) return null;
+		const v = value as Record<string, unknown>;
+		if (typeof v.title === 'string') return v.title;
+		for (const inner of Object.values(v)) {
+			const found = find(inner);
+			if (found !== null) return found;
+		}
+		return null;
+	};
+	try {
+		return find(JSON.parse(text));
+	} catch {
+		return null;
+	}
+}
+
+/** Changes the menu bar setting through the settings command, as the Preferences switch does. */
+function setMenuBar(bridge: Bridge, on: boolean): Promise<unknown> {
+	return bridge.js(
+		`const cur = await window.__TAURI_INTERNALS__.invoke('plugin:fizz-studio-settings|settings_get'); await window.__TAURI_INTERNALS__.invoke('plugin:fizz-studio-settings|settings_update', { patch: { ui: { menu_bar: ${on} } }, basedOn: cur.revision }); return true;`,
+	);
+}
+
+/** Presses an element with this role and leading text with the events a mouse click makes. */
+function pressByRole(bridge: Bridge, role: string, name: string, windowId = 'main-1') {
+	return bridge.js<boolean>(
+		`const el = [...document.querySelectorAll('[role=${role}]')].find((x) => x.textContent.trim().startsWith(${JSON.stringify(name)}));
+		 if (!el) return false;
+		 for (const type of ['pointerdown', 'mousedown', 'pointerup', 'mouseup', 'click']) el.dispatchEvent(new MouseEvent(type, { bubbles: true, cancelable: true }));
+		 return true;`,
+		windowId,
+	);
+}
+
+/**
+ * Every row of the open app menu, and of each of its submenus, has an icon in its 16 px slot. The
+ * menu is open on its top level; each menu is opened in turn and its rows read. A checked row shows
+ * the check in the slot instead of its icon, so it still has an svg there.
+ */
+async function appMenuIconChecks(bridge: Bridge) {
+	const rowsJs = `const slots = (menu) => [...menu.children].filter((r) => r.matches('[role^=menuitem]')).map((r) => {
+			const slot = r.firstElementChild; const box = slot?.getBoundingClientRect();
+			return { name: r.textContent.trim(), svg: !!slot?.querySelector('svg'), w: box?.width ?? 0, h: box?.height ?? 0 };
+		});`;
+	const top = await bridge.js<{ name: string; svg: boolean; w: number; h: number }[]>(
+		`${rowsJs} return slots(document.querySelector('[role=menu]'));`,
+	);
+	check(
+		'each top-level menu has an icon in a 16 px slot',
+		top.length === 5 && top.every((r) => r.svg && r.w === 16 && r.h === 16),
+		JSON.stringify(top),
+	);
+	for (const menu of ['Edit', 'View', 'Window', 'Help', 'File']) {
+		await pressByRole(bridge, 'menuitem', menu);
+		const read = () =>
+			bridge.js<{ name: string; svg: boolean; w: number; h: number }[]>(
+				`${rowsJs} const menus = [...document.querySelectorAll('[role=menu]')]; return menus.length > 1 ? slots(menus[menus.length - 1]) : [];`,
+			);
+		await within(3000, async () => (await read()).length > 0);
+		const rows = await read();
+		check(
+			`every ${menu} row has an icon in a 16 px slot`,
+			rows.length > 0 && rows.every((r) => r.svg && r.w === 16 && r.h === 16),
+			JSON.stringify(rows.filter((r) => !r.svg || r.w !== 16 || r.h !== 16)),
+		);
+	}
+}
+
+/** The names of the top-level rows of the open app menu. */
+function startMenuRows(bridge: Bridge): Promise<string[]> {
+	return bridge.js<string[]>(
+		`return [...(document.querySelector('[role=menu]')?.children ?? [])].filter((r) => r.matches('[role=menuitem]')).map((r) => r.textContent.trim());`,
+	);
+}
+
+/** The text of the title bar's title, without the app menu button beside it. */
+async function titleBarText(bridge: Bridge, windowId = 'main-1'): Promise<string | null> {
+	const found = await bridge.js<{ v: string | null }>(
+		`return { v: document.querySelector('[data-title-align] [data-group="centre"]')?.textContent ?? null };`,
+		windowId,
+	);
+	return found.v;
+}
+
+/** The saved dock record for a panel's window in the active workspace. */
+function savedPlace(bridge: Bridge, panel: string) {
+	return bridge.js<{
+		place: string;
+		window: { x: number; y: number; w: number; h: number } | null;
+	}>(
+		`const s = await window.__TAURI_INTERNALS__.invoke('plugin:fizz-studio-settings|settings_get');
+		 const ws = s.settings.dock.workspaces[s.settings.dock.active];
+		 return { place: ws.panels[${JSON.stringify(panel)}].place, window: ws.panels[${JSON.stringify(panel)}].window };`,
+	);
+}
+
+/** Docks a panel's window back the way its Dock back button does, and waits for it to go. */
+async function dockBackWindow(bridge: Bridge, panel: string): Promise<boolean> {
+	const label = `panel-${panel}-1`;
+	const clicked = await within(15_000, async () => {
+		try {
+			return await bridge.js<boolean>(
+				`const b = [...document.querySelectorAll('button')].find((x) => x.textContent === 'Dock back'); if (!b) return false; b.click(); return true;`,
+				label,
+			);
+		} catch {
+			return false;
+		}
+	});
+	if (clicked === null && process.env.CI) {
+		await bridge
+			.invoke('close_panel', { id: { kind: 'panel', panel, n: 1 } })
+			.catch(() => undefined);
+	}
+	const gone = await within(10_000, async () => !(await bridge.windows()).includes(label));
+	// The bridge's session can end with the closed window's page; start it again.
+	await bridge.stop();
+	await bridge.start();
+	return gone !== null;
+}
+
+async function checkPanelWindows(
+	bridge: Bridge,
+	profile: Profile,
+	levelPath: string,
+	currentApp: () => App,
+	replaceApp: (app: App) => void,
+): Promise<void> {
+	const clickLabel = (label: string, windowId = 'main-1') =>
+		bridge.js<boolean>(
+			`const b = document.querySelector('button[aria-label=' + JSON.stringify(${JSON.stringify(label)}) + ']'); if (!b) return false; b.click(); return true;`,
+			windowId,
+		);
+	const mainHas = (text: string) =>
+		within(5000, () =>
+			bridge.js<boolean>(`return document.body.innerText.includes(${JSON.stringify(text)});`),
+		);
+
+	for (const panel of PANEL_WINDOWS) {
+		const label = `panel-${panel.id}-1`;
+		await showFromRail(bridge, panel.title);
+		check(`the ${panel.title} panel offers Tear off`, await clickLabel(tearOffLabel(panel.title)));
+		const opened = await within(10_000, async () => (await bridge.windows()).includes(label));
+		check(`tearing off ${panel.title} opens ${label}`, opened !== null);
+		await bridge.ready(label);
+		const real = await within(20_000, async () => {
+			try {
+				return await bridge.js<boolean>(panel.probe, label);
+			} catch {
+				return false;
+			}
+		});
+		check(`the ${label} window shows the real ${panel.title} panel`, real !== null);
+		// The window manager's title for the panel window is the panel's name, not the app's.
+		const panelNative = await within(
+			5000,
+			async () => (await nativeTitle(bridge, label)) === panel.title,
+		);
+		check(
+			`the ${label} native window title is ${panel.title}`,
+			panelNative !== null,
+			String(await nativeTitle(bridge, label)),
+		);
+		check(
+			`the main window shows the ${panel.title} panel is away`,
+			(await mainHas(`The ${panel.title} panel is open in its own window.`)) !== null,
+		);
+		check(
+			`the away ${panel.title} tab says so and offers no Maximise`,
+			await bridge.js<boolean>(
+				`return [...document.querySelectorAll('[data-rail-item]')].some((t) => t.textContent.trim() === ${JSON.stringify(`${panel.title} (own window)`)}) && !document.querySelector('button[aria-label=' + JSON.stringify(${JSON.stringify(`Maximise ${panel.title}`)}) + ']');`,
+			),
+		);
+		check(`docking ${panel.title} back closes ${label}`, await dockBackWindow(bridge, panel.id));
+		const back = await within(5000, () => clickLabelOnly(bridge, tearOffLabel(panel.title)));
+		check(`the ${panel.title} panel is back in the main window`, back !== null);
+	}
+
+	// An action in a torn-off window reaches the main window: a brush chosen in the Palette window.
+	await showFromRail(bridge, 'Palette');
+	await clickLabel(tearOffLabel('Palette'));
+	await bridge.ready('panel-palette-1');
+	await within(20_000, async () =>
+		bridge.js<boolean>(PANEL_WINDOWS[0].probe, 'panel-palette-1').catch(() => false),
+	);
+	let kind: string | null = null;
+	const chosen = await within(10_000, async () => {
+		try {
+			const clicked = await bridge.js<{ name: string | null }>(
+				`const b = document.querySelector('[role=option][aria-selected=false]'); if (!b) return { name: null }; const name = b.querySelector('span:last-child').textContent; b.click(); return { name };`,
+				'panel-palette-1',
+			);
+			kind = clicked.name;
+			return kind !== null;
+		} catch {
+			return false;
+		}
+	});
+	check('a brush is chosen in the torn-off Palette window', chosen !== null, String(kind));
+	const chip = await within(5000, () =>
+		bridge.js<boolean>(
+			`return [...document.querySelectorAll('[role=status]')].some((e) => e.textContent.includes('Brush: ' + ${JSON.stringify(kind)}));`,
+		),
+	);
+	check("the main window's brush chip follows the torn-off Palette", chip !== null, String(kind));
+	check('docking the Palette back', await dockBackWindow(bridge, 'palette'));
+
+	// An object chosen in the Objects window reveals its cell and script line in the main window.
+	await showFromRail(bridge, 'Objects');
+	await clickLabel(tearOffLabel('Objects'));
+	await bridge.ready('panel-objects-1');
+	const picked = await within(20_000, async () => {
+		try {
+			return await bridge.js<boolean>(
+				`const b = [...document.querySelectorAll('button')].find((x) => x.textContent.startsWith('Item soda')); if (!b) return false; b.click(); return true;`,
+				'panel-objects-1',
+			);
+		} catch {
+			return false;
+		}
+	});
+	check('an object is chosen in the torn-off Objects window', picked !== null);
+	const revealed = await within(5000, () =>
+		bridge.js<boolean>(
+			`return [...document.querySelectorAll('.cm-revealedLine')].some((e) => e.textContent.includes('soda')) && document.body.innerText.includes('Cell 36, 5');`,
+		),
+	);
+	check('the main window reveals the chosen cell and its script line', revealed !== null);
+
+	// The window's place is remembered per workspace: resize it, close it, tear it off again.
+	await bridge.call('manage_window', {
+		action: 'resize',
+		windowId: 'panel-objects-1',
+		width: 777,
+		height: 555,
+		logical: false,
+	});
+	const recorded = await within(10_000, async () => {
+		const saved = await savedPlace(bridge, 'objects');
+		return (
+			Math.abs((saved.window?.w ?? 0) - 777) <= 2 && Math.abs((saved.window?.h ?? 0) - 555) <= 2
+		);
+	});
+	const saved = await savedPlace(bridge, 'objects');
+	check(
+		"the resized window's size is saved in the workspace",
+		recorded !== null,
+		JSON.stringify(saved),
+	);
+	check('docking the Objects panel back', await dockBackWindow(bridge, 'objects'));
+	await showFromRail(bridge, 'Objects');
+	await clickLabel(tearOffLabel('Objects'));
+	await bridge.ready('panel-objects-1');
+	const again = await within(10_000, async () => {
+		const size = await windowSize(bridge, 'panel-objects-1');
+		return size !== null && Math.abs(size.w - 777) <= 2 && Math.abs(size.h - 555) <= 2;
+	});
+	const size = await windowSize(bridge, 'panel-objects-1');
+	check(
+		'the window opens again at the size it was left at',
+		again !== null,
+		JSON.stringify({ size, saved: saved.window }),
+	);
+
+	// Quit with the panel torn off: the next start opens it again, still at its place.
+	await bridge.js<boolean>(
+		`document.dispatchEvent(new KeyboardEvent('keydown', { key: 'q', ctrlKey: true, bubbles: true })); return true;`,
+	);
+	const exited = await within(10_000, () => !currentApp().alive);
+	check('quitting with a panel torn off exits the app', exited !== null);
+	await bridge.stop();
+	const restarted = new App(profile, [levelPath]);
+	replaceApp(restarted);
+	await bridge.start();
+	check('the app restarts', await bridge.ready());
+	const pickerAgain = await within(15_000, async () => {
+		const l = await measurePicker(bridge).catch(() => null);
+		if (!l || !pickerLeftAt) return false;
+		const at = pickerOffset(l);
+		return Math.abs(at.x - pickerLeftAt.x) <= 1 && Math.abs(at.y - pickerLeftAt.y) <= 1;
+	});
+	check(
+		'picker: after a restart the tools are where they were left',
+		pickerAgain !== null,
+		JSON.stringify({ left: pickerLeftAt, saved: await savedPicker(bridge).catch(() => null) }),
+	);
+	const restored = await within(20_000, async () =>
+		(await bridge.windows()).includes('panel-objects-1'),
+	);
+	check('a panel saved in its own window opens again at the next start', restored !== null);
+	await bridge.ready('panel-objects-1');
+	const afterStart = await savedPlace(bridge, 'objects');
+	check(
+		'the saved place is still a window',
+		afterStart.place === 'window',
+		JSON.stringify(afterStart),
+	);
+	const sizeAfter = await within(10_000, async () => {
+		const s = await windowSize(bridge, 'panel-objects-1');
+		return s !== null && Math.abs(s.w - 777) <= 2 && Math.abs(s.h - 555) <= 2;
+	});
+	check(
+		'the restored window has the remembered size',
+		sizeAfter !== null,
+		JSON.stringify(await windowSize(bridge, 'panel-objects-1')),
+	);
+	check('docking back after the restart', await dockBackWindow(bridge, 'objects'));
+	const finalBack = await within(5000, () => clickLabelOnly(bridge, tearOffLabel('Objects')));
+	check('the Objects panel is docked again at the end', finalBack !== null);
+
+	// A panel torn off from floating leaves nothing floating over the level: it is an away tab in
+	// its home dock, and Dock back floats it again at the same rectangle.
+	const floatRect = () =>
+		bridge.js<{ x: number; y: number; w: number; h: number } | null>(
+			`const e = document.querySelector('section[data-panel="objects"]'); if (!e) return null; const r = e.getBoundingClientRect(); return { x: r.left, y: r.top, w: r.width, h: r.height };`,
+		);
+	await showFromRail(bridge, 'Objects');
+	check('floating: Objects floats', await clickLabel('Float Objects'));
+	const floated = await within(3000, async () => (await floatRect()) !== null);
+	const before = await floatRect();
+	check('floating: the floating Objects panel is drawn', floated !== null && before !== null);
+	check('floating: it offers Tear off', await clickLabel(tearOffLabel('Objects')));
+	const away = await within(10_000, async () =>
+		(await bridge.windows()).includes('panel-objects-1'),
+	);
+	check('floating: tearing it off opens its window', away !== null);
+	const covered = await within(3000, async () => (await floatRect()) === null);
+	check('floating: no floating panel is left over the level', covered !== null);
+	const tab = await within(3000, () =>
+		bridge.js<boolean>(
+			`const rail = document.querySelector('[data-rail="right"]'); return !!rail && [...rail.querySelectorAll('[data-rail-item]')].some((t) => t.textContent.trim() === 'Objects (own window)');`,
+		),
+	);
+	check('floating: the away tab is in its home dock', tab !== null);
+	await bridge.ready('panel-objects-1');
+	const dockBack = await within(3000, () =>
+		bridge.js<boolean>(
+			`const b = [...document.querySelectorAll('section[aria-label="Right dock"] button')].find((x) => x.textContent === 'Dock back'); if (!b) return false; b.click(); return true;`,
+		),
+	);
+	check('floating: the notice offers Dock back', dockBack !== null);
+	const goneWindow = await within(
+		10_000,
+		async () => !(await bridge.windows()).includes('panel-objects-1'),
+	);
+	check('floating: Dock back closes the window', goneWindow !== null);
+	await bridge.stop();
+	await bridge.start();
+	const after = await within(5000, async () => (await floatRect()) !== null).then(floatRect);
+	check(
+		'floating: it floats again at the same rectangle',
+		!!before &&
+			!!after &&
+			(['x', 'y', 'w', 'h'] as const).every((k) => Math.abs(before[k] - after[k]) <= 1),
+		JSON.stringify({ before, after }),
+	);
+	check('floating: Objects docks right again', await clickLabel('Dock Objects right'));
+}
+
+/** Whether a button with this accessible name exists in the main window. */
+function clickLabelOnly(bridge: Bridge, label: string): Promise<boolean> {
+	return bridge.js<boolean>(
+		`return !!document.querySelector('button[aria-label=' + JSON.stringify(${JSON.stringify(label)}) + ']');`,
+	);
+}
+
+/**
+ * Lists every visible button-like control in a window that is not drawn as a keycap. A keycap has a
+ * raised bottom edge (3px at rest, 1px while pressed or lit) and the key gradient as its
+ * background. Controls with a look of their own are left out on purpose: menus and the menu bar,
+ * the title bar's buttons, tabs, the dock rails' entries, list and palette rows (the `entry` class), the settings navigation (`navItem`), a floating panel's drag grip and fold chevron, and a palette group's disclosure heading, switches and checkboxes, and the
+ * resize and drag grips.
+ */
+function keycapOffenders(bridge: Bridge, windowLabel = 'main-1'): Promise<string[]> {
+	return bridge.js<string[]>(
+		`const skip = '[role=menuitem], [role=menuitemradio], [role=menuitemcheckbox], [role=menubar] *, [role=menu] *, [data-tauri-drag-region] *, [role=tab], [role=option], [role=listbox] *, [role=switch], [role=checkbox], [role=separator], [role=slider], [data-rail-item], [class*=_entry_], [class*=_navItem_], [data-grip], [class*=_grip_], [class*=_chevron_], [class*=_fold_], [data-keycap-exempt]';
+		 const visible = (e) => { const r = e.getBoundingClientRect(); const c = getComputedStyle(e); return r.width > 0 && r.height > 0 && c.visibility !== 'hidden' && c.display !== 'none'; };
+		 const bad = [];
+		 for (const e of document.querySelectorAll('button, [role=button]')) {
+			 if (e.matches(skip) || !visible(e)) continue;
+			 const c = getComputedStyle(e);
+			 const edge = c.borderBottomWidth;
+			 const edgePx = parseFloat(edge); // a lit or pressed key is caught mid-transition between 3px and 1px
+			 const keycap = edgePx >= 1 && edgePx <= 3 && c.backgroundImage.includes('linear-gradient');
+			 if (!keycap) {
+				 const name = e.getAttribute('aria-label') || e.textContent.trim().slice(0, 30);
+				 bad.push((e.tagName.toLowerCase()) + ' "' + name + '" (' + String(e.className).split(' ')[0] + '): edge ' + edge + ', ' + (c.backgroundImage === 'none' ? 'flat ' + c.backgroundColor : 'gradient'));
+			 }
+		 }
+		 return bad;`,
+		windowLabel,
+	);
+}
+
+/**
+ * The keycaps whose raised bottom edge and shadow are cut off by an ancestor that clips: a key needs
+ * about 4 px under it inside the nearest ancestor with overflow other than visible.
+ */
+function clippedKeycaps(bridge: Bridge, windowLabel = 'main-1'): Promise<string[]> {
+	return bridge.js<string[]>(
+		`const bad = [];
+		 for (const e of document.querySelectorAll('button, [role=button], [role=tab]')) {
+			 const r = e.getBoundingClientRect();
+			 const c = getComputedStyle(e);
+			 if (r.width === 0 || r.height === 0 || c.display === 'none' || c.visibility === 'hidden') continue;
+			 if (!c.backgroundImage.includes('linear-gradient') || c.borderBottomWidth !== '3px') continue;
+			 for (let a = e.parentElement; a && a !== document.documentElement; a = a.parentElement) {
+				 const o = getComputedStyle(a);
+				 if (o.overflowY === 'visible' && o.overflowX === 'visible') continue;
+				 if (a.scrollHeight > a.clientHeight + 1) break; // a list that scrolls cuts keys by design
+				 const room = a.getBoundingClientRect().bottom - r.bottom;
+				 if (room < 4) {
+					 const name = e.getAttribute('aria-label') || e.textContent.trim().slice(0, 30);
+					 bad.push('"' + name + '" clipped by ' + String(a.className).split(' ')[0] + ' (' + room.toFixed(1) + ' px under it)');
+				 }
+				 break;
+			 }
+		 }
+		 return bad;`,
+		windowLabel,
+	);
+}
+
+/** Checks that every visible button in this window is a keycap, naming the ones that are not. */
+async function checkKeycaps(bridge: Bridge, where: string, windowLabel = 'main-1'): Promise<void> {
+	const bad = await keycapOffenders(bridge, windowLabel);
+	check(`${where}: every button is a keycap`, bad.length === 0, bad.join('; '));
+	const clipped = await clippedKeycaps(bridge, windowLabel);
+	check(
+		`${where}: no keycap has its bottom edge cut off`,
+		clipped.length === 0,
+		clipped.join('; '),
+	);
+}
+
 async function main(): Promise<void> {
 	if (!existsSync(binary)) {
 		console.error(`No debug build at ${binary}. Run \`bun run app:build\` first.`);
 		process.exit(2);
 	}
+	await chooseBridgePort();
 	const profile = makeProfile();
 	const levels = join(profile.dir, 'levels');
 	await Bun.$`mkdir -p ${levels}`;
@@ -309,9 +1752,142 @@ async function main(): Promise<void> {
 			laidOut.canvas > 300,
 			String(laidOut.canvas),
 		);
-		// The menus sit in a row below the title bar, which holds only the app name, the title and the
-		// window buttons; the canvas keeps its room beneath. Choosing Window, then Preferences opens
-		// the Preferences window.
+		// One row sits above the level: it holds Save, Close level, a divider, the brush chip and
+		// the Panels menu, in that order (the tools float over the map), and nothing sits between
+		// the title bar and it.
+		const rowBox = await bridge.js<{
+			names: string[];
+			titleBottom: number;
+			rowTop: number;
+			rowBottom: number;
+			regionTop: number;
+			panelsMid: number;
+			canvasTop: number;
+			canvasHeight: number;
+		} | null>(
+			`const tools = document.querySelector('[role=group][aria-label="Editor toolbar"]');
+			 const region = document.querySelector('[role=group][aria-label="Level editor"]');
+			 const title = document.querySelector('[data-title-align]');
+			 const canvas = document.querySelector('canvas');
+			 const panels = [...document.querySelectorAll('button[aria-haspopup=menu]')].find((b) => b.textContent.trim() === 'Panels');
+			 if (!tools || !region || !title || !canvas || !panels) return null;
+			 const row = tools.getBoundingClientRect();
+			 const p = panels.getBoundingClientRect();
+			 return {
+				 names: [...tools.querySelectorAll('button, [role=status]')].map((b) => b.getAttribute('aria-label') || b.textContent.trim()),
+				 titleBottom: title.getBoundingClientRect().bottom,
+				 rowTop: row.top, rowBottom: row.bottom, regionTop: region.getBoundingClientRect().top,
+				 panelsMid: (p.top + p.bottom) / 2,
+				 canvasTop: canvas.getBoundingClientRect().top, canvasHeight: canvas.getBoundingClientRect().height,
+			 };`,
+		);
+		check('the tool row is on screen', rowBox !== null);
+		if (rowBox) {
+			check(
+				'the tool row holds Save, Close level and then the brush chip',
+				rowBox.names[0] === 'Save' &&
+					rowBox.names[1] === 'Close level' &&
+					rowBox.names[2]?.includes('Brush:') === true,
+				JSON.stringify(rowBox.names),
+			);
+			check(
+				'the Panels menu sits on the same row, at its end',
+				rowBox.panelsMid > rowBox.rowTop && rowBox.panelsMid < rowBox.rowBottom,
+				JSON.stringify(rowBox),
+			);
+			check(
+				'nothing sits between the title bar and the tool row',
+				Math.abs(rowBox.regionTop - rowBox.titleBottom) < 2 &&
+					Math.abs(rowBox.rowTop - rowBox.regionTop) < 2,
+				JSON.stringify(rowBox),
+			);
+			check(
+				'the level starts straight under the one tool row',
+				rowBox.canvasTop - rowBox.rowBottom < 40 && rowBox.rowBottom - rowBox.rowTop < 70,
+				JSON.stringify(rowBox),
+			);
+		}
+		await dockChecks(bridge);
+		await dragAndMaximiseChecks(bridge);
+		await toolPickerChecks(bridge);
+		// With the default settings there is no menu bar: the title bar's app menu button is the
+		// primary menu, and a real click on it opens File, Edit, View, Window and Help. Choosing
+		// File, then Preferences opens the Preferences window.
+		check(
+			'by default there is no menu bar',
+			await bridge.js<boolean>(`return document.querySelector('[role=menubar]') === null;`),
+		);
+		const appButton = await bridge.js<boolean>(
+			`const b = [...document.querySelectorAll('[data-title-align] button[aria-haspopup=menu]')].find((x) => x.textContent.trim() === 'Fizz Level Studio');
+			 if (!b) return false;
+			 b.click();
+			 return true;`,
+		);
+		check('the title bar app menu is a button by default', appButton);
+		const menuRows = await within(3000, async () => {
+			const names = await bridge.js<string[]>(
+				`return [...document.querySelectorAll('[role=menu] [role=menuitem]')].map((x) => x.textContent.trim());`,
+			);
+			return names.length >= 5 ? names : null;
+		});
+		const rowNames = await bridge.js<string[]>(
+			`return [...document.querySelectorAll('[role=menu] [role=menuitem]')].map((x) => x.textContent.trim());`,
+		);
+		check(
+			'the app menu opens to File, Edit, View, Window and Help',
+			menuRows !== null &&
+				['File', 'Edit', 'View', 'Window', 'Help'].every((name) =>
+					rowNames.some((row) => row.startsWith(name)),
+				),
+			JSON.stringify(rowNames),
+		);
+		await appMenuIconChecks(bridge);
+		check('the app menu offers File', await pressByRole(bridge, 'menuitem', 'File'));
+		const preferencesRow = await within(3000, async () =>
+			(await pressByRole(bridge, 'menuitem', 'Preferences')) ? true : null,
+		);
+		check('the File menu offers Preferences', preferencesRow !== null);
+		const fromMenu = await bridge.ready('preferences');
+		check('File, Preferences opens the Preferences window', fromMenu);
+		check(
+			'the Preferences window native title is Preferences',
+			(await within(
+				5000,
+				async () => (await nativeTitle(bridge, 'preferences')) === 'Preferences',
+			)) !== null,
+		);
+		const pageHeading = (name: string) =>
+			within(10_000, async () => {
+				const box = await bridge.js<{ w: number; h: number } | null>(
+					`const h = [...document.querySelectorAll('h2')].find((x) => x.textContent === ${JSON.stringify(name)}); if (!h) return null; const r = h.getBoundingClientRect(); return { w: r.width, h: r.height };`,
+					'preferences',
+				);
+				return box && box.w > 0 && box.h > 0 ? true : null;
+			});
+		check(
+			'the Preferences window opened from the menu draws General with a size',
+			(await pageHeading('General')) !== null,
+		);
+		// The menu bar is the optional setting, and the Preferences switch is the person's way to it.
+		const switchState = await within(5000, async () => {
+			const found = await bridge.js<{ name: string; checked: string } | null>(
+				`const s = document.querySelector('[role=switch]'); if (!s) return null;
+				 const label = s.getAttribute('aria-labelledby');
+				 return { name: label ? (document.getElementById(label)?.textContent ?? '') : '', checked: s.getAttribute('aria-checked') ?? '' };`,
+				'preferences',
+			);
+			return found !== null && found.name === 'Show the menu bar' && found.checked === 'false';
+		});
+		check('the General page offers the Show the menu bar switch, off', switchState !== null);
+
+		// Turning the setting on shows the bar below the title bar, which holds only the app name,
+		// the title and the window buttons, and makes the button plain text; the canvas keeps its
+		// room beneath. The setting applies live, so turning it off puts the button back.
+		await setMenuBar(bridge, true);
+		const barShown = await within(5000, () =>
+			bridge.js<boolean>(`return document.querySelector('[role=menubar]') !== null;`),
+		);
+		check('turning the menu bar on shows it live', barShown !== null);
 		const bars = await bridge.js<{ title: number; bar: number; canvas: number } | null>(
 			`const t = document.querySelector('[data-tauri-drag-region][data-title-align]')?.getBoundingClientRect();
 			 const b = document.querySelector('[role=menubar]')?.getBoundingClientRect();
@@ -324,33 +1900,41 @@ async function main(): Promise<void> {
 			JSON.stringify(bars),
 		);
 		check('the canvas still has room with the menu bar', (bars?.canvas ?? 0) > 300);
-		await dockChecks(bridge);
-		const pressByRole = (role: string, name: string) =>
-			bridge.js<boolean>(
-				`const el = [...document.querySelectorAll('[role=${role}]')].find((x) => x.textContent.trim().startsWith(${JSON.stringify(name)}));
-				 if (!el) return false;
-				 for (const type of ['pointerdown', 'mousedown', 'pointerup', 'mouseup', 'click']) el.dispatchEvent(new MouseEvent(type, { bubbles: true, cancelable: true }));
-				 return true;`,
-			);
-		check('the menu bar offers Window', await pressByRole('menuitem', 'Window'));
-		const preferencesRow = await within(3000, async () =>
-			(await pressByRole('menuitem', 'Preferences')) ? true : null,
-		);
-		check('the Window menu offers Preferences', preferencesRow !== null);
-		const fromMenu = await bridge.ready('preferences');
-		check('Window, Preferences opens the Preferences window', fromMenu);
-		const menuHeading = await within(10_000, async () => {
-			const box = await bridge.js<{ w: number; h: number } | null>(
-				`const h = [...document.querySelectorAll('h2')].find((x) => x.textContent === 'Appearance'); if (!h) return null; const r = h.getBoundingClientRect(); return { w: r.width, h: r.height };`,
-				'preferences',
-			);
-			return box && box.w > 0 && box.h > 0 ? box : null;
-		});
+		await checkKeycaps(bridge, 'the main window with the default layout');
 		check(
-			'the Preferences window opened from the menu draws Appearance with a size',
-			menuHeading !== null,
-			JSON.stringify(menuHeading),
+			'with the bar showing, the title bar app menu is plain text',
+			await bridge.js<boolean>(
+				`const bar = document.querySelector('[data-title-align]'); return !bar.querySelector('button[aria-haspopup=menu]') && bar.textContent.includes('Fizz Level Studio');`,
+			),
 		);
+		check(
+			'the menu bar offers File, Edit, View, Window and Help',
+			await bridge.js<boolean>(
+				`const names = [...document.querySelectorAll('[role=menubar] [role=menuitem]')].map((x) => x.textContent.trim());
+				 return ['File', 'Edit', 'View', 'Window', 'Help'].every((n) => names.some((x) => x.startsWith(n)));`,
+			),
+		);
+		await setMenuBar(bridge, false);
+		const barGone = await within(5000, () =>
+			bridge.js<boolean>(
+				`return document.querySelector('[role=menubar]') === null && !!document.querySelector('[data-title-align] button[aria-haspopup=menu]');`,
+			),
+		);
+		check('turning the menu bar off puts the app menu button back live', barGone !== null);
+
+		// The title bar shows the document's name and nothing else; the native title is the same text.
+		const barTitle = await titleBarText(bridge);
+		check(
+			'the title bar reads the document name, without the app name',
+			barTitle !== null && /^(Crater Fields|crater\.fizz)( •)?$/.test(barTitle),
+			JSON.stringify(barTitle),
+		);
+		const native = await nativeTitle(bridge, 'main-1');
+		if (native === null) {
+			console.log('NOTE  the bridge does not report a native window title, so it is not checked');
+		} else {
+			check('the native window title matches the title bar', native === barTitle, native);
+		}
 		// The command palette opens with Ctrl+Shift+P on the window, draws with a real size and a list,
 		// narrows as the query is typed, runs a brush or tool command, and closes on Escape. Sizes are
 		// measured here because a jsdom test cannot see a panel laid out zero tall.
@@ -377,7 +1961,7 @@ async function main(): Promise<void> {
 		const toolPressed = async () =>
 			(
 				await bridge.js<{ v: string }>(
-					`const b = [...document.querySelectorAll('[aria-pressed=true]')].find((x) => x.closest('[role=group][aria-label=Tools]')); return { v: b ? b.textContent : '' };`,
+					`const b = [...document.querySelectorAll('[aria-pressed=true]')].find((x) => x.closest('[role=group][aria-label=Tools]')); return { v: b ? (b.getAttribute('aria-label') ?? '') : '' };`,
 				)
 			).v;
 		await keyOnWindow('P');
@@ -392,6 +1976,7 @@ async function main(): Promise<void> {
 			palette !== null && palette.options > 5 && palette.listH > 100,
 			JSON.stringify(palette),
 		);
+		await checkKeycaps(bridge, 'the command palette');
 		const wide = await bridge.js<number>(`return window.innerWidth;`);
 		check(
 			'the command palette fits inside the window',
@@ -434,7 +2019,7 @@ async function main(): Promise<void> {
 		);
 		check('the canvas keeps its room after the palette', canvasAfter > 300, String(canvasAfter));
 		await bridge.js<boolean>(
-			`const b = [...document.querySelectorAll('[role=group][aria-label=Tools] button')].find((x) => x.textContent.startsWith('Paint')); b?.click(); return true;`,
+			`const b = document.querySelector('[role=group][aria-label=Tools] button[aria-label=Paint]'); b?.click(); return true;`,
 		);
 
 		const opened = await openLevel(bridge, path);
@@ -456,8 +2041,8 @@ async function main(): Promise<void> {
 			'the paint is one named step',
 			painted.undoName === 'Paint block' && painted.revision === 1,
 		);
-		// History is the right dock's second tab; show it before reading the undo button.
-		await clickTab(bridge, 'History');
+		// History is the right dock's second panel; show it from the rail before reading the undo button.
+		await showFromRail(bridge, 'History');
 		const history = await within(2000, async () =>
 			bridge.js<boolean>(`return document.body.innerText.includes('Undo Paint block');`),
 		);
@@ -567,6 +2152,13 @@ async function main(): Promise<void> {
 		);
 		const prefsUp = await bridge.ready('preferences');
 		check('the Preferences window opens', prefsUp);
+		check(
+			'the Preferences window lists the Appearance page beside General',
+			await bridge.js<boolean>(
+				`const b = [...document.querySelectorAll('button[data-section]')].find((x) => x.textContent.trim() === 'Appearance'); if (!b) return false; b.click(); return true;`,
+				'preferences',
+			),
+		);
 		const heading = await within(10_000, async () => {
 			const box = await bridge.js<{ w: number; h: number } | null>(
 				`const h = [...document.querySelectorAll('h2')].find((x) => x.textContent === 'Appearance'); if (!h) return null; const r = h.getBoundingClientRect(); return { w: r.width, h: r.height };`,
@@ -575,6 +2167,34 @@ async function main(): Promise<void> {
 			return box && box.w > 0 && box.h > 0 ? box : null;
 		});
 		check('the Appearance heading renders with a size', heading !== null, JSON.stringify(heading));
+		await checkKeycaps(bridge, 'the Preferences window', 'preferences');
+		// The selectors are joined groups of keycaps with one lit key, and the audit above counts them.
+		const joined = await bridge.js<{ groups: number; bad: string[] }>(
+			`const bad = []; const groups = [...document.querySelectorAll('[role=radiogroup]')];
+			 for (const g of groups) {
+				 const keys = [...g.querySelectorAll('[role=radio]')];
+				 const lit = keys.filter((k) => k.getAttribute('aria-checked') === 'true');
+				 if (lit.length !== 1) bad.push('lit keys: ' + lit.length);
+				 const rects = keys.map((k) => k.getBoundingClientRect());
+				 for (let i = 1; i < rects.length; i++) if (Math.abs(rects[i].left - rects[i - 1].right) > 1.5) bad.push('gap before key ' + i);
+				 if (new Set(rects.map((r) => Math.round(r.height))).size !== 1) bad.push('uneven heights');
+				 keys.forEach((k, i) => {
+					 const c = getComputedStyle(k);
+					 const edge = c.borderBottomWidth;
+					 if (!(edge === '3px' || edge === '1px') || !c.backgroundImage.includes('linear-gradient')) bad.push('key ' + i + ' is not a keycap');
+					 const left = c.borderTopLeftRadius !== '0px'; const right = c.borderTopRightRadius !== '0px';
+					 if (left !== (i === 0) || right !== (i === keys.length - 1)) bad.push('key ' + i + ' rounding');
+				 });
+				 const lk = lit[0]; if (lk && getComputedStyle(lk).boxShadow === 'none') bad.push('lit key has no glow');
+			 }
+			 return { groups: groups.length, bad };`,
+			'preferences',
+		);
+		check(
+			'the Preferences selectors are joined keycap groups with one lit key',
+			joined.groups > 0 && joined.bad.length === 0,
+			JSON.stringify(joined),
+		);
 		const prefsAccent = (
 			await bridge.js<{ v: string }>(
 				`return { v: document.documentElement.style.getPropertyValue('--fls-accent') };`,
@@ -591,7 +2211,7 @@ async function main(): Promise<void> {
 				`const b = [...document.querySelectorAll('button')].find((x) => x.textContent === ${JSON.stringify(text)}); if (!b) return false; b.click(); return true;`,
 				windowId,
 			);
-		check('the Script panel offers Tear off', await clickByText('Tear off'));
+		check('the Script panel offers Tear off', await clickLabelled(bridge, TEAR_OFF_SCRIPT));
 		const tornOff = await within(10_000, async () =>
 			(await bridge.windows()).includes('panel-script-1'),
 		);
@@ -642,10 +2262,21 @@ async function main(): Promise<void> {
 		await bridge.start();
 		const back = await within(3000, () =>
 			bridge.js<boolean>(
-				`return [...document.querySelectorAll('button')].some((b) => b.textContent === 'Tear off');`,
+				`return !!document.querySelector('button[aria-label=' + JSON.stringify(${JSON.stringify(TEAR_OFF_SCRIPT)}) + ']');`,
 			),
 		);
 		check('the Script panel is back in the main window', back !== null);
+
+		// 5c. Every panel tears off into its own window with its real content, an action in the
+		// window reaches the main window, closing the window docks the panel back, and the window's
+		// place is remembered per workspace.
+		await checkPanelWindows(
+			bridge,
+			profile,
+			path,
+			() => app!,
+			(next) => (app = next),
+		);
 
 		// 6. A crash with unsaved changes leaves a recovery copy, and the next launch offers it back.
 		const unsaved = await levelCall(bridge, 'level_apply', {
@@ -677,6 +2308,38 @@ async function main(): Promise<void> {
 		app = new App(profile, []);
 		await bridge.start();
 		check('the relaunched app is ready', await bridge.ready());
+		// With no level open the title is Start, in the title bar and as the native title, and the
+		// menu bar is still off (the setting was put back).
+		check(
+			'with no level open the title bar reads Start',
+			(await within(10_000, async () => (await titleBarText(bridge)) === 'Start')) !== null,
+		);
+		const startNative = await nativeTitle(bridge, 'main-1');
+		if (startNative !== null) {
+			check(
+				'with no level open the native window title is Start',
+				startNative === 'Start',
+				startNative,
+			);
+		}
+		check(
+			'the relaunched app still has no menu bar',
+			await bridge.js<boolean>(`return document.querySelector('[role=menubar]') === null;`),
+		);
+		// With no level open the Window menu has nothing to show, so it is not in the app menu.
+		await bridge.js<boolean>(
+			`[...document.querySelectorAll('[data-title-align] button[aria-haspopup=menu]')].find((x) => x.textContent.trim() === 'Fizz Level Studio')?.click(); return true;`,
+		);
+		await within(3000, async () => (await startMenuRows(bridge)).length > 0);
+		const startMenu = await startMenuRows(bridge);
+		check(
+			'on the start screen the app menu offers File, Edit, View and Help, without Window',
+			startMenu.join('|') === 'File|Edit|View|Help',
+			JSON.stringify(startMenu),
+		);
+		await bridge.js<boolean>(
+			`document.querySelector('[role=menu]')?.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); return true;`,
+		);
 		const offered = await bridge.js<{ id: string; name: string }[]>(
 			`return await window.__TAURI_INTERNALS__.invoke('plugin:fizz-studio-worlds|recovery_list');`,
 		);
@@ -750,6 +2413,35 @@ async function main(): Promise<void> {
 				`const names = [...document.querySelectorAll('dialog[open] button, [role=dialog] button')].map((b) => b.textContent.trim()); return ['Cancel', 'Discard', 'Save'].every((n) => names.includes(n));`,
 			)) === true,
 		);
+		await checkKeycaps(bridge, 'the close question');
+		// The scrim covers the window's surface, not the frame's transparent margin that holds the drop
+		// shadow, and follows its rounded corners (the backdrop is the top layer, so it is measured
+		// through its computed style).
+		const scrim = await bridge.js<{
+			top: string;
+			left: string;
+			radius: string;
+			margin: string;
+			surface: string;
+		} | null>(
+			`const d = document.querySelector('dialog[open]'); if (!d) return null;
+			 const b = getComputedStyle(d, '::backdrop');
+			 return { top: b.top, left: b.left, radius: b.borderTopLeftRadius,
+			   margin: getComputedStyle(document.documentElement).getPropertyValue('--fls-window-shadow-margin').trim(),
+			   surface: getComputedStyle(document.documentElement).getPropertyValue('--fls-window-radius').trim() };`,
+		);
+		check(
+			'the dialog scrim stops at the window surface, inside the shadow margin',
+			scrim !== null &&
+				parseFloat(scrim.top) === parseFloat(scrim.margin) &&
+				parseFloat(scrim.left) === parseFloat(scrim.margin),
+			JSON.stringify(scrim),
+		);
+		check(
+			'the dialog scrim follows the surface corners',
+			scrim !== null && parseFloat(scrim.radius) === parseFloat(scrim.surface),
+			JSON.stringify(scrim),
+		);
 		await bridge.js<boolean>(
 			`const b = [...document.querySelectorAll('dialog[open] button, [role=dialog] button')].find((x) => x.textContent.trim() === 'Cancel'); b.click(); return true;`,
 		);
@@ -796,7 +2488,7 @@ async function main(): Promise<void> {
 		);
 		check('closing the Preferences window leaves the app up', prefsGone !== null && app.alive);
 
-		await clickByText('Tear off');
+		await clickLabelled(bridge, TEAR_OFF_SCRIPT);
 		const tornAgain = await within(10_000, async () =>
 			(await bridge.windows()).includes('panel-script-1') ? true : null,
 		);
@@ -812,7 +2504,7 @@ async function main(): Promise<void> {
 		await bridge.start();
 		const redocked = await within(5000, () =>
 			bridge.js<boolean>(
-				`return [...document.querySelectorAll('button')].some((b) => b.textContent === 'Tear off');`,
+				`return !!document.querySelector('button[aria-label=' + JSON.stringify(${JSON.stringify(TEAR_OFF_SCRIPT)}) + ']');`,
 			),
 		);
 		if (redocked === null)
@@ -849,11 +2541,13 @@ async function main(): Promise<void> {
 				.catch(() => false),
 		);
 		check('close checks: the New level form takes input', typedInForm !== null);
+		await checkKeycaps(bridge, 'the New level window', 'new-world');
 		await closeCall('new-world');
 		const discardAsked = await within(5000, async () =>
 			(await dialogText('new-world'))?.includes('Discard this new level?') ? true : null,
 		);
 		check('a New level window with input asks before it closes', discardAsked !== null);
+		await checkKeycaps(bridge, 'the New level discard question', 'new-world');
 		await bridge.js<boolean>(
 			`const b = [...document.querySelectorAll('dialog[open] button, [role=dialog] button')].find((x) => x.textContent.trim() === 'Keep editing'); b.click(); return true;`,
 			'new-world',

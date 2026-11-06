@@ -16,8 +16,6 @@ import type { PanelId } from '../panels/float/panelSpecs';
 import { HistoryPanel } from '../panels/HistoryPanel';
 import { PalettePanel } from '../panels/PalettePanel';
 import { ScriptPanel } from '../panels/ScriptPanel';
-import { TornOffNotice } from '../panels/TornOffNotice';
-import type { PanelDock } from '../panels/usePanelDock';
 import type { Brush } from '../tools/brush';
 import type { Cell } from '../tools/tool';
 
@@ -26,6 +24,8 @@ export interface PanelContentContext {
 	words: WordDoc[];
 	brush: Brush;
 	onBrush: (brush: Brush) => void;
+	spacing: number;
+	onSpacing: (spacing: number) => void;
 	onObjectChosen: (cell: Cell) => void;
 	showLine: (line: number) => void;
 	undo: () => void;
@@ -34,12 +34,14 @@ export interface PanelContentContext {
 	showGhosts: boolean;
 	onToggleGhosts: (shown: boolean) => void;
 	onRefreshProposals: () => void;
-	scriptDock: PanelDock;
 	focusLine: number | null;
 	focusSerial: number;
 }
 
-/** The content of one panel. */
+/**
+ * The content of one panel. The main window and a panel's own window both ask this, so a panel
+ * looks and behaves the same in either; what differs is the context each passes in.
+ */
 export function panelContent(id: PanelId, ctx: PanelContentContext): ReactNode {
 	const { snapshot } = ctx;
 	switch (id) {
@@ -50,6 +52,8 @@ export function panelContent(id: PanelId, ctx: PanelContentContext): ReactNode {
 					words={ctx.words}
 					brush={ctx.brush}
 					onBrush={ctx.onBrush}
+					spacing={ctx.spacing}
+					onSpacing={ctx.onSpacing}
 				/>
 			);
 		case 'objects':
@@ -81,16 +85,13 @@ export function panelContent(id: PanelId, ctx: PanelContentContext): ReactNode {
 				/>
 			);
 		case 'script':
-			return ctx.scriptDock.tornOff ? (
-				<TornOffNotice messageId="panel.scriptTornOff" onDockBack={ctx.scriptDock.dockBack} />
-			) : (
+			return (
 				<ScriptPanel
 					words={ctx.words}
 					text={snapshot.text}
 					diagnostics={snapshot.view.diagnostics}
 					focusLine={ctx.focusLine}
 					focusSerial={ctx.focusSerial}
-					onTearOff={ctx.scriptDock.tearOff}
 				/>
 			);
 	}

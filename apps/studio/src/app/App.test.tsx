@@ -71,11 +71,16 @@ describe('App', () => {
 		},
 	);
 
-	it('shows the Script panel with a Dock back button in its own window', () => {
-		render(<App windowLabel="panel-script-1" />);
-		expect(screen.getByText('The script will appear here.')).toBeInTheDocument();
-		expect(screen.getByRole('button', { name: 'Dock back' })).toBeInTheDocument();
-	});
+	it.each(['palette', 'objects', 'history', 'proposals', 'script'])(
+		'shows a Dock back button and waits for the main window in the %s panel window',
+		(panel) => {
+			render(<App windowLabel={`panel-${panel}-1`} />);
+			expect(
+				screen.getByText('Open a level in the main window to use this panel.'),
+			).toBeInTheDocument();
+			expect(screen.getByRole('button', { name: 'Dock back' })).toBeInTheDocument();
+		},
+	);
 
 	describe('under the pseudo-locale', () => {
 		afterEach(() => {

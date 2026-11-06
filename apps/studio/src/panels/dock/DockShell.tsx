@@ -5,27 +5,46 @@
 
 import type { Workspace } from '@liminal-hq/fizz-studio-protocol/generated/Workspace';
 import type { ZoneId } from '@liminal-hq/fizz-studio-protocol/generated/ZoneId';
-import { useEffect, useRef, type CSSProperties, type KeyboardEvent, type ReactNode } from 'react';
+import {
+	useEffect,
+	useRef,
+	useState,
+	type CSSProperties,
+	type KeyboardEvent,
+	type ReactNode,
+} from 'react';
+import { t } from '../../i18n/messages';
 import type { Size } from '../float/panelGeometry';
-import { DockRail } from './DockRail';
+import { DockRail, type PeekCause } from './DockRail';
 import { DockZone } from './DockZone';
+import { DragGhost } from './DragGhost';
+import type { DockDrag } from './useDockDrag';
 import { PeekPanel } from './PeekPanel';
 import { DockResizeHandle } from './DockResizeHandle';
-import { clampZoneSize, zoneCap, zoneExtent } from './dockGeometry';
-import { RAIL_SIZE, dockedIn, zoneMin, zoneOf } from './dockModel';
+import { clampZoneSize, contentExtent, railExtent, zoneCap } from './dockGeometry';
+import { RAIL_SIZE, ZONE_IDS, zoneMin, zoneOf } from './dockModel';
 import type { DockSession } from './dockLayout';
+import { railChoice } from './dockView';
 import styles from './DockShell.module.css';
 
 export interface DockActions {
 	activate(id: string): void;
 	dockTo(id: string, zone: ZoneId): void;
 	floatPanel(id: string): void;
+	/** Tears a panel off into a window of its own; the dock shows no Tear off button without it. */
+	tearOff?(id: string): void;
 	toggleZone(zone: ZoneId): void;
 	peek(id: string): void;
 	closePeek(): void;
 	pin(id: string): void;
 	resizeZone(zone: ZoneId, size: number): void;
 	resetZoneSize(zone: ZoneId): void;
+	/** Moves a docked panel to a place among its group's tabs. */
+	reorder(id: string, index: number): void;
+	/** Makes an expandable panel fill the workspace. */
+	maximise(id: string): void;
+	/** Puts the maximised panel back. */
+	restore(): void;
 }
 
 export interface DockShellProps {
@@ -39,14 +58,30 @@ export interface DockShellProps {
 	/** The real content of a panel. Only the showing panel of each group is asked for. */
 	renderPanel: (id: string) => ReactNode;
 	actions: DockActions;
+	/** The drag controller; without one, panels cannot be dragged. */
+	drag?: DockDrag;
+	/** Whether a panel offers the maximise button. */
+	expandable?: (id: string) => boolean;
+	/**
+	 * The maximised panel, if any. Nothing is re-parented: the panel keeps its place in its dock,
+	 * whose group is laid over the workspace by the stylesheet while everything else is hidden.
+	 */
+	maximised?: string | null;
+	/** What the last drag did, for the screen reader. */
+	announcement?: string;
 	/** The level. It takes whatever the docks leave and is never covered by them. */
 	children: ReactNode;
 }
 
+/** How long a peek opened by the pointer stays once the pointer has left it and its rail. */
+export const PEEK_LEAVE_MS = 400;
+
 /**
- * Lays the level and the docks out on a grid: the left and right docks beside the level, the
- * bottom dock under all three. A dock's room comes from the model (its size held to its cap), so
- * the level keeps the rest. A dock with nothing showing takes none.
+ * Lays the level and the docks out on a grid: each zone with panels has its rail along the
+ * window's edge, always, and, when it is open, its content between the rail and the level; the
+ * left and right zones sit beside the level and the bottom one under all of them. A dock's room
+ * comes from the model (its size held to its cap), so the level keeps the rest. A dock with
+ * nothing showing takes none, not even a rail.
  */
 export function DockShell({
 	view,
@@ -55,22 +90,77 @@ export function DockShell({
 	titleOf,
 	renderPanel,
 	actions,
+	drag,
+	announcement = '',
+	expandable,
+	maximised = null,
 	children,
 }: DockShellProps) {
-	const extent = (zone: ZoneId) => zoneExtent(view, zone, window);
+	const [tabNote, setTabNote] = useState('');
+	const dragging = drag?.state ?? null;
+	const target = dragging?.target ?? null;
+	const reorder = (id: string, index: number) => {
+		actions.reorder(id, index);
+		const group = ZONE_IDS.flatMap((z) => view.zones[z].groups).find((g) => g.tabs.includes(id));
+		setTabNote(
+			t('dock.tab.moved', {
+				title: titleOf(id),
+				position: index + 1,
+				total: group?.tabs.length ?? 0,
+			}),
+		);
+	};
+	const extent = (zone: ZoneId) => contentExtent(view, zone, window);
+	const rail = (zone: ZoneId) => railExtent(view, zone);
 	const style = {
 		'--fls-dock-left': `${extent('left')}px`,
 		'--fls-dock-right': `${extent('right')}px`,
 		'--fls-dock-bottom': `${extent('bottom')}px`,
+		'--fls-rail-left': `${rail('left')}px`,
+		'--fls-rail-right': `${rail('right')}px`,
+		'--fls-rail-bottom': `${rail('bottom')}px`,
 		'--fls-rail': `${RAIL_SIZE}px`,
 	} as CSSProperties;
+
+	// A rail entry shows its panel, opening a folded dock on it, or folds the dock it is showing in.
+	const choose = (id: string) => {
+		const zone = zoneOf(view, id);
+		const choice = railChoice(view, id);
+		if (zone === null || choice === null) return;
+		if (choice !== 'fold') actions.activate(id);
+		if (choice !== 'show') actions.toggleZone(zone);
+	};
 
 	const peeking = session.peeking;
 	const peekZone = peeking === null ? null : zoneOf(view, peeking);
 	const shell = useRef<HTMLDivElement>(null);
 
-	// A click anywhere but on the peeking panel or a rail closes the peek.
+	// A peek the pointer opened closes a moment after the pointer leaves both it and the rails.
 	const { closePeek } = actions;
+	const byHover = useRef(false);
+	const leaving = useRef<ReturnType<typeof setTimeout> | null>(null);
+	const stay = () => {
+		if (leaving.current) clearTimeout(leaving.current);
+		leaving.current = null;
+	};
+	const leave = () => {
+		stay();
+		if (byHover.current) leaving.current = setTimeout(closePeek, PEEK_LEAVE_MS);
+	};
+	useEffect(() => stay, []);
+	useEffect(() => {
+		if (peeking === null) {
+			byHover.current = false;
+			stay();
+		}
+	}, [peeking]);
+	const onPeek = (id: string, cause: PeekCause) => {
+		stay();
+		byHover.current = cause === 'hover';
+		actions.peek(id);
+	};
+
+	// A click anywhere but on the peeking panel or a rail closes the peek.
 	useEffect(() => {
 		if (peeking === null) return;
 		const away = (event: PointerEvent) => {
@@ -91,56 +181,96 @@ export function DockShell({
 		shell.current?.querySelector<HTMLElement>(`[data-rail-item="${opener}"]`)?.focus();
 	};
 
+	const railOf = (id: ZoneId) => {
+		const z = view.zones[id];
+		if (z.groups.length === 0) return null;
+		return (
+			<div className={styles.slot} data-rail-slot={id} onPointerEnter={stay} onPointerLeave={leave}>
+				<DockRail
+					zone={id}
+					groups={z.groups}
+					collapsed={z.collapsed}
+					titleOf={titleOf}
+					peeking={peeking}
+					disabled={session.levelFirst}
+					onChoose={choose}
+					onPeek={onPeek}
+					onUnfold={() => actions.toggleZone(id)}
+					onReorder={reorder}
+					onDragStart={drag?.begin}
+					dragging={dragging?.id ?? null}
+				/>
+			</div>
+		);
+	};
+
 	const zone = (id: ZoneId) => {
 		const z = view.zones[id];
-		if (z.groups.length === 0 || extent(id) === 0) return null;
+		if (z.groups.length === 0 || z.collapsed || extent(id) === 0) return null;
 		return (
 			<div className={styles.slot} data-slot={id}>
-				{z.collapsed ? (
-					<DockRail
-						zone={id}
-						panels={dockedIn(view, id)}
-						titleOf={titleOf}
-						peeking={peeking}
-						disabled={session.levelFirst}
-						onPeek={actions.peek}
-						onClosePeek={actions.closePeek}
-						onUnfold={() => actions.toggleZone(id)}
-					/>
-				) : (
-					<>
-						<DockResizeHandle
-							zone={id}
-							size={extent(id)}
-							min={zoneMin(id)}
-							max={zoneCap(id, window)}
-							onResize={(size) => actions.resizeZone(id, size)}
-							onReset={() => actions.resetZoneSize(id)}
-						/>
-						<DockZone
-							zone={id}
-							groups={z.groups}
-							titleOf={titleOf}
-							renderPanel={renderPanel}
-							onActivate={actions.activate}
-							onDock={actions.dockTo}
-							onFloat={actions.floatPanel}
-							onFold={() => actions.toggleZone(id)}
-						/>
-					</>
-				)}
+				<DockResizeHandle
+					zone={id}
+					size={extent(id)}
+					min={zoneMin(id)}
+					max={zoneCap(id, window)}
+					onResize={(size) => actions.resizeZone(id, size)}
+					onReset={() => actions.resetZoneSize(id)}
+				/>
+				<DockZone
+					zone={id}
+					groups={z.groups}
+					titleOf={titleOf}
+					renderPanel={renderPanel}
+					onDock={actions.dockTo}
+					onFloat={actions.floatPanel}
+					onTearOff={actions.tearOff}
+					onFold={() => actions.toggleZone(id)}
+					onDragStart={drag?.begin}
+					dragging={dragging?.id ?? null}
+					expandable={expandable}
+					onMaximise={actions.maximise}
+					maximised={maximised}
+					onRestore={actions.restore}
+				/>
 			</div>
 		);
 	};
 
 	return (
-		<div className={styles.shell} style={style} ref={shell} onKeyDown={onKeyDown}>
+		<div
+			className={styles.shell}
+			style={style}
+			ref={shell}
+			onKeyDown={onKeyDown}
+			data-dragging={dragging ? '' : undefined}
+			data-has-maximised={maximised !== null ? '' : undefined}
+		>
+			{railOf('left')}
 			{zone('left')}
 			<div className={styles.level} data-level>
 				{children}
 			</div>
 			{zone('right')}
+			{railOf('right')}
 			{zone('bottom')}
+			{railOf('bottom')}
+			{ZONE_IDS.map((id) => (
+				<div
+					key={id}
+					className={styles.drop}
+					data-drop-zone={id}
+					data-lit={target?.kind === 'zone' && target.zone === id ? '' : undefined}
+					aria-hidden="true"
+				/>
+			))}
+			{dragging && <DragGhost drag={dragging} title={titleOf(dragging.id)} />}
+			<p className={styles.hidden} role="status" aria-live="polite">
+				{tabNote}
+			</p>
+			<p className={styles.hidden} role="status" aria-live="polite">
+				{announcement}
+			</p>
 			{peeking !== null && peekZone !== null && (
 				<PeekPanel
 					zone={peekZone}
@@ -148,6 +278,9 @@ export function DockShell({
 					title={titleOf(peeking)}
 					size={clampZoneSize(peekZone, view.zones[peekZone].size, window)}
 					onPin={() => actions.pin(peeking)}
+					onMaximise={expandable?.(peeking) ? () => actions.maximise(peeking) : undefined}
+					onPointerEnter={stay}
+					onPointerLeave={leave}
 				>
 					{renderPanel(peeking)}
 				</PeekPanel>

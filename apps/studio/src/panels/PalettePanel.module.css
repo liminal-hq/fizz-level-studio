@@ -2,67 +2,88 @@
 	display: flex;
 	flex: 1;
 	flex-direction: column;
+	gap: 0.6rem;
 	min-height: 0;
 	padding: 0.5rem 0.75rem;
+	overflow-x: hidden;
+	overflow-y: auto;
 }
 
 .note {
-	margin: 0.4rem 0 0;
+	margin: 0;
 	color: var(--fls-text-muted);
 	font-size: 0.8rem;
 }
 
-.tabs {
+.section {
 	display: flex;
-	gap: 0.5rem;
-	margin-bottom: 0.4rem;
-}
-
-.tab {
-	composes: keycap from '../theme/keycap.module.css';
-}
-
-.list {
-	display: grid;
-	flex: 1;
-	grid-template-columns: repeat(auto-fill, minmax(7rem, 1fr));
-	align-content: start;
+	flex-direction: column;
 	gap: 0.3rem;
-	min-height: 0;
-	margin: 0;
-	padding: 0;
-	overflow-y: auto;
-	list-style: none;
+	min-width: 0;
 }
 
-.entry {
+.heading {
+	margin: 0;
+	font-size: 0.85rem;
+	font-weight: 600;
+}
+
+/* The heading is the fold button, so the whole line folds and unfolds the section. */
+.fold {
 	display: flex;
 	align-items: center;
 	gap: 0.4rem;
 	width: 100%;
 	min-height: var(--fls-hit-target);
-	padding: 0 0.4rem;
-	color: var(--fls-text-primary);
+	padding: 0 0.2rem;
+	color: var(--fls-text-secondary);
 	background: transparent;
-	border: 1px solid var(--fls-border-subtle);
-	border-radius: 8px;
+	border: 0;
+	border-radius: 6px;
 	font: inherit;
 	text-align: left;
 	cursor: default;
 }
 
-.entry:hover {
-	background: var(--fls-control-bg-hover);
+.fold:hover {
+	color: var(--fls-text-primary);
 }
 
-.entry[aria-pressed='true'] {
-	border-color: var(--fls-accent);
-	box-shadow: inset 0 0 0 1px var(--fls-accent);
-}
-
-.entry:focus-visible {
+.fold:focus-visible {
 	outline: 2px solid var(--fls-focus-ring);
 	outline-offset: 2px;
+}
+
+.chevron {
+	flex: none;
+	width: 0.4rem;
+	height: 0.4rem;
+	border-right: 2px solid currentcolor;
+	border-bottom: 2px solid currentcolor;
+	transform: rotate(45deg);
+	transition: transform 0.12s ease;
+}
+
+.fold[aria-expanded='false'] .chevron {
+	transform: rotate(-45deg);
+}
+
+.list {
+	display: flex;
+	flex-direction: column;
+	gap: 0.3rem;
+	min-width: 0;
+	margin-top: 0.3rem;
+}
+
+/* A key you press to choose; the chosen one is the lit key (see the keycap). */
+.entry {
+	composes: keycap from '@liminal-hq/fizz-studio-chrome/Keycap/keycap.module.css';
+	justify-content: flex-start;
+	width: 100%;
+	min-width: 0;
+	padding: 0 0.4rem;
+	text-align: left;
 }
 
 .swatch {

@@ -11,6 +11,7 @@ import {
 	initialToolState,
 	lineCells,
 	reduceTool,
+	thingAt,
 	type Cell,
 	type PointerPhase,
 	type ToolContext,
@@ -229,8 +230,8 @@ describe('pick', () => {
 
 	it('reads an item or an enemy before the tile beneath it', () => {
 		const view = levelView(12, 8, {
-			items: [{ kind: 'soda', x: 3, y: 1 }],
-			spawns: [{ kind: 'gloop', x: 5, y: 1, dir: null, ride: false }],
+			items: [{ kind: 'soda', x: 3, y: 1, line: 9 }],
+			spawns: [{ kind: 'gloop', x: 5, y: 1, dir: null, ride: false, line: 12 }],
 		});
 		const on = { ...context, view };
 		expect(reduceTool('pick', initialToolState, 'down', { x: 3, y: 1 }, on).pick).toEqual({
@@ -245,6 +246,82 @@ describe('pick', () => {
 
 	it('reads nothing outside the level', () => {
 		expect(reduceTool('pick', initialToolState, 'down', { x: -1, y: 0 }, context).pick).toBeNull();
+	});
+});
+
+describe('thingAt', () => {
+	const view = levelView(12, 8, {
+		items: [
+			{ kind: 'soda', x: 3, y: 1, line: null },
+			{ kind: 'cheezie', x: 5, y: 1, line: null },
+		],
+		spawns: [
+			{ kind: 'gloop', x: 5, y: 1, dir: null, ride: false, line: null },
+			{ kind: 'bat', x: 7, y: null, dir: null, ride: false, line: null },
+		],
+		start: { x: 2, y: 1, line: null },
+	});
+
+	it('finds an item on the objects layer', () => {
+		expect(thingAt(view, { x: 3, y: 1 })).toEqual({
+			kind: 'item',
+			name: 'soda',
+			x: 3,
+			y: 1,
+			layer: 'objects',
+		});
+	});
+
+	it('puts an item above an enemy on the same cell, and an enemy above the start', () => {
+		expect(thingAt(view, { x: 5, y: 1 })).toMatchObject({ kind: 'item', name: 'cheezie' });
+		const start = {
+			...view,
+			spawns: [{ kind: 'slug', x: 2, y: 1, dir: null, ride: false, line: null }],
+		};
+		expect(thingAt(start, { x: 2, y: 1 })).toMatchObject({ kind: 'enemy', name: 'slug' });
+	});
+
+	it('finds an enemy with no row on its column’s resting row', () => {
+		// Row 0 is the floor, so the bat rests on row 1.
+		expect(thingAt(view, { x: 7, y: 1 })).toMatchObject({ kind: 'enemy', name: 'bat', y: 1 });
+		expect(thingAt(view, { x: 7, y: 4 })).toMatchObject({ kind: 'cell', name: 'empty' });
+	});
+
+	it('finds Ben’s start', () => {
+		expect(thingAt(view, { x: 2, y: 1 })).toEqual({
+			kind: 'start',
+			name: 'start',
+			x: 2,
+			y: 1,
+			layer: 'objects',
+		});
+	});
+
+	it('selects the cell itself, with its tile or empty, when nothing is on it', () => {
+		expect(thingAt(view, { x: 9, y: 0 })).toEqual({
+			kind: 'cell',
+			name: 'fill',
+			x: 9,
+			y: 0,
+			layer: 'tiles',
+		});
+		expect(thingAt(view, { x: 9, y: 5 })).toMatchObject({ kind: 'cell', name: 'empty' });
+	});
+
+	it('finds nothing outside the level', () => {
+		expect(thingAt(view, { x: -1, y: 0 })).toBeNull();
+		expect(thingAt(view, { x: 12, y: 0 })).toBeNull();
+		expect(thingAt(view, { x: 0, y: 8 })).toBeNull();
+	});
+});
+
+describe('inspect', () => {
+	it('edits nothing, reads no brush and leaves Select’s rectangle alone', () => {
+		const outlined = { ...initialToolState, selection: { x0: 1, y0: 1, x1: 2, y1: 2 } };
+		for (const phase of ['down', 'move', 'up'] as const) {
+			const result = reduceTool('inspect', outlined, phase, { x: 3, y: 0 }, context);
+			expect(result).toEqual({ state: outlined, edits: [], pick: null });
+		}
 	});
 });
 
@@ -278,8 +355,8 @@ describe('select', () => {
 
 describe('stamp', () => {
 	const view = levelView(12, 8, {
-		items: [{ kind: 'cheezie', x: 2, y: 3 }],
-		spawns: [{ kind: 'gloop', x: 3, y: 1, dir: null, ride: false }],
+		items: [{ kind: 'cheezie', x: 2, y: 3, line: 9 }],
+		spawns: [{ kind: 'gloop', x: 3, y: 1, dir: null, ride: false, line: 12 }],
 	});
 	const clip = copyArea(view, { x0: 1, y0: 0, x1: 3, y1: 3 });
 	const pasting: ToolContext = { ...context, view, clip };

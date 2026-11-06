@@ -7,7 +7,6 @@ import type { ViewDiagnostic } from '@liminal-hq/fizz-studio-protocol/generated/
 import type { WordDoc } from '@liminal-hq/fizz-studio-protocol/generated/WordDoc';
 import { useEffect, useRef, useState } from 'react';
 import { t } from '../i18n/messages';
-import { LineComposer } from './LineComposer';
 import styles from './ScriptPanel.module.css';
 import { ScriptEditor, type RevealRequest } from './script/ScriptEditor';
 
@@ -15,7 +14,7 @@ export interface ScriptPanelProps {
 	/** `LevelSnapshot.text`, shown exactly as it is. */
 	text: string;
 	diagnostics: readonly ViewDiagnostic[];
-	/** The documented words, from the backend, for hover text and completion. */
+	/** The documented words, from the backend, for hover text. */
 	words?: readonly WordDoc[];
 	/** A line (counted from 1) to mark and bring into view, such as one chosen elsewhere. */
 	focusLine?: number | null;
@@ -23,8 +22,6 @@ export interface ScriptPanelProps {
 	focusSerial?: number;
 	/** True once the backend can take a typed change. Until then the script is read-only. */
 	editable?: boolean;
-	/** Shows a Tear off button that calls this; left out where the panel cannot be torn off. */
-	onTearOff?: () => void;
 }
 
 const NO_WORDS: readonly WordDoc[] = [];
@@ -41,7 +38,6 @@ export function ScriptPanel({
 	focusLine = null,
 	focusSerial = 0,
 	editable = false,
-	onTearOff,
 }: ScriptPanelProps) {
 	const [reveal, setReveal] = useState<RevealRequest | null>(null);
 	const serial = useRef(0);
@@ -60,13 +56,6 @@ export function ScriptPanel({
 
 	return (
 		<div className={styles.panel}>
-			{onTearOff && (
-				<div className={styles.header}>
-					<button type="button" className={styles.tearOff} onClick={onTearOff}>
-						{t('panel.tearOff')}
-					</button>
-				</div>
-			)}
 			<ScriptEditor
 				className={styles.editor}
 				text={text}
@@ -75,25 +64,30 @@ export function ScriptPanel({
 				reveal={reveal}
 				editable={editable}
 			/>
-			{words.length > 0 && <LineComposer words={words} />}
-			<h3 className={styles.subtitle}>{t('script.diagnostics')}</h3>
-			{diagnostics.length === 0 ? (
-				<p className={styles.none}>{t('script.noProblems')}</p>
-			) : (
-				<ul className={styles.problems} role="list">
-					{diagnostics.map((problem, index) => (
-						<li key={`${problem.line}-${problem.code}-${index}`}>
-							<button type="button" className={styles.link} onClick={() => ask(problem.line, true)}>
-								{t('script.problem', {
-									line: problem.line,
-									code: problem.code,
-									message: problem.message,
-								})}
-							</button>
-						</li>
-					))}
-				</ul>
-			)}
+			<div className={styles.footer}>
+				<h3 className={styles.subtitle}>{t('script.diagnostics')}</h3>
+				{diagnostics.length === 0 ? (
+					<p className={styles.none}>{t('script.noProblems')}</p>
+				) : (
+					<ul className={styles.problems} role="list">
+						{diagnostics.map((problem, index) => (
+							<li key={`${problem.line}-${problem.code}-${index}`}>
+								<button
+									type="button"
+									className={styles.link}
+									onClick={() => ask(problem.line, true)}
+								>
+									{t('script.problem', {
+										line: problem.line,
+										code: problem.code,
+										message: problem.message,
+									})}
+								</button>
+							</li>
+						))}
+					</ul>
+				)}
+			</div>
 		</div>
 	);
 }

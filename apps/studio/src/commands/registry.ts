@@ -3,6 +3,7 @@
 // (c) Copyright 2026 Liminal HQ, Scott Morris
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
+import type { IconId } from '../icons/AppIcons';
 import { PANEL_SPECS, type PanelId } from '../panels/float/panelSpecs';
 import type { MessageId } from '../i18n/messages';
 import { quitClient } from '../services/quitClient';
@@ -13,7 +14,7 @@ import { TOOL_IDS, type ToolId } from '../tools/tool';
 import type { Brush } from '../tools/brush';
 import type { BridgeSnapshot, CommandFacts } from './commandBridge';
 
-export type MenuName = 'file' | 'edit' | 'view' | 'window';
+export type MenuName = 'file' | 'edit' | 'view' | 'window' | 'help';
 
 /** The headings the command palette lists commands under, in the order it lists them. */
 export type PaletteGroup =
@@ -24,6 +25,7 @@ export type PaletteGroup =
 	| 'edit'
 	| 'view'
 	| 'window'
+	| 'help'
 	| 'goto';
 
 export const PALETTE_GROUPS: readonly PaletteGroup[] = [
@@ -34,6 +36,7 @@ export const PALETTE_GROUPS: readonly PaletteGroup[] = [
 	'edit',
 	'view',
 	'window',
+	'help',
 	'goto',
 ];
 
@@ -45,6 +48,7 @@ export const PALETTE_GROUP_LABELS: Record<PaletteGroup, MessageId> = {
 	edit: 'cmdPalette.group.edit',
 	view: 'cmdPalette.group.view',
 	window: 'cmdPalette.group.window',
+	help: 'cmdPalette.group.help',
 	goto: 'cmdPalette.group.goto',
 };
 
@@ -58,9 +62,13 @@ export interface CommandDef {
 	section: number;
 	label: MessageId;
 	/** The `{token}` values of `label`, for a command named after something (a brush). */
-	labelValues?: Record<string, string>;
+	labelValues?: Record<string, string> | (() => Record<string, string>);
+	/** True when the command is left out of the menus and the palette for now (its opposite is showing). */
+	hidden?: (facts: CommandFacts) => boolean;
 	/** Set when the command asks the person for a value before it runs (the palette prompts for it). */
 	argument?: 'line';
+	/** The icon on the command's menu row. Every menu command has one; a palette-only command (no `menu`) is exempt. */
+	icon?: IconId;
 	/** The keys, as shown on the row; the keys themselves are handled by the screens. */
 	shortcut?: string;
 	/** When the command can run, given what the screens published. */
@@ -74,7 +82,8 @@ export interface CommandDef {
 }
 
 /** The text of a command's label. */
-export const commandLabel = (def: CommandDef) => t(def.label, def.labelValues);
+export const commandLabel = (def: CommandDef) =>
+	t(def.label, typeof def.labelValues === 'function' ? def.labelValues() : def.labelValues);
 
 /** The palette heading a command is listed under. */
 export function paletteGroupOf(def: CommandDef): PaletteGroup {
@@ -84,10 +93,15 @@ export function paletteGroupOf(def: CommandDef): PaletteGroup {
 /** The keys that open the command palette, as shown on its View row. */
 export const COMMAND_PALETTE_KEYS = 'Ctrl+Shift+P';
 
+/** The keys that maximise the focused panel or restore it, as shown on its rows and tooltips. */
+export const MAXIMISE_KEYS = 'Ctrl+Shift+M';
+
 /** The keys that quit the app, as shown on its File row; the main window handles the keys. */
 export const QUIT_KEYS = 'Ctrl+Q';
 
 const always = () => true;
+/** Hidden on the start screen, where there is no editor and so no panel to tear off or dock back. */
+const noEditor = (facts: CommandFacts) => !facts.editorOpen;
 const hasLevel = (facts: CommandFacts) => facts.hasLevel;
 
 const panelCommand = (id: PanelId, title: MessageId): CommandDef => ({
@@ -95,28 +109,79 @@ const panelCommand = (id: PanelId, title: MessageId): CommandDef => ({
 	menu: 'view',
 	section: 0,
 	group: 'panels',
+	icon: `panel.${id}`,
 	label: title,
 	enabled: (facts) => facts.editorOpen,
 	checked: (facts) => facts.panels[id],
 });
 
+/**
+ * Maximise or Restore for an expandable panel. Each panel has one row at a time: Maximise until it
+ * is maximised, then Restore.
+ */
+const maximiseCommand = (id: PanelId, title: MessageId, restore: boolean): CommandDef => ({
+	id: `view.${restore ? 'restore' : 'maximise'}.${id}`,
+	menu: 'view',
+	section: 1,
+	group: 'panels',
+	icon: restore ? 'restore' : 'maximise',
+	label: restore ? 'view.restore' : 'view.maximise',
+	labelValues: () => ({ panel: t(title) }),
+	shortcut: MAXIMISE_KEYS,
+	enabled: (facts) => facts.editorOpen && facts.panels[id],
+	hidden: (facts) => (facts.maximised === id) !== restore,
+});
+
 /** The commands in menu order. Ids are unique; `panelCommandId` and the handlers use them. */
 export const COMMANDS: readonly CommandDef[] = [
-	{ id: 'file.new', menu: 'file', section: 0, label: 'main.newLevel', enabled: always },
-	{ id: 'file.open', menu: 'file', section: 0, label: 'main.openLevel', enabled: always },
+	{
+		id: 'file.new',
+		icon: 'new',
+		menu: 'file',
+		section: 0,
+		label: 'main.newLevel',
+		enabled: always,
+	},
+	{
+		id: 'file.open',
+		icon: 'open',
+		menu: 'file',
+		section: 0,
+		label: 'main.openLevel',
+		enabled: always,
+	},
 	{
 		id: 'file.save',
+		icon: 'save',
 		menu: 'file',
 		section: 1,
 		label: 'main.save',
 		shortcut: 'Ctrl+S',
 		enabled: hasLevel,
 	},
-	{ id: 'file.close', menu: 'file', section: 1, label: 'main.closeLevel', enabled: hasLevel },
 	{
-		id: 'file.quit',
+		id: 'file.preferences',
+		icon: 'preferences',
 		menu: 'file',
 		section: 2,
+		label: 'appMenu.preferences',
+		shortcut: 'Ctrl+,',
+		enabled: always,
+		run: () => void openWindow({ kind: 'preferences' }),
+	},
+	{
+		id: 'file.close',
+		icon: 'close',
+		menu: 'file',
+		section: 3,
+		label: 'main.closeLevel',
+		enabled: hasLevel,
+	},
+	{
+		id: 'file.quit',
+		icon: 'quit',
+		menu: 'file',
+		section: 3,
 		label: 'appMenu.quit',
 		shortcut: QUIT_KEYS,
 		enabled: always,
@@ -124,6 +189,7 @@ export const COMMANDS: readonly CommandDef[] = [
 	},
 	{
 		id: 'edit.undo',
+		icon: 'undo',
 		menu: 'edit',
 		section: 0,
 		label: 'history.undo',
@@ -132,6 +198,7 @@ export const COMMANDS: readonly CommandDef[] = [
 	},
 	{
 		id: 'edit.redo',
+		icon: 'redo',
 		menu: 'edit',
 		section: 0,
 		label: 'history.redo',
@@ -139,17 +206,24 @@ export const COMMANDS: readonly CommandDef[] = [
 		enabled: (facts) => facts.canRedo,
 	},
 	...PANEL_SPECS.map((spec) => panelCommand(spec.id, spec.title)),
+	...PANEL_SPECS.filter((spec) => spec.expandable).flatMap((spec) => [
+		maximiseCommand(spec.id, spec.title, false),
+		maximiseCommand(spec.id, spec.title, true),
+	]),
 	{
 		id: 'view.levelFirst',
+		icon: 'levelFirst',
 		menu: 'view',
 		section: 1,
 		label: 'view.levelFirst',
 		shortcut: 'Tab',
-		enabled: (facts) => facts.editorOpen,
+		// Maximising wins over level-first: while a panel fills the workspace, Tab does nothing.
+		enabled: (facts) => facts.editorOpen && facts.maximised === null,
 		checked: (facts) => facts.levelFirst,
 	},
 	{
 		id: 'view.resetLayout',
+		icon: 'resetLayout',
 		menu: 'view',
 		group: 'panels',
 		section: 1,
@@ -159,6 +233,7 @@ export const COMMANDS: readonly CommandDef[] = [
 	},
 	{
 		id: 'view.commandPalette',
+		icon: 'commandPalette',
 		menu: 'view',
 		section: 2,
 		label: 'appMenu.commandPalette',
@@ -166,17 +241,9 @@ export const COMMANDS: readonly CommandDef[] = [
 		enabled: always,
 	},
 	{
-		id: 'window.preferences',
-		menu: 'window',
-		section: 0,
-		label: 'appMenu.preferences',
-		shortcut: 'Ctrl+,',
-		enabled: always,
-		run: () => void openWindow({ kind: 'preferences' }),
-	},
-	{
-		id: 'window.about',
-		menu: 'window',
+		id: 'help.about',
+		icon: 'about',
+		menu: 'help',
 		section: 0,
 		label: 'appMenu.about',
 		enabled: always,
@@ -193,6 +260,7 @@ const TOOL_LABELS: Record<ToolId, MessageId> = {
 	pick: 'tools.pick',
 	select: 'tools.select',
 	stamp: 'tools.stamp',
+	inspect: 'tools.inspect',
 };
 
 /**
@@ -207,6 +275,7 @@ export const PALETTE_COMMANDS: readonly CommandDef[] = [
 	...TOOL_IDS.map(
 		(id): CommandDef => ({
 			id: toolCommandId(id),
+			icon: `tool.${id}`,
 			group: 'tools',
 			section: 0,
 			label: TOOL_LABELS[id],
@@ -236,10 +305,59 @@ export function brushCommands(brushes: readonly Brush[]): CommandDef[] {
 	}));
 }
 
-/** Every command now: the menu's, the palette's own and a brush for each the level offers. */
-export function allCommands(facts: CommandFacts): CommandDef[] {
-	return [...COMMANDS, ...PALETTE_COMMANDS, ...brushCommands(facts.brushes)];
+export const tearOffCommandId = (id: PanelId) => `view.panel.${id}.tearOff`;
+export const dockBackCommandId = (id: PanelId) => `view.panel.${id}.dockBack`;
+
+/**
+ * Tear off and Dock back, built for each panel (its name is the command's value): a panel in the
+ * main window offers Tear off, and one in a window of its own offers Dock back. They run through
+ * handlers the editor publishes under `tearOffCommandId` and `dockBackCommandId`. They are the Window
+ * menu's rows as well as the palette's.
+ */
+export function panelWindowCommands(facts: CommandFacts): CommandDef[] {
+	return PANEL_SPECS.map((spec): CommandDef => {
+		const panel = t(spec.title);
+		return facts.away[spec.id]
+			? {
+					id: dockBackCommandId(spec.id),
+					icon: 'dockBack',
+					menu: 'window',
+					group: 'panels',
+					section: 0,
+					label: 'cmdPalette.dockPanelBack',
+					labelValues: { panel },
+					hidden: noEditor,
+					enabled: (now) => now.editorOpen && now.away[spec.id],
+				}
+			: {
+					id: tearOffCommandId(spec.id),
+					icon: 'tearOff',
+					menu: 'window',
+					group: 'panels',
+					section: 0,
+					label: 'cmdPalette.tearOffPanel',
+					labelValues: { panel },
+					hidden: noEditor,
+					enabled: (now) => now.editorOpen && !now.away[spec.id],
+				};
+	});
 }
+
+/**
+ * Every command now: the menu's, the palette's own, a brush for each the level offers and a Tear
+ * off or Dock back for each panel.
+ */
+export function allCommands(facts: CommandFacts): CommandDef[] {
+	return [
+		...COMMANDS,
+		...PALETTE_COMMANDS,
+		...brushCommands(facts.brushes),
+		...panelWindowCommands(facts),
+	];
+}
+
+export const maximiseCommandId = (id: PanelId, restore: boolean) =>
+	`view.${restore ? 'restore' : 'maximise'}.${id}`;
 
 export const panelCommandId = (id: PanelId) => `view.panel.${id}`;
 
