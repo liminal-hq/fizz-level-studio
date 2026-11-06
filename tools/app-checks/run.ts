@@ -157,10 +157,17 @@ interface Box {
 	h: number;
 }
 
-/** The boxes of the canvas, the three docks and the three rails, as drawn (null when absent). */
+/**
+ * The boxes of the canvas, the level area it spans, the part of it no dock covers (the map, where
+ * the tool picker lives, above the status line), the status line, the three docks and the three
+ * rails, as drawn (null when absent).
+ */
 interface Layout {
 	window: { w: number; h: number };
 	canvas: Box | null;
+	level: Box | null;
+	map: Box | null;
+	bar: Box | null;
 	left: Box | null;
 	right: Box | null;
 	bottom: Box | null;
@@ -177,6 +184,9 @@ function measureLayout(bridge: Bridge): Promise<Layout> {
 		 return {
 		   window: { w: window.innerWidth, h: window.innerHeight },
 		   canvas: box(document.querySelector('canvas')),
+		   level: box(document.querySelector('[data-level]')),
+		   map: box(document.querySelector('[data-map]')),
+		   bar: box(document.querySelector('[data-canvas-bar]')),
 		   left: dock('Left dock'), right: dock('Right dock'), bottom: dock('Bottom dock'),
 		   leftRail: rail('Left rail'), rightRail: rail('Right rail'), bottomRail: rail('Bottom rail'),
 		 };`,
@@ -197,6 +207,28 @@ function pressKey(bridge: Bridge, selector: string, key: string, shift = false):
 const apart = (a: Box, b: Box) =>
 	a.x + a.w <= b.x + 1 || b.x + b.w <= a.x + 1 || a.y + a.h <= b.y + 1 || b.y + b.h <= a.y + 1;
 
+/** Whether two boxes are the same to within a pixel. */
+const sameRect = (a: Box | null, b: Box | null) =>
+	!!a &&
+	!!b &&
+	Math.abs(a.x - b.x) < 1 &&
+	Math.abs(a.y - b.y) < 1 &&
+	Math.abs(a.w - b.w) < 1 &&
+	Math.abs(a.h - b.h) < 1;
+
+/**
+ * The docks lie over the level (D69): the canvas spans the whole level area beneath them, every
+ * dock and rail that is there overlaps it, and none of them reaches the map or the status line,
+ * the part the camera keeps the level in.
+ */
+function overlaid(m: Layout): boolean {
+	if (!m.canvas || !m.map || !m.bar || !sameRect(m.canvas, m.level)) return false;
+	const covers = [m.left, m.right, m.bottom, m.leftRail, m.rightRail, m.bottomRail].filter(
+		(d): d is Box => d !== null,
+	);
+	return covers.every((d) => !apart(d, m.canvas!) && apart(d, m.map!) && apart(d, m.bar!));
+}
+
 /**
  * The dock layout, measured in the real window: the layout bug that once left the canvas zero tall
  * could not be seen by a jsdom test. It folds, opens, resizes and hides docks and leaves all three
@@ -206,18 +238,42 @@ async function dockChecks(bridge: Bridge): Promise<void> {
 	// The shipped Paint workspace opens all three docks (board H1 of the design canvas).
 	let m = await measureLayout(bridge);
 	check(
-		'the three docks are open and do not overlap the level',
+		'the three docks are open and lie over the edges of the level, clear of the map',
 		!!m.left &&
 			!!m.right &&
 			!!m.bottom &&
-			!!m.canvas &&
 			m.left.w > 100 &&
 			m.right.w > 100 &&
 			m.bottom.h > 60 &&
-			apart(m.left, m.canvas) &&
-			apart(m.right, m.canvas) &&
-			apart(m.bottom, m.canvas),
-		JSON.stringify([m.left, m.right, m.bottom, m.canvas]),
+			overlaid(m),
+		JSON.stringify([m.left, m.right, m.bottom, m.canvas, m.map, m.bar]),
+	);
+	check(
+		'the canvas spans the whole level area, under the docks and rails',
+		sameRect(m.canvas, m.level) &&
+			!!m.canvas &&
+			!!m.leftRail &&
+			!!m.rightRail &&
+			!!m.bottomRail &&
+			m.canvas.x <= m.leftRail.x + 1 &&
+			m.canvas.x + m.canvas.w >= m.rightRail.x + m.rightRail.w - 1 &&
+			m.canvas.y + m.canvas.h >= m.bottomRail.y + m.bottomRail.h - 1,
+		JSON.stringify([m.canvas, m.level, m.leftRail, m.rightRail, m.bottomRail]),
+	);
+	// The map is what the docks leave: it starts at the left dock's edge and ends at the right
+	// dock's, with the status line between it and the bottom dock.
+	check(
+		'the map is the part of the level the docks leave, with the status line under it',
+		!!m.map &&
+			!!m.bar &&
+			!!m.left &&
+			!!m.right &&
+			!!m.bottom &&
+			Math.abs(m.map.x - (m.left.x + m.left.w)) < 1.5 &&
+			Math.abs(m.map.x + m.map.w - m.right.x) < 1.5 &&
+			Math.abs(m.map.y + m.map.h - m.bar.y) < 1.5 &&
+			Math.abs(m.bar.y + m.bar.h - m.bottom.y) < 1.5,
+		JSON.stringify([m.map, m.bar, m.left, m.right, m.bottom]),
 	);
 	// Every dock keeps its rail at the window's edge, outside the dock, while the docks are open.
 	check(
@@ -235,9 +291,7 @@ async function dockChecks(bridge: Bridge): Promise<void> {
 			m.leftRail.x + m.leftRail.w <= m.left.x + 1 &&
 			m.rightRail.x >= m.right.x + m.right.w - 1 &&
 			m.bottomRail.y >= m.bottom.y + m.bottom.h - 1 &&
-			apart(m.leftRail, m.canvas) &&
-			apart(m.rightRail, m.canvas) &&
-			apart(m.bottomRail, m.canvas),
+			overlaid(m),
 		JSON.stringify([m.leftRail, m.rightRail, m.bottomRail, m.window]),
 	);
 	const clipped = await railClipping(bridge);
@@ -255,16 +309,50 @@ async function dockChecks(bridge: Bridge): Promise<void> {
 			 return headers.length === 3 && headers.every((h) => h.querySelector('[role=tab], [role=tablist]') === null && h.querySelectorAll('h2').length === 1);`,
 		),
 	);
-	const share = m.canvas
-		? Math.round(((m.canvas.w * m.canvas.h) / (m.window.w * m.window.h)) * 100)
-		: 0;
+	const share = m.map ? Math.round(((m.map.w * m.map.h) / (m.window.w * m.window.h)) * 100) : 0;
 	console.log(
-		`level share at ${m.window.w}x${m.window.h}: canvas ${m.canvas?.w}x${m.canvas?.h} (${share}% of the window)`,
+		`level share at ${m.window.w}x${m.window.h}: uncovered map ${m.map?.w}x${m.map?.h} of canvas ${m.canvas?.w}x${m.canvas?.h} (${share}% of the window)`,
 	);
 	check(
-		'the canvas keeps its room with all three docks open',
-		(m.canvas?.h ?? 0) > 300,
-		String(m.canvas?.h),
+		'the uncovered map keeps its room with all three docks open',
+		(m.map?.h ?? 0) > 300,
+		String(m.map?.h),
+	);
+
+	// Hit-testing: a press on a dock lands on the dock, not on the canvas beneath its glass, and a
+	// press on the map lands on the canvas. The cursor cell moves only for the second.
+	const hits = await bridge.js<{
+		dock: string | null;
+		inDock: boolean;
+		dockCell: string | null;
+		map: string | null;
+		startCell: string | null;
+	} | null>(
+		`const cell = () => [...document.querySelectorAll('[role=status]')].map((e) => e.textContent.trim()).find((t) => t.startsWith('Cell ')) ?? null;
+		 const zone = document.querySelector('section[aria-label="Left dock"]');
+		 const map = document.querySelector('[data-map]');
+		 if (!zone || !map) return null;
+		 const z = zone.getBoundingClientRect();
+		 const m = map.getBoundingClientRect();
+		 const startCell = cell();
+		 const at = { x: z.left + z.width / 2, y: z.bottom - 12 };
+		 const onDock = document.elementFromPoint(at.x, at.y);
+		 const fire = (e, type, p) => e.dispatchEvent(new PointerEvent(type, { bubbles: true, cancelable: true, pointerId: 51, button: 0, clientX: p.x, clientY: p.y }));
+		 if (onDock) { fire(onDock, 'pointerdown', at); fire(onDock, 'pointerup', at); }
+		 await new Promise((r) => setTimeout(r, 150));
+		 const dockCell = cell();
+		 const onMap = document.elementFromPoint(m.right - 24, m.bottom - 24);
+		 return { dock: onDock ? onDock.tagName : null, inDock: !!onDock && zone.contains(onDock), dockCell, map: onMap ? onMap.tagName : null, startCell };`,
+	);
+	check(
+		'a press on a dock reaches the dock, not the canvas, and selects no cell',
+		hits !== null && hits.inDock && hits.dock !== 'CANVAS' && hits.dockCell === hits.startCell,
+		JSON.stringify(hits),
+	);
+	check(
+		'a press on the map outside the docks reaches the canvas',
+		hits !== null && hits.map === 'CANVAS',
+		JSON.stringify(hits),
 	);
 
 	// Content must fit the dock it sits in: the Palette's last tab was once cut off by the left dock,
@@ -344,8 +432,9 @@ async function dockChecks(bridge: Bridge): Promise<void> {
 		`${m.left?.w} against a cap of ${cap}`,
 	);
 	check(
-		'the canvas keeps its room after the widest dock',
-		(m.canvas?.h ?? 0) > 300 && (m.canvas?.w ?? 0) > 200,
+		'the uncovered map keeps its room after the widest dock, the docks still over the level',
+		(m.map?.h ?? 0) > 300 && (m.map?.w ?? 0) > 200 && overlaid(m),
+		JSON.stringify([m.map, m.left]),
 	);
 
 	// A synthetic pointer drag on the separator (real mouse events are unreliable under the bridge).
@@ -375,14 +464,14 @@ async function dockChecks(bridge: Bridge): Promise<void> {
 	);
 
 	// Choosing the showing panel on its rail folds the dock; choosing it again opens it.
-	const beforeFold = m.canvas!.w;
+	const beforeFold = m.map!.w;
 	check('the right rail offers Objects', await clickRailItem(bridge, 'Objects'));
 	await sleep(300);
 	m = await measureLayout(bridge);
 	check(
 		'choosing the showing panel on the rail folds its dock and keeps the rail',
-		!m.right && !!m.rightRail && m.canvas!.w > beforeFold,
-		JSON.stringify([m.right, m.rightRail, m.canvas?.w]),
+		!m.right && !!m.rightRail && m.map!.w > beforeFold && overlaid(m),
+		JSON.stringify([m.right, m.rightRail, m.map?.w]),
 	);
 	check('the folded rail offers Objects', await clickRailItem(bridge, 'Objects'));
 	await sleep(300);
@@ -391,27 +480,33 @@ async function dockChecks(bridge: Bridge): Promise<void> {
 		'choosing it again opens the dock on it',
 		!!m.right &&
 			!!m.rightRail &&
-			Math.abs(m.canvas!.w - beforeFold) < 1.5 &&
+			Math.abs(m.map!.w - beforeFold) < 1.5 &&
 			(await railItemPressed(bridge, 'Objects')) === true,
-		JSON.stringify([m.right, m.canvas?.w]),
+		JSON.stringify([m.right, m.map?.w]),
 	);
 
-	// Folding shows the rail and gives the room back to the level.
-	const wide = m.canvas!.w;
+	// Folding shows the rail and gives the room back to the map; the folded rail still lies over
+	// the level.
+	const wide = m.map!.w;
 	check('the left dock folds', await clickLabelled(bridge, 'Fold the left dock'));
 	await sleep(300);
 	m = await measureLayout(bridge);
 	check(
 		'a folded dock shows its rail and the level takes the room',
-		!!m.leftRail && Math.abs(m.leftRail.w - 36) < 1.5 && !m.left && m.canvas!.w > wide,
-		JSON.stringify(m.leftRail),
+		!!m.leftRail &&
+			Math.abs(m.leftRail.w - 36) < 1.5 &&
+			!m.left &&
+			m.map!.w > wide &&
+			Math.abs(m.map!.x - (m.leftRail.x + m.leftRail.w)) < 1.5 &&
+			overlaid(m),
+		JSON.stringify([m.leftRail, m.map]),
 	);
 	check('the left dock opens again', await clickLabelled(bridge, 'Unfold the left dock'));
 	await sleep(300);
 
 	// Level-first hides every dock and brings the same set back.
 	m = await measureLayout(bridge);
-	const open = m.canvas!.w;
+	const open = m.map!.w;
 	await bridge.js(
 		`document.querySelector('canvas').focus(); document.querySelector('canvas').dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', bubbles: true, cancelable: true }));`,
 	);
@@ -425,7 +520,7 @@ async function dockChecks(bridge: Bridge): Promise<void> {
 			!!m.leftRail &&
 			!!m.rightRail &&
 			!!m.bottomRail &&
-			m.canvas!.w > open,
+			m.map!.w > open,
 		JSON.stringify([m.left, m.right, m.bottom]),
 	);
 	await bridge.js(
@@ -435,7 +530,7 @@ async function dockChecks(bridge: Bridge): Promise<void> {
 	m = await measureLayout(bridge);
 	check(
 		'Tab again brings the same docks back',
-		!!m.left && !!m.right && !!m.bottom && Math.abs(m.canvas!.w - open) < 1.5,
+		!!m.left && !!m.right && !!m.bottom && Math.abs(m.map!.w - open) < 1.5,
 		JSON.stringify([m.left?.w, m.right?.w, m.bottom?.h]),
 	);
 }
@@ -508,22 +603,26 @@ let pickerLeftAt: { x: number; y: number } | null = null;
 
 interface PickerLayout {
 	picker: Box;
-	canvas: Box;
+	/** The uncovered part of the map the picker is held to. */
+	map: Box;
 	status: Box;
 	frame: Box | null;
+	/** The docks and rails that lie over the level. */
+	covers: Box[];
 	keys: { name: string; w: number; h: number; pressed: boolean; title: string }[];
 }
 
-/** The tool picker, the map it floats over and the status line under the map. */
+/** The tool picker, the uncovered map it floats over, the status line under it and the docks. */
 function measurePicker(bridge: Bridge): Promise<PickerLayout | null> {
 	return bridge.js<PickerLayout | null>(
 		`const box = (e) => { const r = e.getBoundingClientRect(); return { x: r.left, y: r.top, w: r.width, h: r.height }; };
 		 const p = document.querySelector('[data-tool-picker]');
-		 const c = document.querySelector('canvas');
+		 const c = document.querySelector('[data-map]');
 		 const s = [...document.querySelectorAll('[role=status]')].find((e) => e.textContent.startsWith('Cell '));
 		 if (!p || !c || !s) return null;
+		 const covers = [...document.querySelectorAll('[data-slot], [data-rail-slot]')].map(box).filter((b) => b.w > 0 && b.h > 0);
 		 return {
-		   picker: box(p), canvas: box(c), status: box(s), frame: p.offsetParent ? box(p.offsetParent) : null,
+		   picker: box(p), map: box(c), status: box(s), frame: p.offsetParent ? box(p.offsetParent) : null, covers,
 		   keys: [...p.querySelectorAll('button[data-tool]')].map((b) => ({
 		     name: b.getAttribute('aria-label'), w: b.getBoundingClientRect().width, h: b.getBoundingClientRect().height,
 		     pressed: b.getAttribute('aria-pressed') === 'true', title: b.getAttribute('title'),
@@ -565,16 +664,17 @@ async function savedPicker(bridge: Bridge): Promise<{ x: number; y: number } | n
 	return found.v;
 }
 
-/** The picker's top-left corner measured from the map's. */
+/** The picker's top-left corner measured from the uncovered map's. */
 function pickerOffset(l: PickerLayout): { x: number; y: number } {
-	return { x: Math.round(l.picker.x - l.canvas.x), y: Math.round(l.picker.y - l.canvas.y) };
+	return { x: Math.round(l.picker.x - l.map.x), y: Math.round(l.picker.y - l.map.y) };
 }
 
 /**
  * The tools float over the map in a glass pill: it starts at the map's top-left, its keys are
  * square, named and lit for the current tool, a click on one chooses that tool, a drag of its
- * grip moves it and is saved in the workspace, and it never leaves the map or covers the status
- * line. The row above the level holds no tools, and no key in it is clipped.
+ * grip moves it and is saved in the workspace, and it never leaves the uncovered map, slides under
+ * a dock or covers the status line. The row above the level holds no tools, and no key in it is
+ * clipped.
  */
 async function toolPickerChecks(bridge: Bridge): Promise<void> {
 	const first = await within(5000, async () => (await measurePicker(bridge)) !== null);
@@ -582,11 +682,12 @@ async function toolPickerChecks(bridge: Bridge): Promise<void> {
 	check('picker: the tools float over the map', first !== null && m !== null);
 	if (!m) return;
 	const inside = (l: PickerLayout) =>
-		l.picker.x >= l.canvas.x + 7 &&
-		l.picker.y >= l.canvas.y + 7 &&
-		l.picker.x + l.picker.w <= l.canvas.x + l.canvas.w - 7 &&
-		l.picker.y + l.picker.h <= l.canvas.y + l.canvas.h - 7 &&
-		l.picker.y + l.picker.h <= l.status.y;
+		l.picker.x >= l.map.x + 7 &&
+		l.picker.y >= l.map.y + 7 &&
+		l.picker.x + l.picker.w <= l.map.x + l.map.w - 7 &&
+		l.picker.y + l.picker.h <= l.map.y + l.map.h - 7 &&
+		l.picker.y + l.picker.h <= l.status.y &&
+		l.covers.every((d) => apart(d, l.picker));
 	const saved0 = await savedPicker(bridge);
 	const at0 = pickerOffset(m);
 	check(
@@ -681,8 +782,10 @@ async function toolPickerChecks(bridge: Bridge): Promise<void> {
 		JSON.stringify(
 			far && {
 				picker: far.picker,
-				canvas: far.canvas,
+				map: far.map,
+				status: far.status,
 				frame: far.frame,
+				covers: far.covers,
 				css: await bridge.js<unknown>(
 					`const p = document.querySelector('[data-tool-picker]'); const s = getComputedStyle(p);
 					 return { x: s.getPropertyValue('--fls-picker-x'), y: s.getPropertyValue('--fls-picker-y'),
@@ -798,10 +901,7 @@ async function inspectChecks(bridge: Bridge, pressed: () => Promise<string | nul
 }
 
 async function dragAndMaximiseChecks(bridge: Bridge): Promise<void> {
-	const sane = (m: Layout) =>
-		!!m.canvas &&
-		m.canvas.h > 300 &&
-		[m.left, m.right, m.bottom].every((d) => d === null || apart(d, m.canvas!));
+	const sane = (m: Layout) => !!m.map && m.map.h > 300 && overlaid(m);
 
 	// A panel dragged from one dock into another.
 	let m = await measureLayout(bridge);
@@ -828,18 +928,18 @@ async function dragAndMaximiseChecks(bridge: Bridge): Promise<void> {
 		JSON.stringify(await tabsIn(bridge, 'Right dock')),
 	);
 	check(
-		'drag: the canvas keeps its room and no dock overlaps it',
+		'drag: the map keeps its room and the docks lie over the level, clear of the map',
 		sane(m),
-		JSON.stringify([m.left, m.right, m.bottom, m.canvas]),
+		JSON.stringify([m.left, m.right, m.bottom, m.canvas, m.map]),
 	);
 
 	// The now empty left dock still offers itself, and takes the panel back.
 	check(
 		'drag: a synthetic drag starts on the Palette rail entry again',
 		await syntheticDrag(bridge, '[data-rail="right"] [data-rail-item="palette"]', {
-			// The empty dock's drop strip only exists during a drag: aim at the left edge of the level.
-			x: (m.canvas?.x ?? 0) + 20,
-			y: (m.canvas?.y ?? 0) + (m.canvas?.h ?? 0) / 2,
+			// The empty dock's drop strip only exists during a drag: aim at the left edge of the map.
+			x: (m.map?.x ?? 0) + 20,
+			y: (m.map?.y ?? 0) + (m.map?.h ?? 0) / 2,
 		}),
 	);
 	await sleep(300);
@@ -849,7 +949,7 @@ async function dragAndMaximiseChecks(bridge: Bridge): Promise<void> {
 		(await tabsIn(bridge, 'Left dock')).join() === 'Palette' &&
 			(await tabsIn(bridge, 'Right dock')).join() === 'Objects,History' &&
 			sane(m),
-		JSON.stringify([m.left, m.right, m.bottom, m.canvas]),
+		JSON.stringify([m.left, m.right, m.bottom, m.canvas, m.map]),
 	);
 
 	// Escape during a drag puts everything back.
@@ -869,8 +969,8 @@ async function dragAndMaximiseChecks(bridge: Bridge): Promise<void> {
 	// A panel dragged onto the level floats where it was let go.
 	const before = await measureLayout(bridge);
 	const target = {
-		x: before.canvas!.x + before.canvas!.w / 2,
-		y: before.canvas!.y + before.canvas!.h / 2,
+		x: before.map!.x + before.map!.w / 2,
+		y: before.map!.y + before.map!.h / 2,
 	};
 	await syntheticDrag(bridge, '[data-rail="right"] [data-rail-item="objects"]', target);
 	await sleep(300);
@@ -1910,15 +2010,17 @@ async function main(): Promise<void> {
 
 		// The canvas must have room; a layout rule lost in a refactor once left the canvas zero
 		// tall, which no jsdom test can see. The dock checks below measure the docks the same way.
-		const laidOut = await bridge.js<{ canvas: number; panels: number }>(
+		// The canvas spans the docks too, so the room that counts is the map they leave uncovered.
+		const laidOut = await bridge.js<{ canvas: number; map: number; panels: number }>(
 			`const c = document.querySelector('canvas')?.getBoundingClientRect();
+			 const m = document.querySelector('[data-map]')?.getBoundingClientRect();
 			 const p = [...document.querySelectorAll('[role=region][aria-label]')].filter((e) => e.getBoundingClientRect().height > 40);
-			 return { canvas: c ? c.height : 0, panels: p.length };`,
+			 return { canvas: c ? c.height : 0, map: m ? m.height : 0, panels: p.length };`,
 		);
 		check(
-			'the level canvas is on screen with room to draw',
-			laidOut.canvas > 300,
-			String(laidOut.canvas),
+			'the level canvas is on screen with room to draw outside the docks',
+			laidOut.canvas > 300 && laidOut.map > 300 && laidOut.canvas >= laidOut.map,
+			JSON.stringify(laidOut),
 		);
 		// One row sits above the level: it holds Save, Close level, a divider, the brush chip and
 		// the Panels menu, in that order (the tools float over the map), and nothing sits between
@@ -2059,7 +2161,7 @@ async function main(): Promise<void> {
 		const bars = await bridge.js<{ title: number; bar: number; canvas: number } | null>(
 			`const t = document.querySelector('[data-tauri-drag-region][data-title-align]')?.getBoundingClientRect();
 			 const b = document.querySelector('[role=menubar]')?.getBoundingClientRect();
-			 const c = document.querySelector('canvas')?.getBoundingClientRect();
+			 const c = document.querySelector('[data-map]')?.getBoundingClientRect();
 			 return t && b && c ? { title: t.bottom, bar: b.top, canvas: c.height } : null;`,
 		);
 		check(
@@ -2067,7 +2169,7 @@ async function main(): Promise<void> {
 			bars !== null && bars.bar >= bars.title - 0.5,
 			JSON.stringify(bars),
 		);
-		check('the canvas still has room with the menu bar', (bars?.canvas ?? 0) > 300);
+		check('the map the docks leave still has room with the menu bar', (bars?.canvas ?? 0) > 300);
 		await checkKeycaps(bridge, 'the main window with the default layout');
 		check(
 			'with the bar showing, the title bar app menu is plain text',
@@ -2183,9 +2285,13 @@ async function main(): Promise<void> {
 		);
 		check('Escape closes the command palette', (await paletteBox()) === null);
 		const canvasAfter = await bridge.js<number>(
-			`return document.querySelector('canvas')?.getBoundingClientRect().height ?? 0;`,
+			`return document.querySelector('[data-map]')?.getBoundingClientRect().height ?? 0;`,
 		);
-		check('the canvas keeps its room after the palette', canvasAfter > 300, String(canvasAfter));
+		check(
+			'the map the docks leave keeps its room after the palette',
+			canvasAfter > 300,
+			String(canvasAfter),
+		);
 		await bridge.js<boolean>(
 			`const b = document.querySelector('[role=group][aria-label=Tools] button[aria-label=Paint]'); b?.click(); return true;`,
 		);
