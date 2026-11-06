@@ -300,6 +300,8 @@ body,
 	--fls-canvas-glyph-dark: rgba(20, 20, 30, 0.85);
 	--fls-canvas-cursor: #ffe14d;
 	--fls-canvas-selection: #4dd2ff;
+	/* The thing Inspect selected: apart from the cursor's yellow and Select's cyan. */
+	--fls-canvas-inspected: #ff7ad9;
 	--fls-canvas-preview: rgba(255, 225, 77, 0.45);
 	--fls-canvas-item: #ffd23f;
 	--fls-canvas-spawn: #ff6b6b;

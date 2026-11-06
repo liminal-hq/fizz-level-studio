@@ -617,6 +617,7 @@ async function toolPickerChecks(bridge: Bridge): Promise<void> {
 	await clickTool('Paint');
 	await within(3000, async () => (await pressed()) === 'Paint');
 	await checkKeycaps(bridge, 'the tool picker');
+	await inspectChecks(bridge, pressed);
 
 	// The row above the level: no tools in it, and every key in it has its whole bottom edge.
 	const row = await bridge.js<{ names: string[]; clipped: string[] } | null>(
@@ -631,7 +632,7 @@ async function toolPickerChecks(bridge: Bridge): Promise<void> {
 	check(
 		'picker: the row above the level holds no tool keys',
 		row !== null &&
-			!row.names.some((n) => ['Paint', 'Erase', 'Pick', 'Select', 'Stamp'].includes(n)),
+			!row.names.some((n) => ['Paint', 'Erase', 'Pick', 'Select', 'Stamp', 'Inspect'].includes(n)),
 		JSON.stringify(row?.names),
 	);
 	check(
@@ -707,6 +708,82 @@ async function toolPickerChecks(bridge: Bridge): Promise<void> {
 		const at = await savedPicker(bridge);
 		return pickerLeftAt !== null && at !== null && Math.abs(at.x - pickerLeftAt.x) <= 1;
 	});
+}
+
+/** The keyboard cursor's cell, read from the status line under the map. */
+async function cursorCell(bridge: Bridge): Promise<{ x: number; y: number } | null> {
+	return bridge.js<{ x: number; y: number } | null>(
+		`const s = [...document.querySelectorAll('[role=status]')].map((e) => e.textContent.trim()).find((t) => /^Cell \\d+, \\d+:/.test(t));
+		 const m = s && s.match(/^Cell (\\d+), (\\d+):/);
+		 return m ? { x: Number(m[1]), y: Number(m[2]) } : null;`,
+	);
+}
+
+/**
+ * Inspect, in the running app: Q chooses it, Space on a cell with an item selects that cell (the
+ * canvas names it in `data-inspected`) without editing the level, the selection outlasts a change
+ * of tool, and Escape on the canvas clears it. The cursor is walked to the item with the arrow
+ * keys, so the check needs no pixel arithmetic. It leaves Paint chosen and nothing inspected.
+ */
+async function inspectChecks(bridge: Bridge, pressed: () => Promise<string | null>): Promise<void> {
+	const canvas = 'canvas[role=application]';
+	const target = await bridge.js<{ x: number; y: number }>(
+		`const b = [...document.querySelectorAll('[role=list][aria-label=Objects] button')].map((e) => e.textContent.trim().match(/^Item \\S+ at (\\d+), (\\d+)$/)).find(Boolean);
+		 return b ? { x: Number(b[1]), y: Number(b[2]) } : { x: 17, y: 7 };`,
+	);
+	await pressKey(bridge, canvas, 'q');
+	const inspecting = await within(3000, async () => (await pressed()) === 'Inspect');
+	check('inspect: Q on the canvas chooses the Inspect tool', inspecting !== null);
+
+	const from = await cursorCell(bridge);
+	if (from) {
+		const steps = [
+			...Array(Math.abs(target.x - from.x)).fill(target.x > from.x ? 'ArrowRight' : 'ArrowLeft'),
+			...Array(Math.abs(target.y - from.y)).fill(target.y > from.y ? 'ArrowUp' : 'ArrowDown'),
+		] as string[];
+		for (const key of steps) await pressKey(bridge, canvas, key);
+	}
+	const reached = await within(3000, async () => {
+		const at = await cursorCell(bridge);
+		return at !== null && at.x === target.x && at.y === target.y;
+	});
+	const titleBefore = await titleBarText(bridge);
+	await pressKey(bridge, canvas, ' ');
+	const marked = `${target.x},${target.y}`;
+	const selected = await within(3000, () =>
+		bridge.js<boolean>(
+			`return document.querySelector(${JSON.stringify(canvas)})?.dataset.inspected === ${JSON.stringify(marked)};`,
+		),
+	);
+	check(
+		'inspect: Space on a cell with an item marks it as the selection',
+		reached !== null && selected !== null,
+		JSON.stringify({ from, target, now: await cursorCell(bridge) }),
+	);
+	await sleep(300);
+	check(
+		'inspect: selecting changes nothing in the level',
+		titleBefore !== null && (await titleBarText(bridge)) === titleBefore,
+	);
+
+	const clickPaint = await bridge.js<boolean>(
+		`const b = document.querySelector('[data-tool-picker] button[aria-label=Paint]'); if (!b) return false; b.click(); return true;`,
+	);
+	await within(3000, async () => (await pressed()) === 'Paint');
+	check(
+		'inspect: the selection stays when another tool is chosen',
+		clickPaint &&
+			(await bridge.js<boolean>(
+				`return document.querySelector(${JSON.stringify(canvas)})?.dataset.inspected === ${JSON.stringify(marked)};`,
+			)),
+	);
+	await pressKey(bridge, canvas, 'Escape');
+	const cleared = await within(3000, () =>
+		bridge.js<boolean>(
+			`return document.querySelector(${JSON.stringify(canvas)})?.dataset.inspected === undefined;`,
+		),
+	);
+	check('inspect: Escape on the canvas clears the selection', cleared !== null);
 }
 
 async function dragAndMaximiseChecks(bridge: Bridge): Promise<void> {

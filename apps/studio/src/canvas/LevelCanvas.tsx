@@ -49,6 +49,10 @@ export interface LevelCanvasProps {
 	paste?: Rect | null;
 	/** Select's rectangle, drawn as an outline. */
 	selection?: Rect | null;
+	/** The cell of the thing Inspect selected, drawn as an outline and named by `data-inspected`. */
+	inspected?: Cell | null;
+	/** Called on Escape while the canvas has focus and something is inspected, to clear it. */
+	onClearInspected?: () => void;
 	/** Claude's pending proposals to draw as ghosts; leave out to draw none. */
 	ghosts?: readonly GhostCell[];
 	/** Called when the person clicks a cell of the grid. */
@@ -79,6 +83,8 @@ export function LevelCanvas({
 	previewShape = 'cell',
 	paste = null,
 	selection = null,
+	inspected = null,
+	onClearInspected,
 	ghosts = NO_GHOSTS,
 	reveal = null,
 	onCellChosen,
@@ -168,8 +174,9 @@ export function LevelCanvas({
 			ghosts,
 			previewShape,
 			paste,
+			inspected,
 		});
-	}, [view, viewport, size, cursor, selection, preview, ghosts, previewShape, paste]);
+	}, [view, viewport, size, cursor, selection, preview, ghosts, previewShape, paste, inspected]);
 
 	const cellAt = (event: PointerEvent<HTMLCanvasElement>): Cell => {
 		const rect = event.currentTarget.getBoundingClientRect();
@@ -234,6 +241,8 @@ export function LevelCanvas({
 			zoomBy(1);
 		} else if (key === '-' || key === '_') {
 			zoomBy(-1);
+		} else if (key === 'Escape' && inspected && onClearInspected) {
+			onClearInspected();
 		} else {
 			return;
 		}
@@ -256,6 +265,7 @@ export function LevelCanvas({
 							width: view.width,
 							height: view.height,
 						})}
+						data-inspected={inspected ? `${inspected.x},${inspected.y}` : undefined}
 						onKeyDown={onKeyDown}
 						onPointerDown={onPointerDown}
 						onPointerMove={onPointerMove}

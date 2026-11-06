@@ -298,6 +298,41 @@ describe('EditorScreen', () => {
 		expect(screen.getByText('Brush: soda, Every cell')).toBeInTheDocument();
 	});
 
+	it('inspects what is on a cell with Q, editing nothing, keeps it across tools, and clears on Escape', async () => {
+		const user = userEvent.setup();
+		const snapshot = levelSnapshot(
+			{},
+			levelView(12, 8, { items: [{ kind: 'soda', x: 4, y: 3, line: null }] }),
+		);
+		const client = new FakeLevelClient(snapshot);
+		const endStep = vi.spyOn(client, 'endStep');
+		render(<EditorScreen snapshot={snapshot} client={client} docks={floating()} />);
+		await screen.findByRole('region', { name: 'History' });
+		const canvas = screen.getByRole('application');
+		canvas.focus();
+		await user.keyboard('q');
+		expect(screen.getByRole('button', { name: 'Inspect' })).toHaveAttribute('aria-pressed', 'true');
+		expect(canvas).not.toHaveAttribute('data-inspected');
+
+		stroke(canvas, [[4, 3]]);
+		expect(canvas).toHaveAttribute('data-inspected', '4,3');
+		// An empty cell is selected as the cell itself.
+		stroke(canvas, [[8, 5]]);
+		expect(canvas).toHaveAttribute('data-inspected', '8,5');
+		await Promise.resolve();
+		expect(client.applied).toHaveLength(0);
+		expect(endStep).not.toHaveBeenCalled();
+		expect(screen.getByRole('button', { name: 'Undo' })).toBeDisabled();
+
+		await user.keyboard('b');
+		expect(screen.getByRole('button', { name: 'Paint' })).toHaveAttribute('aria-pressed', 'true');
+		expect(canvas).toHaveAttribute('data-inspected', '8,5');
+
+		canvas.focus();
+		await user.keyboard('{Escape}');
+		expect(canvas).not.toHaveAttribute('data-inspected');
+	});
+
 	it('copies the outlined area with Stamp and pastes it as one undo step', async () => {
 		const user = userEvent.setup();
 		const { client, canvas } = await mount();

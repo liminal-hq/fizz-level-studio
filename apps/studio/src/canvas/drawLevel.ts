@@ -45,6 +45,7 @@ export interface CanvasColours {
 	glyph: string;
 	cursor: string;
 	selection: string;
+	inspected: string;
 	preview: string;
 	item: string;
 	spawn: string;
@@ -62,6 +63,7 @@ const CANVAS_TOKENS: Record<keyof CanvasColours, string> = {
 	glyph: '--fls-canvas-glyph',
 	cursor: '--fls-canvas-cursor',
 	selection: '--fls-canvas-selection',
+	inspected: '--fls-canvas-inspected',
 	preview: '--fls-canvas-preview',
 	item: '--fls-canvas-item',
 	spawn: '--fls-canvas-spawn',
@@ -98,6 +100,8 @@ export interface DrawOptions {
 	previewShape?: 'cell' | 'item';
 	/** Where a paste would land, outlined with a dashed line. */
 	paste?: Rect | null;
+	/** The cell of the thing Inspect selected, outlined just outside its edges. */
+	inspected?: Cell | null;
 }
 
 /**
@@ -293,6 +297,14 @@ export function drawLevel(ctx: DrawContext, view: LevelView, options: DrawOption
 		ctx.strokeStyle = colours.selection;
 		ctx.lineWidth = 2;
 		ctx.strokeRect(corner.x, corner.y, (x1 - x0 + 1) * size, (y1 - y0 + 1) * size);
+	}
+
+	// The inspected cell is drawn just outside its edges, so the cursor inside it still shows.
+	if (options.inspected && visible(options.inspected)) {
+		const at = origin(options.inspected);
+		ctx.strokeStyle = colours.inspected;
+		ctx.lineWidth = 2;
+		ctx.strokeRect(at.x - 2, at.y - 2, size + 4, size + 4);
 	}
 
 	if (options.cursor) {

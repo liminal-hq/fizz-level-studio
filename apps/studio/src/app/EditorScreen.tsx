@@ -63,7 +63,7 @@ import { pasteRect } from '../tools/clip';
 import { SPACING_KEYS, toolForKey } from '../tools/shortcuts';
 import { ToolPalette } from '../tools/ToolPalette';
 import { ToolPicker } from '../tools/ToolPicker';
-import { TOOL_IDS, type Cell, type PointerPhase } from '../tools/tool';
+import { TOOL_IDS, thingAt, type Cell, type PointerPhase, type Thing } from '../tools/tool';
 import { useTool } from '../tools/useTool';
 import { isLevelError, type LevelClient } from '../worlds/levelClient';
 import styles from './EditorScreen.module.css';
@@ -116,6 +116,9 @@ export function EditorScreen({
 	const cellRequests = useRef(0);
 	const [problem, setProblem] = useState<MessageId | null>(null);
 	const tool = useTool(snapshot.view);
+	// What Inspect selected. It lives here, above the tool, so it outlasts a change of tool, never
+	// touches Select's rectangle, and the canvas, the objects list and the inspector read one value.
+	const [selectedThing, setSelectedThing] = useState<Thing | null>(null);
 	const [words, setWords] = useState<WordDoc[]>([]);
 	const [proposals, setProposals] = useState<GhostProposal[]>([]);
 	const [showGhosts, setShowGhosts] = useState(true);
@@ -265,13 +268,24 @@ export function EditorScreen({
 		[onCellChosen],
 	);
 
+	// Inspect selects the topmost thing on the pressed cell (null outside the level) and edits nothing.
+	const levelView = snapshot.view;
 	const onToolEvent = useCallback(
 		(phase: PointerPhase, cell: Cell) => {
+			if (tool.tool === 'inspect') {
+				if (phase === 'down') setSelectedThing(thingAt(levelView, cell));
+				return;
+			}
 			const edits = tool.pointer(phase, cell);
 			if (edits.length > 0) sendStroke(edits);
 		},
-		[tool, sendStroke],
+		[tool, sendStroke, levelView],
 	);
+	const inspected = useMemo(
+		() => (selectedThing ? { x: selectedThing.x, y: selectedThing.y } : null),
+		[selectedThing],
+	);
+	const clearInspected = useCallback(() => setSelectedThing(null), []);
 
 	const undo = useCallback(
 		() =>
@@ -633,6 +647,8 @@ export function EditorScreen({
 							previewShape={tool.tool === 'paint' && tool.brush.group === 'item' ? 'item' : 'cell'}
 							paste={tool.tool === 'stamp' && tool.clip ? pasteRect(tool.clip, cursor) : null}
 							selection={tool.selection}
+							inspected={inspected}
+							onClearInspected={clearInspected}
 							ghosts={ghostCells}
 							reveal={reveal}
 							onCellChosen={onCellChosen}
