@@ -57,6 +57,28 @@ describe('the editor’s docks', () => {
 		expect(screen.getByRole('application')).toBeInTheDocument();
 	});
 
+	it('lays the docks over the level and tells the canvas how far they cover it', async () => {
+		await mount();
+		const canvas = screen.getByRole('application');
+		const shell = canvas.closest<HTMLElement>('[data-level]')!.parentElement!;
+		const root = canvas.closest('[data-level]')!.querySelector<HTMLElement>('[style]')!;
+		const px = (el: HTMLElement, name: string) =>
+			Number(el.style.getPropertyValue(name).replace('px', ''));
+		for (const edge of ['left', 'right', 'bottom']) {
+			expect(px(root, `--fls-cover-${edge}`)).toBe(
+				px(shell, `--fls-rail-${edge}`) + px(shell, `--fls-dock-${edge}`),
+			);
+			expect(px(root, `--fls-cover-${edge}`)).toBeGreaterThan(0);
+		}
+		// The status line and the tools are in the level, outside every dock.
+		const status = screen.getByText(/^Cell /);
+		const tools = screen.getByRole('group', { name: 'Tools' });
+		for (const name of ['Left dock', 'Right dock', 'Bottom dock']) {
+			expect(screen.getByRole('region', { name })).not.toContainElement(status);
+			expect(screen.getByRole('region', { name })).not.toContainElement(tools);
+		}
+	});
+
 	it('shows the real panel chosen on the rail, and folds the dock when it is chosen again', async () => {
 		const user = userEvent.setup();
 		await mount();

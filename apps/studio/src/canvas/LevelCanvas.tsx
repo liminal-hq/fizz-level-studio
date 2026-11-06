@@ -7,9 +7,11 @@ import type { GhostCell } from '@liminal-hq/fizz-studio-protocol/generated/Ghost
 import type { LevelView } from '@liminal-hq/fizz-studio-protocol/generated/LevelView';
 import {
 	useEffect,
+	useLayoutEffect,
 	useMemo,
 	useRef,
 	useState,
+	type CSSProperties,
 	type KeyboardEvent,
 	type PointerEvent,
 	type ReactNode,
@@ -25,11 +27,15 @@ import {
 	MAX_ZOOM,
 	MIN_ZOOM,
 	clampScroll,
+	NO_INSETS,
 	clampZoom,
+	frameViewport,
 	moveCursor,
 	pixelToCell,
 	revealCell,
+	uncoveredRect,
 	zoomAt,
+	type Insets,
 	type Size,
 	type Viewport,
 } from './viewport';
@@ -63,10 +69,17 @@ export interface LevelCanvasProps {
 	 */
 	reveal?: { cell: Cell; serial: number } | null;
 	/**
-	 * Controls that float over the map (the tool picker), given the map's size so they can keep
-	 * inside it. They sit above the canvas and below the status line, which they never cover.
+	 * Controls that float over the map (the tool picker), given the size of the part of the map
+	 * nothing covers so they can keep inside it. They are placed from that part's top-left corner
+	 * and clipped to it, so they never reach under a dock or the status line.
 	 */
 	overlay?: (map: { w: number; h: number }) => ReactNode;
+	/**
+	 * How far the docks lie over the frame from each edge. The canvas draws under them, but the
+	 * camera fits, clamps and centres the level in what they leave, and the status line sits just
+	 * inside them.
+	 */
+	insets?: Insets;
 }
 
 const NO_CELLS: readonly Cell[] = [];
@@ -89,18 +102,32 @@ export function LevelCanvas({
 	reveal = null,
 	onCellChosen,
 	overlay,
+	insets = NO_INSETS,
 }: LevelCanvasProps) {
 	const canvasRef = useRef<HTMLCanvasElement>(null);
 	const frameRef = useRef<HTMLDivElement>(null);
+	const barRef = useRef<HTMLDivElement>(null);
 	const pressed = useRef(false);
 	const [size, setSize] = useState<Size>(FALLBACK_SIZE);
+	const [barHigh, setBarHigh] = useState(0);
 	const [camera, setCamera] = useState<Viewport>({ zoom: DEFAULT_ZOOM, scrollX: 0, scrollY: 0 });
+
+	// The frame spans everything, docks included; the camera's window is the part the docks and the
+	// status line leave uncovered, and its scroll is measured from that part's corner.
+	const { top, right, bottom, left } = insets;
+	const visible = useMemo(
+		() => uncoveredRect(size, { top, right, bottom: bottom + barHigh, left }),
+		[size, top, right, bottom, left, barHigh],
+	);
+	const seen = useMemo<Size>(() => ({ width: visible.width, height: visible.height }), [visible]);
 
 	// The scroll is re-clamped on every render, so a level that shrinks never leaves it off the edge.
 	const viewport = useMemo<Viewport>(
-		() => ({ ...camera, ...clampScroll(camera, size, view) }),
-		[camera, size, view],
+		() => ({ ...camera, ...clampScroll(camera, seen, view) }),
+		[camera, seen, view],
 	);
+	// What the whole frame draws and hit-tests with: the camera shifted by the covered margins.
+	const drawn = useMemo(() => frameViewport(viewport, visible), [viewport, visible]);
 
 	useEffect(() => {
 		const frame = frameRef.current;
@@ -114,6 +141,34 @@ export function LevelCanvas({
 		return () => observer.disconnect();
 	}, []);
 
+	// The status line lies over the bottom of the frame, so its height is covered too.
+	useEffect(() => {
+		const bar = barRef.current;
+		if (!bar || typeof ResizeObserver === 'undefined') return;
+		const observer = new ResizeObserver(() => setBarHigh(Math.ceil(bar.offsetHeight)));
+		observer.observe(bar);
+		return () => observer.disconnect();
+	}, []);
+
+	// Read again after every commit as well, as the tool picker does: an observer can miss a size
+	// that settled after it attached, and a stale one would leave the camera's window wrong. Setting
+	// the same size is a no-op, so this cannot loop.
+	useLayoutEffect(() => {
+		const frame = frameRef.current;
+		if (frame) {
+			const width = Math.floor(frame.clientWidth);
+			const height = Math.floor(frame.clientHeight);
+			if (width > 0 && height > 0) {
+				setSize((old) => (old.width === width && old.height === height ? old : { width, height }));
+			}
+		}
+		const bar = barRef.current;
+		if (bar) {
+			const high = Math.ceil(bar.offsetHeight);
+			setBarHigh((old) => (old === high ? old : high));
+		}
+	});
+
 	// The wheel zooms about the pointer, and pans when it moves sideways (see `wheelAction`). It is a
 	// native listener because a React wheel handler is passive and cannot stop the page scrolling.
 	useEffect(() => {
@@ -123,9 +178,10 @@ export function LevelCanvas({
 			event.preventDefault();
 			const action = wheelAction(event);
 			if (action.kind === 'none') return;
+			// The camera zooms about the pointer measured from the uncovered part's corner.
 			const rect = canvas.getBoundingClientRect();
-			const px = event.clientX - rect.left;
-			const py = event.clientY - rect.top;
+			const px = event.clientX - rect.left - visible.x;
+			const py = event.clientY - rect.top - visible.y;
 			setCamera((current) => {
 				if (action.kind === 'pan') {
 					const scrolled = {
@@ -133,14 +189,14 @@ export function LevelCanvas({
 						scrollX: current.scrollX + action.dx,
 						scrollY: current.scrollY + action.dy,
 					};
-					return { ...scrolled, ...clampScroll(scrolled, size, view) };
+					return { ...scrolled, ...clampScroll(scrolled, seen, view) };
 				}
-				return zoomAt(current, current.zoom + action.step, px, py, size, view);
+				return zoomAt(current, current.zoom + action.step, px, py, seen, view);
 			});
 		};
 		canvas.addEventListener('wheel', onWheel, { passive: false });
 		return () => canvas.removeEventListener('wheel', onWheel);
-	}, [size, view]);
+	}, [visible, seen, view]);
 
 	// Colours are read from the tokens once per palette, then reused by every redraw.
 	const colourCache = useRef<{ key: string; colours: string[] } | null>(null);
@@ -164,7 +220,7 @@ export function LevelCanvas({
 			colourCache.current = { key, colours: resolveTileColours(view.palette, read) };
 		}
 		drawLevel(ctx as DrawContext, view, {
-			viewport,
+			viewport: drawn,
 			window: size,
 			tileColours: colourCache.current.colours,
 			colours: readCanvasColours(read),
@@ -176,11 +232,12 @@ export function LevelCanvas({
 			paste,
 			inspected,
 		});
-	}, [view, viewport, size, cursor, selection, preview, ghosts, previewShape, paste, inspected]);
+	}, [view, drawn, size, cursor, selection, preview, ghosts, previewShape, paste, inspected]);
 
+	// The canvas spans the frame, so a pixel from its corner maps through the frame's viewport.
 	const cellAt = (event: PointerEvent<HTMLCanvasElement>): Cell => {
 		const rect = event.currentTarget.getBoundingClientRect();
-		return pixelToCell(event.clientX - rect.left, event.clientY - rect.top, viewport, view);
+		return pixelToCell(event.clientX - rect.left, event.clientY - rect.top, drawn, view);
 	};
 
 	const inside = (cell: Cell) =>
@@ -188,7 +245,7 @@ export function LevelCanvas({
 
 	const moveTo = (cell: Cell) => {
 		onCursorChange(cell);
-		setCamera(revealCell(viewport, cell, size, view));
+		setCamera(revealCell(viewport, cell, seen, view));
 	};
 
 	// A cell chosen elsewhere is brought into view; each new serial asks once.
@@ -196,8 +253,8 @@ export function LevelCanvas({
 	useEffect(() => {
 		if (!reveal || reveal.serial === lastReveal.current) return;
 		lastReveal.current = reveal.serial;
-		setCamera((current) => revealCell(current, reveal.cell, size, view));
-	}, [reveal, size, view]);
+		setCamera((current) => revealCell(current, reveal.cell, seen, view));
+	}, [reveal, seen, view]);
 
 	const onPointerDown = (event: PointerEvent<HTMLCanvasElement>) => {
 		if (event.button !== 0) return;
@@ -223,8 +280,8 @@ export function LevelCanvas({
 	};
 
 	const zoomBy = (step: number) => {
-		const centre = { x: size.width / 2, y: size.height / 2 };
-		setCamera(zoomAt(viewport, viewport.zoom + step, centre.x, centre.y, size, view));
+		const centre = { x: seen.width / 2, y: seen.height / 2 };
+		setCamera(zoomAt(viewport, viewport.zoom + step, centre.x, centre.y, seen, view));
 	};
 
 	const onKeyDown = (event: KeyboardEvent<HTMLCanvasElement>) => {
@@ -251,8 +308,18 @@ export function LevelCanvas({
 
 	const word = view.palette[view.cells[cursor.y * view.width + cursor.x] ?? 0] ?? '';
 
+	const style = {
+		'--fls-cover-right': `${right}px`,
+		'--fls-cover-bottom': `${bottom}px`,
+		'--fls-cover-left': `${left}px`,
+		'--fls-map-x': `${visible.x}px`,
+		'--fls-map-y': `${visible.y}px`,
+		'--fls-map-w': `${visible.width}px`,
+		'--fls-map-h': `${visible.height}px`,
+	} as CSSProperties;
+
 	return (
-		<div className={styles.root}>
+		<div className={styles.root} style={style}>
 			<div className={styles.stage}>
 				<div className={styles.frame} ref={frameRef}>
 					<canvas
@@ -272,9 +339,13 @@ export function LevelCanvas({
 						onPointerUp={onPointerEnd}
 						onPointerCancel={onPointerEnd}
 					/>
-					{overlay?.({ w: size.width, h: size.height })}
+					{overlay && (
+						<div className={styles.map} data-map="">
+							{overlay({ w: visible.width, h: visible.height })}
+						</div>
+					)}
 				</div>
-				<div className={styles.bar}>
+				<div className={styles.bar} ref={barRef} data-canvas-bar="">
 					<span className={styles.status} role="status">
 						{t('canvas.cell', { x: cursor.x, y: cursor.y, tile: word })}
 					</span>

@@ -1,4 +1,4 @@
-// The dock shell: the level in the middle and the left, right and bottom docks around it
+// The dock shell: the level across the workspace and the left, right and bottom docks over its edges
 //
 // (c) Copyright 2026 Liminal HQ, Scott Morris
 // SPDX-License-Identifier: Apache-2.0 OR MIT
@@ -69,7 +69,10 @@ export interface DockShellProps {
 	maximised?: string | null;
 	/** What the last drag did, for the screen reader. */
 	announcement?: string;
-	/** The level. It takes whatever the docks leave and is never covered by them. */
+	/**
+	 * The level. It fills the whole shell and the docks lie over its edges; `dockInsets` gives how
+	 * far, for the camera to keep the level in the part they leave uncovered.
+	 */
 	children: ReactNode;
 }
 
@@ -77,11 +80,12 @@ export interface DockShellProps {
 export const PEEK_LEAVE_MS = 400;
 
 /**
- * Lays the level and the docks out on a grid: each zone with panels has its rail along the
- * window's edge, always, and, when it is open, its content between the rail and the level; the
- * left and right zones sit beside the level and the bottom one under all of them. A dock's room
- * comes from the model (its size held to its cap), so the level keeps the rest. A dock with
- * nothing showing takes none, not even a rail.
+ * Lays the level across the whole shell and the docks over its edges (D69), so the docks' glass
+ * blurs the level beneath: each zone with panels has its rail along the window's edge, always,
+ * and, when it is open, its content inside the rail; the left and right zones stop above the
+ * bottom one, which spans the width. A dock's size comes from the model (held to its cap). A dock
+ * with nothing showing covers nothing, not even with a rail. The tree keeps the old order (left,
+ * level, right, bottom), so the keyboard still meets them in that order.
  */
 export function DockShell({
 	view,

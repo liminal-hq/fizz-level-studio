@@ -74,11 +74,13 @@ describe('EditorScreen', () => {
 		await mount();
 		const tools = screen.getByRole('group', { name: 'Tools' });
 		const canvas = screen.getByRole('application');
-		expect(tools.parentElement).toBe(canvas.parentElement);
+		// The tools live in the uncovered part of the map, beside the canvas in its frame.
+		const map = tools.closest('[data-map]');
+		expect(map?.parentElement).toBe(canvas.parentElement);
 		expect(tools).not.toContainElement(canvas);
 		// The status line is below the map, not inside it.
 		const status = screen.getByText(/^Cell /);
-		expect(tools.parentElement).not.toContainElement(status);
+		expect(map).not.toContainElement(status);
 		expect(screen.getByRole('group', { name: 'Editor toolbar' })).not.toContainElement(
 			screen.getByRole('button', { name: 'Paint' }),
 		);

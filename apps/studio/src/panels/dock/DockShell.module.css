@@ -1,31 +1,31 @@
 /*
- * The level in the middle; the left and right docks beside it with their rails at the window's
- * edges; the bottom dock under all of them and its rail along the bottom edge.
+ * The level fills the whole shell and the docks lie over its edges, so their glass has the level
+ * to blur: the left and right docks with their rails at the window's edges, stopping above the
+ * bottom dock, which spans the width with its rail along the bottom edge. The sizes come in as
+ * custom properties from the dock model; the level's camera is told the same numbers as insets,
+ * so it never scrolls the level under a dock. Each slot takes the pointer over its own box, so a
+ * press on a dock never reaches the canvas beneath it.
  */
 .shell {
+	--fls-dock-cover-bottom: calc(var(--fls-dock-bottom) + var(--fls-rail-bottom));
 	position: absolute;
 	inset: 0;
-	display: grid;
-	grid-template-columns:
-		var(--fls-rail-left) var(--fls-dock-left) minmax(0, 1fr) var(--fls-dock-right)
-		var(--fls-rail-right);
-	grid-template-rows: minmax(0, 1fr) var(--fls-dock-bottom) var(--fls-rail-bottom);
-	grid-template-areas:
-		'left-rail left level right right-rail'
-		'bottom bottom bottom bottom bottom'
-		'bottom-rail bottom-rail bottom-rail bottom-rail bottom-rail';
 }
 
+/* Its own stacking context, so nothing over the map (the tool picker) rises above a dock. */
 .level {
-	position: relative;
-	grid-area: level;
+	position: absolute;
+	inset: 0;
+	z-index: 0;
 	min-width: 0;
 	min-height: 0;
 }
 
 .slot {
-	position: relative;
+	position: absolute;
+	z-index: 1;
 	display: flex;
+	box-sizing: border-box;
 	min-width: 0;
 	min-height: 0;
 }
@@ -34,28 +34,46 @@
 	flex: 1;
 }
 
+.slot[data-slot='left'],
+.slot[data-slot='right'],
+.slot[data-rail-slot='left'],
+.slot[data-rail-slot='right'] {
+	top: 0;
+	bottom: var(--fls-dock-cover-bottom);
+}
+
 .slot[data-slot='left'] {
-	grid-area: left;
+	left: var(--fls-rail-left);
+	width: var(--fls-dock-left);
 }
 
 .slot[data-slot='right'] {
-	grid-area: right;
+	right: var(--fls-rail-right);
+	width: var(--fls-dock-right);
 }
 
 .slot[data-slot='bottom'] {
-	grid-area: bottom;
+	right: 0;
+	bottom: var(--fls-rail-bottom);
+	left: 0;
+	height: var(--fls-dock-bottom);
 }
 
 .slot[data-rail-slot='left'] {
-	grid-area: left-rail;
+	left: 0;
+	width: var(--fls-rail-left);
 }
 
 .slot[data-rail-slot='right'] {
-	grid-area: right-rail;
+	right: 0;
+	width: var(--fls-rail-right);
 }
 
 .slot[data-rail-slot='bottom'] {
-	grid-area: bottom-rail;
+	right: 0;
+	bottom: 0;
+	left: 0;
+	height: var(--fls-rail-bottom);
 }
 
 /*
@@ -65,10 +83,7 @@
  */
 .drop {
 	--fls-drop-min: 72px;
-	--fls-drop-bottom: max(
-		calc(var(--fls-dock-bottom) + var(--fls-rail-bottom)),
-		var(--fls-drop-min)
-	);
+	--fls-drop-bottom: max(var(--fls-dock-cover-bottom), var(--fls-drop-min));
 	position: absolute;
 	z-index: 20;
 	box-sizing: border-box;
