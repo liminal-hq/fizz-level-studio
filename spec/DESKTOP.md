@@ -6,26 +6,26 @@ Fizz Level Studio's end goal is a **desktop app built with Tauri v2, following t
 
 ## 1. Platforms
 
-| Platform | Status | Source |
-| --- | --- | --- |
-| Linux, Wayland first (GNOME, KDE, Cinnamon), X11 too | Primary | `folio/README.md`, `folio/AGENTS.md`; `waypoint/AGENTS.md` ("Linux (primary)") |
-| Windows 11, x64 and arm64 | A real target, written alongside Linux | `folio/README.md`; `waypoint/AGENTS.md` ("Windows 11 (a real target)") |
-| macOS | Not planned (as Folio and Waypoint; Jar and Fizz Desktop do ship it) | `folio/README.md`; `waypoint/docs/architecture/ci-cd.md` §4 |
-| Android, iOS, any mobile | **Out of scope** for the studio | Owner direction |
-| A browser build as a product | **Out of scope**; the design prototype in `design/` stays a browser page, as a record | Owner direction |
+| Platform                                             | Status                                                                                | Source                                                                         |
+| ---------------------------------------------------- | ------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| Linux, Wayland first (GNOME, KDE, Cinnamon), X11 too | Primary                                                                               | `folio/README.md`, `folio/AGENTS.md`; `waypoint/AGENTS.md` ("Linux (primary)") |
+| Windows 11, x64 and arm64                            | A real target, written alongside Linux                                                | `folio/README.md`; `waypoint/AGENTS.md` ("Windows 11 (a real target)")         |
+| macOS                                                | Not planned (as Folio and Waypoint; Jar and Fizz Desktop do ship it)                  | `folio/README.md`; `waypoint/docs/architecture/ci-cd.md` §4                    |
+| Android, iOS, any mobile                             | **Out of scope** for the studio                                                       | Owner direction                                                                |
+| A browser build as a product                         | **Out of scope**; the design prototype in `design/` stays a browser page, as a record | Owner direction                                                                |
 
 The app identifier follows the pattern `ca.liminalhq.<name>` (`ca.liminalhq.folio`, `ca.liminalhq.waypoint`, `ca.liminalhq.lieutenantfizz`). **Proposed:** `ca.liminalhq.fizzstudio`, which also names the data and log directories, as Folio's does (D-10 in `folio/docs/decisions.md`). The product name stays Fizz Level Studio (Q36).
 
 ## 2. Stack
 
-| Part | Standard | Source |
-| --- | --- | --- |
-| Shell | Tauri v2 (`tauri = "2"`, `tauri-plugin = "2"` as workspace dependencies) | `folio/Cargo.toml` |
-| Frontend | React 19, TypeScript strict, Vite, function components only, CSS Modules, no inline styles | `folio/AGENTS.md` "Frontend Code Conventions"; `folio/apps/folio/package.json` |
-| JavaScript tooling | Bun workspaces (`apps/*`, `packages/*`, `plugins/*`), Node pinned in `.node-version` (24.14.0 in Folio), Prettier with tabs, single quotes, 100 columns; `.editorconfig` authoritative | `folio/AGENTS.md` "Local Tooling"; `folio/package.json` |
-| Rust | A Cargo workspace; `rust-toolchain.toml` pins the toolchain with rustfmt and clippy (1.98.0 in Folio, Waypoint, Cadence and Fizz Desktop); edition 2021, resolver 2, `license = "Apache-2.0 OR MIT"`, release `strip = true` | `folio/rust-toolchain.toml`, `folio/Cargo.toml` |
-| Shared types | Defined once in Rust and generated with `ts-rs` into `packages/protocol`, never edited by hand, with a drift check | `folio/AGENTS.md` "Architecture Rules"; `scripts/check-bindings-drift.sh` |
-| Long-running work | Rust worker threads, not webview timers (which throttle in hidden windows) | `folio/spec/02-architecture.md` "Threading" |
+| Part               | Standard                                                                                                                                                                                                                     | Source                                                                         |
+| ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| Shell              | Tauri v2 (`tauri = "2"`, `tauri-plugin = "2"` as workspace dependencies)                                                                                                                                                     | `folio/Cargo.toml`                                                             |
+| Frontend           | React 19, TypeScript strict, Vite, function components only, CSS Modules, no inline styles                                                                                                                                   | `folio/AGENTS.md` "Frontend Code Conventions"; `folio/apps/folio/package.json` |
+| JavaScript tooling | Bun workspaces (`apps/*`, `packages/*`, `plugins/*`), Node pinned in `.node-version` (24.14.0 in Folio), Prettier with tabs, single quotes, 100 columns; `.editorconfig` authoritative                                       | `folio/AGENTS.md` "Local Tooling"; `folio/package.json`                        |
+| Rust               | A Cargo workspace; `rust-toolchain.toml` pins the toolchain with rustfmt and clippy (1.98.0 in Folio, Waypoint, Cadence and Fizz Desktop); edition 2021, resolver 2, `license = "Apache-2.0 OR MIT"`, release `strip = true` | `folio/rust-toolchain.toml`, `folio/Cargo.toml`                                |
+| Shared types       | Defined once in Rust and generated with `ts-rs` into `packages/protocol`, never edited by hand, with a drift check                                                                                                           | `folio/AGENTS.md` "Architecture Rules"; `scripts/check-bindings-drift.sh`      |
+| Long-running work  | Rust worker threads, not webview timers (which throttle in hidden windows)                                                                                                                                                   | `folio/spec/02-architecture.md` "Threading"                                    |
 
 ## 3. Repository layout
 
@@ -66,38 +66,38 @@ The rules (`folio/AGENTS.md` "Architecture Rules"):
 
 ### Crates (Proposed)
 
-| Crate | Concern |
-| --- | --- |
-| `fizz-studio-language` | The Fizz 1 dialect, ported from `packages/language`: lossless parse, print, edits, the owned-line rewrite, the overworld, the Rust exporter, the word docs for completion (D56) |
-| `fizz-studio-dialect` | The Fizz 2 dialect's studio side: the editor's view of `fizz-script`'s AST (linked natively, D55), owned-line rewrites, `lock` expansion for display, rule sentences, completion |
-| `fizz-studio-profile` | Target profiles and capability states, from the games' generated tables (D58) |
-| `fizz-studio-world` | World projects and Fizz 1 project folders: the file set, canonical writes, file watching, autosave and recovery |
-| `fizz-studio-session` | The document model per open world or level: revisions, patches, named undo and redo, proposals, after Folio's `folio-session` |
-| `fizz-studio-states` | States, bindings and rules as a model: checks, the States lens's data, the conversion of Fizz 1 channels |
-| `fizz-studio-art` | Sprite grids and panels: canonical reading and writing, pixel operations, PNG import and quantisation to the 16 EGA colours |
-| `fizz-studio-budget` | The Budget window's meters, each with its source |
-| `fizz-studio-export` | Export to Fizz 1 with the lossy check, Convert to Fizz 2 with its report |
-| `fizz-studio-bake` | The adapter to `fizz-bake` and `fizz-pack`: Build world, Check world, dump, size reports |
-| `fizz-studio-host` | The game host: a `GameHost` trait with a Fizz 2 implementation (linking `fizz-ep2`, `fizz-slice-view` and the behaviour interpreter) and a Fizz 1 implementation (linking `lf-episode-1`): the Game view's frames, rule previews, the behaviour debugger, enemy paths and the playtest bot (D59) |
-| `fizz-studio-mcp` | Claude's MCP server (`rmcp` over stdio, as `folio-mcp` is), live and headless (D57) |
-| `fizz-studio-protocol` | The shared types, exported with `ts-rs` |
+| Crate                  | Concern                                                                                                                                                                                                                                                                                          |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `fizz-studio-language` | The Fizz 1 dialect, ported from `packages/language`: lossless parse, print, edits, the owned-line rewrite, the overworld, the Rust exporter, the word docs for completion (D56)                                                                                                                  |
+| `fizz-studio-dialect`  | The Fizz 2 dialect's studio side: the editor's view of `fizz-script`'s AST (linked natively, D55), owned-line rewrites, `lock` expansion for display, rule sentences, completion                                                                                                                 |
+| `fizz-studio-profile`  | Target profiles and capability states, from the games' generated tables (D58)                                                                                                                                                                                                                    |
+| `fizz-studio-world`    | World projects and Fizz 1 project folders: the file set, canonical writes, file watching, autosave and recovery                                                                                                                                                                                  |
+| `fizz-studio-session`  | The document model per open world or level: revisions, patches, named undo and redo, proposals, after Folio's `folio-session`                                                                                                                                                                    |
+| `fizz-studio-states`   | States, bindings and rules as a model: checks, the States lens's data, the conversion of Fizz 1 channels                                                                                                                                                                                         |
+| `fizz-studio-art`      | Sprite grids and panels: canonical reading and writing, pixel operations, PNG import and quantisation to the 16 EGA colours                                                                                                                                                                      |
+| `fizz-studio-budget`   | The Budget window's meters, each with its source                                                                                                                                                                                                                                                 |
+| `fizz-studio-export`   | Export to Fizz 1 with the lossy check, Convert to Fizz 2 with its report                                                                                                                                                                                                                         |
+| `fizz-studio-bake`     | The adapter to `fizz-bake` and `fizz-pack`: Build world, Check world, dump, size reports                                                                                                                                                                                                         |
+| `fizz-studio-host`     | The game host: a `GameHost` trait with a Fizz 2 implementation (linking `fizz-ep2`, `fizz-slice-view` and the behaviour interpreter) and a Fizz 1 implementation (linking `lf-episode-1`): the Game view's frames, rule previews, the behaviour debugger, enemy paths and the playtest bot (D59) |
+| `fizz-studio-mcp`      | Claude's MCP server (`rmcp` over stdio, as `folio-mcp` is), live and headless (D57)                                                                                                                                                                                                              |
+| `fizz-studio-protocol` | The shared types, exported with `ts-rs`                                                                                                                                                                                                                                                          |
 
 ### Plugins
 
-| Plugin | Origin | Concern |
-| --- | --- | --- |
-| `tauri-plugin-fizz-studio-worlds` | Proposed, domain | Open, save and watch worlds and levels; sessions, intents, patches, history; recent worlds |
-| `tauri-plugin-fizz-studio-host` | Proposed, domain | The game host's commands and its `Channel` streams |
-| `tauri-plugin-fizz-studio-art` | Proposed, domain | The Sprites window and the pixel editor's commands |
-| `tauri-plugin-fizz-studio-bake` | Proposed, domain | Build world and its progress stream |
-| `tauri-plugin-fizz-studio-agents` | Proposed, domain | The live socket the MCP server relays to, and the person's accept and reject (D57) |
-| `tauri-plugin-fizz-studio-settings` | Proposed, domain, modelled on `plugins/folio-settings` | The typed, versioned settings document (section 7) |
-| `tauri-plugin-window-tearoff` | Copied from `waypoint/plugins/window-tearoff` with `PROVENANCE.md` (not published) | Tearing panels off into windows and docking them back |
-| `tauri-plugin-window-effects` | Copied from `waypoint/plugins/window-effects` (not published) | Mica, acrylic and blur behind the chrome |
-| `tauri-plugin-system-appearance` | Published (`liminal-hq/tauri-plugins-workspace`, 0.1) | Colour scheme, accent, contrast, motion, transparency, text scale |
-| `tauri-plugin-window-manager` | Published (same workspace, 0.1) | Window placement services, as Folio uses it |
-| `tauri-plugin-store`, `-log`, `-dialog`, `-single-instance`, `-prevent-default` | Tauri's own | Settings storage, logging, native dialogs, one instance, no browser shortcuts in release (`folio/docs/decisions.md` D-51, D-52) |
-| `tauri-plugin-mcp-bridge` | Tauri ecosystem, **debug builds only** | Driving the running app from `tauri-mcp-server` in tests (section 13); unrelated to Claude's design MCP |
+| Plugin                                                                          | Origin                                                                             | Concern                                                                                                                         |
+| ------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| `tauri-plugin-fizz-studio-worlds`                                               | Proposed, domain                                                                   | Open, save and watch worlds and levels; sessions, intents, patches, history; recent worlds                                      |
+| `tauri-plugin-fizz-studio-host`                                                 | Proposed, domain                                                                   | The game host's commands and its `Channel` streams                                                                              |
+| `tauri-plugin-fizz-studio-art`                                                  | Proposed, domain                                                                   | The Sprites window and the pixel editor's commands                                                                              |
+| `tauri-plugin-fizz-studio-bake`                                                 | Proposed, domain                                                                   | Build world and its progress stream                                                                                             |
+| `tauri-plugin-fizz-studio-agents`                                               | Proposed, domain                                                                   | The live socket the MCP server relays to, and the person's accept and reject (D57)                                              |
+| `tauri-plugin-fizz-studio-settings`                                             | Proposed, domain, modelled on `plugins/folio-settings`                             | The typed, versioned settings document (section 7)                                                                              |
+| `tauri-plugin-window-tearoff`                                                   | Copied from `waypoint/plugins/window-tearoff` with `PROVENANCE.md` (not published) | Tearing panels off into windows and docking them back                                                                           |
+| `tauri-plugin-window-effects`                                                   | Copied from `waypoint/plugins/window-effects` (not published)                      | Mica, acrylic and blur behind the chrome                                                                                        |
+| `tauri-plugin-system-appearance`                                                | Published (`liminal-hq/tauri-plugins-workspace`, 0.1)                              | Colour scheme, accent, contrast, motion, transparency, text scale                                                               |
+| `tauri-plugin-window-manager`                                                   | Published (same workspace, 0.1)                                                    | Window placement services, as Folio uses it                                                                                     |
+| `tauri-plugin-store`, `-log`, `-dialog`, `-single-instance`, `-prevent-default` | Tauri's own                                                                        | Settings storage, logging, native dialogs, one instance, no browser shortcuts in release (`folio/docs/decisions.md` D-51, D-52) |
+| `tauri-plugin-mcp-bridge`                                                       | Tauri ecosystem, **debug builds only**                                             | Driving the running app from `tauri-mcp-server` in tests (section 13); unrelated to Claude's design MCP                         |
 
 There is no shared settings plugin in `tauri-plugins-workspace`; each app writes its own domain settings plugin (`waypoint-settings`, `folio-settings`), so the studio does too.
 
@@ -124,16 +124,16 @@ Windows are **created in Rust**, never declared in `tauri.conf.json` (`"windows"
 
 The Ultimate layout's floating windows live inside the main window as panels; **popping a panel out is tear-off** (Waypoint's `window-tearoff`: a drag past a threshold, a ghost window, drop regions, docking back), so the script's "Display 2" pop-out, a torn-off Game view and a torn-off Rules window are real windows. **Proposed** labels:
 
-| Label | Window | Capabilities (by concern) |
-| --- | --- | --- |
-| `main-{n}` | A world or a Fizz 1 project, with the canvas and docked panels | chrome, logging, settings, worlds, host, art, bake, agents, dialog |
+| Label              | Window                                                                                          | Capabilities (by concern)                                          |
+| ------------------ | ----------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| `main-{n}`         | A world or a Fizz 1 project, with the canvas and docked panels                                  | chrome, logging, settings, worlds, host, art, bake, agents, dialog |
 | `panel-{kind}-{n}` | A torn-off panel (script, Game view, Rules, States, Budget, Sprites, Navigator, Review changes) | chrome, logging, settings, worlds, and host for the Game view only |
-| `pixel-{n}` | The pixel editor (`EDITOR.md` section 15) | chrome, logging, settings, art, dialog |
-| `behaviour-{n}` | The behaviour editor and debugger (`SCRIPTING.md`) | chrome, logging, settings, worlds, host |
-| `new-world` | The New world and New level dialog that fixes the target | chrome, logging, settings, worlds, dialog |
-| `preferences` | Preferences | chrome, logging, settings |
-| `about` | About and third-party notices | chrome, logging |
-| `tear-ghost` | The tear-off ghost | `window-tearoff:default` only |
+| `pixel-{n}`        | The pixel editor (`EDITOR.md` section 15)                                                       | chrome, logging, settings, art, dialog                             |
+| `behaviour-{n}`    | The behaviour editor and debugger (`SCRIPTING.md`)                                              | chrome, logging, settings, worlds, host                            |
+| `new-world`        | The New world and New level dialog that fixes the target                                        | chrome, logging, settings, worlds, dialog                          |
+| `preferences`      | Preferences                                                                                     | chrome, logging, settings                                          |
+| `about`            | About and third-party notices                                                                   | chrome, logging                                                    |
+| `tear-ghost`       | The tear-off ghost                                                                              | `window-tearoff:default` only                                      |
 
 Capabilities are one file per concern listing the labels it applies to (least privilege, `folio/AGENTS.md`; Folio's `src-tauri/capabilities/`), with the MCP bridge in a `dev-automation.json` for debug builds only.
 

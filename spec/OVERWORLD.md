@@ -6,12 +6,12 @@ The overworld model, its script, the exporter and `OverworldBuilder`, unlock rul
 
 `build_overworld()` in `episodes/episode-1/game/src/levels.rs` returns a `MapData`:
 
-| Field | Type | Meaning |
-| --- | --- | --- |
-| `map` | `TileMap` | The tiles, with `floor_solid = true` |
-| `points` | `Vec<MapPoint>` | The places on the map |
-| `areas` | `Vec<AreaRect>` | Rectangles that give a tile its area; the first match wins, and a tile no rectangle covers is `AREA_CRATER_FIELDS` |
-| `start` | `(f64, f64)` | Where Ben stands when the map first opens |
+| Field    | Type            | Meaning                                                                                                            |
+| -------- | --------------- | ------------------------------------------------------------------------------------------------------------------ |
+| `map`    | `TileMap`       | The tiles, with `floor_solid = true`                                                                               |
+| `points` | `Vec<MapPoint>` | The places on the map                                                                                              |
+| `areas`  | `Vec<AreaRect>` | Rectangles that give a tile its area; the first match wins, and a tile no rectangle covers is `AREA_CRATER_FIELDS` |
+| `start`  | `(f64, f64)`    | Where Ben stands when the map first opens                                                                          |
 
 A `MapPoint` is `{ kind: PtKind, level: u8, x: f64, y: f64, to: usize, req: u16, big: bool, hidden: bool }`:
 

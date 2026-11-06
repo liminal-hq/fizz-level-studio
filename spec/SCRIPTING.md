@@ -50,16 +50,16 @@ end
 
 ### 2.1 Definitions
 
-| Field | Enemy | Item | Meaning |
-| --- | --- | --- | --- |
-| `sprite` | Yes | Yes | A sprite (or a list of frames) per state; the states `idle`, `walk`, `alert`, `stunned` and `dead` are named after the Fizz 2 roster plan, and others may be added |
-| `hitbox` | Yes | Yes | The body in tiles (width by height), anchored at the feet and centre as the sprites are |
-| `stats` | Yes | — | `hp`, `speed` (tiles a second), `gravity` (yes or no), and the default reactions: `stomp=` (`stun`, `damage`, `defeat`, `bounce`, `hurt`), `shot=` (`stun`, `damage`, `pass`), `contact=` (`hurt`, `none`) |
-| `registers` | Yes | Yes | Up to eight named numeric registers (`f64`), zero at spawn, hashed with the entity |
-| `behaviour` | Yes | Optional | Modes with handlers (section 2.2) |
-| `bob` | — | Yes | Draw with the pickup bob the keys and snacks have |
-| `on take` | — | Yes | The item's effects when Ben takes it |
-| `on stomp`, `on stun`, `on shot`, `on touch`, `on defeat` | Yes | Some | Reactions, overriding the defaults in `stats` |
+| Field                                                     | Enemy | Item     | Meaning                                                                                                                                                                                                    |
+| --------------------------------------------------------- | ----- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `sprite`                                                  | Yes   | Yes      | A sprite (or a list of frames) per state; the states `idle`, `walk`, `alert`, `stunned` and `dead` are named after the Fizz 2 roster plan, and others may be added                                         |
+| `hitbox`                                                  | Yes   | Yes      | The body in tiles (width by height), anchored at the feet and centre as the sprites are                                                                                                                    |
+| `stats`                                                   | Yes   | —        | `hp`, `speed` (tiles a second), `gravity` (yes or no), and the default reactions: `stomp=` (`stun`, `damage`, `defeat`, `bounce`, `hurt`), `shot=` (`stun`, `damage`, `pass`), `contact=` (`hurt`, `none`) |
+| `registers`                                               | Yes   | Yes      | Up to eight named numeric registers (`f64`), zero at spawn, hashed with the entity                                                                                                                         |
+| `behaviour`                                               | Yes   | Optional | Modes with handlers (section 2.2)                                                                                                                                                                          |
+| `bob`                                                     | —     | Yes      | Draw with the pickup bob the keys and snacks have                                                                                                                                                          |
+| `on take`                                                 | —     | Yes      | The item's effects when Ben takes it                                                                                                                                                                       |
+| `on stomp`, `on stun`, `on shot`, `on touch`, `on defeat` | Yes   | Some     | Reactions, overriding the defaults in `stats`                                                                                                                                                              |
 
 ### 2.2 Behaviours
 
@@ -119,21 +119,21 @@ All of it runs **the game's own interpreter**, linked natively in the game host 
 
 ### 6.3 Lints and errors
 
-| Code | Meaning |
-| --- | --- |
-| E201 | Unknown sensor, action, register, mode, sprite state or definition name |
-| E202 | A statement or expression the language does not have (a loop, a call, `exp`, `sin`) |
-| E203 | More than eight registers, or a register name used twice |
-| E204 | A `goto` to a mode that does not exist, or a behaviour with no mode |
-| E205 | A handler whose worst case exceeds the per-entity step budget |
-| E206 | A hitbox or speed outside the profile's limits |
-| E207 | An unknown cue, caption or string in a `raise` or `cue` |
-| E208 | A custom definition in a level whose target cannot run behaviours (Fizz 1) |
-| W201 | A mode no `goto` reaches |
-| W202 | A mode with no way out that is not meant to be final |
-| W203 | A level whose entities could together exceed the per-level budget in one tick |
+| Code | Meaning                                                                                         |
+| ---- | ----------------------------------------------------------------------------------------------- |
+| E201 | Unknown sensor, action, register, mode, sprite state or definition name                         |
+| E202 | A statement or expression the language does not have (a loop, a call, `exp`, `sin`)             |
+| E203 | More than eight registers, or a register name used twice                                        |
+| E204 | A `goto` to a mode that does not exist, or a behaviour with no mode                             |
+| E205 | A handler whose worst case exceeds the per-entity step budget                                   |
+| E206 | A hitbox or speed outside the profile's limits                                                  |
+| E207 | An unknown cue, caption or string in a `raise` or `cue`                                         |
+| E208 | A custom definition in a level whose target cannot run behaviours (Fizz 1)                      |
+| W201 | A mode no `goto` reaches                                                                        |
+| W202 | A mode with no way out that is not meant to be final                                            |
+| W203 | A level whose entities could together exceed the per-level budget in one tick                   |
 | W204 | An enemy with no reaction to stomp, stun or shot beyond the defaults, which may not be intended |
-| W205 | A sprite state the behaviour uses with no frame in some target's sprite sets |
+| W205 | A sprite state the behaviour uses with no frame in some target's sprite sets                    |
 
 These are the studio's proposed numbers, offered to the Fizz 2 compiler as the dialect's are (`DECISIONS.md` D40).
 
@@ -156,12 +156,12 @@ Fizz 1 levels use **the Fizz 1 roster only**. A Fizz 1 level cannot use a custom
 
 ## 9. Risks
 
-| Risk | Effect | Mitigation |
-| --- | --- | --- |
-| Non-determinism across x87, SSE2 and WebAssembly | A world plays differently on DOS | Only the numeric model's operations; no `exp` family; table-driven waves; defined results for division by zero and NaN; every entity hashed; parity fixtures in the gate |
-| Cost on a 486 | Levels that stutter on the DOS floor | Static worst-case counts, per-entity and per-level budgets from the profile, a runtime counter, and the Budget window's DOS cost estimate from the game's bench |
-| Sandbox escape or a crash from bad bytecode | A pack that hangs or corrupts the game | A load-time verifier, no addresses, no backward jumps, bounds on every operand |
-| Bytecode versions drift | An old pack runs with new meanings | The bytecode version in the compatibility number; opcodes never change meaning within a version |
-| Two compilers drift (the studio and the baker) | The editor's counts or errors differ from the game's | One compiler, the baker's, linked natively (D55), and a shared conformance corpus |
-| Scripts become a second physics | Enemies that tunnel or behave unlike Fizz's world | Movement only through the game's body code; no direct position writes |
-| Scope | Scripting grows into a general language | No loops, no calls, eight registers, a fixed action list; additions are new bytecode versions |
+| Risk                                             | Effect                                               | Mitigation                                                                                                                                                               |
+| ------------------------------------------------ | ---------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Non-determinism across x87, SSE2 and WebAssembly | A world plays differently on DOS                     | Only the numeric model's operations; no `exp` family; table-driven waves; defined results for division by zero and NaN; every entity hashed; parity fixtures in the gate |
+| Cost on a 486                                    | Levels that stutter on the DOS floor                 | Static worst-case counts, per-entity and per-level budgets from the profile, a runtime counter, and the Budget window's DOS cost estimate from the game's bench          |
+| Sandbox escape or a crash from bad bytecode      | A pack that hangs or corrupts the game               | A load-time verifier, no addresses, no backward jumps, bounds on every operand                                                                                           |
+| Bytecode versions drift                          | An old pack runs with new meanings                   | The bytecode version in the compatibility number; opcodes never change meaning within a version                                                                          |
+| Two compilers drift (the studio and the baker)   | The editor's counts or errors differ from the game's | One compiler, the baker's, linked natively (D55), and a shared conformance corpus                                                                                        |
+| Scripts become a second physics                  | Enemies that tunnel or behave unlike Fizz's world    | Movement only through the game's body code; no direct position writes                                                                                                    |
+| Scope                                            | Scripting grows into a general language              | No loops, no calls, eight registers, a fixed action list; additions are new bytecode versions                                                                            |

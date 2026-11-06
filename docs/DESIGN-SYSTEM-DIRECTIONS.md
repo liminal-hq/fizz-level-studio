@@ -18,12 +18,12 @@ Ben is a playful, curious eight-year-old with a mind for figuring out how things
 
 Four traits were drawn out of that, one per direction:
 
-| Direction | Trait | What it becomes in the interface |
-| --- | --- | --- |
-| E · The Tinkerer | Takes things apart to see how they work | Exposed structure: a drafting grid, construction marks, printed measurements, quiet precision |
-| F · The Trail Rider | Biking, his cousin, new adventures | Motion: controls that lean forward, tabs as stops on a trail, a switch that rolls like a wheel |
-| G · The Hero | Saves the day | Confidence: night-sky navy and marigold, solid outlines, heavy labels, one clear action |
-| H · The Companion | Caring, loving, loyal, fun | Welcome: soft rounded surfaces, shadows instead of lines, a tooltip tail, a switch that smiles |
+| Direction           | Trait                                   | What it becomes in the interface                                                               |
+| ------------------- | --------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| E · The Tinkerer    | Takes things apart to see how they work | Exposed structure: a drafting grid, construction marks, printed measurements, quiet precision  |
+| F · The Trail Rider | Biking, his cousin, new adventures      | Motion: controls that lean forward, tabs as stops on a trail, a switch that rolls like a wheel |
+| G · The Hero        | Saves the day                           | Confidence: night-sky navy and marigold, solid outlines, heavy labels, one clear action        |
+| H · The Companion   | Caring, loving, loyal, fun              | Welcome: soft rounded surfaces, shadows instead of lines, a tooltip tail, a switch that smiles |
 
 Playfulness is kept to small details in every direction. The studio is a tool people sit in for hours, so the chrome stays calm and the delight lives in a handful of moments: a switch, a tab marker, a tooltip, a status line.
 
@@ -33,12 +33,12 @@ The game's pixel font is dropped for the desktop app. A pixel face is built for 
 
 Each direction picks one or two Google Fonts sans serif families and a monospace face for code and the script. All are open-licensed and on Google Fonts.
 
-| Direction | Display | Interface | Code | Why |
-| --- | --- | --- | --- | --- |
-| E · The Tinkerer | Instrument Sans | Instrument Sans | IBM Plex Mono | A clean, precise grotesque reads like a technical label; Plex Mono carries the measurements and field values |
-| F · The Trail Rider | Outfit | DM Sans | DM Mono | Outfit's round geometric forms feel friendly and quick; DM Sans keeps small text readable |
-| G · The Hero | Bricolage Grotesque | Figtree | JetBrains Mono | Bricolage has character at heavy weights for titles; Figtree is sturdy and clear at 700 and 800 for confident labels |
-| H · The Companion | Nunito | Source Sans 3 | JetBrains Mono | Nunito's rounded terminals are warm without being childish; Source Sans 3 is a calm humanist face for long reading |
+| Direction           | Display             | Interface       | Code           | Why                                                                                                                  |
+| ------------------- | ------------------- | --------------- | -------------- | -------------------------------------------------------------------------------------------------------------------- |
+| E · The Tinkerer    | Instrument Sans     | Instrument Sans | IBM Plex Mono  | A clean, precise grotesque reads like a technical label; Plex Mono carries the measurements and field values         |
+| F · The Trail Rider | Outfit              | DM Sans         | DM Mono        | Outfit's round geometric forms feel friendly and quick; DM Sans keeps small text readable                            |
+| G · The Hero        | Bricolage Grotesque | Figtree         | JetBrains Mono | Bricolage has character at heavy weights for titles; Figtree is sturdy and clear at 700 and 800 for confident labels |
+| H · The Companion   | Nunito              | Source Sans 3   | JetBrains Mono | Nunito's rounded terminals are warm without being childish; Source Sans 3 is a calm humanist face for long reading   |
 
 ## Colour
 
@@ -50,139 +50,139 @@ Status colours differ in lightness as well as hue, and danger never relies on re
 
 ### E · The Tinkerer palette
 
-| Role | Token | Dark | Light |
-| --- | --- | --- | --- |
-| Window | `--fls-bg-window` | `#121a22` | `#eef2f4` |
-| Panel | `--fls-bg-content` | `#16202a` | `#f7f9fa` |
-| Raised | `--fls-bg-raised` | `#1b2631` | `#ffffff` |
-| Selected | `--fls-bg-selected` | `#1d3a4a` | `#d2e5ed` |
-| Strong border | `--fls-border-strong` | `#5c7487` | `#77899a` |
-| Text | `--fls-text-primary` | `#e4ecf2` | `#17222b` |
+| Role           | Token                  | Dark      | Light     |
+| -------------- | ---------------------- | --------- | --------- |
+| Window         | `--fls-bg-window`      | `#121a22` | `#eef2f4` |
+| Panel          | `--fls-bg-content`     | `#16202a` | `#f7f9fa` |
+| Raised         | `--fls-bg-raised`      | `#1b2631` | `#ffffff` |
+| Selected       | `--fls-bg-selected`    | `#1d3a4a` | `#d2e5ed` |
+| Strong border  | `--fls-border-strong`  | `#5c7487` | `#77899a` |
+| Text           | `--fls-text-primary`   | `#e4ecf2` | `#17222b` |
 | Secondary text | `--fls-text-secondary` | `#b6c4d0` | `#3b4d5a` |
-| Muted text | `--fls-text-muted` | `#91a3b2` | `#53646f` |
-| Primary | `--fls-primary` | `#dc9a62` | `#9c4f22` |
-| Primary label | `--fls-primary-fg` | `#121a22` | `#ffffff` |
-| Accent | `--fls-accent` | `#7cc4d8` | `#246f86` |
-| Accent text | `--fls-accent-text` | `#8fd0e2` | `#1d6178` |
-| Danger | `--fls-danger` | `#f0907f` | `#ad3626` |
-| Success | `--fls-success` | `#8fcca3` | `#2c744b` |
-| Focus ring | `--fls-focus-ring` | `#a3d4ff` | `#1d68aa` |
+| Muted text     | `--fls-text-muted`     | `#91a3b2` | `#53646f` |
+| Primary        | `--fls-primary`        | `#dc9a62` | `#9c4f22` |
+| Primary label  | `--fls-primary-fg`     | `#121a22` | `#ffffff` |
+| Accent         | `--fls-accent`         | `#7cc4d8` | `#246f86` |
+| Accent text    | `--fls-accent-text`    | `#8fd0e2` | `#1d6178` |
+| Danger         | `--fls-danger`         | `#f0907f` | `#ad3626` |
+| Success        | `--fls-success`        | `#8fcca3` | `#2c744b` |
+| Focus ring     | `--fls-focus-ring`     | `#a3d4ff` | `#1d68aa` |
 
-| Pair | Dark | Light |
-| --- | --- | --- |
-| Text on window | 14.69:1 | 14.34:1 |
-| Secondary text on window | 9.86:1 | 7.78:1 |
-| Muted text on window | 6.76:1 | 5.45:1 |
-| Muted text on raised | 5.91:1 | 6.14:1 |
-| Muted text on glass over the level | 6.88:1 | 5.61:1 |
-| Primary label on primary | 7.39:1 | 5.91:1 |
-| Primary text on primary tint | 6.92:1 | 4.94:1 |
-| Accent text on accent tint | 6.41:1 | 5.54:1 |
-| Danger text on danger tint | 6.19:1 | 4.66:1 |
-| Focus ring on window | 11.21:1 | 5.16:1 |
-| Strong border on window | 3.60:1 | 3.20:1 |
+| Pair                               | Dark    | Light   |
+| ---------------------------------- | ------- | ------- |
+| Text on window                     | 14.69:1 | 14.34:1 |
+| Secondary text on window           | 9.86:1  | 7.78:1  |
+| Muted text on window               | 6.76:1  | 5.45:1  |
+| Muted text on raised               | 5.91:1  | 6.14:1  |
+| Muted text on glass over the level | 6.88:1  | 5.61:1  |
+| Primary label on primary           | 7.39:1  | 5.91:1  |
+| Primary text on primary tint       | 6.92:1  | 4.94:1  |
+| Accent text on accent tint         | 6.41:1  | 5.54:1  |
+| Danger text on danger tint         | 6.19:1  | 4.66:1  |
+| Focus ring on window               | 11.21:1 | 5.16:1  |
+| Strong border on window            | 3.60:1  | 3.20:1  |
 
 ### F · The Trail Rider palette
 
-| Role | Token | Dark | Light |
-| --- | --- | --- | --- |
-| Window | `--fls-bg-window` | `#1a1d19` | `#f5f1e8` |
-| Panel | `--fls-bg-content` | `#20241f` | `#fbf8f2` |
-| Raised | `--fls-bg-raised` | `#272c26` | `#ffffff` |
-| Selected | `--fls-bg-selected` | `#2e4231` | `#dde8d3` |
-| Strong border | `--fls-border-strong` | `#6b7766` | `#8c836f` |
-| Text | `--fls-text-primary` | `#eef0e8` | `#22251e` |
+| Role           | Token                  | Dark      | Light     |
+| -------------- | ---------------------- | --------- | --------- |
+| Window         | `--fls-bg-window`      | `#1a1d19` | `#f5f1e8` |
+| Panel          | `--fls-bg-content`     | `#20241f` | `#fbf8f2` |
+| Raised         | `--fls-bg-raised`      | `#272c26` | `#ffffff` |
+| Selected       | `--fls-bg-selected`    | `#2e4231` | `#dde8d3` |
+| Strong border  | `--fls-border-strong`  | `#6b7766` | `#8c836f` |
+| Text           | `--fls-text-primary`   | `#eef0e8` | `#22251e` |
 | Secondary text | `--fls-text-secondary` | `#c8cdbe` | `#484d40` |
-| Muted text | `--fls-text-muted` | `#a3aa98` | `#5f6555` |
-| Primary | `--fls-primary` | `#9fcb8b` | `#3d6a38` |
-| Primary label | `--fls-primary-fg` | `#162014` | `#ffffff` |
-| Accent | `--fls-accent` | `#f2a27e` | `#b85234` |
-| Accent text | `--fls-accent-text` | `#f5b293` | `#a2462b` |
-| Danger | `--fls-danger` | `#f28c9b` | `#a92d3d` |
-| Success | `--fls-success` | `#9fcb8b` | `#3d6a38` |
-| Focus ring | `--fls-focus-ring` | `#9cc8ff` | `#2a66a8` |
+| Muted text     | `--fls-text-muted`     | `#a3aa98` | `#5f6555` |
+| Primary        | `--fls-primary`        | `#9fcb8b` | `#3d6a38` |
+| Primary label  | `--fls-primary-fg`     | `#162014` | `#ffffff` |
+| Accent         | `--fls-accent`         | `#f2a27e` | `#b85234` |
+| Accent text    | `--fls-accent-text`    | `#f5b293` | `#a2462b` |
+| Danger         | `--fls-danger`         | `#f28c9b` | `#a92d3d` |
+| Success        | `--fls-success`        | `#9fcb8b` | `#3d6a38` |
+| Focus ring     | `--fls-focus-ring`     | `#9cc8ff` | `#2a66a8` |
 
-| Pair | Dark | Light |
-| --- | --- | --- |
-| Text on window | 14.80:1 | 13.79:1 |
-| Secondary text on window | 10.48:1 | 7.73:1 |
-| Muted text on window | 7.10:1 | 5.35:1 |
-| Muted text on raised | 5.94:1 | 6.04:1 |
-| Muted text on glass over the level | 7.25:1 | 5.45:1 |
-| Primary label on primary | 9.11:1 | 6.33:1 |
-| Primary text on primary tint | 7.41:1 | 5.16:1 |
-| Accent text on accent tint | 5.75:1 | 4.90:1 |
-| Danger text on danger tint | 5.96:1 | 4.93:1 |
-| Focus ring on window | 9.82:1 | 5.23:1 |
-| Strong border on window | 3.61:1 | 3.33:1 |
+| Pair                               | Dark    | Light   |
+| ---------------------------------- | ------- | ------- |
+| Text on window                     | 14.80:1 | 13.79:1 |
+| Secondary text on window           | 10.48:1 | 7.73:1  |
+| Muted text on window               | 7.10:1  | 5.35:1  |
+| Muted text on raised               | 5.94:1  | 6.04:1  |
+| Muted text on glass over the level | 7.25:1  | 5.45:1  |
+| Primary label on primary           | 9.11:1  | 6.33:1  |
+| Primary text on primary tint       | 7.41:1  | 5.16:1  |
+| Accent text on accent tint         | 5.75:1  | 4.90:1  |
+| Danger text on danger tint         | 5.96:1  | 4.93:1  |
+| Focus ring on window               | 9.82:1  | 5.23:1  |
+| Strong border on window            | 3.61:1  | 3.33:1  |
 
 ### G · The Hero palette
 
-| Role | Token | Dark | Light |
-| --- | --- | --- | --- |
-| Window | `--fls-bg-window` | `#141821` | `#f7f4ec` |
-| Panel | `--fls-bg-content` | `#191e29` | `#fcfaf5` |
-| Raised | `--fls-bg-raised` | `#1f2532` | `#ffffff` |
-| Selected | `--fls-bg-selected` | `#3a3220` | `#f6e6bf` |
-| Strong border | `--fls-border-strong` | `#606c85` | `#8f8873` |
-| Text | `--fls-text-primary` | `#f3efe6` | `#1a1e28` |
+| Role           | Token                  | Dark      | Light     |
+| -------------- | ---------------------- | --------- | --------- |
+| Window         | `--fls-bg-window`      | `#141821` | `#f7f4ec` |
+| Panel          | `--fls-bg-content`     | `#191e29` | `#fcfaf5` |
+| Raised         | `--fls-bg-raised`      | `#1f2532` | `#ffffff` |
+| Selected       | `--fls-bg-selected`    | `#3a3220` | `#f6e6bf` |
+| Strong border  | `--fls-border-strong`  | `#606c85` | `#8f8873` |
+| Text           | `--fls-text-primary`   | `#f3efe6` | `#1a1e28` |
 | Secondary text | `--fls-text-secondary` | `#cbc7bd` | `#414656` |
-| Muted text | `--fls-text-muted` | `#a7a39a` | `#5a5f6d` |
-| Primary | `--fls-primary` | `#f2b544` | `#eaa93a` |
-| Primary label | `--fls-primary-fg` | `#141821` | `#1a1e28` |
-| Accent | `--fls-accent` | `#6cc6b8` | `#1d7368` |
-| Accent text | `--fls-accent-text` | `#84d2c6` | `#196459` |
-| Danger | `--fls-danger` | `#f4876f` | `#a8381f` |
-| Success | `--fls-success` | `#86d297` | `#2c7340` |
-| Focus ring | `--fls-focus-ring` | `#93b8ff` | `#2453bd` |
+| Muted text     | `--fls-text-muted`     | `#a7a39a` | `#5a5f6d` |
+| Primary        | `--fls-primary`        | `#f2b544` | `#eaa93a` |
+| Primary label  | `--fls-primary-fg`     | `#141821` | `#1a1e28` |
+| Accent         | `--fls-accent`         | `#6cc6b8` | `#1d7368` |
+| Accent text    | `--fls-accent-text`    | `#84d2c6` | `#196459` |
+| Danger         | `--fls-danger`         | `#f4876f` | `#a8381f` |
+| Success        | `--fls-success`        | `#86d297` | `#2c7340` |
+| Focus ring     | `--fls-focus-ring`     | `#93b8ff` | `#2453bd` |
 
-| Pair | Dark | Light |
-| --- | --- | --- |
-| Text on window | 15.48:1 | 15.16:1 |
-| Secondary text on window | 10.52:1 | 8.55:1 |
-| Muted text on window | 7.06:1 | 5.80:1 |
-| Muted text on raised | 6.10:1 | 6.38:1 |
-| Muted text on glass over the level | 7.14:1 | 5.86:1 |
-| Primary label on primary | 9.70:1 | 8.12:1 |
-| Primary text on primary tint | 8.05:1 | 5.82:1 |
-| Accent text on accent tint | 6.31:1 | 5.59:1 |
-| Danger text on danger tint | 6.02:1 | 4.90:1 |
-| Focus ring on window | 8.92:1 | 6.27:1 |
-| Strong border on window | 3.37:1 | 3.22:1 |
+| Pair                               | Dark    | Light   |
+| ---------------------------------- | ------- | ------- |
+| Text on window                     | 15.48:1 | 15.16:1 |
+| Secondary text on window           | 10.52:1 | 8.55:1  |
+| Muted text on window               | 7.06:1  | 5.80:1  |
+| Muted text on raised               | 6.10:1  | 6.38:1  |
+| Muted text on glass over the level | 7.14:1  | 5.86:1  |
+| Primary label on primary           | 9.70:1  | 8.12:1  |
+| Primary text on primary tint       | 8.05:1  | 5.82:1  |
+| Accent text on accent tint         | 6.31:1  | 5.59:1  |
+| Danger text on danger tint         | 6.02:1  | 4.90:1  |
+| Focus ring on window               | 8.92:1  | 6.27:1  |
+| Strong border on window            | 3.37:1  | 3.22:1  |
 
 ### H · The Companion palette
 
-| Role | Token | Dark | Light |
-| --- | --- | --- | --- |
-| Window | `--fls-bg-window` | `#1e1a18` | `#f7f1ea` |
-| Panel | `--fls-bg-content` | `#24201d` | `#fcf8f3` |
-| Raised | `--fls-bg-raised` | `#2b2623` | `#ffffff` |
-| Selected | `--fls-bg-selected` | `#43322a` | `#f6e0d3` |
-| Strong border | `--fls-border-strong` | `#776b61` | `#958679` |
-| Text | `--fls-text-primary` | `#f4ede6` | `#2a2420` |
+| Role           | Token                  | Dark      | Light     |
+| -------------- | ---------------------- | --------- | --------- |
+| Window         | `--fls-bg-window`      | `#1e1a18` | `#f7f1ea` |
+| Panel          | `--fls-bg-content`     | `#24201d` | `#fcf8f3` |
+| Raised         | `--fls-bg-raised`      | `#2b2623` | `#ffffff` |
+| Selected       | `--fls-bg-selected`    | `#43322a` | `#f6e0d3` |
+| Strong border  | `--fls-border-strong`  | `#776b61` | `#958679` |
+| Text           | `--fls-text-primary`   | `#f4ede6` | `#2a2420` |
 | Secondary text | `--fls-text-secondary` | `#d3c8be` | `#54493f` |
-| Muted text | `--fls-text-muted` | `#afa498` | `#6b5f55` |
-| Primary | `--fls-primary` | `#f1ab8c` | `#ad5435` |
-| Primary label | `--fls-primary-fg` | `#1e1a18` | `#ffffff` |
-| Accent | `--fls-accent` | `#a9c8a4` | `#4a7748` |
-| Accent text | `--fls-accent-text` | `#b9d4b4` | `#406b3e` |
-| Danger | `--fls-danger` | `#f4919a` | `#ab2f3a` |
-| Success | `--fls-success` | `#a9c8a4` | `#4a7748` |
-| Focus ring | `--fls-focus-ring` | `#9fc4ff` | `#2c68b0` |
+| Muted text     | `--fls-text-muted`     | `#afa498` | `#6b5f55` |
+| Primary        | `--fls-primary`        | `#f1ab8c` | `#ad5435` |
+| Primary label  | `--fls-primary-fg`     | `#1e1a18` | `#ffffff` |
+| Accent         | `--fls-accent`         | `#a9c8a4` | `#4a7748` |
+| Accent text    | `--fls-accent-text`    | `#b9d4b4` | `#406b3e` |
+| Danger         | `--fls-danger`         | `#f4919a` | `#ab2f3a` |
+| Success        | `--fls-success`        | `#a9c8a4` | `#4a7748` |
+| Focus ring     | `--fls-focus-ring`     | `#9fc4ff` | `#2c68b0` |
 
-| Pair | Dark | Light |
-| --- | --- | --- |
-| Text on window | 14.89:1 | 13.65:1 |
-| Secondary text on window | 10.50:1 | 7.80:1 |
-| Muted text on window | 7.06:1 | 5.52:1 |
-| Muted text on raised | 6.11:1 | 6.19:1 |
-| Muted text on glass over the level | 7.21:1 | 5.61:1 |
-| Primary label on primary | 9.00:1 | 5.13:1 |
-| Primary text on primary tint | 7.55:1 | 5.08:1 |
-| Accent text on accent tint | 6.56:1 | 5.01:1 |
-| Danger text on danger tint | 6.23:1 | 4.88:1 |
-| Focus ring on window | 9.71:1 | 5.04:1 |
-| Strong border on window | 3.34:1 | 3.14:1 |
+| Pair                               | Dark    | Light   |
+| ---------------------------------- | ------- | ------- |
+| Text on window                     | 14.89:1 | 13.65:1 |
+| Secondary text on window           | 10.50:1 | 7.80:1  |
+| Muted text on window               | 7.06:1  | 5.52:1  |
+| Muted text on raised               | 6.11:1  | 6.19:1  |
+| Muted text on glass over the level | 7.21:1  | 5.61:1  |
+| Primary label on primary           | 9.00:1  | 5.13:1  |
+| Primary text on primary tint       | 7.55:1  | 5.08:1  |
+| Accent text on accent tint         | 6.56:1  | 5.01:1  |
+| Danger text on danger tint         | 6.23:1  | 4.88:1  |
+| Focus ring on window               | 9.71:1  | 5.04:1  |
+| Strong border on window            | 3.34:1  | 3.14:1  |
 
 ## The four directions
 
@@ -232,15 +232,15 @@ Status colours differ in lightness as well as hue, and danger never relies on re
 
 ## How they differ
 
-| | E · Tinkerer | F · Trail Rider | G · Hero | H · Companion |
-| --- | --- | --- | --- | --- |
-| Corners | 3 px | 12 px, skewed primary | 8 px | 14 to 28 px |
-| Edges | 1 px lines | 1.5 px lines | 2 px outlines | Shadows |
-| Control height | 28 px | 38 px | 36 px | 40 px |
-| Ground | Cool blueprint | Warm sand and moss | Night navy and warm paper | Cocoa and oatmeal |
-| Primary | Copper | Sage and forest green | Marigold | Peach and terracotta |
-| Accent | Cyan line | Sunset coral | Rescue teal | Sage |
-| Signature | Grid and measurements | Trail tabs and wheel switch | Star, shield, ribbon | Smiling switch, tooltip tail |
+|                | E · Tinkerer          | F · Trail Rider             | G · Hero                  | H · Companion                |
+| -------------- | --------------------- | --------------------------- | ------------------------- | ---------------------------- |
+| Corners        | 3 px                  | 12 px, skewed primary       | 8 px                      | 14 to 28 px                  |
+| Edges          | 1 px lines            | 1.5 px lines                | 2 px outlines             | Shadows                      |
+| Control height | 28 px                 | 38 px                       | 36 px                     | 40 px                        |
+| Ground         | Cool blueprint        | Warm sand and moss          | Night navy and warm paper | Cocoa and oatmeal            |
+| Primary        | Copper                | Sage and forest green       | Marigold                  | Peach and terracotta         |
+| Accent         | Cyan line             | Sunset coral                | Rescue teal               | Sage                         |
+| Signature      | Grid and measurements | Trail tabs and wheel switch | Star, shield, ribbon      | Smiling switch, tooltip tail |
 
 All four keep the shared `--fls-*` token names from directions A to D, so any of them can be applied to the app's stylesheet without renaming.
 
