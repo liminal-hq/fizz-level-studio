@@ -3,7 +3,9 @@
 // (c) Copyright 2026 Liminal HQ, Scott Morris
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
+import { createElement } from 'react';
 import type { MenuItem } from '@liminal-hq/fizz-studio-chrome/ContextMenu/types';
+import { APP_ICONS, type IconId } from '../icons/AppIcons';
 import { t, type MessageId } from '../i18n/messages';
 import type { BridgeSnapshot } from './commandBridge';
 import { allCommands, commandLabel, viewOf, type CommandView, type MenuName } from './registry';
@@ -24,6 +26,16 @@ const MENU_LABELS: Record<MenuName, MessageId> = {
 	help: 'appMenu.help',
 };
 
+const MENU_ICONS: Record<MenuName, IconId> = {
+	file: 'menu.file',
+	edit: 'menu.edit',
+	view: 'menu.view',
+	window: 'menu.window',
+	help: 'menu.help',
+};
+
+const iconFor = (id: IconId) => createElement(APP_ICONS[id]);
+
 /** Alt plus the letter opens that menu: Alt+F File, Alt+E Edit, Alt+V View, Alt+W Window and Alt+H Help. */
 export const APP_MENU_MNEMONICS: Readonly<Record<string, string>> = {
 	f: MENU_IDS.file,
@@ -38,6 +50,7 @@ function row(view: CommandView): MenuItem {
 	const common = {
 		id: def.id,
 		label: commandLabel(def),
+		...(def.icon ? { icon: iconFor(def.icon) } : {}),
 		...(def.shortcut ? { shortcut: def.shortcut } : {}),
 		...(view.enabled ? {} : { disabled: true }),
 		...(def.unavailable ? { title: t(def.unavailable) } : {}),
@@ -61,6 +74,12 @@ export function appMenuItems(snapshot: BridgeSnapshot): MenuItem[] {
 			section = def.section;
 			items.push(row(viewOf(def, snapshot)));
 		}
-		return { type: 'submenu', id: MENU_IDS[menu], label: t(MENU_LABELS[menu]), items };
+		return {
+			type: 'submenu',
+			id: MENU_IDS[menu],
+			label: t(MENU_LABELS[menu]),
+			icon: iconFor(MENU_ICONS[menu]),
+			items,
+		};
 	});
 }

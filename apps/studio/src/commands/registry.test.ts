@@ -5,6 +5,7 @@
 
 import type { MenuItem } from '@liminal-hq/fizz-studio-chrome/ContextMenu/types';
 import { describe, expect, it, vi } from 'vitest';
+import { APP_ICONS } from '../icons/AppIcons';
 import { enMessages } from '../i18n/messages';
 import { PANEL_SPECS } from '../panels/float/panelSpecs';
 
@@ -314,5 +315,50 @@ describe('Tear off and Dock back', () => {
 		expect(runCommand(id, snapshot({}, { [id]: run }))).toBe(false);
 		expect(runCommand(id, snapshot({ editorOpen: true }, { [id]: run }))).toBe(true);
 		expect(run).toHaveBeenCalledTimes(1);
+	});
+});
+
+describe('the menu icons', () => {
+	const everything = (facts: Partial<BridgeSnapshot['facts']>) =>
+		allCommands({
+			...NO_FACTS,
+			...facts,
+			brushes: [{ group: 'tile', kind: 'block' }],
+			away: { ...NO_FACTS.away, script: true },
+		});
+
+	// A palette-only command has no `menu`; every command that has one has a row, so an icon.
+	it('gives every command with a menu row an icon the icon set draws', () => {
+		for (const away of [false, true]) {
+			const defs = everything({ away: { ...NO_FACTS.away, script: away } }).filter((d) => d.menu);
+			expect(defs.length).toBeGreaterThan(20);
+			for (const def of defs) {
+				expect(def.icon, def.id).toBeDefined();
+				expect(APP_ICONS, def.id).toHaveProperty(def.icon!);
+			}
+		}
+		for (const def of COMMANDS) expect(def.icon, def.id).toBeDefined();
+	});
+
+	it('leaves the palette-only commands without one', () => {
+		for (const def of PALETTE_COMMANDS) expect(def.menu).toBeUndefined();
+	});
+
+	it('puts an icon on every row and menu of the app menu', () => {
+		const items = appMenuItems(snapshot({ editorOpen: true, hasLevel: true }));
+		const without = (rows: MenuItem[]): string[] =>
+			rows.flatMap((row) => {
+				if (row.type === 'separator' || row.type === 'section') return [];
+				const own = row.icon ? [] : [row.id];
+				return row.type === 'submenu' ? [...own, ...without(row.items)] : own;
+			});
+		expect(without(items)).toEqual([]);
+	});
+
+	it('reuses the rail icons for the panel rows', () => {
+		const view = rowsOf(appMenuItems(snapshot({ editorOpen: true })), 'menu:view');
+		const row = view.find((item) => item.id === 'view.panel.script');
+		expect(row).toMatchObject({ type: 'checkbox' });
+		expect(row && 'icon' in row && row.icon).toBeTruthy();
 	});
 });

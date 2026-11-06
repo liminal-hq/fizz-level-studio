@@ -9,6 +9,7 @@ import { describe, expect, it, vi } from 'vitest';
 import {
 	CommandBridgeContext,
 	createCommandBridge,
+	NO_FACTS,
 	type CommandBridge,
 } from '../commands/commandBridge';
 
@@ -114,5 +115,31 @@ describe('the application menu', () => {
 		fireEvent.keyDown(window, { key: 'F10' });
 		fireEvent.keyDown(window, { key: 'w', altKey: true });
 		expect(screen.queryByRole('menu')).toBeNull();
+	});
+
+	it('draws an icon in every row’s slot, and the check in place of it on a checked row', async () => {
+		const user = userEvent.setup();
+		const { button } = setup((bridge) =>
+			bridge.setFacts({
+				editorOpen: true,
+				hasLevel: true,
+				panels: { ...NO_FACTS.panels, script: true },
+			}),
+		);
+		await user.click(button!);
+		const slotOf = (name: string) =>
+			screen.getByRole('menuitem', { name }).querySelector('[aria-hidden="true"]');
+		for (const name of ['File', 'Edit', 'View', 'Window', 'Help']) {
+			expect(slotOf(name)?.querySelector('svg'), name).not.toBeNull();
+		}
+		await user.click(screen.getByRole('menuitem', { name: 'View' }));
+		const script = screen.getByRole('menuitemcheckbox', { name: 'Script' });
+		expect(script).toHaveAttribute('aria-checked', 'true');
+		expect(script.querySelector('svg')).not.toBeNull();
+		const palette = screen.getByRole('menuitemcheckbox', { name: 'Palette' });
+		expect(palette).toHaveAttribute('aria-checked', 'false');
+		expect(palette.querySelector('svg')).not.toBeNull();
+		const reset = screen.getByRole('menuitem', { name: /Reset layout|Reset/ });
+		expect(reset.querySelector('svg')).not.toBeNull();
 	});
 });

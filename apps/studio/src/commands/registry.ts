@@ -3,6 +3,7 @@
 // (c) Copyright 2026 Liminal HQ, Scott Morris
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
+import type { IconId } from '../icons/AppIcons';
 import { PANEL_SPECS, type PanelId } from '../panels/float/panelSpecs';
 import type { MessageId } from '../i18n/messages';
 import { quitClient } from '../services/quitClient';
@@ -66,6 +67,8 @@ export interface CommandDef {
 	hidden?: (facts: CommandFacts) => boolean;
 	/** Set when the command asks the person for a value before it runs (the palette prompts for it). */
 	argument?: 'line';
+	/** The icon on the command's menu row. Every menu command has one; a palette-only command (no `menu`) is exempt. */
+	icon?: IconId;
 	/** The keys, as shown on the row; the keys themselves are handled by the screens. */
 	shortcut?: string;
 	/** When the command can run, given what the screens published. */
@@ -104,6 +107,7 @@ const panelCommand = (id: PanelId, title: MessageId): CommandDef => ({
 	menu: 'view',
 	section: 0,
 	group: 'panels',
+	icon: `panel.${id}`,
 	label: title,
 	enabled: (facts) => facts.editorOpen,
 	checked: (facts) => facts.panels[id],
@@ -118,6 +122,7 @@ const maximiseCommand = (id: PanelId, title: MessageId, restore: boolean): Comma
 	menu: 'view',
 	section: 1,
 	group: 'panels',
+	icon: restore ? 'restore' : 'maximise',
 	label: restore ? 'view.restore' : 'view.maximise',
 	labelValues: () => ({ panel: t(title) }),
 	shortcut: MAXIMISE_KEYS,
@@ -127,10 +132,25 @@ const maximiseCommand = (id: PanelId, title: MessageId, restore: boolean): Comma
 
 /** The commands in menu order. Ids are unique; `panelCommandId` and the handlers use them. */
 export const COMMANDS: readonly CommandDef[] = [
-	{ id: 'file.new', menu: 'file', section: 0, label: 'main.newLevel', enabled: always },
-	{ id: 'file.open', menu: 'file', section: 0, label: 'main.openLevel', enabled: always },
+	{
+		id: 'file.new',
+		icon: 'new',
+		menu: 'file',
+		section: 0,
+		label: 'main.newLevel',
+		enabled: always,
+	},
+	{
+		id: 'file.open',
+		icon: 'open',
+		menu: 'file',
+		section: 0,
+		label: 'main.openLevel',
+		enabled: always,
+	},
 	{
 		id: 'file.save',
+		icon: 'save',
 		menu: 'file',
 		section: 1,
 		label: 'main.save',
@@ -139,6 +159,7 @@ export const COMMANDS: readonly CommandDef[] = [
 	},
 	{
 		id: 'file.preferences',
+		icon: 'preferences',
 		menu: 'file',
 		section: 2,
 		label: 'appMenu.preferences',
@@ -146,9 +167,17 @@ export const COMMANDS: readonly CommandDef[] = [
 		enabled: always,
 		run: () => void openWindow({ kind: 'preferences' }),
 	},
-	{ id: 'file.close', menu: 'file', section: 3, label: 'main.closeLevel', enabled: hasLevel },
+	{
+		id: 'file.close',
+		icon: 'close',
+		menu: 'file',
+		section: 3,
+		label: 'main.closeLevel',
+		enabled: hasLevel,
+	},
 	{
 		id: 'file.quit',
+		icon: 'quit',
 		menu: 'file',
 		section: 3,
 		label: 'appMenu.quit',
@@ -158,6 +187,7 @@ export const COMMANDS: readonly CommandDef[] = [
 	},
 	{
 		id: 'edit.undo',
+		icon: 'undo',
 		menu: 'edit',
 		section: 0,
 		label: 'history.undo',
@@ -166,6 +196,7 @@ export const COMMANDS: readonly CommandDef[] = [
 	},
 	{
 		id: 'edit.redo',
+		icon: 'redo',
 		menu: 'edit',
 		section: 0,
 		label: 'history.redo',
@@ -179,6 +210,7 @@ export const COMMANDS: readonly CommandDef[] = [
 	]),
 	{
 		id: 'view.levelFirst',
+		icon: 'levelFirst',
 		menu: 'view',
 		section: 1,
 		label: 'view.levelFirst',
@@ -189,6 +221,7 @@ export const COMMANDS: readonly CommandDef[] = [
 	},
 	{
 		id: 'view.resetLayout',
+		icon: 'resetLayout',
 		menu: 'view',
 		group: 'panels',
 		section: 1,
@@ -198,6 +231,7 @@ export const COMMANDS: readonly CommandDef[] = [
 	},
 	{
 		id: 'view.commandPalette',
+		icon: 'commandPalette',
 		menu: 'view',
 		section: 2,
 		label: 'appMenu.commandPalette',
@@ -206,6 +240,7 @@ export const COMMANDS: readonly CommandDef[] = [
 	},
 	{
 		id: 'help.about',
+		icon: 'about',
 		menu: 'help',
 		section: 0,
 		label: 'appMenu.about',
@@ -281,6 +316,7 @@ export function panelWindowCommands(facts: CommandFacts): CommandDef[] {
 		return facts.away[spec.id]
 			? {
 					id: dockBackCommandId(spec.id),
+					icon: 'dockBack',
 					menu: 'window',
 					group: 'panels',
 					section: 0,
@@ -290,6 +326,7 @@ export function panelWindowCommands(facts: CommandFacts): CommandDef[] {
 				}
 			: {
 					id: tearOffCommandId(spec.id),
+					icon: 'tearOff',
 					menu: 'window',
 					group: 'panels',
 					section: 0,

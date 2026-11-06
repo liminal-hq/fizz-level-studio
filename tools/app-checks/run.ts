@@ -915,6 +915,40 @@ function pressByRole(bridge: Bridge, role: string, name: string, windowId = 'mai
 	);
 }
 
+/**
+ * Every row of the open app menu, and of each of its submenus, has an icon in its 16 px slot. The
+ * menu is open on its top level; each menu is opened in turn and its rows read. A checked row shows
+ * the check in the slot instead of its icon, so it still has an svg there.
+ */
+async function appMenuIconChecks(bridge: Bridge) {
+	const rowsJs = `const slots = (menu) => [...menu.children].filter((r) => r.matches('[role^=menuitem]')).map((r) => {
+			const slot = r.firstElementChild; const box = slot?.getBoundingClientRect();
+			return { name: r.textContent.trim(), svg: !!slot?.querySelector('svg'), w: box?.width ?? 0, h: box?.height ?? 0 };
+		});`;
+	const top = await bridge.js<{ name: string; svg: boolean; w: number; h: number }[]>(
+		`${rowsJs} return slots(document.querySelector('[role=menu]'));`,
+	);
+	check(
+		'each top-level menu has an icon in a 16 px slot',
+		top.length === 5 && top.every((r) => r.svg && r.w === 16 && r.h === 16),
+		JSON.stringify(top),
+	);
+	for (const menu of ['Edit', 'View', 'Window', 'Help', 'File']) {
+		await pressByRole(bridge, 'menuitem', menu);
+		const read = () =>
+			bridge.js<{ name: string; svg: boolean; w: number; h: number }[]>(
+				`${rowsJs} const menus = [...document.querySelectorAll('[role=menu]')]; return menus.length > 1 ? slots(menus[menus.length - 1]) : [];`,
+			);
+		await within(3000, async () => (await read()).length > 0);
+		const rows = await read();
+		check(
+			`every ${menu} row has an icon in a 16 px slot`,
+			rows.length > 0 && rows.every((r) => r.svg && r.w === 16 && r.h === 16),
+			JSON.stringify(rows.filter((r) => !r.svg || r.w !== 16 || r.h !== 16)),
+		);
+	}
+}
+
 /** The text of the title bar's title, without the app menu button beside it. */
 async function titleBarText(bridge: Bridge, windowId = 'main-1'): Promise<string | null> {
 	const found = await bridge.js<{ v: string | null }>(
@@ -1304,6 +1338,7 @@ async function main(): Promise<void> {
 				),
 			JSON.stringify(rowNames),
 		);
+		await appMenuIconChecks(bridge);
 		check('the app menu offers File', await pressByRole(bridge, 'menuitem', 'File'));
 		const preferencesRow = await within(3000, async () =>
 			(await pressByRole(bridge, 'menuitem', 'Preferences')) ? true : null,
