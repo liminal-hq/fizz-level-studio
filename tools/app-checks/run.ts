@@ -679,7 +679,18 @@ async function toolPickerChecks(bridge: Bridge): Promise<void> {
 		'picker: a drag past the corner keeps it inside the map',
 		far !== null && inside(far),
 		JSON.stringify(
-			far && { picker: far.picker, canvas: far.canvas, status: far.status, frame: far.frame },
+			far && {
+				picker: far.picker,
+				canvas: far.canvas,
+				frame: far.frame,
+				css: await bridge.js<unknown>(
+					`const p = document.querySelector('[data-tool-picker]'); const s = getComputedStyle(p);
+					 return { x: s.getPropertyValue('--fls-picker-x'), y: s.getPropertyValue('--fls-picker-y'),
+					   offsetW: p.offsetWidth, parentW: p.offsetParent && p.offsetParent.clientWidth,
+					   parentH: p.offsetParent && p.offsetParent.clientHeight };`,
+				),
+				saved: await savedPicker(bridge),
+			},
 		),
 	);
 	await dragPicker(bridge, -5000, -5000);

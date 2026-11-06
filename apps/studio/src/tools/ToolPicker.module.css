@@ -9,6 +9,10 @@
 	top: var(--fls-picker-y);
 	z-index: 1;
 	display: flex;
+	/* Its width is its content's, wherever it sits: an absolutely placed box otherwise shrinks to the
+	   room left of its x, which made the measured size, and so the clamp, depend on the position. */
+	flex-wrap: nowrap;
+	width: max-content;
 	align-items: center;
 	gap: 0.3rem;
 	box-sizing: border-box;

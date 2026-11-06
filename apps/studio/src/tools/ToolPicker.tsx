@@ -17,6 +17,7 @@ import {
 	type KeyboardEvent,
 	type PointerEvent,
 	type RefObject,
+	useLayoutEffect,
 } from 'react';
 import { TOOL_ICONS } from '../icons/AppIcons';
 import { t, type MessageId } from '../i18n/messages';
@@ -69,12 +70,53 @@ function usePillSize(ref: RefObject<HTMLElement | null>): Size {
 		observer.observe(element);
 		return () => observer.disconnect();
 	}, [ref]);
+	// Read again after every commit as well: the observer only hears the element it was given, and
+	// a size it never reported (a node replaced after it attached, a layout that settled later)
+	// must not stay in the clamp. Setting the same size is a no-op, so this cannot loop.
+	useLayoutEffect(() => {
+		const element = ref.current;
+		if (!element) return;
+		const w = Math.ceil(element.offsetWidth);
+		const h = Math.ceil(element.offsetHeight);
+		setSize((old) => (old.w === w && old.h === h ? old : { w, h }));
+	});
 	return size;
 }
 
-export function ToolPicker({ tool, onTool, map, place, onPlace }: ToolPickerProps) {
+/**
+ * The size of the box the pill is placed in, read from the DOM and followed as it changes, so a
+ * clamp never rests on a size that was true some layouts ago. `fallback` stands in until the box is
+ * laid out, and in a test DOM, which has no layout.
+ */
+function useBoundsSize(ref: RefObject<HTMLElement | null>, fallback: Size): Size {
+	const [size, setSize] = useState<Size>({ w: 0, h: 0 });
+	useEffect(() => {
+		const parent = ref.current?.offsetParent;
+		if (!(parent instanceof HTMLElement) || typeof ResizeObserver === 'undefined') return;
+		const measure = () => {
+			const w = Math.floor(parent.clientWidth);
+			const h = Math.floor(parent.clientHeight);
+			setSize((old) => (old.w === w && old.h === h ? old : { w, h }));
+		};
+		measure();
+		const observer = new ResizeObserver(measure);
+		observer.observe(parent);
+		return () => observer.disconnect();
+	}, [ref]);
+	useLayoutEffect(() => {
+		const parent = ref.current?.offsetParent;
+		if (!(parent instanceof HTMLElement)) return;
+		const w = Math.floor(parent.clientWidth);
+		const h = Math.floor(parent.clientHeight);
+		setSize((old) => (old.w === w && old.h === h ? old : { w, h }));
+	});
+	return size.w > 0 && size.h > 0 ? size : fallback;
+}
+
+export function ToolPicker({ tool, onTool, map: mapProp, place, onPlace }: ToolPickerProps) {
 	const pillRef = useRef<HTMLDivElement>(null);
 	const pill = usePillSize(pillRef);
+	const map = useBoundsSize(pillRef, mapProp);
 	const gesture = useRef<Gesture | null>(null);
 	const [moving, setMoving] = useState<ToolPickerPlacement | null>(null);
 	const at = clampPicker(moving ?? place ?? DEFAULT_PICKER, pill, map);
