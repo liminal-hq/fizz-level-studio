@@ -47,16 +47,18 @@ fn level_name(text: &str) -> String {
         .unwrap_or_default()
 }
 
-/// The `X,Y` of the `start` line.
+/// The `X,Y` of the `start` line, and that line counted from 1.
 fn start(text: &str) -> Option<ViewStart> {
-    let line = text
+    let (index, line) = text
         .lines()
         .map(str::trim)
-        .find(|l| l.split_whitespace().next() == Some("start"))?;
+        .enumerate()
+        .find(|(_, l)| l.split_whitespace().next() == Some("start"))?;
     let (x, y) = line.split_whitespace().nth(1)?.split_once(',')?;
     Some(ViewStart {
         x: x.parse().ok()?,
         y: y.parse().ok()?,
+        line: u32::try_from(index + 1).ok(),
     })
 }
 
@@ -98,6 +100,7 @@ impl Fizz2LevelDocument {
             items: Vec::new(),
             spawns: Vec::new(),
             start: start(self.text()),
+            markers: Vec::new(),
             diagnostics: parsed
                 .diagnostics
                 .iter()

@@ -279,7 +279,10 @@ describe('EditorScreen', () => {
 
 	it('picks an item into the brush and goes back to Paint', async () => {
 		const user = userEvent.setup();
-		const snapshot = levelSnapshot({}, levelView(12, 8, { items: [{ kind: 'soda', x: 4, y: 3 }] }));
+		const snapshot = levelSnapshot(
+			{},
+			levelView(12, 8, { items: [{ kind: 'soda', x: 4, y: 3, line: 7 }] }),
+		);
 		render(
 			<EditorScreen
 				snapshot={snapshot}
@@ -377,7 +380,7 @@ describe('EditorScreen', () => {
 
 	it('reveals the script line that set an object when it is chosen in the list', async () => {
 		const text = 'line one\nline two\nline three\n';
-		const view = levelView(12, 8, { items: [{ kind: 'soda', x: 3, y: 2 }] });
+		const view = levelView(12, 8, { items: [{ kind: 'soda', x: 3, y: 2, line: 7 }] });
 		const snapshot = levelSnapshot({ text }, view);
 		const client = new FakeLevelClient(snapshot);
 		client.cellLines.set('3,2', 3);

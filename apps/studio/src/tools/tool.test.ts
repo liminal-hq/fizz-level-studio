@@ -229,8 +229,8 @@ describe('pick', () => {
 
 	it('reads an item or an enemy before the tile beneath it', () => {
 		const view = levelView(12, 8, {
-			items: [{ kind: 'soda', x: 3, y: 1 }],
-			spawns: [{ kind: 'gloop', x: 5, y: 1, dir: null, ride: false }],
+			items: [{ kind: 'soda', x: 3, y: 1, line: 9 }],
+			spawns: [{ kind: 'gloop', x: 5, y: 1, dir: null, ride: false, line: 12 }],
 		});
 		const on = { ...context, view };
 		expect(reduceTool('pick', initialToolState, 'down', { x: 3, y: 1 }, on).pick).toEqual({
@@ -278,8 +278,8 @@ describe('select', () => {
 
 describe('stamp', () => {
 	const view = levelView(12, 8, {
-		items: [{ kind: 'cheezie', x: 2, y: 3 }],
-		spawns: [{ kind: 'gloop', x: 3, y: 1, dir: null, ride: false }],
+		items: [{ kind: 'cheezie', x: 2, y: 3, line: 9 }],
+		spawns: [{ kind: 'gloop', x: 3, y: 1, dir: null, ride: false, line: 12 }],
 	});
 	const clip = copyArea(view, { x0: 1, y0: 0, x1: 3, y1: 3 });
 	const pasting: ToolContext = { ...context, view, clip };

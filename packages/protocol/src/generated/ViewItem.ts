@@ -3,4 +3,9 @@
 /**
  * A thing placed on a cell.
  */
-export type ViewItem = { kind: string, x: number, y: number, };
+export type ViewItem = { kind: string, x: number, y: number, 
+/**
+ * The script line, counted from 1, of the statement that placed it; `None` where the view
+ * cannot tell.
+ */
+line: number | null, };

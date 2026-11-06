@@ -3,4 +3,9 @@
 /**
  * Where Ben starts, in tiles.
  */
-export type ViewStart = { x: number, y: number, };
+export type ViewStart = { x: number, y: number, 
+/**
+ * The script line, counted from 1, of the `start` statement that holds; `None` where the view
+ * cannot tell.
+ */
+line: number | null, };

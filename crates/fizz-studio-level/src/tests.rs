@@ -301,3 +301,92 @@ fn a_painted_cell_is_traced_to_its_edit_line() {
     let line = text.lines().count() as u32;
     assert_eq!(doc.cell_line(50, 10), Some(line));
 }
+
+const LINES: &str = "level \"Lines\" 12x8 ground=2 id=crater
+start 2,2
+
+blocks
+  fill x=0..11 y=0..1
+  red-door x=8 y=2..3
+  exit x=10 y=2..3
+
+treats
+  cheezie x=3..4 y=4
+  key-red x=6 y=5
+
+enemies
+  gloop x=5,7 y=2
+  drone x=9 y=6 dir=-1
+
+edits
+  paint red-door x=8 y=3
+  place cookie x=1 y=6
+";
+
+#[test]
+fn every_thing_in_the_view_carries_the_line_that_placed_it() {
+    let view = LevelDocument::new(LINES).view();
+    assert!(view.diagnostics.is_empty(), "{:?}", view.diagnostics);
+    assert_eq!(view.start.map(|s| s.line), Some(Some(2)));
+    let items: Vec<(&str, f64, Option<u32>)> = view
+        .items
+        .iter()
+        .map(|i| (i.kind.as_str(), i.x, i.line))
+        .collect();
+    assert_eq!(
+        items,
+        [
+            ("cheezie", 3.0, Some(10)),
+            ("cheezie", 4.0, Some(10)),
+            ("key-red", 6.0, Some(11)),
+            ("cookie", 1.0, Some(19)),
+        ]
+    );
+    let spawns: Vec<(&str, f64, Option<u32>)> = view
+        .spawns
+        .iter()
+        .map(|s| (s.kind.as_str(), s.x, s.line))
+        .collect();
+    assert_eq!(
+        spawns,
+        [
+            ("gloop", 5.0, Some(14)),
+            ("gloop", 7.0, Some(14)),
+            ("drone", 9.0, Some(15)),
+        ]
+    );
+}
+
+#[test]
+fn exits_and_doors_are_markers_and_a_later_paint_takes_the_cell() {
+    let view = LevelDocument::new(LINES).view();
+    let markers: Vec<(&str, f64, f64, u32, Option<u32>)> = view
+        .markers
+        .iter()
+        .map(|m| (m.kind.as_str(), m.x, m.y, m.height, m.line))
+        .collect();
+    // The edit repaints the door's top cell, so that cell is the edit's and the bottom keeps its own.
+    assert_eq!(
+        markers,
+        [
+            ("red-door", 8.0, 2.0, 1, Some(6)),
+            ("red-door", 8.0, 3.0, 1, Some(18)),
+            ("exit", 10.0, 2.0, 2, Some(7)),
+        ]
+    );
+}
+
+#[test]
+fn crater_has_its_exit_door_and_key_with_their_lines() {
+    let view = LevelDocument::new(CRATER).view();
+    assert!(view.items.iter().all(|i| i.line.is_some()));
+    assert!(view.spawns.iter().all(|s| s.line.is_some()));
+    assert!(view.markers.iter().any(|m| m.kind == "exit"));
+    assert!(view.markers.iter().any(|m| m.kind == "red-door"));
+    assert!(view.items.iter().any(|i| i.kind == "key-red"));
+    for marker in &view.markers {
+        let line = marker.line.expect("a marker has a line") as usize;
+        let text = CRATER.lines().nth(line - 1).unwrap();
+        assert!(text.contains(&marker.kind), "line {line}: {text}");
+    }
+}

@@ -145,9 +145,9 @@ describe('drawLevel', () => {
 
 	it('draws items, spawns, the start, the selection and the cursor', () => {
 		const view = levelView(6, 4, {
-			items: [{ kind: 'cheezie', x: 2, y: 2 }],
-			spawns: [{ kind: 'gloop', x: 4, y: null, dir: null, ride: false }],
-			start: { x: 1, y: 1 },
+			items: [{ kind: 'cheezie', x: 2, y: 2, line: 9 }],
+			spawns: [{ kind: 'gloop', x: 4, y: null, dir: null, ride: false, line: 12 }],
+			start: { x: 1, y: 1, line: 2 },
 		});
 		const { ctx, calls } = recorder();
 		drawLevel(
