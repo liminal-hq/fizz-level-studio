@@ -15,8 +15,10 @@ import {
 	type AppearancePreferences,
 	type PluginStatus,
 } from '@liminal-hq/plugin-system-appearance';
+import { getCurrentWindow } from '@tauri-apps/api/window';
 import type { AccentSources, AppearanceChoice } from '../theme/followAccent';
 import type { SchemeSources } from '../theme/followColourScheme';
+import { windowEffectsSource } from './windowEffectsClient';
 
 /** Keeps the plugin's unsubscribe function once its promise settles, even if stopped before then. */
 function subscribe(start: () => Promise<() => void>): () => void {
@@ -53,7 +55,7 @@ export const schemeSources: SchemeSources = {
 	},
 };
 
-/** The accent and the transparency and contrast hints, from the same plugin. */
+/** The accent and the transparency and contrast hints, from the same plugin; the window's own state from the window-effects plugin and the window. */
 export const accentSources: AccentSources = {
 	accentAvailable: async () =>
 		(await getStatus()).appearance.some((entry) => entry.feature === 'accent' && entry.available),
@@ -72,10 +74,14 @@ export const accentSources: AccentSources = {
 			}),
 		);
 	},
+	seeThroughAvailable: async () => (await windowEffectsSource.availability()).seeThrough,
+	focused: () => getCurrentWindow().isFocused(),
+	onFocusChanged: (listener) =>
+		subscribe(() => getCurrentWindow().onFocusChanged(({ payload }) => listener(payload))),
 };
 
 function toChoice(settings: Settings): AppearanceChoice {
-	return { accent: settings.accent, glass: settings.glass };
+	return { accent: settings.accent, glass: settings.glass, transparency: settings.transparency };
 }
 
 function toHints(preferences: AppearancePreferences) {

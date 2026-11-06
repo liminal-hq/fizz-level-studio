@@ -63,6 +63,82 @@ pub enum GlassMode {
     Off,
 }
 
+/// How strongly the desktop behind a see-through window is blurred, where the compositor can.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "lowercase")]
+#[ts(export, export_to = "../../../packages/protocol/src/generated/")]
+pub enum WindowBlur {
+    /// No blur: the desktop shows through as it is.
+    Off,
+    /// The quiet material (Mica on Windows, the compositor's blur on Linux).
+    #[default]
+    Low,
+    /// The strong material (Acrylic on Windows; the same blur as Low on Linux).
+    High,
+}
+
+/// The least and most of each transparency value, inclusive. The settings crate refuses anything
+/// outside them, and the Transparency page's sliders use the same ends.
+pub const GLASS_BLUR_MAX: u8 = 40;
+pub const GLASS_SATURATION_MIN: u16 = 100;
+pub const GLASS_SATURATION_MAX: u16 = 200;
+pub const PANEL_OPACITY_MIN: u8 = 40;
+pub const MENU_OPACITY_MIN: u8 = 60;
+pub const OPACITY_MAX: u8 = 100;
+
+/// How the glass inside the windows is drawn, which surfaces wear it, and whether the window
+/// itself lets the desktop through. The `glass` mode stays the master switch: with it off, or the
+/// system asking for less transparency under `system`, every surface is solid whatever this says.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[serde(default)]
+#[ts(export, export_to = "../../../packages/protocol/src/generated/")]
+pub struct TransparencySettings {
+    /// The blur behind a glass surface, in pixels (0 to [`GLASS_BLUR_MAX`]).
+    pub blur: u8,
+    /// How much the colours behind the glass are saturated, in percent
+    /// ([`GLASS_SATURATION_MIN`] to [`GLASS_SATURATION_MAX`]).
+    pub saturation: u16,
+    /// How opaque a glass panel's fill is, in percent ([`PANEL_OPACITY_MIN`] to [`OPACITY_MAX`]).
+    pub panel_opacity: u8,
+    /// The docked panels, their rails and the peek flyout.
+    pub docks: bool,
+    /// The floating panels, the tool picker and the command palette.
+    pub floating: bool,
+    /// The menus: the application menu, the menu bar's menus and the context menus.
+    pub menus: bool,
+    /// The dialogs.
+    pub dialogs: bool,
+    /// The title bar and the menu bar under it.
+    pub title_bar: bool,
+    /// How opaque a glass menu is, in percent ([`MENU_OPACITY_MIN`] to [`OPACITY_MAX`]).
+    pub menu_opacity: u8,
+    /// Whether the window's own background lets the desktop through, where the system can.
+    pub window_enabled: bool,
+    /// The blur the compositor puts behind a see-through window, where it has one.
+    pub window_blur: WindowBlur,
+    /// A window that is not in front draws solid.
+    pub solid_when_unfocused: bool,
+}
+
+impl Default for TransparencySettings {
+    fn default() -> Self {
+        Self {
+            blur: 16,
+            saturation: 120,
+            panel_opacity: 88,
+            docks: true,
+            floating: true,
+            menus: false,
+            dialogs: false,
+            title_bar: false,
+            menu_opacity: 96,
+            window_enabled: false,
+            window_blur: WindowBlur::Low,
+            solid_when_unfocused: true,
+        }
+    }
+}
+
 /// A settings field a refusal can name, so a form shows the message beside the right control.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "kebab-case")]
@@ -79,6 +155,14 @@ pub enum SettingsField {
     ZoneSize,
     /// A floating rectangle or a window placement that is not on a real screen.
     WorkspaceRect,
+    /// The glass blur outside its range.
+    TransparencyBlur,
+    /// The glass saturation outside its range.
+    TransparencySaturation,
+    /// The panel opacity outside its range.
+    TransparencyPanelOpacity,
+    /// The menu opacity outside its range.
+    TransparencyMenuOpacity,
 }
 
 /// Where one floating panel sits in its window, in pixels from the top-left of the editor area.
@@ -127,6 +211,8 @@ pub struct Settings {
     pub accent: AccentChoice,
     /// Whether panels are glass or solid.
     pub glass: GlassMode,
+    /// How the glass is drawn, where it is worn, and whether the window lets the desktop through.
+    pub transparency: TransparencySettings,
     /// Bigger hit targets and text for the controls.
     pub larger_controls: bool,
     /// What the window chrome shows.
@@ -150,6 +236,7 @@ impl Default for Settings {
             colour_mode: ColourMode::System,
             accent: AccentChoice::System,
             glass: GlassMode::System,
+            transparency: TransparencySettings::default(),
             larger_controls: false,
             ui: UiSettings::default(),
             locale: DEFAULT_LOCALE.to_owned(),
@@ -175,6 +262,10 @@ pub struct SettingsPatch {
     #[serde(skip_serializing_if = "Option::is_none")]
     #[ts(optional)]
     pub glass: Option<GlassMode>,
+    /// Replaces the transparency settings as a whole.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub transparency: Option<TransparencySettings>,
     #[serde(skip_serializing_if = "Option::is_none")]
     #[ts(optional)]
     pub larger_controls: Option<bool>,

@@ -38,6 +38,8 @@
 	--fls-window-close-hover-fg: #ffffff;
 	--fls-title-bar-height: 40px;
 	--fls-title-bar-opacity: 0.85;
+	/* The blur behind a translucent title bar and menu bar: none unless the host asks. */
+	--fls-title-bar-backdrop: none;
 
 	/* Window frame: no margin and no shadow unless the host draws its own */
 	--fls-window-radius: 12px;
@@ -56,6 +58,7 @@
 	--fls-shadow-dialog: 0 16px 48px rgb(0 0 0 / 45%);
 	--fls-z-dialog: 1100;
 	--fls-dialog-opacity: 1;
+	--fls-dialog-backdrop: none;
 	--fls-dialog-width-small: 380px;
 	--fls-dialog-width-medium: 520px;
 	--fls-dialog-width-large: 720px;

@@ -58,13 +58,15 @@ export interface CommandDef {
 	menu?: MenuName;
 	/** The palette heading; a menu command's defaults to its menu's name. */
 	group?: PaletteGroup;
-	/** Starts a new section (a rule above it) within its menu. */
-	section: number;
 	label: MessageId;
 	/** The `{token}` values of `label`, for a command named after something (a brush). */
 	labelValues?: Record<string, string> | (() => Record<string, string>);
-	/** True when the command is left out of the menus and the palette for now (its opposite is showing). */
-	hidden?: (facts: CommandFacts) => boolean;
+	/**
+	 * False when the command does not apply here at all, so the menus and the palette leave it out
+	 * (a Window row on the start screen, or Restore while nothing is maximised). A command that
+	 * applies but cannot run now stays visible and is disabled through `enabled`. Defaults to true.
+	 */
+	visible?: (facts: CommandFacts) => boolean;
 	/** Set when the command asks the person for a value before it runs (the palette prompts for it). */
 	argument?: 'line';
 	/** The icon on the command's menu row. Every menu command has one; a palette-only command (no `menu`) is exempt. */
@@ -75,8 +77,12 @@ export interface CommandDef {
 	enabled: (facts: CommandFacts) => boolean;
 	/** A checked row, for the panels. */
 	checked?: (facts: CommandFacts) => boolean;
-	/** Set when the studio has no action for the command: it is always disabled, with this as the reason. */
-	unavailable?: MessageId;
+	/**
+	 * Why the command is disabled now, worked out from the facts, shown as the row's tooltip and the
+	 * palette's detail. Without it, a disabled command says to open a level first when none is open,
+	 * and that it is not available right now otherwise.
+	 */
+	reason?: (facts: CommandFacts) => MessageId | undefined;
 	/** The command's own action, when it needs nothing from a screen. Otherwise a screen publishes the handler. */
 	run?: (argument?: string) => void;
 }
@@ -99,18 +105,30 @@ export const MAXIMISE_KEYS = 'Ctrl+Shift+M';
 /** The keys that quit the app, as shown on its File row; the main window handles the keys. */
 export const QUIT_KEYS = 'Ctrl+Q';
 
+/** The keys of the File rows that start, find and finish a level, handled by the main window. */
+export const NEW_LEVEL_KEYS = 'Ctrl+N';
+export const OPEN_LEVEL_KEYS = 'Ctrl+O';
+export const CLOSE_LEVEL_KEYS = 'Ctrl+W';
+
+/** The Help menu's keys: Help is F1, and the Keyboard shortcuts window is the question mark. */
+export const HELP_KEYS = 'F1';
+export const SHORTCUTS_KEYS = '?';
+
 const always = () => true;
-/** Hidden on the start screen, where there is no editor and so no panel to tear off or dock back. */
-const noEditor = (facts: CommandFacts) => !facts.editorOpen;
+/** Why a level command is disabled while none is open; the default reason says the same. */
+const needsLevel = (facts: CommandFacts): MessageId | undefined =>
+	facts.hasLevel ? undefined : 'cmdPalette.needsLevel';
+/** Visible only with the editor on screen: the start screen has no panel to show, tear off or dock back. */
+const hasEditor = (facts: CommandFacts) => facts.editorOpen;
 const hasLevel = (facts: CommandFacts) => facts.hasLevel;
 
 const panelCommand = (id: PanelId, title: MessageId): CommandDef => ({
 	id: `view.panel.${id}`,
 	menu: 'view',
-	section: 0,
 	group: 'panels',
 	icon: `panel.${id}`,
 	label: title,
+	visible: hasEditor,
 	enabled: (facts) => facts.editorOpen,
 	checked: (facts) => facts.panels[id],
 });
@@ -122,66 +140,68 @@ const panelCommand = (id: PanelId, title: MessageId): CommandDef => ({
 const maximiseCommand = (id: PanelId, title: MessageId, restore: boolean): CommandDef => ({
 	id: `view.${restore ? 'restore' : 'maximise'}.${id}`,
 	menu: 'view',
-	section: 1,
 	group: 'panels',
 	icon: restore ? 'restore' : 'maximise',
 	label: restore ? 'view.restore' : 'view.maximise',
 	labelValues: () => ({ panel: t(title) }),
 	shortcut: MAXIMISE_KEYS,
 	enabled: (facts) => facts.editorOpen && facts.panels[id],
-	hidden: (facts) => (facts.maximised === id) !== restore,
+	reason: (facts) => (restore || facts.panels[id] ? undefined : 'view.maximiseNeedsPanel'),
+	visible: (facts) => facts.editorOpen && (facts.maximised === id) === restore,
 });
 
-/** The commands in menu order. Ids are unique; `panelCommandId` and the handlers use them. */
+/**
+ * The menu commands. Ids are unique; `panelCommandId` and the handlers use them. Their order is
+ * the palette's order within a heading; the menus group them in `appMenuModel`.
+ */
 export const COMMANDS: readonly CommandDef[] = [
 	{
 		id: 'file.new',
 		icon: 'new',
 		menu: 'file',
-		section: 0,
 		label: 'main.newLevel',
+		shortcut: NEW_LEVEL_KEYS,
 		enabled: always,
 	},
 	{
 		id: 'file.open',
 		icon: 'open',
 		menu: 'file',
-		section: 0,
 		label: 'main.openLevel',
+		shortcut: OPEN_LEVEL_KEYS,
 		enabled: always,
 	},
 	{
 		id: 'file.save',
 		icon: 'save',
 		menu: 'file',
-		section: 1,
 		label: 'main.save',
 		shortcut: 'Ctrl+S',
 		enabled: hasLevel,
+		reason: needsLevel,
+	},
+	{
+		id: 'file.close',
+		icon: 'close',
+		menu: 'file',
+		label: 'main.closeLevel',
+		shortcut: CLOSE_LEVEL_KEYS,
+		enabled: hasLevel,
+		reason: needsLevel,
 	},
 	{
 		id: 'file.preferences',
 		icon: 'preferences',
 		menu: 'file',
-		section: 2,
 		label: 'appMenu.preferences',
 		shortcut: 'Ctrl+,',
 		enabled: always,
 		run: () => void openWindow({ kind: 'preferences' }),
 	},
 	{
-		id: 'file.close',
-		icon: 'close',
-		menu: 'file',
-		section: 3,
-		label: 'main.closeLevel',
-		enabled: hasLevel,
-	},
-	{
 		id: 'file.quit',
 		icon: 'quit',
 		menu: 'file',
-		section: 3,
 		label: 'appMenu.quit',
 		shortcut: QUIT_KEYS,
 		enabled: always,
@@ -191,19 +211,19 @@ export const COMMANDS: readonly CommandDef[] = [
 		id: 'edit.undo',
 		icon: 'undo',
 		menu: 'edit',
-		section: 0,
 		label: 'history.undo',
 		shortcut: 'Ctrl+Z',
 		enabled: (facts) => facts.canUndo,
+		reason: (facts) => (facts.canUndo ? undefined : (needsLevel(facts) ?? 'history.nothingToUndo')),
 	},
 	{
 		id: 'edit.redo',
 		icon: 'redo',
 		menu: 'edit',
-		section: 0,
 		label: 'history.redo',
 		shortcut: 'Ctrl+Shift+Z',
 		enabled: (facts) => facts.canRedo,
+		reason: (facts) => (facts.canRedo ? undefined : (needsLevel(facts) ?? 'history.nothingToRedo')),
 	},
 	...PANEL_SPECS.map((spec) => panelCommand(spec.id, spec.title)),
 	...PANEL_SPECS.filter((spec) => spec.expandable).flatMap((spec) => [
@@ -214,11 +234,12 @@ export const COMMANDS: readonly CommandDef[] = [
 		id: 'view.levelFirst',
 		icon: 'levelFirst',
 		menu: 'view',
-		section: 1,
 		label: 'view.levelFirst',
 		shortcut: 'Tab',
+		visible: hasEditor,
 		// Maximising wins over level-first: while a panel fills the workspace, Tab does nothing.
 		enabled: (facts) => facts.editorOpen && facts.maximised === null,
+		reason: (facts) => (facts.maximised === null ? undefined : 'view.levelFirstMaximised'),
 		checked: (facts) => facts.levelFirst,
 	},
 	{
@@ -226,25 +247,40 @@ export const COMMANDS: readonly CommandDef[] = [
 		icon: 'resetLayout',
 		menu: 'view',
 		group: 'panels',
-		section: 1,
 		label: 'panels.reset',
 		shortcut: 'Ctrl+Shift+0',
+		visible: hasEditor,
 		enabled: (facts) => facts.editorOpen,
 	},
 	{
 		id: 'view.commandPalette',
 		icon: 'commandPalette',
 		menu: 'view',
-		section: 2,
 		label: 'appMenu.commandPalette',
 		shortcut: COMMAND_PALETTE_KEYS,
+		enabled: always,
+	},
+	{
+		id: 'help.help',
+		icon: 'help',
+		menu: 'help',
+		label: 'appMenu.helpTopic',
+		shortcut: HELP_KEYS,
+		enabled: always,
+		run: () => void openWindow({ kind: 'about' }),
+	},
+	{
+		id: 'help.shortcuts',
+		icon: 'shortcuts',
+		menu: 'help',
+		label: 'appMenu.shortcuts',
+		shortcut: SHORTCUTS_KEYS,
 		enabled: always,
 	},
 	{
 		id: 'help.about',
 		icon: 'about',
 		menu: 'help',
-		section: 0,
 		label: 'appMenu.about',
 		enabled: always,
 		run: () => void openWindow({ kind: 'about' }),
@@ -277,7 +313,6 @@ export const PALETTE_COMMANDS: readonly CommandDef[] = [
 			id: toolCommandId(id),
 			icon: `tool.${id}`,
 			group: 'tools',
-			section: 0,
 			label: TOOL_LABELS[id],
 			shortcut: TOOL_KEYS[id].toUpperCase(),
 			enabled: (facts) => facts.editorOpen,
@@ -286,7 +321,6 @@ export const PALETTE_COMMANDS: readonly CommandDef[] = [
 	{
 		id: 'goto.line',
 		group: 'goto',
-		section: 0,
 		label: 'cmdPalette.gotoLine',
 		argument: 'line',
 		enabled: (facts) => facts.editorOpen && facts.lineCount > 0,
@@ -298,7 +332,6 @@ export function brushCommands(brushes: readonly Brush[]): CommandDef[] {
 	return brushes.map((brush) => ({
 		id: brushCommandId(brush),
 		group: 'brushes',
-		section: 0,
 		label: 'cmdPalette.brush',
 		labelValues: { name: brush.kind },
 		enabled: (facts) => facts.editorOpen,
@@ -323,10 +356,9 @@ export function panelWindowCommands(facts: CommandFacts): CommandDef[] {
 					icon: 'dockBack',
 					menu: 'window',
 					group: 'panels',
-					section: 0,
 					label: 'cmdPalette.dockPanelBack',
 					labelValues: { panel },
-					hidden: noEditor,
+					visible: hasEditor,
 					enabled: (now) => now.editorOpen && now.away[spec.id],
 				}
 			: {
@@ -334,10 +366,9 @@ export function panelWindowCommands(facts: CommandFacts): CommandDef[] {
 					icon: 'tearOff',
 					menu: 'window',
 					group: 'panels',
-					section: 0,
 					label: 'cmdPalette.tearOffPanel',
 					labelValues: { panel },
-					hidden: noEditor,
+					visible: hasEditor,
 					enabled: (now) => now.editorOpen && !now.away[spec.id],
 				};
 	});
@@ -361,20 +392,35 @@ export const maximiseCommandId = (id: PanelId, restore: boolean) =>
 
 export const panelCommandId = (id: PanelId) => `view.panel.${id}`;
 
-/** A command as the menu shows it now. */
+/** A command as the menu and the palette show it now. */
 export interface CommandView {
 	def: CommandDef;
+	/** False when the command does not apply here, so no menu or palette lists it. */
+	visible: boolean;
 	enabled: boolean;
 	checked: boolean | undefined;
+	/** Why a visible command cannot run now; absent while it can. */
+	reason: string | undefined;
+}
+
+/** The default reason for a disabled command that gives none of its own. */
+function defaultReason(facts: CommandFacts): MessageId {
+	return !facts.hasLevel && !facts.editorOpen
+		? 'cmdPalette.needsLevel'
+		: 'cmdPalette.unavailableNow';
 }
 
 /** A command can run when its predicate holds and something can do it. */
 export function viewOf(def: CommandDef, snapshot: BridgeSnapshot): CommandView {
+	const { facts } = snapshot;
 	const doable = def.run !== undefined || def.id in snapshot.handlers;
+	const enabled = doable && def.enabled(facts);
 	return {
 		def,
-		enabled: !def.unavailable && doable && def.enabled(snapshot.facts),
-		checked: def.checked?.(snapshot.facts),
+		visible: def.visible?.(facts) ?? true,
+		enabled,
+		checked: def.checked?.(facts),
+		reason: enabled ? undefined : t(def.reason?.(facts) ?? defaultReason(facts)),
 	};
 }
 

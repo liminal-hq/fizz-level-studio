@@ -136,7 +136,7 @@ fn a_version_one_file_without_layouts_migrates_untouched() {
 #[test]
 fn a_version_with_no_step_is_unreadable_not_guessed() {
     let file = memory_file(Some(r#"{ "version": 0, "settings": {} }"#));
-    assert_eq!(SETTINGS_VERSION, 6);
+    assert_eq!(SETTINGS_VERSION, 7);
     let report = file.load();
     assert!(report
         .problem

@@ -23,7 +23,7 @@ pub type Observer = Box<dyn Fn(&SettingsSnapshot) + Send + Sync>;
 pub struct SettingsStore<S: BlobStorage> {
     file: SettingsFile<S>,
     current: Mutex<SettingsSnapshot>,
-    observer: Mutex<Option<Observer>>,
+    observers: Mutex<Vec<Observer>>,
 }
 
 fn locked<T>(mutex: &Mutex<T>) -> MutexGuard<'_, T> {
@@ -40,15 +40,17 @@ impl<S: BlobStorage> SettingsStore<S> {
                 revision: 0,
                 settings: report.settings.clone(),
             }),
-            observer: Mutex::new(None),
+            observers: Mutex::new(Vec::new()),
             file,
         };
         (store, report)
     }
 
-    /// Sets what runs after every change; the plugin announces the change to the windows here.
+    /// Adds something to run after every change, after those added before it: the plugin
+    /// announces the change to the windows, and the app fits the window effects to it. An observer
+    /// runs while the store's lock is held, so it must not call back into the store.
     pub fn observe(&self, observer: impl Fn(&SettingsSnapshot) + Send + Sync + 'static) {
-        *locked(&self.observer) = Some(Box::new(observer));
+        locked(&self.observers).push(Box::new(observer));
     }
 
     pub fn snapshot(&self) -> SettingsSnapshot {
@@ -135,7 +137,7 @@ impl<S: BlobStorage> SettingsStore<S> {
             revision: current.revision + 1,
             settings: next,
         };
-        if let Some(observer) = locked(&self.observer).as_ref() {
+        for observer in locked(&self.observers).iter() {
             observer(current);
         }
         Ok(current.clone())

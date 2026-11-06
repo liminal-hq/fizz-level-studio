@@ -1,4 +1,4 @@
-// The Preferences window: a settings shell with its pages, General and Appearance
+// The Preferences window: a settings shell with its pages, General, Appearance and Transparency
 //
 // (c) Copyright 2026 Liminal HQ, Scott Morris
 // SPDX-License-Identifier: Apache-2.0 OR MIT
@@ -8,14 +8,20 @@ import type { SettingsSectionDef } from '@liminal-hq/fizz-studio-chrome/Settings
 import { useEffect, useMemo, useState } from 'react';
 import { AppWindow } from '../app/AppWindow';
 import { t } from '../i18n/messages';
-import { AppearanceIcon, PreferencesIcon } from '../icons/AppIcons';
+import { AppearanceIcon, PreferencesIcon, TransparencyIcon } from '../icons/AppIcons';
 import { accentSources, schemeSources } from '../services/appearanceClient';
 import { settingsClient, type SettingsClient } from '../services/settingsClient';
+import {
+	windowEffectsSource,
+	type WindowEffectsAvailability,
+	type WindowEffectsSource,
+} from '../services/windowEffectsClient';
 import type { AccentSources } from '../theme/followAccent';
 import type { SchemeSources } from '../theme/followColourScheme';
 import { GeneralPage } from './GeneralPage';
 import { AppearancePage, type SystemAppearance } from './AppearancePage';
 import styles from './PreferencesScreen.module.css';
+import { TransparencyPage } from './TransparencyPage';
 import { usePreferencesSettings } from './usePreferencesSettings';
 
 export interface PreferencesScreenProps {
@@ -24,6 +30,8 @@ export interface PreferencesScreenProps {
 	/** What the system reports; default to the system-appearance plugin. */
 	accent?: Pick<AccentSources, 'accentAvailable' | 'hints'>;
 	scheme?: Pick<SchemeSources, 'system'>;
+	/** What this system can do for a see-through window; defaults to the window-effects plugin. */
+	effects?: WindowEffectsSource;
 }
 
 const NO_SYSTEM: SystemAppearance = {
@@ -36,10 +44,25 @@ export function PreferencesScreen({
 	client = settingsClient,
 	accent = accentSources,
 	scheme = schemeSources,
+	effects = windowEffectsSource,
 }: PreferencesScreenProps) {
 	const editor = usePreferencesSettings(client);
 	const [system, setSystem] = useState<SystemAppearance>(NO_SYSTEM);
 	const [activeId, setActiveId] = useState('general');
+	const [available, setAvailable] = useState<WindowEffectsAvailability | null>(null);
+
+	useEffect(() => {
+		let gone = false;
+		effects
+			.availability()
+			.then((read) => {
+				if (!gone) setAvailable(read);
+			})
+			.catch(() => {});
+		return () => {
+			gone = true;
+		};
+	}, [effects]);
 
 	useEffect(() => {
 		let gone = false;
@@ -74,8 +97,14 @@ export function PreferencesScreen({
 				icon: <AppearanceIcon />,
 				render: () => <AppearancePage editor={editor} system={system} />,
 			},
+			{
+				id: 'transparency',
+				label: t('preferences.page.transparency'),
+				icon: <TransparencyIcon />,
+				render: () => <TransparencyPage editor={editor} system={system} effects={available} />,
+			},
 		],
-		[editor, system],
+		[editor, system, available],
 	);
 
 	return (

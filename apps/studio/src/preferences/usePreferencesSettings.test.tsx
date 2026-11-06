@@ -9,12 +9,14 @@ import type { SettingsSnapshot } from '@liminal-hq/fizz-studio-protocol/generate
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import type { SettingsClient } from '../services/settingsClient';
+import { TRANSPARENCY_DEFAULTS } from '../theme/transparency';
 import { usePreferencesSettings } from './usePreferencesSettings';
 
 const BASE: Settings = {
 	colour_mode: 'system',
 	accent: { kind: 'system' },
 	glass: 'system',
+	transparency: TRANSPARENCY_DEFAULTS,
 	larger_controls: false,
 	locale: 'en-CA',
 	recent_worlds: [],
@@ -69,6 +71,7 @@ describe('usePreferencesSettings', () => {
 			accent: { kind: 'system' },
 			glass: 'system',
 			ui: { menu_bar: false },
+			transparency: TRANSPARENCY_DEFAULTS,
 		});
 	});
 

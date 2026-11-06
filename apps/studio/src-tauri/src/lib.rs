@@ -4,6 +4,7 @@
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
 pub mod close_gate;
+pub mod effects;
 pub mod launch;
 pub mod logging;
 pub mod panel_place;
@@ -101,7 +102,8 @@ pub fn run() {
         .plugin(tauri_plugin_system_appearance::init())
         // The compositor's own window menu, which a webview cannot reach.
         .plugin(tauri_plugin_window_manager::init())
-        // Transparency, blur and the shadow inset, reported per feature.
+        // Transparency, blur and the shadow inset, reported per feature; `effects.rs` asks it for
+        // the blur behind a see-through window.
         .plugin(tauri_plugin_window_effects::init())
         // The ghost and the compositor-driven window drag a panel tears off with.
         .plugin(tauri_plugin_window_tearoff::init(tear_off_options()))
@@ -126,7 +128,15 @@ pub fn run() {
         // the quit round, the others close at once. A panel window closing,
         // by its own close button or by docking, is announced to every window, so the main window
         // can show the panel in its place again.
+        // A window's page starts loading once the window exists: it gets the blur the
+        // Transparency settings ask for behind it (`effects.rs`).
+        .on_page_load(|webview, payload| {
+            if matches!(payload.event(), tauri::webview::PageLoadEvent::Started) {
+                effects::on_page_load(webview);
+            }
+        })
         .on_window_event(|window, event| {
+            effects::on_window_event(window, event);
             quit::request_close(window, event);
             if matches!(
                 event,
@@ -143,6 +153,9 @@ pub fn run() {
         })
         .setup(|app| {
             app.manage(quit::QuitState::default());
+            // The window effects follow the settings from here on.
+            app.manage(effects::Driver::default());
+            effects::wire(app.handle());
             launch::queue_startup_paths(app.handle());
             windows::open_or_focus(app.handle(), &WindowId::Main { n: 1 })?;
             Ok(())

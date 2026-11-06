@@ -7,7 +7,8 @@ use std::collections::BTreeSet;
 
 use fizz_studio_protocol::{
     AccentChoice, DockSettings, PanelPlacement, PlaceKind, Settings, SettingsError, SettingsField,
-    SettingsPatch, Workspace, ZoneId, RECENT_WORLDS_CAP,
+    SettingsPatch, TransparencySettings, Workspace, ZoneId, GLASS_BLUR_MAX, GLASS_SATURATION_MAX,
+    GLASS_SATURATION_MIN, MENU_OPACITY_MIN, OPACITY_MAX, PANEL_OPACITY_MIN, RECENT_WORLDS_CAP,
 };
 
 use crate::dock::{zone_min, MAX_EXTENT as RECT_MAX, PANEL_IDS, ZONE_MAX};
@@ -195,7 +196,61 @@ fn is_hex_colour(text: &str) -> bool {
             .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(b))
 }
 
-/// Checks the values a patch can set: a custom accent is a lowercase `#rrggbb`, a locale is not empty, a layout has a window kind and each
+/// Checks that `value` lies in `min..=max`, naming `what` and `field` when it does not.
+fn in_range<T: PartialOrd + std::fmt::Display>(
+    value: T,
+    min: T,
+    max: T,
+    what: &str,
+    unit: &str,
+    which: SettingsField,
+) -> Result<(), SettingsError> {
+    if value < min || value > max {
+        return Err(field(
+            which,
+            format!("the {what} is {value}{unit}, outside {min}{unit} to {max}{unit}"),
+        ));
+    }
+    Ok(())
+}
+
+/// Checks the transparency values: each one inside the range its slider offers.
+pub fn validate_transparency(transparency: &TransparencySettings) -> Result<(), SettingsError> {
+    in_range(
+        transparency.blur,
+        0,
+        GLASS_BLUR_MAX,
+        "glass blur",
+        " px",
+        SettingsField::TransparencyBlur,
+    )?;
+    in_range(
+        transparency.saturation,
+        GLASS_SATURATION_MIN,
+        GLASS_SATURATION_MAX,
+        "glass saturation",
+        "%",
+        SettingsField::TransparencySaturation,
+    )?;
+    in_range(
+        transparency.panel_opacity,
+        PANEL_OPACITY_MIN,
+        OPACITY_MAX,
+        "panel opacity",
+        "%",
+        SettingsField::TransparencyPanelOpacity,
+    )?;
+    in_range(
+        transparency.menu_opacity,
+        MENU_OPACITY_MIN,
+        OPACITY_MAX,
+        "menu opacity",
+        "%",
+        SettingsField::TransparencyMenuOpacity,
+    )
+}
+
+/// Checks the values a patch can set: a custom accent is a lowercase `#rrggbb`, a locale is not empty, the transparency values are in range, a layout has a window kind and each
 /// of its panels has an id, a place on screen and room to show.
 pub fn validate(settings: &Settings) -> Result<(), SettingsError> {
     if settings.locale.trim().is_empty() {
@@ -209,6 +264,7 @@ pub fn validate(settings: &Settings) -> Result<(), SettingsError> {
             });
         }
     }
+    validate_transparency(&settings.transparency)?;
     validate_dock(&settings.dock)?;
     for (label, layout) in &settings.layout {
         if label.is_empty() {
@@ -243,6 +299,9 @@ pub fn apply_patch(settings: &Settings, patch: &SettingsPatch) -> Result<Setting
     }
     if let Some(glass) = patch.glass {
         next.glass = glass;
+    }
+    if let Some(transparency) = patch.transparency {
+        next.transparency = transparency;
     }
     if let Some(larger) = patch.larger_controls {
         next.larger_controls = larger;

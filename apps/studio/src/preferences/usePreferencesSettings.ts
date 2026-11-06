@@ -1,4 +1,4 @@
-// The Preferences settings editor (Appearance and General): reads the settings, saves each change at once and keeps per-field errors
+// The Preferences settings editor (General, Appearance and Transparency): reads the settings, saves each change at once and keeps per-field errors
 //
 // (c) Copyright 2026 Liminal HQ, Scott Morris
 // SPDX-License-Identifier: Apache-2.0 OR MIT
@@ -7,19 +7,44 @@ import type { Settings } from '@liminal-hq/fizz-studio-protocol/generated/Settin
 import type { SettingsPatch } from '@liminal-hq/fizz-studio-protocol/generated/SettingsPatch';
 import type { SettingsSnapshot } from '@liminal-hq/fizz-studio-protocol/generated/SettingsSnapshot';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { t } from '../i18n/messages';
+import { t, type MessageId } from '../i18n/messages';
 import type { SettingsClient } from '../services/settingsClient';
+import { TRANSPARENCY_DEFAULTS } from '../theme/transparency';
 
 /** The controls that can show an error. */
-export type PreferencesField = 'colourMode' | 'accent' | 'accentHex' | 'glass' | 'menuBar';
+export type PreferencesField =
+	| 'colourMode'
+	| 'accent'
+	| 'accentHex'
+	| 'glass'
+	| 'menuBar'
+	| 'blur'
+	| 'saturation'
+	| 'panelOpacity'
+	| 'docks'
+	| 'floating'
+	| 'menus'
+	| 'menuOpacity'
+	| 'dialogs'
+	| 'titleBar'
+	| 'windowEnabled'
+	| 'windowBlur'
+	| 'solidUnfocused'
+	| 'resetTransparency';
 
 export type PreferencesErrors = Partial<Record<PreferencesField, string>>;
 
 /** The settings the pages edit. */
-export type PreferencesValues = Pick<Settings, 'colour_mode' | 'accent' | 'glass' | 'ui'>;
+export type PreferencesValues = Pick<
+	Settings,
+	'colour_mode' | 'accent' | 'glass' | 'ui' | 'transparency'
+>;
 
 /** The pages that have a reset to defaults. */
-export type PreferencesPage = 'appearance' | 'general';
+export type PreferencesPage = 'appearance' | 'general' | 'transparency';
+
+/** A patch, or a patch made from the settings it is based on (so a retry after a stale revision rebuilds it from the fresh ones). */
+export type PreferencesPatch = SettingsPatch | ((settings: Settings) => SettingsPatch);
 
 export interface PreferencesEditor {
 	/** The values in force, or null until the first read comes back. */
@@ -28,7 +53,7 @@ export interface PreferencesEditor {
 	/** True when the settings could not be read at all. */
 	unavailable: boolean;
 	/** Saves `patch` now. A refusal is shown against `field` and nothing changes. */
-	change(field: PreferencesField, patch: SettingsPatch): Promise<void>;
+	change(field: PreferencesField, patch: PreferencesPatch): Promise<void>;
 	/** Puts a page's settings back to their defaults. */
 	reset(page: PreferencesPage): Promise<void>;
 }
@@ -39,9 +64,17 @@ export const PREFERENCE_DEFAULTS: PreferencesValues = {
 	accent: { kind: 'system' },
 	glass: 'system',
 	ui: { menu_bar: false },
+	transparency: TRANSPARENCY_DEFAULTS,
 };
 
-const FIELD_OF_REFUSAL = { 'accent-hex': 'accentHex' } as const;
+/** The control and the message for a refusal that names its field. */
+const FIELD_OF_REFUSAL: Record<string, [PreferencesField, MessageId]> = {
+	'accent-hex': ['accentHex', 'preferences.error.hex'],
+	'transparency-blur': ['blur', 'preferences.error.range'],
+	'transparency-saturation': ['saturation', 'preferences.error.range'],
+	'transparency-panel-opacity': ['panelOpacity', 'preferences.error.range'],
+	'transparency-menu-opacity': ['menuOpacity', 'preferences.error.range'],
+};
 
 function kindOf(error: unknown): string | null {
 	return typeof error === 'object' && error !== null && 'kind' in error
@@ -51,9 +84,9 @@ function kindOf(error: unknown): string | null {
 
 function refusalMessage(error: unknown, fallback: PreferencesField): [PreferencesField, string] {
 	if (kindOf(error) === 'invalid-field') {
-		const field = (error as { field?: keyof typeof FIELD_OF_REFUSAL }).field;
+		const field = (error as { field?: string }).field;
 		const mapped = field ? FIELD_OF_REFUSAL[field] : undefined;
-		if (mapped) return [mapped, t('preferences.error.hex')];
+		if (mapped) return [mapped[0], t(mapped[1])];
 	}
 	return [fallback, t('preferences.error.save')];
 }
@@ -95,17 +128,19 @@ export function usePreferencesSettings(client: SettingsClient): PreferencesEdito
 	}, [client, adopt]);
 
 	const change = useCallback(
-		async (field: PreferencesField, patch: SettingsPatch) => {
+		async (field: PreferencesField, patch: PreferencesPatch) => {
 			setErrors((current) => ({ ...current, [field]: undefined }));
+			const build = (settings: Settings): SettingsPatch =>
+				typeof patch === 'function' ? patch(settings) : patch;
 			try {
 				const based = latest.current ?? (await client.get());
 				try {
-					adopt(await client.update(patch, based.revision));
+					adopt(await client.update(build(based.settings), based.revision));
 				} catch (error) {
 					if (kindOf(error) !== 'stale') throw error;
 					const fresh = await client.get();
 					adopt(fresh);
-					adopt(await client.update(patch, fresh.revision));
+					adopt(await client.update(build(fresh.settings), fresh.revision));
 				}
 			} catch (error) {
 				const [where, message] = refusalMessage(error, field);
@@ -120,6 +155,10 @@ export function usePreferencesSettings(client: SettingsClient): PreferencesEdito
 			setErrors({});
 			if (page === 'general') {
 				await change('menuBar', { ui: PREFERENCE_DEFAULTS.ui });
+				return;
+			}
+			if (page === 'transparency') {
+				await change('resetTransparency', { transparency: PREFERENCE_DEFAULTS.transparency });
 				return;
 			}
 			await change('colourMode', {
@@ -137,6 +176,7 @@ export function usePreferencesSettings(client: SettingsClient): PreferencesEdito
 				accent: snapshot.settings.accent,
 				glass: snapshot.settings.glass,
 				ui: snapshot.settings.ui,
+				transparency: snapshot.settings.transparency,
 			}
 		: null;
 	return { values, errors, unavailable, change, reset };

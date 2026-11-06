@@ -71,8 +71,12 @@ Keys work while the studio has focus (click the level first) and pause while typ
 | = and -                          | Zoom in and out through 16, 24, 32 and 48 px                                               |
 | Ctrl+Shift+0                     | Reset window layout                                                                        |
 | Ctrl+S                           | Save (writes nothing in the prototype)                                                     |
+| Ctrl+N                           | New level (opens the New level window)                                                     |
+| Ctrl+O                           | Open level (asks for a level file)                                                         |
+| Ctrl+W                           | Close the open level, asking first when it has unsaved changes (never the window)          |
+| F1                               | Help (opens the About window until the studio has help of its own)                         |
 | Esc                              | Close menus, cards and the ring; then clear the object selection; then clear the selection |
-| ?                                | Show or hide the shortcuts card                                                            |
+| ?                                | Show or hide the shortcuts card (the Keyboard shortcuts window in the app)                 |
 
 Tool behaviour:
 

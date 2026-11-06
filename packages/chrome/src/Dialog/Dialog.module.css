@@ -11,6 +11,9 @@
 		var(--fls-bg-raised) calc(var(--fls-dialog-opacity) * 100%),
 		transparent
 	);
+	/* The transparency hook's blur: none unless the host puts its dialogs under glass. */
+	-webkit-backdrop-filter: var(--fls-dialog-backdrop);
+	backdrop-filter: var(--fls-dialog-backdrop);
 	border: 1px solid var(--fls-border-subtle);
 	border-radius: 12px;
 	box-shadow: var(--fls-shadow-dialog);

@@ -21,6 +21,7 @@ import type {
 } from '../services/quitClient';
 import type { RecentClient } from '../services/recentClient';
 import type { SettingsClient } from '../services/settingsClient';
+import { TRANSPARENCY_DEFAULTS } from '../theme/transparency';
 import { fakeDockClient, floatingDock } from '../test/dockFixtures';
 import { levelSnapshot, levelView } from '../test/levelFixtures';
 import { FakeLevelClient } from '../worlds/fakeLevelClient';
@@ -185,6 +186,7 @@ const DEFAULT_SETTINGS: Settings = {
 	colour_mode: 'system',
 	accent: { kind: 'system' },
 	glass: 'system',
+	transparency: TRANSPARENCY_DEFAULTS,
 	larger_controls: false,
 	ui: { menu_bar: false },
 	locale: 'en-CA',
@@ -696,7 +698,7 @@ describe('the application menu', () => {
 		// The Window menu has only panel rows, so it is left out with no level open.
 		expect(screen.queryByRole('menuitem', { name: 'Window' })).toBeNull();
 		await user.click(screen.getByRole('menuitem', { name: 'Help' }));
-		await user.click(screen.getByRole('menuitem', { name: 'About Fizz Level Studio' }));
+		await user.click(screen.getByRole('menuitem', { name: 'About Fizz Level Studio…' }));
 		expect(openWindow).toHaveBeenCalledWith({ kind: 'about' });
 	});
 
@@ -853,6 +855,94 @@ describe('the command palette', () => {
 		pressShortcut();
 		await user.type(screen.getByRole('combobox'), 'erase');
 		expect(screen.getByRole('option', { name: /Erase/ })).toHaveAttribute('aria-disabled', 'true');
+	});
+});
+
+describe('the file and help keys', () => {
+	it('opens the New level window with Ctrl+N', async () => {
+		const user = userEvent.setup();
+		setup();
+		openWindow.mockClear();
+		await user.keyboard('{Control>}n{/Control}');
+		expect(openWindow).toHaveBeenCalledWith({ kind: 'new-world' });
+	});
+
+	it('asks for a level file with Ctrl+O', async () => {
+		const user = userEvent.setup();
+		const { pickFile } = setup();
+		await user.keyboard('{Control>}o{/Control}');
+		expect(pickFile).toHaveBeenCalledOnce();
+		await screen.findByRole('group', { name: 'Level editor' });
+	});
+
+	it('closes a level with nothing unsaved with Ctrl+W, and does nothing without a level', async () => {
+		const user = userEvent.setup();
+		setup();
+		await user.keyboard('{Control>}w{/Control}');
+		expect(screen.queryByRole('dialog')).toBeNull();
+		await openFromDialog(user);
+		await user.keyboard('{Control>}w{/Control}');
+		expect(await screen.findByRole('button', { name: 'Open level…' })).toBeInTheDocument();
+	});
+
+	it('asks the Close level question with Ctrl+W while there are unsaved changes', async () => {
+		const user = userEvent.setup();
+		const { client } = setup();
+		client.dirty = true;
+		await openFromDialog(user);
+		await user.keyboard('{Control>}w{/Control}');
+		const dialog = await screen.findByRole('dialog');
+		expect(dialog).toHaveTextContent('Crater Fields');
+		await user.click(within(dialog).getByRole('button', { name: 'Cancel' }));
+		expect(screen.getByRole('group', { name: 'Level editor' })).toBeInTheDocument();
+	});
+
+	it('opens Help on F1 as the About window', async () => {
+		const user = userEvent.setup();
+		setup();
+		openWindow.mockClear();
+		await user.keyboard('{F1}');
+		expect(openWindow).toHaveBeenCalledWith({ kind: 'about' });
+	});
+
+	it('shows and hides the Keyboard shortcuts window with the question mark', async () => {
+		const user = userEvent.setup();
+		setup();
+		await user.keyboard('?');
+		const dialog = await screen.findByRole('dialog', { name: 'Keyboard shortcuts' });
+		expect(within(dialog).getByRole('cell', { name: 'Ctrl+N' })).toBeInTheDocument();
+		expect(within(dialog).getByRole('cell', { name: 'F1' })).toBeInTheDocument();
+		expect(within(dialog).getByRole('cell', { name: 'B E I S T Q' })).toBeInTheDocument();
+		await user.keyboard('?');
+		expect(screen.queryByRole('dialog', { name: 'Keyboard shortcuts' })).toBeNull();
+	});
+
+	it('opens Keyboard shortcuts from the Help menu', async () => {
+		const user = userEvent.setup();
+		setup();
+		await user.click(await screen.findByRole('button', { name: 'Fizz Level Studio' }));
+		await user.click(screen.getByRole('menuitem', { name: 'Help' }));
+		await user.click(screen.getByRole('menuitem', { name: /^Keyboard shortcuts…/ }));
+		expect(await screen.findByRole('dialog', { name: 'Keyboard shortcuts' })).toBeInTheDocument();
+		await user.click(
+			within(screen.getByRole('dialog', { name: 'Keyboard shortcuts' })).getByRole('button', {
+				name: 'Close',
+			}),
+		);
+		expect(screen.queryByRole('dialog', { name: 'Keyboard shortcuts' })).toBeNull();
+	});
+
+	it('opens the command palette from the last row of the Undo history submenu', async () => {
+		const user = userEvent.setup();
+		setup();
+		await user.click(await screen.findByRole('button', { name: 'Fizz Level Studio' }));
+		await user.click(screen.getByRole('menuitem', { name: 'Edit' }));
+		await user.click(screen.getByRole('menuitem', { name: 'Undo history' }));
+		expect(
+			await screen.findByRole('menuitem', { name: 'Nothing in the history yet' }),
+		).toHaveAttribute('aria-disabled', 'true');
+		await user.click(screen.getByRole('menuitem', { name: 'More in the command palette…' }));
+		expect(await screen.findByRole('dialog', { name: 'Command palette' })).toBeInTheDocument();
 	});
 });
 

@@ -109,7 +109,7 @@ describe('the command palette', () => {
 		await user.type(input(), 'redo');
 		const redo = screen.getByRole('option', { name: /Redo/ });
 		expect(redo).toHaveAttribute('aria-disabled', 'true');
-		expect(redo).toHaveTextContent('Not available right now');
+		expect(redo).toHaveTextContent('Nothing to redo');
 		await user.keyboard('{Enter}');
 		expect(screen.getByRole('dialog')).toBeInTheDocument();
 	});

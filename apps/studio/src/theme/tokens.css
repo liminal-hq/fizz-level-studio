@@ -41,12 +41,52 @@
 	/* Accent-coloured text on the glass panel: reads at 4.5:1 or better against it. */
 	--fls-accent-text: var(--fls-sys-text-light, var(--fls-accent));
 
-	/* Glass: a frosted light panel with a soft shadow and a white highlight along its top edge. */
-	--fls-glass-bg: linear-gradient(145deg, rgb(248 246 250 / 0.88), rgb(238 234 241 / 0.94));
+	/*
+	 * Glass: a frosted light panel with a soft shadow and a white highlight along its top edge. The
+	 * fill is two tints mixed with transparency by `--fls-glass-alpha`, the far end a little more
+	 * opaque; the blur, saturation and alphas are the Transparency settings, which
+	 * `theme/transparencyDom.ts` sets inline on the root (the values here are their defaults).
+	 */
+	--fls-glass-tint-start: #f8f6fa;
+	--fls-glass-tint-end: #eeeaf1;
+	--fls-glass-alpha: 0.88;
+	--fls-glass-blur: 16px;
+	--fls-glass-saturation: 120%;
+	--fls-glass-bg: linear-gradient(
+		145deg,
+		color-mix(
+			in srgb,
+			var(--fls-glass-tint-start) calc(var(--fls-glass-alpha) * 100%),
+			transparent
+		),
+		color-mix(
+			in srgb,
+			var(--fls-glass-tint-end) calc(min(1, var(--fls-glass-alpha) + 0.06) * 100%),
+			transparent
+		)
+	);
+	--fls-glass-filter: blur(var(--fls-glass-blur)) saturate(var(--fls-glass-saturation));
 	--fls-glass-bg-solid: #f2eff4;
 	--fls-glass-border: rgb(28 27 32 / 0.16);
 	--fls-glass-shadow: 0 8px 20px rgb(28 27 32 / 0.18), inset 0 1px 0 #ffffff;
-	--fls-glass-blur: 16px;
+	/* How opaque a glass menu is, and the window's own background when it lets the desktop through. */
+	--fls-menu-alpha: 0.96;
+	--fls-window-alpha: 0.88;
+
+	/*
+	 * What each surface wears: glass, or the solid fill when its switch is off. Docks (zones, rails
+	 * and the peek) and floating things (panels, the tool picker and the command palette) are glass
+	 * by default; menus, dialogs and the title bar are solid until switched on (below).
+	 */
+	--fls-glass-docks-bg: var(--fls-glass-bg);
+	--fls-glass-docks-filter: var(--fls-glass-filter);
+	--fls-glass-floating-bg: var(--fls-glass-bg);
+	--fls-glass-floating-filter: var(--fls-glass-filter);
+	--fls-bg-menu: var(--fls-bg-raised);
+	--fls-menu-backdrop: none;
+	--fls-dialog-opacity: 1;
+	--fls-dialog-backdrop: none;
+	--fls-title-bar-backdrop: none;
 
 	/* Keycaps: a light raised key with a darker bottom edge that thins when pressed. */
 	--fls-key-top: #ffffff;
@@ -123,7 +163,8 @@
 		--fls-accent-edge: #80f2ff;
 		--fls-accent-ink: #090c14;
 		--fls-accent-text: var(--fls-sys-text-dark, var(--fls-accent));
-		--fls-glass-bg: linear-gradient(145deg, rgb(34 35 48 / 0.88), rgb(20 21 30 / 0.94));
+		--fls-glass-tint-start: #222330;
+		--fls-glass-tint-end: #14151e;
 		--fls-glass-bg-solid: #1a1b26;
 		--fls-glass-border: rgb(255 255 255 / 0.14);
 		--fls-glass-shadow: 0 20px 40px rgb(0 0 0 / 0.55), inset 0 1px 0 rgb(255 255 255 / 0.18);
@@ -169,7 +210,8 @@
 	--fls-accent-edge: #80f2ff;
 	--fls-accent-ink: #090c14;
 	--fls-accent-text: var(--fls-sys-text-dark, var(--fls-accent));
-	--fls-glass-bg: linear-gradient(145deg, rgb(34 35 48 / 0.88), rgb(20 21 30 / 0.94));
+	--fls-glass-tint-start: #222330;
+	--fls-glass-tint-end: #14151e;
 	--fls-glass-bg-solid: #1a1b26;
 	--fls-glass-border: rgb(255 255 255 / 0.14);
 	--fls-glass-shadow: 0 20px 40px rgb(0 0 0 / 0.55), inset 0 1px 0 rgb(255 255 255 / 0.18);
@@ -189,21 +231,93 @@
 }
 
 /*
+ * The surface switches of the Transparency settings, set on the root by `theme/transparencyDom.ts`.
+ * A dock or floating surface switched off takes the solid fill; menus, dialogs and the title bar
+ * wear glass only when switched on, at the menu opacity or the panel opacity. The title bar and the
+ * menu bar mix `--fls-bg-chrome` with `--fls-title-bar-opacity` (packages/chrome).
+ */
+:root[data-fls-glass-docks='off'] {
+	--fls-glass-docks-bg: var(--fls-glass-bg-solid);
+	--fls-glass-docks-filter: none;
+}
+
+:root[data-fls-glass-floating='off'] {
+	--fls-glass-floating-bg: var(--fls-glass-bg-solid);
+	--fls-glass-floating-filter: none;
+}
+
+:root[data-fls-glass-menus='on'] {
+	--fls-bg-menu: color-mix(
+		in srgb,
+		var(--fls-bg-raised) calc(var(--fls-menu-alpha) * 100%),
+		transparent
+	);
+	--fls-menu-backdrop: var(--fls-glass-filter);
+}
+
+:root[data-fls-glass-dialogs='on'] {
+	--fls-dialog-opacity: var(--fls-glass-alpha);
+	--fls-dialog-backdrop: var(--fls-glass-filter);
+}
+
+:root[data-fls-glass-title-bar='on'] {
+	--fls-title-bar-opacity: var(--fls-glass-alpha);
+	--fls-title-bar-backdrop: var(--fls-glass-filter);
+}
+
+/*
+ * The see-through window: its own background, the stage behind the canvas and the panel content
+ * let the desktop through at `--fls-window-alpha`, which `theme/transparencyDom.ts` sets only while
+ * the window may be see-through (switched on, the system able to, and in front unless that is
+ * allowed too) and never below the opacity that keeps the text readable. The level canvas stays
+ * solid.
+ */
+:root[data-fls-window='see-through'] {
+	--fls-bg-window: color-mix(
+		in srgb,
+		var(--fls-solid-window) calc(var(--fls-window-alpha) * 100%),
+		transparent
+	);
+	--fls-bg-stage: color-mix(
+		in srgb,
+		var(--fls-solid-stage) calc(var(--fls-window-alpha) * 100%),
+		transparent
+	);
+	--fls-bg-content: color-mix(
+		in srgb,
+		var(--fls-solid-content) calc(var(--fls-window-alpha) * 100%),
+		transparent
+	);
+}
+
+/*
  * Less transparency and more contrast. The system-appearance plugin sets `data-fls-transparency`
  * and `data-fls-contrast` on the root (see `theme/followAccent.ts`), and `data-fls-glass='on'` when
  * the person has turned glass on whatever the system asks; the media queries ask the webview the
- * same questions when it can answer them. Glass then drops its blur and takes a solid
- * fill, and the borders strengthen. In forced colours the system palette replaces every fill.
+ * same questions when it can answer them. Glass then drops its blur and saturation and takes a
+ * solid fill, every alpha is 1, and the borders strengthen. In forced colours the system palette
+ * replaces every fill. The Transparency settings are set inline on the root, so these rules mark
+ * the values they force `!important`, which is the one thing an inline value gives way to.
  */
 :root[data-fls-transparency='reduced'] {
-	--fls-glass-blur: 0px;
+	--fls-glass-blur: 0px !important;
+	--fls-glass-saturation: 100% !important;
+	--fls-glass-alpha: 1 !important;
+	--fls-menu-alpha: 1 !important;
+	--fls-window-alpha: 1 !important;
+	--fls-glass-filter: none;
 	--fls-glass-bg: var(--fls-glass-bg-solid);
 }
 
 @media (prefers-reduced-transparency: reduce) {
 	/* A person who turned glass on has said so, and that wins over the system's hint. */
 	:root:not([data-fls-glass='on']):root:root {
-		--fls-glass-blur: 0px;
+		--fls-glass-blur: 0px !important;
+		--fls-glass-saturation: 100% !important;
+		--fls-glass-alpha: 1 !important;
+		--fls-menu-alpha: 1 !important;
+		--fls-window-alpha: 1 !important;
+		--fls-glass-filter: none;
 		--fls-glass-bg: var(--fls-glass-bg-solid);
 	}
 }
@@ -224,8 +338,15 @@
 
 @media (forced-colors: active) {
 	:root:root:root {
-		--fls-glass-blur: 0px;
+		--fls-glass-blur: 0px !important;
+		--fls-glass-saturation: 100% !important;
+		--fls-glass-alpha: 1 !important;
+		--fls-menu-alpha: 1 !important;
+		--fls-window-alpha: 1 !important;
+		--fls-glass-filter: none;
 		--fls-glass-bg: Canvas;
+		--fls-glass-docks-bg: Canvas;
+		--fls-glass-floating-bg: Canvas;
 		--fls-glass-border: CanvasText;
 		--fls-glass-shadow: none;
 		--fls-key-top: ButtonFace;

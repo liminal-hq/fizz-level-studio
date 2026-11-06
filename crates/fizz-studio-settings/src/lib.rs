@@ -21,6 +21,6 @@ pub use dock::{
 pub use document::{DocumentError, LoadReport, SettingsFile, SETTINGS_FILE, SETTINGS_VERSION};
 pub use layout::{default_layout, resolve_layout, MAIN_KIND};
 pub use migrate::{migrate, Migration, MIGRATIONS};
-pub use rules::{apply_patch, clear_recent, touch_recent, validate};
+pub use rules::{apply_patch, clear_recent, touch_recent, validate, validate_transparency};
 pub use storage::{BlobStorage, DiskStorage, MemoryStorage, StorageError};
 pub use store::{Observer, SettingsStore};

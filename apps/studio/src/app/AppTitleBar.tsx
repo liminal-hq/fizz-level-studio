@@ -36,8 +36,11 @@ export function AppTitleBar({
 		document.title = title;
 		void setWindowTitle(title).catch(() => {});
 	}, [title]);
+	// Always mixed with `--fls-title-bar-opacity`, as the menu bar is: it is 1 (solid) until the
+	// Transparency settings put the title bar under glass (theme/tokens.css).
 	return (
 		<TitleBar
+			transparent
 			labels={chromeLabels()}
 			start={start}
 			center={<TitleBarTitle>{title}</TitleBarTitle>}

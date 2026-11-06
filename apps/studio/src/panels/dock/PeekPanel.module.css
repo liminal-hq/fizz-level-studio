@@ -7,9 +7,9 @@
 	box-sizing: border-box;
 	overflow: hidden;
 	color: var(--fls-text-primary);
-	background: var(--fls-glass-bg);
-	backdrop-filter: blur(var(--fls-glass-blur));
-	-webkit-backdrop-filter: blur(var(--fls-glass-blur));
+	background: var(--fls-glass-docks-bg);
+	-webkit-backdrop-filter: var(--fls-glass-docks-filter);
+	backdrop-filter: var(--fls-glass-docks-filter);
 	border: 1px solid var(--fls-glass-border);
 	border-radius: 12px;
 	box-shadow: var(--fls-glass-shadow);

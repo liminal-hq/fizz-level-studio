@@ -7,7 +7,7 @@
 // the current `Settings` no longer has. Steps run in order from the file's version up to the
 // current one.
 
-use fizz_studio_protocol::PanelLayout;
+use fizz_studio_protocol::{PanelLayout, TransparencySettings};
 
 use crate::dock::default_dock;
 use crate::layout::MAIN_KIND;
@@ -42,7 +42,28 @@ pub const MIGRATIONS: &[Migration] = &[
         from: 5,
         apply: add_tool_picker,
     },
+    Migration {
+        from: 6,
+        apply: add_transparency,
+    },
 ];
+
+/// Version 7 adds the transparency settings: the in-app glass (blur, saturation and panel
+/// opacity), which surfaces wear it, the menus' opacity, and the see-through window. The step
+/// writes the defaults in full, so the file says what is in force after the next save; a file that
+/// already has the group keeps it, and any field it lacks takes its default when it is read. The
+/// `glass` mode and everything else from version 6 is carried over untouched.
+fn add_transparency(mut settings: Value) -> Result<Value, String> {
+    let object = settings
+        .as_object_mut()
+        .ok_or("settings is not an object")?;
+    if !object.contains_key("transparency") {
+        let defaults =
+            serde_json::to_value(TransparencySettings::default()).map_err(|e| e.to_string())?;
+        object.insert("transparency".to_owned(), defaults);
+    }
+    Ok(settings)
+}
 
 /// Version 6 gives each workspace the place of the floating tool picker, unset (the map's top-left
 /// corner). A workspace that already has one keeps it.

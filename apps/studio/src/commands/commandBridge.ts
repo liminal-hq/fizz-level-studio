@@ -15,6 +15,12 @@ export interface CommandFacts {
 	editorOpen: boolean;
 	canUndo: boolean;
 	canRedo: boolean;
+	/** The name of the step Undo would take back, such as `Paint grass`. */
+	undoName: string | null;
+	/** The name of the step Redo would do again. */
+	redoName: string | null;
+	/** Who made the last change or step: `person`, `claude`, `outside` or `recovered`. */
+	author: string | null;
 	/** Every docked and floating panel is hidden so the level has the room. */
 	levelFirst: boolean;
 	/** The panel maximised to fill the workspace, if any. */
@@ -34,6 +40,9 @@ export const NO_FACTS: CommandFacts = {
 	editorOpen: false,
 	canUndo: false,
 	canRedo: false,
+	undoName: null,
+	redoName: null,
+	author: null,
 	levelFirst: false,
 	maximised: null,
 	panels: { palette: false, objects: false, history: false, proposals: false, script: false },
@@ -92,6 +101,9 @@ export function createCommandBridge(): CommandBridge {
 				next.editorOpen === was.editorOpen &&
 				next.canUndo === was.canUndo &&
 				next.canRedo === was.canRedo &&
+				next.undoName === was.undoName &&
+				next.redoName === was.redoName &&
+				next.author === was.author &&
 				next.lineCount === was.lineCount &&
 				sameBrushes(next.brushes, was.brushes) &&
 				next.levelFirst === was.levelFirst &&

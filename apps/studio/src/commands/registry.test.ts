@@ -12,7 +12,17 @@ import { PANEL_SPECS } from '../panels/float/panelSpecs';
 const openWindow = vi.hoisted(() => vi.fn(async () => {}));
 vi.mock('../services/windowsClient', () => ({ openWindow }));
 
-import { appMenuItems, APP_MENU_MNEMONICS } from './appMenuModel';
+import {
+	appMenuItems,
+	APP_MENU_MNEMONICS,
+	commandIdOfRow,
+	HISTORY_MORE_ID,
+	HISTORY_EMPTY_ID,
+	HISTORY_REDO_ID,
+	HISTORY_UNDO_ID,
+	menuSections,
+} from './appMenuModel';
+import { commandForKey } from './appShortcuts';
 import { createCommandBridge, NO_FACTS, type BridgeSnapshot } from './commandBridge';
 import {
 	COMMANDS,
@@ -51,7 +61,20 @@ describe('the registry', () => {
 	it('takes every label and reason from the catalogue', () => {
 		for (const command of COMMANDS) {
 			expect(enMessages, command.id).toHaveProperty(command.label);
-			if (command.unavailable) expect(enMessages).toHaveProperty(command.unavailable);
+		}
+	});
+
+	it('takes every reason from the catalogue', () => {
+		const states = [
+			NO_FACTS,
+			{ ...NO_FACTS, hasLevel: true, editorOpen: true },
+			{ ...NO_FACTS, hasLevel: true, editorOpen: true, maximised: 'script' as const },
+		];
+		for (const command of COMMANDS) {
+			for (const facts of states) {
+				const reason = command.reason?.(facts);
+				if (reason) expect(enMessages, command.id).toHaveProperty(reason);
+			}
 		}
 	});
 
@@ -69,10 +92,61 @@ describe('the registry', () => {
 		);
 		const row = rows.find((item) => 'label' in item && item.label === 'Show the level only');
 		expect(row).toMatchObject({ shortcut: 'Tab', checked: true });
-		const off = rowsOf(appMenuItems(snapshot({ editorOpen: false }, handlers)), 'menu:view');
+		expect(row).not.toHaveProperty('disabled');
+	});
+
+	it('hides the editor rows on the start screen instead of disabling them', () => {
+		const handlers = { 'view.levelFirst': () => {}, 'view.resetLayout': () => {} };
+		const start = rowsOf(appMenuItems(snapshot({ editorOpen: false }, handlers)), 'menu:view');
+		expect(start.map((item) => item.id)).toEqual(['view.commandPalette']);
+	});
+
+	it('disables a visible row with a reason worked out from the facts', () => {
+		const handlers = { 'view.levelFirst': () => {}, 'edit.undo': () => {}, 'edit.redo': () => {} };
+		const maximised = rowsOf(
+			appMenuItems(snapshot({ editorOpen: true, maximised: 'script' }, handlers)),
+			'menu:view',
+		);
+		expect(maximised.find((item) => item.id === 'view.levelFirst')).toMatchObject({
+			disabled: true,
+			title: 'Restore the maximised panel first',
+		});
+		const edit = (facts: Partial<BridgeSnapshot['facts']>) =>
+			rowsOf(appMenuItems(snapshot(facts, handlers)), 'menu:edit');
+		// No level: Undo says to open one; with a level and nothing to undo it says that instead.
+		expect(edit({}).find((item) => item.id === 'edit.undo')).toMatchObject({
+			disabled: true,
+			title: 'Open a level first',
+		});
 		expect(
-			off.find((item) => 'label' in item && item.label === 'Show the level only'),
-		).toHaveProperty('disabled', true);
+			edit({ hasLevel: true, editorOpen: true }).find((item) => item.id === 'edit.redo'),
+		).toMatchObject({ disabled: true, title: 'Nothing to redo' });
+		const enabled = edit({ hasLevel: true, editorOpen: true, canUndo: true }).find(
+			(item) => item.id === 'edit.undo',
+		);
+		expect(enabled).not.toHaveProperty('disabled');
+		expect(enabled).not.toHaveProperty('title');
+	});
+
+	it('tells visible from enabled on a command view', () => {
+		const maximise = allCommands(NO_FACTS).find((def) => def.id === 'view.maximise.script')!;
+		const here = snapshot({ editorOpen: true }, { 'view.maximise.script': () => {} });
+		expect(viewOf(maximise, here)).toMatchObject({
+			visible: true,
+			enabled: false,
+			reason: 'Show the panel first',
+		});
+		const shown = snapshot(
+			{ editorOpen: true, panels: { ...NO_FACTS.panels, script: true } },
+			{ 'view.maximise.script': () => {} },
+		);
+		expect(viewOf(maximise, shown)).toMatchObject({ visible: true, enabled: true });
+		expect(viewOf(maximise, shown).reason).toBeUndefined();
+		// Off the editor, and while the panel is maximised (its Restore row shows instead), it is not visible.
+		expect(viewOf(maximise, snapshot()).visible).toBe(false);
+		expect(viewOf(maximise, snapshot({ editorOpen: true, maximised: 'script' })).visible).toBe(
+			false,
+		);
 	});
 
 	it('enables the level commands only with a level open and a handler', () => {
@@ -123,7 +197,7 @@ describe('the registry', () => {
 		expect(new Set(rows).size).toBe(rows.length);
 	});
 
-	it('arranges File, Edit, View, Window and Help with rules between sections', () => {
+	it('arranges File, Edit, View, Window and Help in groups with one rule between them', () => {
 		const items = appMenuItems(snapshot({ editorOpen: true }));
 		expect(items.map((item) => (item.type === 'submenu' ? item.label : null))).toEqual([
 			'File',
@@ -134,25 +208,84 @@ describe('the registry', () => {
 		]);
 		expect(Object.values(APP_MENU_MNEMONICS)).toEqual(items.map((item) => item.id));
 		expect(Object.keys(APP_MENU_MNEMONICS)).toEqual(['f', 'e', 'v', 'w', 'h']);
-		const file = rowsOf(items, 'menu:file');
-		expect(file.map((item) => (item.type === 'separator' ? '-' : item.id))).toEqual([
+		const shape = (menu: string) =>
+			rowsOf(items, menu).map((item) => (item.type === 'separator' ? '-' : item.id));
+		expect(shape('menu:file')).toEqual([
 			'file.new',
 			'file.open',
 			'-',
 			'file.save',
+			'file.close',
 			'-',
 			'file.preferences',
 			'-',
-			'file.close',
 			'file.quit',
 		]);
-		expect(file.find((item) => item.id === 'file.preferences')).toMatchObject({
-			label: 'Preferences…',
-			shortcut: 'Ctrl+,',
-		});
-		expect(rowsOf(items, 'menu:help')).toMatchObject([
-			{ id: 'help.about', label: 'About Fizz Level Studio' },
+		expect(shape('menu:edit')).toEqual(['edit.undo', 'edit.redo', 'menu:history']);
+		expect(shape('menu:view')).toEqual([
+			...PANEL_SPECS.map((spec) => `view.panel.${spec.id}`),
+			'-',
+			...PANEL_SPECS.filter((spec) => spec.expandable).map((spec) => `view.maximise.${spec.id}`),
+			'view.levelFirst',
+			'view.resetLayout',
+			'-',
+			'view.commandPalette',
 		]);
+		expect(shape('menu:help')).toEqual(['help.help', 'help.shortcuts', '-', 'help.about']);
+		expect(rowsOf(items, 'menu:file').find((item) => item.id === 'file.preferences')).toMatchObject(
+			{
+				label: 'Preferences…',
+				shortcut: 'Ctrl+,',
+			},
+		);
+	});
+
+	it('puts an ellipsis on the rows that open a dialog or a window, and on no plain action', () => {
+		const items = appMenuItems(snapshot({ editorOpen: true, hasLevel: true }));
+		const labels = (menu: string) =>
+			Object.fromEntries(
+				rowsOf(items, menu).flatMap((item) =>
+					'label' in item && item.type !== 'submenu' ? [[item.id, item.label]] : [],
+				),
+			);
+		const file = labels('menu:file');
+		expect(file['file.new']).toBe('New level…');
+		expect(file['file.open']).toBe('Open level…');
+		expect(file['file.preferences']).toBe('Preferences…');
+		expect(file['file.save']).toBe('Save');
+		expect(file['file.close']).toBe('Close level');
+		expect(file['file.quit']).toBe('Quit');
+		expect(labels('menu:view')['view.commandPalette']).toBe('Command palette…');
+		expect(labels('menu:help')).toMatchObject({
+			'help.help': 'Help',
+			'help.shortcuts': 'Keyboard shortcuts…',
+			'help.about': 'About Fizz Level Studio…',
+		});
+	});
+
+	it('shows the new File and Help keys on their rows', () => {
+		const items = appMenuItems(snapshot({ editorOpen: true, hasLevel: true }));
+		const shortcut = (menu: string, id: string) => {
+			const row = rowsOf(items, menu).find((item) => item.id === id);
+			return row && 'shortcut' in row ? row.shortcut : undefined;
+		};
+		expect(shortcut('menu:file', 'file.new')).toBe('Ctrl+N');
+		expect(shortcut('menu:file', 'file.open')).toBe('Ctrl+O');
+		expect(shortcut('menu:file', 'file.close')).toBe('Ctrl+W');
+		expect(shortcut('menu:help', 'help.help')).toBe('F1');
+		expect(shortcut('menu:help', 'help.shortcuts')).toBe('?');
+	});
+
+	it('collapses an empty group and its rule, and a menu with no rows', () => {
+		const a: MenuItem = { type: 'action', id: 'a', label: 'A' };
+		const b: MenuItem = { type: 'action', id: 'b', label: 'B' };
+		const kinds = (items: MenuItem[]) => items.map((item) => item.type);
+		expect(kinds(menuSections([a], [], [b]))).toEqual(['action', 'separator', 'action']);
+		expect(kinds(menuSections([], [a], [], []))).toEqual(['action']);
+		expect(menuSections([], [])).toEqual([]);
+		// The View menu's panel group is hidden on the start screen, so no rule is left at its top.
+		const start = rowsOf(appMenuItems(snapshot()), 'menu:view');
+		expect(start.map((item) => item.type)).toEqual(['action']);
 	});
 
 	it('lists a Tear off row for each panel in the Window menu, and Dock back for one that is away', () => {
@@ -172,9 +305,9 @@ describe('the registry', () => {
 			'menu:view',
 			'menu:help',
 		]);
-		// Edit and View keep their rows, disabled.
+		// Edit keeps Undo and Redo, disabled; View keeps the command palette.
 		expect(rowsOf(items, 'menu:edit').length).toBeGreaterThan(0);
-		expect(rowsOf(items, 'menu:view').length).toBeGreaterThan(0);
+		expect(rowsOf(items, 'menu:view').map((row) => row.id)).toEqual(['view.commandPalette']);
 		const withEditor = appMenuItems(snapshot({ editorOpen: true }));
 		expect(withEditor.map((item) => item.id)).toContain('menu:window');
 		// The palette does not offer them either.
@@ -186,6 +319,9 @@ describe('the registry', () => {
 		expect(runCommand('file.preferences', snapshot())).toBe(true);
 		expect(openWindow).toHaveBeenCalledWith({ kind: 'preferences' });
 		expect(runCommand('help.about', snapshot())).toBe(true);
+		expect(openWindow).toHaveBeenCalledWith({ kind: 'about' });
+		openWindow.mockClear();
+		expect(runCommand('help.help', snapshot())).toBe(true);
 		expect(openWindow).toHaveBeenCalledWith({ kind: 'about' });
 		const save = vi.fn();
 		expect(runCommand('file.save', snapshot({ hasLevel: true }, { 'file.save': save }))).toBe(true);
@@ -376,5 +512,182 @@ describe('the menu icons', () => {
 		const row = view.find((item) => item.id === 'view.panel.script');
 		expect(row).toMatchObject({ type: 'checkbox' });
 		expect(row && 'icon' in row && row.icon).toBeTruthy();
+	});
+});
+
+describe('the palette and visibility', () => {
+	it('does not offer a hidden command, and keeps the reason of a disabled one', () => {
+		const start = paletteEntries(snapshot());
+		expect(start.some((entry) => entry.id === 'view.panel.script')).toBe(false);
+		expect(start.some((entry) => entry.id === 'view.resetLayout')).toBe(false);
+		expect(start.some((entry) => entry.id.startsWith('view.maximise'))).toBe(false);
+		expect(start.find((entry) => entry.id === 'edit.undo')).toMatchObject({
+			enabled: false,
+			reason: 'Open a level first',
+		});
+		const editor = paletteEntries(
+			snapshot({ hasLevel: true, editorOpen: true, maximised: 'script' }),
+		);
+		expect(editor.some((entry) => entry.id === 'view.panel.script')).toBe(true);
+		// While Script is maximised its Restore row is offered and its Maximise row is hidden.
+		expect(editor.some((entry) => entry.id === 'view.restore.script')).toBe(true);
+		expect(editor.some((entry) => entry.id === 'view.maximise.script')).toBe(false);
+		expect(editor.find((entry) => entry.id === 'view.levelFirst')).toMatchObject({
+			enabled: false,
+			reason: 'Restore the maximised panel first',
+		});
+	});
+
+	it('offers the new Help commands with their keys', () => {
+		const entries = paletteEntries(snapshot());
+		expect(entries.find((entry) => entry.id === 'help.help')).toMatchObject({
+			group: 'help',
+			shortcut: 'F1',
+		});
+		expect(entries.find((entry) => entry.id === 'help.shortcuts')).toMatchObject({
+			group: 'help',
+			shortcut: '?',
+			// Nothing has published a handler for it yet, so it is listed and dimmed.
+			enabled: false,
+		});
+	});
+});
+
+describe('the app keys', () => {
+	const key = (
+		init: Partial<Pick<KeyboardEvent, 'key' | 'ctrlKey' | 'metaKey' | 'altKey' | 'shiftKey'>>,
+		target: EventTarget | null = null,
+	) =>
+		commandForKey({
+			key: '',
+			ctrlKey: false,
+			metaKey: false,
+			altKey: false,
+			shiftKey: false,
+			target,
+			...init,
+		});
+
+	it('maps Ctrl+N, Ctrl+O and Ctrl+W to New, Open and Close level', () => {
+		expect(key({ key: 'n', ctrlKey: true })).toBe('file.new');
+		expect(key({ key: 'o', ctrlKey: true })).toBe('file.open');
+		expect(key({ key: 'w', ctrlKey: true })).toBe('file.close');
+		expect(key({ key: 'W', metaKey: true })).toBe('file.close');
+	});
+
+	it('leaves the other modified keys, the tool keys and Quit alone', () => {
+		expect(key({ key: 'n', ctrlKey: true, shiftKey: true })).toBeNull();
+		expect(key({ key: 'w', ctrlKey: true, altKey: true })).toBeNull();
+		expect(key({ key: 'q', ctrlKey: true })).toBeNull();
+		for (const letter of ['n', 'o', 'w', 'b', 'e', 'i', 's', 't', 'q']) {
+			expect(key({ key: letter })).toBeNull();
+		}
+	});
+
+	it('maps F1 to Help and the question mark to Keyboard shortcuts', () => {
+		expect(key({ key: 'F1' })).toBe('help.help');
+		expect(key({ key: '?', shiftKey: true })).toBe('help.shortcuts');
+	});
+
+	it('pauses the question mark while typing in a box', () => {
+		const input = document.createElement('input');
+		const editable = document.createElement('div');
+		editable.setAttribute('contenteditable', 'true');
+		const inner = document.createElement('span');
+		editable.append(inner);
+		expect(key({ key: '?' }, input)).toBeNull();
+		expect(key({ key: '?' }, inner)).toBeNull();
+		expect(key({ key: '?' }, document.createElement('button'))).toBe('help.shortcuts');
+		// F1 and the Ctrl keys still work in a box.
+		expect(key({ key: 'F1' }, input)).toBe('help.help');
+	});
+
+	it('runs through the registry, so Close level does nothing without a level', () => {
+		const close = vi.fn();
+		const handlers = { 'file.close': close };
+		const id = key({ key: 'w', ctrlKey: true })!;
+		expect(runCommand(id, snapshot({}, handlers))).toBe(false);
+		expect(runCommand(id, snapshot({ hasLevel: true }, handlers))).toBe(true);
+		expect(close).toHaveBeenCalledOnce();
+	});
+});
+
+describe('the Undo history submenu', () => {
+	const handlers = { 'edit.undo': () => {}, 'edit.redo': () => {} };
+	const history = (
+		facts: Partial<BridgeSnapshot['facts']>,
+		given: BridgeSnapshot['handlers'] = handlers,
+	) => {
+		const edit = appMenuItems(snapshot({ hasLevel: true, editorOpen: true, ...facts }, given)).find(
+			(item) => item.id === 'menu:edit',
+		);
+		const sub = edit?.type === 'submenu' ? edit.items.find((i) => i.id === 'menu:history') : null;
+		return sub?.type === 'submenu' ? sub.items : [];
+	};
+
+	it('sits in the Edit menu after Undo and Redo', () => {
+		const edit = rowsOf(appMenuItems(snapshot({ hasLevel: true, editorOpen: true })), 'menu:edit');
+		expect(edit.map((item) => item.id)).toEqual(['edit.undo', 'edit.redo', 'menu:history']);
+		expect(edit[2]).toMatchObject({ type: 'submenu', label: 'Undo history' });
+	});
+
+	it('says there is nothing in the history yet, above the palette footer', () => {
+		const rows = history({});
+		expect(rows.map((item) => (item.type === 'separator' ? '-' : item.id))).toEqual([
+			HISTORY_EMPTY_ID,
+			'-',
+			HISTORY_MORE_ID,
+		]);
+		expect(rows[0]).toMatchObject({ label: 'Nothing in the history yet', disabled: true });
+		expect(rows[2]).toMatchObject({ label: 'More in the command palette…' });
+		expect(rows[2]).not.toHaveProperty('disabled');
+	});
+
+	it('lists the undo step with its author, enabled, and the undone step above it', () => {
+		const undoOnly = history({ canUndo: true, undoName: 'Paint grass', author: 'claude' });
+		expect(undoOnly[0]).toMatchObject({ id: HISTORY_UNDO_ID, label: 'Paint grass (Claude)' });
+		expect(undoOnly[0]).not.toHaveProperty('disabled');
+		const both = history({
+			canUndo: true,
+			canRedo: true,
+			undoName: 'Erase a wall',
+			redoName: 'Paint grass',
+			// The last step was an undo, so the author belongs to the step that can be redone.
+			author: 'person',
+		});
+		expect(both.map((item) => item.id)).toEqual([
+			HISTORY_REDO_ID,
+			HISTORY_UNDO_ID,
+			expect.stringContaining('rule'),
+			HISTORY_MORE_ID,
+		]);
+		expect(both[0]).toMatchObject({ label: 'Paint grass (You, undone)' });
+		expect(both[1]).toMatchObject({ label: 'Erase a wall' });
+		expect(both[0]).not.toHaveProperty('disabled');
+		expect(both[1]).not.toHaveProperty('disabled');
+	});
+
+	it('names an unnamed step by its command and leaves out an author it does not know', () => {
+		const rows = history({ canRedo: true, author: null });
+		expect(rows[0]).toMatchObject({ id: HISTORY_REDO_ID, label: 'Redo (undone)' });
+	});
+
+	it('disables a step whose command cannot run, with the reason as its tooltip', () => {
+		const rows = history({ canUndo: true, undoName: 'Paint grass' }, {});
+		expect(rows[0]).toMatchObject({
+			id: HISTORY_UNDO_ID,
+			disabled: true,
+			title: 'Not available right now',
+		});
+	});
+
+	it('gives every row an icon, and runs the command a row stands for', () => {
+		for (const row of history({ canUndo: true, canRedo: true })) {
+			if (row.type !== 'separator' && row.type !== 'section') expect(row.icon, row.id).toBeTruthy();
+		}
+		expect(commandIdOfRow(HISTORY_UNDO_ID)).toBe('edit.undo');
+		expect(commandIdOfRow(HISTORY_REDO_ID)).toBe('edit.redo');
+		expect(commandIdOfRow(HISTORY_MORE_ID)).toBe('view.commandPalette');
+		expect(commandIdOfRow('file.save')).toBe('file.save');
 	});
 });
