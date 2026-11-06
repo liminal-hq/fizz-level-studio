@@ -64,6 +64,8 @@
 	gap: 0.3rem;
 	min-width: 0;
 	overflow-x: auto;
+	/* The tab strip scrolls, so it clips too: leave room for the keys' bottom edge and shadow. */
+	padding-bottom: 6px;
 }
 
 .tab {

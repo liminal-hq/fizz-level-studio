@@ -1263,10 +1263,45 @@ function keycapOffenders(bridge: Bridge, windowLabel = 'main-1'): Promise<string
 	);
 }
 
+/**
+ * The keycaps whose raised bottom edge and shadow are cut off by an ancestor that clips: a key needs
+ * about 4 px under it inside the nearest ancestor with overflow other than visible.
+ */
+function clippedKeycaps(bridge: Bridge, windowLabel = 'main-1'): Promise<string[]> {
+	return bridge.js<string[]>(
+		`const bad = [];
+		 for (const e of document.querySelectorAll('button, [role=button], [role=tab]')) {
+			 const r = e.getBoundingClientRect();
+			 const c = getComputedStyle(e);
+			 if (r.width === 0 || r.height === 0 || c.display === 'none' || c.visibility === 'hidden') continue;
+			 if (!c.backgroundImage.includes('linear-gradient') || c.borderBottomWidth !== '3px') continue;
+			 for (let a = e.parentElement; a && a !== document.documentElement; a = a.parentElement) {
+				 const o = getComputedStyle(a);
+				 if (o.overflowY === 'visible' && o.overflowX === 'visible') continue;
+				 if (a.scrollHeight > a.clientHeight + 1) break; // a list that scrolls cuts keys by design
+				 const room = a.getBoundingClientRect().bottom - r.bottom;
+				 if (room < 4) {
+					 const name = e.getAttribute('aria-label') || e.textContent.trim().slice(0, 30);
+					 bad.push('"' + name + '" clipped by ' + String(a.className).split(' ')[0] + ' (' + room.toFixed(1) + ' px under it)');
+				 }
+				 break;
+			 }
+		 }
+		 return bad;`,
+		windowLabel,
+	);
+}
+
 /** Checks that every visible button in this window is a keycap, naming the ones that are not. */
 async function checkKeycaps(bridge: Bridge, where: string, windowLabel = 'main-1'): Promise<void> {
 	const bad = await keycapOffenders(bridge, windowLabel);
 	check(`${where}: every button is a keycap`, bad.length === 0, bad.join('; '));
+	const clipped = await clippedKeycaps(bridge, windowLabel);
+	check(
+		`${where}: no keycap has its bottom edge cut off`,
+		clipped.length === 0,
+		clipped.join('; '),
+	);
 }
 
 async function main(): Promise<void> {
