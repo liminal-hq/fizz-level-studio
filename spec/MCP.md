@@ -60,7 +60,7 @@ The server's instructions to Claude: read with `get_level` and `get_region`, cha
 | `propose` (the default) | Records a `pending` history entry | Unchanged until the person accepts |
 | `direct` | Appends the lines at once and records an `applied` entry, one undo step | Changed |
 
-The mode lives in the sidecar and is set only by the CLI. No tool reads a mode from its input (an unknown field such as `mode` is rejected by the schema), and no tool changes it. Accept and reject are not MCP tools; the CLI stands in for the studio window's buttons:
+**This describes today's server; D68 changes it.** Claude is to become a peer with two modes, Direct (its edits land at once) and Review (its edits are proposals). The person switches the mode in the studio and Claude can set it through a tool, including to a more restricted one. Claude may accept its own proposals and widen its own mode, and the server's instructions will say plainly that doing either is lightly discouraged unless the person asked for it or the change is small and clearly wanted. Today the mode lives in the sidecar and is set only by the CLI, no tool reads or changes it, and accept and reject are not MCP tools; the CLI stands in for the studio window's buttons:
 
 ```bash
 bun packages/mcp/src/cli.ts mode propose|direct levels/crater-play.fizz

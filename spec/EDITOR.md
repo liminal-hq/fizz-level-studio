@@ -110,7 +110,7 @@ The rule, as the prototype implements it:
 2. When an object changes (a field, a drag, a toggle), the studio **rewrites its one line in place**, in canonical form (`objText`), keeping the line's indentation. Moving a lift never adds a second one.
 3. An object the studio adds goes under `edits`.
 4. An object the person deletes has its line replaced by `// removed in the studio: <original line>`; Undo brings it back.
-5. A hand-written line the studio did not touch is never rewritten. Tile edits are never written into hand-written lines.
+5. A statement the studio did not touch prints exactly as it was, comments and spacing included. D68 replaces the old rule that hand-written lines are never rewritten: an edit to an object rewrites that object's own statement in place (splitting or expanding a statement that places several objects or is generated), with its comments kept, as one named undo step. Tile painting keeps the `edits` log and folds it.
 6. A drag is one undo step: the first move records the step, later moves of the same drag only update the object.
 
 Moving a room moves its facade: the old facade cells go back to empty and the empty cells of the new rectangle take the facade.

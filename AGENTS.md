@@ -194,8 +194,8 @@ Some files are generated and committed because something needs them without a bu
 - **The game owns the simulation.** Deterministic rules (physics, collision, enemy behaviour, timing) live in the game's Rust, and the studio never re-derives them in TypeScript outside `design/`.
 - **The script is the source.** The canvas, Claude's view and every export derive from the text file.
 - **Prove against the game's own data.** A claim of equality is checked by building the real thing and comparing.
-- **Hand-written lines are never rewritten.** The studio rewrites only the object lines it owns (`spec/EDITOR.md`, section 4).
-- **Claude proposes by default.** Accept, reject and the mode are the person's alone, and no MCP tool can change them.
+- **The script is one document, edited by peers.** The canvas, the code editor and Claude edit it with structured operations that rewrite only the statements they touch and keep comments and formatting; nothing is read-only, and every change is one named undo step with its author (D68, which supersedes D8 to D10). Until the Inspector's edits are built, the Rust studio still only appends under `edits`.
+- **Claude is a peer with two modes,** Direct (its edits land at once) and Review (its edits are proposals). The person switches the mode in the studio and Claude can too through MCP; accepting its own proposals or widening its own mode is lightly discouraged, not blocked (D68).
 - **The language package is pure.** No DOM, no storage, no network.
 - **The desktop app follows the Liminal HQ Tauri standards** (`spec/DESKTOP.md`): Rust owns state (intents in, patches out, one writer, a revision on every change), pure crates with no `tauri` dependency, thin plugins with `guest-js`, windows created in Rust, no browser storage, every string from the catalogue. The planned domain logic is Rust, including a port of the TypeScript language package (D56); the games are linked natively, not run as WebAssembly (D59).
 - **No barrel files.** Import from the defining file.

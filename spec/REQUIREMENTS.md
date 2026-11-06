@@ -17,7 +17,7 @@ Status values: **Proven** — built in `packages/language` or `packages/mcp` and
 | R-LANG-09 | `hover` with `size=` and `dwell=` | Proven | Zarg Lookout, Frosting Spire |
 | R-LANG-10 | `channel LIST on\|off` | Proven | Mirror Shafts |
 | R-LANG-11 | `room`, `secret-room`, `arena` | Proven | Bonbon Playhouse, Sugar Glass Gallery, Citadel |
-| R-LANG-12 | `edits` is appended after the last line; hand-written lines are never rewritten | Package | `edits.test.ts`, `studio.test.ts` |
+| R-LANG-12 | `edits` is appended after the last line; statements an edit does not touch are never changed (D68) | Package | `edits.test.ts`, `studio.test.ts` |
 | R-LANG-13 | `edits` accepts `paint`, `clear`, `place`, enemies, `hover`, `channel`, `room`, `secret-room` | Package | `objects.test.ts` |
 | R-LANG-14 | `theme` and `area` checked against the level table (E014) | Package | `parser.test.ts`, `errors.test.ts` |
 | R-LANG-15 | Every word the parser accepts has a doc entry with syntax, example and note | Package | `docs.test.ts` |
@@ -83,7 +83,7 @@ Status values: **Proven** — built in `packages/language` or `packages/mcp` and
 | --- | --- | --- | --- |
 | R-AI-01 | Nine tools: `get_level`, `get_region`, `list_kinds`, `edit_level`, `get_proposal_state`, `add_note`, `run_checks`, `undo`, `get_changes` | Package | `studio.test.ts`, `e2e.test.ts` |
 | R-AI-02 | Propose by default; the mode is read from the sidecar; no tool takes or changes it | Package | "the mode cannot be changed through any tool" |
-| R-AI-03 | Accept and reject exist only outside MCP | Package | `packages/mcp/src/cli.ts` |
+| R-AI-03 | Today accept and reject exist only outside MCP; D68 makes Claude a peer with Direct and Review modes, and lets it accept its own proposals (lightly discouraged) | Package | `packages/mcp/src/cli.ts` |
 | R-AI-04 | Every line is parsed before anything is stored; one bad line rejects the call | Package | "a malformed line is rejected with code, line and fix" |
 | R-AI-05 | `undo` reverts only Claude's last applied step and refuses on conflict | Package | `studio.test.ts` |
 | R-AI-06 | `get_selection` | Not built | Needs the studio app |

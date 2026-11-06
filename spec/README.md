@@ -69,7 +69,7 @@ Each goal is specific and testable. [spec/GOALS.md](GOALS.md) ranks them and giv
 ### Correctness and trust
 
 - **G-TRUST-1** A script that exports, compiles and runs produces a level whose fingerprint equals the one the studio shows; any difference is a failing test.
-- **G-TRUST-2** Hand-written lines are never rewritten: after any number of studio edits, every hand-written line the studio did not own prints byte for byte as written.
+- **G-TRUST-2** Nothing the person wrote is lost or reformatted unless an edit touches it (D68): after any number of edits, every statement the edits did not touch prints byte for byte as written, and comments travel with their statements.
 - **G-TRUST-3** Nothing Claude writes reaches the level file without passing the language parser, and in propose mode nothing reaches it without the person's accept.
 - **G-TRUST-4** The studio never claims what it has not checked: a check that did not run says so (as `run_checks` does with `playtest_bot: "not run"`).
 
@@ -234,7 +234,7 @@ Note: the "What v0 does not cover" list at the end of `spec/LANGUAGE.md` predate
 | Layer | Owns | Today |
 | --- | --- | --- |
 | The game (Rust, `episodes/episode-1/game`, `crates/sim`) | The simulation, the `Builder`, the level and overworld tables, fingerprints, the playtest bot | In the game repository; copied into `scratch/rust/` for the proofs |
-| Language package (`packages/language`) | Text ↔ AST, the edits rule, Rust export, the overworld model and rasteriser, the language docs | Built |
+| Language package (`packages/language`) | Text ⟷ AST, the edits rule, Rust export, the overworld model and rasteriser, the language docs | Built |
 | Level rasteriser (`packages/mcp/src/world.ts`) | A picture of a level script, for drawing and structural checks | Built; agrees with the game on all 16 levels |
 | MCP server (`packages/mcp`) | Claude's tools, proposals, modes, history, notes | Built for one level file |
 | Studio app (`apps/studio`, Tauri v2) | The windows, the canvas and panels, the chrome; it renders and sends intents | Prototype only; planned in `spec/DESKTOP.md` |

@@ -141,7 +141,7 @@ edits   // painted in the studio, by you or Claude
 
 The edits block is where the studio and Claude record changes made by hand on the canvas, so the hand-written script is never rewritten.
 
-1. **Hand-written lines are never rewritten.** `appendEdits(ast, edits)` returns a new AST that shares every existing node untouched and only adds new nodes. A parsed line prints as the exact text it was read from, so appending leaves every earlier byte of the file as it was.
+1. **Appending leaves earlier lines alone (D68 replaces the old never-rewrite rule for structured edits).** `appendEdits(ast, edits)` returns a new AST that shares every existing node untouched and only adds new nodes. A parsed line prints as the exact text it was read from, so appending leaves every earlier byte of the file as it was.
 2. **Edits are appended.** New lines go after the last non-blank line of the file (so after the last line of an existing block). If there is no `edits` header yet, the studio adds one blank line and the bare header `edits` first. Blank lines at the end of the file stay at the end.
 3. **Edits run last, in file order.** In the exported Rust they come after every other statement and before `b.out(...)`. A later line wins over an earlier one, and over anything the hand-written sections built.
 4. **`paint TILE x=LIST y=LIST`** sets every cell in the x-list by y-list product to the tile, as `b.fill(x0, x1, y0, y1, TILE)` per pair of ranges. It is a tile word only (see below).
