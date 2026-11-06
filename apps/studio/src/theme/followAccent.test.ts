@@ -11,6 +11,7 @@ import {
 	type AppearanceChoice,
 	type AppearanceHints,
 } from './followAccent';
+import { TRANSPARENCY_DEFAULTS } from './transparency';
 
 const NORMAL: AppearanceHints = { accent: null, reducedTransparency: false, contrast: 'normal' };
 
@@ -19,9 +20,11 @@ function fakeSources(
 	available: boolean,
 	hints: AppearanceHints,
 	choice: AppearanceChoice = SYSTEM_CHOICE,
+	seeThrough?: boolean,
 ) {
 	let onHints: (hints: AppearanceHints) => void = () => {};
 	let onChoice: (choice: AppearanceChoice) => void = () => {};
+	let onFocus: (focused: boolean) => void = () => {};
 	const stop = vi.fn();
 	const stopChoice = vi.fn();
 	const sources: AccentSources = {
@@ -36,6 +39,16 @@ function fakeSources(
 			onHints = listener;
 			return stop;
 		},
+		...(seeThrough === undefined
+			? {}
+			: {
+					seeThroughAvailable: async () => seeThrough,
+					focused: async () => true,
+					onFocusChanged: (listener: (focused: boolean) => void) => {
+						onFocus = listener;
+						return () => {};
+					},
+				}),
 	};
 	return {
 		sources,
@@ -43,6 +56,7 @@ function fakeSources(
 		stopChoice,
 		change: (next: AppearanceHints) => onHints(next),
 		choose: (next: AppearanceChoice) => onChoice(next),
+		focus: (focused: boolean) => onFocus(focused),
 	};
 }
 
@@ -129,27 +143,50 @@ describe('followAccent', () => {
 		};
 
 		it('uses the system accent for system', async () => {
-			expect(await accentOf({ accent: { kind: 'system' }, glass: 'system' })).toBe('#3584e4');
+			expect(
+				await accentOf({
+					accent: { kind: 'system' },
+					glass: 'system',
+					transparency: TRANSPARENCY_DEFAULTS,
+				}),
+			).toBe('#3584e4');
 		});
 
 		it('clears the accent for the studio cyan, whatever the system has', async () => {
-			expect(await accentOf({ accent: { kind: 'studio' }, glass: 'system' })).toBe('');
+			expect(
+				await accentOf({
+					accent: { kind: 'studio' },
+					glass: 'system',
+					transparency: TRANSPARENCY_DEFAULTS,
+				}),
+			).toBe('');
 		});
 
 		it('uses the Afterglow presets', async () => {
-			expect(await accentOf({ accent: { kind: 'afterglow-orange' }, glass: 'system' })).toBe(
-				'#ffaa40',
-			);
-			expect(await accentOf({ accent: { kind: 'afterglow-purple' }, glass: 'system' })).toBe(
-				'#a78bfa',
-			);
+			expect(
+				await accentOf({
+					accent: { kind: 'afterglow-orange' },
+					glass: 'system',
+					transparency: TRANSPARENCY_DEFAULTS,
+				}),
+			).toBe('#ffaa40');
+			expect(
+				await accentOf({
+					accent: { kind: 'afterglow-purple' },
+					glass: 'system',
+					transparency: TRANSPARENCY_DEFAULTS,
+				}),
+			).toBe('#a78bfa');
 		});
 
 		it('uses a custom colour, even where the system supplies none', async () => {
 			const root = document.createElement('div');
 			followAccent(
-				fakeSources(false, NORMAL, { accent: { kind: 'custom', hex: '#123abc' }, glass: 'system' })
-					.sources,
+				fakeSources(false, NORMAL, {
+					accent: { kind: 'custom', hex: '#123abc' },
+					glass: 'system',
+					transparency: TRANSPARENCY_DEFAULTS,
+				}).sources,
 				root,
 			);
 			await settle();
@@ -161,7 +198,11 @@ describe('followAccent', () => {
 			const fake = fakeSources(true, SYSTEM);
 			followAccent(fake.sources, root);
 			await settle();
-			fake.choose({ accent: { kind: 'afterglow-orange' }, glass: 'off' });
+			fake.choose({
+				accent: { kind: 'afterglow-orange' },
+				glass: 'off',
+				transparency: TRANSPARENCY_DEFAULTS,
+			});
 			expect(root.style.getPropertyValue('--fls-accent')).toBe('#ffaa40');
 			expect(root.dataset.flsTransparency).toBe('reduced');
 			fake.choose(SYSTEM_CHOICE);
@@ -173,7 +214,11 @@ describe('followAccent', () => {
 			const root = document.createElement('div');
 			const fake = fakeSources(true, SYSTEM, SYSTEM_CHOICE);
 			followAccent(fake.sources, root);
-			fake.choose({ accent: { kind: 'afterglow-purple' }, glass: 'system' });
+			fake.choose({
+				accent: { kind: 'afterglow-purple' },
+				glass: 'system',
+				transparency: TRANSPARENCY_DEFAULTS,
+			});
 			await settle();
 			expect(root.style.getPropertyValue('--fls-accent')).toBe('#a78bfa');
 		});
@@ -183,7 +228,11 @@ describe('followAccent', () => {
 			const run = async (glass: AppearanceChoice['glass']) => {
 				const root = document.createElement('div');
 				followAccent(
-					fakeSources(true, reduced, { accent: { kind: 'system' }, glass }).sources,
+					fakeSources(true, reduced, {
+						accent: { kind: 'system' },
+						glass,
+						transparency: TRANSPARENCY_DEFAULTS,
+					}).sources,
 					root,
 				);
 				await settle();
@@ -196,6 +245,68 @@ describe('followAccent', () => {
 			const on = await run('on');
 			expect(on.dataset.flsTransparency).toBeUndefined();
 			expect(on.dataset.flsGlass).toBe('on');
+		});
+	});
+
+	describe('the transparency settings', () => {
+		const WINDOW = { ...TRANSPARENCY_DEFAULTS, window_enabled: true };
+		const choice = (over: Partial<AppearanceChoice> = {}): AppearanceChoice => ({
+			...SYSTEM_CHOICE,
+			transparency: WINDOW,
+			...over,
+		});
+
+		it('writes the glass values and switches on the root, and follows a change', async () => {
+			const root = document.createElement('div');
+			const fake = fakeSources(true, NORMAL);
+			followAccent(fake.sources, root);
+			await settle();
+			expect(root.style.getPropertyValue('--fls-glass-blur')).toBe('16px');
+			expect(root.dataset.flsGlassDocks).toBe('on');
+			fake.choose({
+				...SYSTEM_CHOICE,
+				transparency: {
+					...TRANSPARENCY_DEFAULTS,
+					blur: 30,
+					saturation: 180,
+					panel_opacity: 60,
+					menus: true,
+				},
+			});
+			expect(root.style.getPropertyValue('--fls-glass-blur')).toBe('30px');
+			expect(root.style.getPropertyValue('--fls-glass-saturation')).toBe('180%');
+			expect(root.style.getPropertyValue('--fls-glass-alpha')).toBe('0.6');
+			expect(root.dataset.flsGlassMenus).toBe('on');
+		});
+
+		it('lets the desktop through only where the window can, while it is in front', async () => {
+			const root = document.createElement('div');
+			const fake = fakeSources(true, NORMAL, choice(), true);
+			followAccent(fake.sources, root);
+			await settle();
+			expect(root.dataset.flsWindow).toBe('see-through');
+			fake.focus(false);
+			expect(root.dataset.flsWindow).toBeUndefined();
+			fake.choose(choice({ transparency: { ...WINDOW, solid_when_unfocused: false } }));
+			expect(root.dataset.flsWindow).toBe('see-through');
+		});
+
+		it('keeps the window solid where it cannot be see-through, or glass is off', async () => {
+			const cannot = document.createElement('div');
+			followAccent(fakeSources(true, NORMAL, choice(), false).sources, cannot);
+			const unknown = document.createElement('div');
+			followAccent(fakeSources(true, NORMAL, choice()).sources, unknown);
+			const off = document.createElement('div');
+			followAccent(fakeSources(true, NORMAL, choice({ glass: 'off' }), true).sources, off);
+			const reduced = document.createElement('div');
+			followAccent(
+				fakeSources(true, { ...NORMAL, reducedTransparency: true }, choice(), true).sources,
+				reduced,
+			);
+			await settle();
+			for (const root of [cannot, unknown, off, reduced]) {
+				expect(root.dataset.flsWindow).toBeUndefined();
+			}
 		});
 	});
 });

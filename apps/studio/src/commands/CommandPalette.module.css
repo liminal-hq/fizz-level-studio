@@ -17,8 +17,9 @@
 	overflow: hidden;
 	color: var(--fls-text-primary);
 	font-family: var(--fls-font);
-	background: var(--fls-glass-bg);
-	backdrop-filter: blur(var(--fls-glass-blur));
+	background: var(--fls-glass-floating-bg);
+	-webkit-backdrop-filter: var(--fls-glass-floating-filter);
+	backdrop-filter: var(--fls-glass-floating-filter);
 	border: 1px solid var(--fls-glass-border);
 	border-radius: 12px;
 	box-shadow: var(--fls-glass-shadow);

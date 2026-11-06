@@ -36,12 +36,18 @@
 	}
 }
 
+/*
+ * A translucent title bar, and the blur behind it (none unless the host asks). Its menus are
+ * portalled to the body, so the filter making the bar a containing block moves none of them.
+ */
 .titleBar[data-transparent] {
 	background: color-mix(
 		in srgb,
 		var(--fls-bg-chrome) calc(var(--fls-title-bar-opacity) * 100%),
 		transparent
 	);
+	-webkit-backdrop-filter: var(--fls-title-bar-backdrop);
+	backdrop-filter: var(--fls-title-bar-backdrop);
 }
 
 .titleBar[data-transparent][data-focused='false'] {

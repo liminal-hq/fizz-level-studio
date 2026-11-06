@@ -25,8 +25,8 @@
 	min-width: 12rem;
 	padding: 0.5rem 0.75rem;
 	background: var(--fls-glass-bg);
-	backdrop-filter: blur(var(--fls-glass-blur));
-	-webkit-backdrop-filter: blur(var(--fls-glass-blur));
+	-webkit-backdrop-filter: var(--fls-glass-filter);
+	backdrop-filter: var(--fls-glass-filter);
 	border: 1px solid var(--fls-glass-border);
 	border-radius: 10px;
 	box-shadow: var(--fls-glass-shadow);

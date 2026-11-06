@@ -32,9 +32,10 @@
 	flex-direction: column;
 	min-width: 12rem;
 	padding: 0.25rem;
-	background: var(--fls-glass-bg);
-	backdrop-filter: blur(var(--fls-glass-blur));
-	-webkit-backdrop-filter: blur(var(--fls-glass-blur));
+	/* A menu: solid unless the Transparency settings put menus under glass (theme/tokens.css). */
+	background: var(--fls-bg-menu);
+	-webkit-backdrop-filter: var(--fls-menu-backdrop);
+	backdrop-filter: var(--fls-menu-backdrop);
 	border: 1px solid var(--fls-glass-border);
 	border-radius: 12px;
 	box-shadow: var(--fls-glass-shadow);

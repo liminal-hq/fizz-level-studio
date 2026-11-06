@@ -19,6 +19,8 @@
 		var(--fls-bg-chrome) calc(var(--fls-title-bar-opacity) * 100%),
 		transparent
 	);
+	-webkit-backdrop-filter: var(--fls-title-bar-backdrop);
+	backdrop-filter: var(--fls-title-bar-backdrop);
 }
 
 .cell {
