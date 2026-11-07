@@ -184,6 +184,7 @@ export function DockRail({
 						type="button"
 						className={styles.item}
 						data-rail-placeholder={entry.id}
+						data-keycap-exempt=""
 						title={entry.reason}
 						disabled
 					>

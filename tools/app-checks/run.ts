@@ -2151,7 +2151,6 @@ async function main(): Promise<void> {
 					'Undo',
 					'Redo',
 					'Undo history',
-					'Menu bar',
 					'Panels',
 					'Window',
 					'Command palette',
@@ -2166,6 +2165,12 @@ async function main(): Promise<void> {
 					return at >= 0 && at > before;
 				}),
 			JSON.stringify(rowNames),
+		);
+		check(
+			'the flat menu has the Menu bar switch, off by default',
+			await bridge.js<boolean>(
+				`const row = [...document.querySelectorAll('[role=menu] [role=menuitemcheckbox]')].find((x) => x.textContent.trim() === 'Menu bar'); return !!row && row.getAttribute('aria-checked') === 'false';`,
+			),
 		);
 		check(
 			'the flat menu has no File, Edit or View headings, and no Zoom or Go to line rows',
