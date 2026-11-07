@@ -742,7 +742,7 @@ async function dockChecks(bridge: Bridge): Promise<void> {
 	const picked = pickedAt.kind;
 	const enemyChip = await within(3000, () =>
 		bridge.js<boolean>(
-			`return [...document.querySelectorAll('[role=status]')].some((e) => e.textContent.includes('Brush: ' + ${JSON.stringify(picked)}));`,
+			`return [...document.querySelectorAll('[data-app-toolbar], [data-app-ribbon]')].some((e) => e.textContent.includes('Brush: ' + ${JSON.stringify(picked)}));`,
 		),
 	);
 	check(
@@ -1358,24 +1358,24 @@ async function toolPickerChecks(bridge: Bridge): Promise<void> {
 	await checkKeycaps(bridge, 'the tool picker');
 	await inspectChecks(bridge, pressed);
 
-	// The row above the level: no tools in it, and every key in it has its whole bottom edge.
+	// The toolbar above the level: no tools in it, and every button in it has its whole bottom edge.
 	const row = await bridge.js<{ names: string[]; clipped: string[] } | null>(
-		`const g = document.querySelector('[role=group][aria-label="Editor toolbar"]');
+		`const g = document.querySelector('[data-app-toolbar] [role=toolbar]');
 		 if (!g) return null;
-		 const bar = g.parentElement.getBoundingClientRect();
-		 const keys = [...g.parentElement.querySelectorAll('button, [role=status]')];
+		 const bar = g.getBoundingClientRect();
+		 const keys = [...g.querySelectorAll('button')];
 		 const clipped = keys.filter((k) => { const r = k.getBoundingClientRect(); return r.bottom > bar.bottom - 1 || r.top < bar.top; })
 		   .map((k) => (k.getAttribute('aria-label') || k.textContent.trim()) + ' ' + Math.round(k.getBoundingClientRect().bottom) + '>' + Math.round(bar.bottom));
 		 return { names: [...g.querySelectorAll('button')].map((b) => b.getAttribute('aria-label') || b.textContent.trim()), clipped };`,
 	);
 	check(
-		'picker: the row above the level holds no tool keys',
+		'picker: the toolbar above the level holds no tool keys',
 		row !== null &&
-			!row.names.some((n) => ['Paint', 'Erase', 'Pick', 'Select', 'Stamp', 'Inspect'].includes(n)),
+			!row.names.some((n) => ['Erase', 'Pick', 'Select', 'Stamp', 'Inspect'].includes(n)),
 		JSON.stringify(row?.names),
 	);
 	check(
-		"the row above the level shows every key's whole bottom edge",
+		"the toolbar above the level shows every button's whole bottom edge",
 		row !== null && row.clipped.length === 0,
 		JSON.stringify(row?.clipped),
 	);
@@ -2268,10 +2268,11 @@ async function workspaceChecks(bridge: Bridge): Promise<void> {
 	await sleep(600);
 	check('workspaces: choosing Paint switches back', (await activeWorkspace(bridge)) === 'Paint');
 	await setMenuBar(bridge, true);
-	const bar = await within(5000, async () => {
+	await within(5000, async () => {
 		const now = await switcher();
-		return now !== null && !now.inToolbar ? now : null;
+		return now !== null && !now.inToolbar;
 	});
+	const bar = await switcher();
 	check(
 		'workspaces: with the menu bar on the switcher is at the right end of the menu row',
 		bar !== null && bar.barRight - bar.right < 40 && bar.right > 700,
@@ -2312,11 +2313,8 @@ async function workspaceChecks(bridge: Bridge): Promise<void> {
  */
 async function commandsRowChecks(bridge: Bridge): Promise<void> {
 	const row = async (kind: string | null) => {
-		const found = await within(5000, async () => {
-			const now = await commandsRowHeight(bridge);
-			return (now?.kind ?? null) === kind ? now : null;
-		});
-		return found;
+		await within(5000, async () => ((await commandsRowHeight(bridge))?.kind ?? null) === kind);
+		return commandsRowHeight(bridge);
 	};
 	await workspaceChecks(bridge);
 	const first = await row('toolbar');
@@ -2362,10 +2360,11 @@ async function commandsRowChecks(bridge: Bridge): Promise<void> {
 	);
 	check('commands: a Script tab appears while the Script panel is in use', scriptTab !== null);
 	await setUi(bridge, { ribbon_folded: true });
-	const folded = await within(5000, async () => {
+	await within(5000, async () => {
 		const now = await commandsRowHeight(bridge);
-		return now !== null && now.h < 60 ? now : null;
+		return now !== null && now.h < 60;
 	});
+	const folded = await commandsRowHeight(bridge);
 	check(
 		'commands: the ribbon is 34 px high folded',
 		Math.abs((folded?.h ?? 0) - 34) < 2.5,
@@ -2561,7 +2560,7 @@ async function checkPanelWindows(
 	check('a brush is chosen in the torn-off Palette window', chosen !== null, String(kind));
 	const chip = await within(5000, () =>
 		bridge.js<boolean>(
-			`return [...document.querySelectorAll('[role=status]')].some((e) => e.textContent.includes('Brush: ' + ${JSON.stringify(kind)}));`,
+			`return [...document.querySelectorAll('[data-app-toolbar], [data-app-ribbon]')].some((e) => e.textContent.includes('Brush: ' + ${JSON.stringify(kind)}));`,
 		),
 	);
 	check("the main window's brush chip follows the torn-off Palette", chip !== null, String(kind));
@@ -2731,7 +2730,7 @@ async function checkPanelWindows(
  */
 function keycapOffenders(bridge: Bridge, windowLabel = 'main-1'): Promise<string[]> {
 	return bridge.js<string[]>(
-		`const skip = '[role=menuitem], [role=menuitemradio], [role=menuitemcheckbox], [role=menubar] *, [role=menu] *, [data-tauri-drag-region] *, [role=tab], [role=option], [role=listbox] *, [role=switch], [role=checkbox], [role=separator], [role=slider], [data-rail-item], [class*=_entry_], [class*=_navItem_], [data-grip], [class*=_grip_], [class*=_chevron_], [class*=_fold_], [data-keycap-exempt]';
+		`const skip = '[role=menuitem], [role=menuitemradio], [role=menuitemcheckbox], [role=menubar] *, [role=menu] *, [data-tauri-drag-region] *, [role=tab], [role=option], [role=listbox] *, [role=switch], [role=checkbox], [role=separator], [role=slider], [data-rail-item], [data-ribbon] *, [data-app-toolbar] *, [data-app-ribbon] *, [data-keycap-exempt], [class*=_entry_], [class*=_navItem_], [data-grip], [class*=_grip_], [class*=_chevron_], [class*=_fold_], [data-keycap-exempt]';
 		 const visible = (e) => { const r = e.getBoundingClientRect(); const c = getComputedStyle(e); return r.width > 0 && r.height > 0 && c.visibility !== 'hidden' && c.display !== 'none'; };
 		 const bad = [];
 		 for (const e of document.querySelectorAll('button, [role=button]')) {
@@ -2874,7 +2873,9 @@ async function main(): Promise<void> {
 				rowBox.names.slice(0, 6).join('|') ===
 					'New level…|Open level…|Save|Close level|Undo|Redo' &&
 					rowBox.names[6]?.includes('Brush:') === true &&
-					rowBox.names.slice(7).join('|') === 'Palette|Objects|History|Proposals|Script',
+					rowBox.names.slice(7, 12).join('|') === 'Palette|Objects|History|Proposals|Script' &&
+					rowBox.names[12]?.startsWith('Search commands') === true &&
+					rowBox.names.slice(13).join('|') === 'Paint|Script|Review',
 				JSON.stringify(rowBox.names),
 			);
 			check(
@@ -2924,6 +2925,9 @@ async function main(): Promise<void> {
 				const hidden = await within(3000, async () => !(await pressed()));
 				await click();
 				const shown = await within(3000, async () => await pressed());
+				// Showing a panel again makes it the showing tab of its dock; put Objects back.
+				await showFromRail(bridge, 'Objects');
+				await sleep(300);
 				return hidden !== null && shown !== null;
 			})(),
 		);

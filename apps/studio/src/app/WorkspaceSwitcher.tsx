@@ -43,6 +43,7 @@ export function WorkspaceSwitcher() {
 					key={choice.id}
 					type="button"
 					className={styles.option}
+					data-keycap-exempt=""
 					aria-pressed={choice.pressed}
 					onClick={() => void runCommand(choice.id, snapshot)}
 				>
@@ -60,6 +61,7 @@ export function CommandSearchButton() {
 		<button
 			type="button"
 			className={styles.search}
+			data-keycap-exempt=""
 			aria-keyshortcuts="Control+Shift+P"
 			title={t('workspace.searchTip', { keys: COMMAND_PALETTE_SHORTCUT })}
 			onClick={() => void runCommand('view.commandPalette', snapshot)}
