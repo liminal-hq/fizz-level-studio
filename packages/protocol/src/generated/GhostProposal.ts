@@ -17,4 +17,9 @@ lines: Array<string>,
 /**
  * The cells the lines would change, clipped to the level and in line order.
  */
-cells: Array<GhostCell>, };
+cells: Array<GhostCell>, 
+/**
+ * The layers the lines would touch, by id in panel order (always including `edits`), so the
+ * panel can say that a lock now blocks the proposal.
+ */
+layers: Array<string>, };

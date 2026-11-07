@@ -233,6 +233,8 @@ export const enMessages = {
 	'layers.tilesLater': 'Coming with tile layers',
 	// translator: Accessible name of the lock toggle on a layer's row. {layer} is the layer's name. Pressed means the layer is locked: nothing in it can be changed, by the person or by Claude.
 	'layers.lock': 'Lock {layer}',
+	// translator: Shown under one of Claude's proposals when it would change a locked layer, so it cannot be accepted yet. {layers} is a layer's name or a list of names, such as “Treats and Edits”.
+	'layers.blocked': 'Blocked by a lock: {layers}. Unlock the layer in Layers to accept this.',
 	// translator: Verb phrase on a button. Unlocks every layer that is locked.
 	'layers.unlockAll': 'Unlock all',
 	// translator: Shown when a lock could not be saved to the level's sidecar file, so it stays as it was.

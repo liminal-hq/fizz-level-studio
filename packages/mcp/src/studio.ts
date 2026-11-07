@@ -10,6 +10,7 @@ import { appendEdits } from '../../language/src/edits.ts';
 import type { Edit } from '../../language/src/edits.ts';
 import type { FizzError } from '../../language/src/errors.ts';
 import { parse } from '../../language/src/parser.ts';
+import { ITEMS, KINDS } from '../../language/src/tables.ts';
 import { formatNode, print } from '../../language/src/printer.ts';
 
 export type Mode = 'propose' | 'direct';
@@ -66,9 +67,58 @@ export class StudioError extends Error {
 	constructor(
 		message: string,
 		public readonly problems: LineProblem[] = [],
+		/** The locked layers a refused change would have touched, when a lock refused it. */
+		public readonly locked: string[] = [],
 	) {
 		super(message);
 	}
+}
+
+/** The layers of a level, in the order the studio's Layers panel lists them, with their names. */
+export const LAYER_LABELS: Record<string, string> = {
+	terrain: 'Terrain',
+	walls: 'Walls',
+	blocks: 'Blocks',
+	crystals: 'Crystals',
+	markers: 'Markers',
+	treats: 'Treats',
+	enemies: 'Enemies',
+	edits: 'Edits',
+};
+const LAYER_ORDER = Object.keys(LAYER_LABELS);
+
+/** The tiles that are things of their own, the exits and doors: the `markers` layer. */
+const MARKER_TILES = ['exit', 'red-door', 'blue-door', 'green-door'];
+
+/**
+ * The layers a set of edit lines touches, by effect, in panel order: every line is an edit, so
+ * `edits` always; placing a treat touches `treats`, an enemy `enemies`, and painting an exit or a
+ * door `markers`. This is the same rule the studio's session applies to the person, so a lock binds
+ * Claude exactly as it binds them.
+ */
+export function layersTouched(edits: Edit[]): string[] {
+	const touched = new Set<string>(['edits']);
+	for (const e of edits) {
+		if (e.op === 'paint' && MARKER_TILES.includes(e.tile)) touched.add('markers');
+		if (e.op === 'place') {
+			if (e.kind in ITEMS) touched.add('treats');
+			else if (e.kind in KINDS) touched.add('enemies');
+		}
+	}
+	return LAYER_ORDER.filter((id) => touched.has(id));
+}
+
+/** The layer names for a sentence: `Treats`, `Treats and Edits`, `Terrain, Treats and Edits`. */
+export function layerNames(ids: string[]): string {
+	const names = ids.map((id) => LAYER_LABELS[id] ?? id);
+	if (names.length <= 1) return names.join('');
+	return `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
+}
+
+/** Why a change was refused: the same words wherever a lock stops Claude. */
+export function lockedMessage(ids: string[]): string {
+	const names = layerNames(ids);
+	return `${names} ${ids.length === 1 ? 'is' : 'are'} locked, so this change was refused and nothing was stored. The person locks layers in the studio's Layers panel, and a lock binds you exactly as it binds them. Ask them to unlock ${ids.length === 1 ? 'it' : 'them'}, or change something else.`;
 }
 
 export function sidecarPath(levelPath: string): string {
@@ -95,6 +145,28 @@ function freshState(): SidecarState {
 	return { version: 1, mode: 'propose', nextId: 1, nextNote: 1, history: [], notes: [] };
 }
 
+/** The sidecar's JSON object as it is on disk, or null when there is none or it is not one. */
+function readRaw(levelPath: string): Record<string, unknown> | null {
+	const p = sidecarPath(levelPath);
+	if (!existsSync(p)) return null;
+	try {
+		const raw = JSON.parse(readFileSync(p, 'utf8'));
+		return raw !== null && typeof raw === 'object' && !Array.isArray(raw) ? raw : null;
+	} catch {
+		return null;
+	}
+}
+
+/**
+ * The layers the person locked, as known layer ids in panel order. The studio is the only writer of
+ * the `layers.locked` key, so this reads the file afresh on every call and never from memory.
+ */
+export function readLocks(levelPath: string): string[] {
+	const layers = readRaw(levelPath)?.layers as { locked?: unknown } | undefined;
+	const named = Array.isArray(layers?.locked) ? layers.locked : [];
+	return LAYER_ORDER.filter((id) => named.includes(id));
+}
+
 export function readState(levelPath: string): SidecarState {
 	const p = sidecarPath(levelPath);
 	const state = freshState();
@@ -113,8 +185,13 @@ export function readState(levelPath: string): SidecarState {
 	return state;
 }
 
+/**
+ * Writes the state, keeping every key it does not own. The file is read again just before the write,
+ * so a key the studio wrote meanwhile (the locks in `layers`) is carried through, not dropped.
+ */
 export function writeState(levelPath: string, state: SidecarState): void {
-	writeAtomic(sidecarPath(levelPath), JSON.stringify(state, null, 2) + '\n');
+	const merged = { ...(readRaw(levelPath) ?? {}), ...state };
+	writeAtomic(sidecarPath(levelPath), JSON.stringify(merged, null, 2) + '\n');
 }
 
 export interface LoadedLevel {
@@ -222,6 +299,7 @@ export class Studio {
 	edit(input: { lines: string[]; title: string; why?: string }): HistoryEntry {
 		const level = this.level();
 		const { edits, canonical } = validateLines(level, input.lines);
+		this.refuseLocked(edits);
 		const state = this.state();
 		const entry: HistoryEntry = {
 			id: `h${state.nextId}`,
@@ -244,6 +322,24 @@ export class Studio {
 		return entry;
 	}
 
+	/** Refuses edits that touch a layer the person locked. The locks are read again, never remembered. */
+	private refuseLocked(edits: Edit[]): void {
+		const locks = readLocks(this.levelPath);
+		const hit = layersTouched(edits).filter((id) => locks.includes(id));
+		if (hit.length > 0) throw new StudioError(lockedMessage(hit), [], hit);
+	}
+
+	/** The layers a pending proposal touches that are locked now, for the person's Accept to explain. */
+	blockedBy(entry: HistoryEntry): string[] {
+		try {
+			const { edits } = validateLines(this.level(), entry.lines);
+			const locks = readLocks(this.levelPath);
+			return layersTouched(edits).filter((id) => locks.includes(id));
+		} catch {
+			return [];
+		}
+	}
+
 	private resolveTargets(state: SidecarState, target: string): HistoryEntry[] {
 		if (target === 'all') return state.history.filter((h) => h.status === 'pending');
 		const e = this.entry(state, target);
@@ -262,6 +358,7 @@ export class Studio {
 			try {
 				const level = this.level();
 				const { edits } = validateLines(level, e.lines);
+				this.refuseLocked(edits);
 				const { text, inserted } = appendToText(level, edits);
 				writeAtomic(this.levelPath, text);
 				e.status = 'accepted';
@@ -272,7 +369,7 @@ export class Studio {
 				accepted.push(e.id);
 				writeState(this.levelPath, state);
 			} catch (err) {
-				const detail = err instanceof StudioError && err.problems.length > 0 ? err.problems.map((p) => `${p.code} ${p.message}`).join('; ') : (err as Error).message;
+				const detail = err instanceof StudioError && err.locked.length > 0 ? err.message : err instanceof StudioError && err.problems.length > 0 ? err.problems.map((p) => `${p.code} ${p.message}`).join('; ') : (err as Error).message;
 				failed.push({ id: e.id, problem: detail });
 			}
 		}

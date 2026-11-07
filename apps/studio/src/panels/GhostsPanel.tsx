@@ -5,6 +5,7 @@
 
 import type { GhostProposal } from '@liminal-hq/fizz-studio-protocol/generated/GhostProposal';
 import { t, tn } from '../i18n/messages';
+import { layerList } from './layers/lockedNote';
 import styles from './GhostsPanel.module.css';
 
 export interface GhostsPanelProps {
@@ -13,10 +14,23 @@ export interface GhostsPanelProps {
 	onToggle: (shown: boolean) => void;
 	/** Reads the sidecar again; Claude's MCP server writes it without the studio hearing. */
 	onRefresh: () => void;
+	/** The locked layers; a proposal that touches one cannot be accepted until it is unlocked. */
+	locked?: readonly string[];
+}
+
+/** The locked layers a proposal would touch. */
+function blockers(proposal: GhostProposal, locked: readonly string[]): string[] {
+	return proposal.layers.filter((id) => locked.includes(id));
 }
 
 /** Read-only: it shows what Claude proposed. Accepting and rejecting are not here yet. */
-export function GhostsPanel({ proposals, shown, onToggle, onRefresh }: GhostsPanelProps) {
+export function GhostsPanel({
+	proposals,
+	shown,
+	onToggle,
+	onRefresh,
+	locked = [],
+}: GhostsPanelProps) {
 	return (
 		<div className={styles.panel}>
 			<div className={styles.bar}>
@@ -42,6 +56,11 @@ export function GhostsPanel({ proposals, shown, onToggle, onRefresh }: GhostsPan
 							<span className={styles.name}>{proposal.title}</span>
 							<span className={styles.count}>{tn('ghosts.cells', proposal.cells.length)}</span>
 							{proposal.why && <span className={styles.why}>{proposal.why}</span>}
+							{blockers(proposal, locked).length > 0 && (
+								<span className={styles.blocked} role="note">
+									{t('layers.blocked', { layers: layerList(blockers(proposal, locked), []) })}
+								</span>
+							)}
 						</li>
 					))}
 				</ul>

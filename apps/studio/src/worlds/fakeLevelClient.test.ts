@@ -92,7 +92,9 @@ describe('FakeLevelClient', () => {
 	it('answers words and ghosts from what a test sets, and refuses an unknown level', async () => {
 		const client = new FakeLevelClient(levelSnapshot());
 		expect(await client.words()).toEqual([]);
-		client.ghostProposals = [{ id: 'h1', title: 'T', why: null, lines: [], cells: [] }];
+		client.ghostProposals = [
+			{ id: 'h1', title: 'T', why: null, lines: [], cells: [], layers: ['edits'] },
+		];
 		expect(await client.ghosts('level-1')).toHaveLength(1);
 		await expect(client.ghosts('nope')).rejects.toMatchObject({ kind: 'not_open' });
 	});

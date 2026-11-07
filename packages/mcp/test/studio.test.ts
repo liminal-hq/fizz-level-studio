@@ -7,7 +7,7 @@ import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
 import { appendFileSync, copyFileSync, existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { Studio, sidecarPath } from '../src/studio.ts';
+import { readLocks, Studio, sidecarPath, writeState } from '../src/studio.ts';
 import { callTool, TOOLS } from '../src/tools.ts';
 
 const CRATER = join(import.meta.dir, '../../../levels/crater.fizz');
@@ -281,5 +281,121 @@ treats
 		expect(gaps.some((g) => g.width === 3 && g.verdict === 'clear')).toBe(true);
 		expect(gaps.some((g) => g.width === 4 && g.verdict === 'tight')).toBe(true);
 		expect(gaps.some((g) => g.width === 6 && g.verdict === 'needs_ledge')).toBe(true);
+	});
+});
+
+/** The person's lock, as the studio writes it: the `layers.locked` key in the sidecar. */
+function lock(...layers: string[]) {
+	const path = sidecarPath(level);
+	const state = existsSync(path) ? JSON.parse(readFileSync(path, 'utf8')) : {};
+	state.layers = { locked: layers };
+	writeFileSync(path, JSON.stringify(state, null, 2) + '\n');
+}
+
+describe('layer locks', () => {
+	test('locked treats refuse a place in propose mode: nothing stored, the layer named', () => {
+		lock('treats');
+		const before = text();
+		const r = call('edit_level', { lines: ['place cheezie x=26..30 y=10'], title: 'Snacks' });
+		expect(r.isError).toBe(true);
+		expect(r.text).toContain('Treats is locked');
+		expect(r.text).toContain('binds you exactly as it binds them');
+		expect(r.structured).toMatchObject({ stored: false, locked_layers: ['treats'] });
+		expect(text()).toBe(before);
+		expect(studio.state().history).toEqual([]);
+	});
+
+	test('the same refusal in direct mode leaves the level file alone', () => {
+		cli('mode', 'direct', level);
+		lock('treats');
+		const before = readFileSync(level);
+		const r = call('edit_level', { lines: ['place cheezie x=26 y=10'], title: 'Snacks' });
+		expect(r.isError).toBe(true);
+		expect(Buffer.compare(readFileSync(level), before)).toBe(0);
+		expect(studio.state().history).toEqual([]);
+		// A line that builds nothing locked still goes through.
+		const ok = call('edit_level', { lines: ['paint one-way x=40..42 y=9'], title: 'Ledge' });
+		expect(ok.structured).toMatchObject({ mode: 'direct', status: 'applied' });
+	});
+
+	test('a locked edits layer stops every line, and several locked layers are all named', () => {
+		lock('treats', 'edits');
+		const r = call('edit_level', { lines: ['place cheezie x=26 y=10'], title: 'Snacks' });
+		expect(r.text).toContain('Treats and Edits are locked');
+		expect(r.structured.locked_layers).toEqual(['treats', 'edits']);
+		lock('edits');
+		expect(call('edit_level', { lines: ['paint block x=5 y=12'], title: 'one' }).isError).toBe(true);
+	});
+
+	test('markers are the exits and doors, and a lock on another layer does not stop them', () => {
+		lock('markers');
+		expect(call('edit_level', { lines: ['paint exit x=20 y=9'], title: 'Exit' }).structured.locked_layers).toEqual(['markers']);
+		expect(call('edit_level', { lines: ['paint red-door x=20 y=9'], title: 'Door' }).isError).toBe(true);
+		lock('terrain', 'blocks', 'enemies');
+		expect(call('edit_level', { lines: ['paint exit x=20 y=9', 'place cheezie x=1 y=9'], title: 'Free' }).isError).toBeUndefined();
+	});
+
+	test('the locks are read again for every edit, so an unlock takes effect at once', () => {
+		lock('edits');
+		expect(call('edit_level', { lines: ['clear x=1 y=5'], title: 'a' }).isError).toBe(true);
+		lock();
+		expect(call('edit_level', { lines: ['clear x=1 y=5'], title: 'a' }).isError).toBeUndefined();
+	});
+
+	test('get_level reports the locks, and a pending proposal that a lock now blocks', () => {
+		call('edit_level', { lines: ['place cheezie x=26 y=10'], title: 'Snacks' });
+		call('edit_level', { lines: ['paint block x=5 y=12'], title: 'Block' });
+		expect(call('get_level').structured.locked_layers).toEqual([]);
+		lock('treats');
+		const r = call('get_level').structured as { locked_layers: string[]; pending: { id: string; blocked_by_locked_layers?: string[] }[] };
+		expect(r.locked_layers).toEqual(['treats']);
+		expect(r.pending[0]).toMatchObject({ id: 'h1', blocked_by_locked_layers: ['treats'] });
+		expect(r.pending[1].blocked_by_locked_layers).toBeUndefined();
+	});
+
+	test('accepting a proposal that touches a locked layer is refused and leaves it pending', () => {
+		call('edit_level', { lines: ['place cheezie x=26 y=10'], title: 'Snacks' });
+		lock('treats');
+		const before = text();
+		const r = cli('accept', 'h1', level);
+		expect(r.code).toBe(1);
+		expect(r.err).toContain('Treats is locked');
+		expect(text()).toBe(before);
+		expect(studio.state().history[0].status).toBe('pending');
+		lock();
+		expect(cli('accept', 'h1', level).code).toBe(0);
+	});
+
+	test('the sidecar keeps the studio\'s lock key and any other key when the server writes', () => {
+		lock('enemies');
+		const path = sidecarPath(level);
+		const state = JSON.parse(readFileSync(path, 'utf8'));
+		state.future = { kept: true };
+		writeFileSync(path, JSON.stringify(state));
+		call('edit_level', { lines: ['paint block x=5 y=12'], title: 'one' });
+		call('add_note', { x: 3, y: 4, text: 'hello' });
+		cli('reject', 'all', level);
+		const after = JSON.parse(readFileSync(path, 'utf8'));
+		expect(after.layers).toEqual({ locked: ['enemies'] });
+		expect(after.future).toEqual({ kept: true });
+		expect(after.history).toHaveLength(1);
+		expect(after.notes).toHaveLength(1);
+	});
+
+	test('a lock written between the server reading and writing its state is not lost', () => {
+		call('edit_level', { lines: ['paint block x=5 y=12'], title: 'one' });
+		const held = studio.state();
+		lock('treats');
+		held.notes.push({ id: 'n1', by: 'claude', time: 'now', at: { x: 1, y: 1 }, text: 't' });
+		writeState(level, held);
+		expect(readLocks(level)).toEqual(['treats']);
+	});
+
+	test('a sidecar with no lock, or one that is broken, locks nothing', () => {
+		expect(readLocks(level)).toEqual([]);
+		writeFileSync(sidecarPath(level), 'not json');
+		expect(readLocks(level)).toEqual([]);
+		writeFileSync(sidecarPath(level), JSON.stringify({ layers: { locked: ['nonsense', 'treats', 7] } }));
+		expect(readLocks(level)).toEqual(['treats']);
 	});
 });

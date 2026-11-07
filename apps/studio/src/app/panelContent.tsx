@@ -105,6 +105,7 @@ export function panelContent(id: PanelId, ctx: PanelContentContext): ReactNode {
 					shown={ctx.showGhosts}
 					onToggle={ctx.onToggleGhosts}
 					onRefresh={ctx.onRefreshProposals}
+					locked={ctx.lockedLayers}
 				/>
 			);
 		case 'script':

@@ -157,8 +157,9 @@ describe('GhostsPanel', () => {
 			why: 'for a jump',
 			lines: ['paint grass x=1 y=1'],
 			cells: [{ x: 1, y: 1, op: 'paint', word: 'grass' }],
+			layers: ['edits'],
 		},
-		{ id: 'h2', title: 'Two', why: null, lines: [], cells: [] },
+		{ id: 'h2', title: 'Two', why: null, lines: [], cells: [], layers: ['treats', 'edits'] },
 	];
 
 	it('lists the proposals with their cell counts and reasons, and offers no accept or reject', () => {
@@ -168,6 +169,23 @@ describe('GhostsPanel', () => {
 		expect(screen.getByText('0 cells')).toBeInTheDocument();
 		expect(screen.getByText('for a jump')).toBeInTheDocument();
 		expect(screen.queryByRole('button', { name: /accept|reject/i })).toBeNull();
+	});
+
+	it('says which lock blocks a proposal, and only when a layer it touches is locked', () => {
+		const { rerender } = render(
+			<GhostsPanel proposals={proposals} shown onToggle={vi.fn()} onRefresh={vi.fn()} />,
+		);
+		expect(screen.queryByRole('note')).toBeNull();
+		rerender(
+			<GhostsPanel
+				proposals={proposals}
+				shown
+				onToggle={vi.fn()}
+				onRefresh={vi.fn()}
+				locked={['treats', 'enemies']}
+			/>,
+		);
+		expect(screen.getByRole('note')).toHaveTextContent('Blocked by a lock: Treats.');
 	});
 
 	it('toggles the lens and refreshes on request', async () => {

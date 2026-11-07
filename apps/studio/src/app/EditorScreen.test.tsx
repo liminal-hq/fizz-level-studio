@@ -493,6 +493,7 @@ describe('EditorScreen panels', () => {
 				why: null,
 				lines: ['paint grass x=2 y=2'],
 				cells: [{ x: 2, y: 2, op: 'paint', word: 'grass' }],
+				layers: ['edits'],
 			},
 		];
 		const bridge = createCommandBridge();

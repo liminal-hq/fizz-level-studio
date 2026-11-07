@@ -8,7 +8,7 @@ import type { Edit } from '../../language/src/edits.ts';
 import { AREAS, ITEMS, KINDS, LEVEL_IDS, LIQUIDS, SEGS, THEMES, TILES } from '../../language/src/tables.ts';
 import { check } from './schema.ts';
 import type { Schema } from './schema.ts';
-import { Studio, StudioError, validateLines } from './studio.ts';
+import { layerNames, readLocks, Studio, StudioError, validateLines } from './studio.ts';
 import type { HistoryEntry, Where } from './studio.ts';
 import { findGaps, IGNORED_STATEMENTS, rasterise, render, renderPending } from './world.ts';
 import type { World } from './world.ts';
@@ -102,7 +102,7 @@ function countBy<T>(xs: T[], key: (x: T) => string): Record<string, number> {
 const getLevel: Tool = {
 	name: 'get_level',
 	description:
-		'Read the whole level. Returns the header (name, id, size, ground, theme, area), the script text with line numbers, counts (tiles by kind, enemies by kind, treats by kind), the start and exit if present, the session mode (read-only: the person sets it), pending proposals and your notes. The script is reloaded from disk on every call, so it shows anything the person changed. Call this first.',
+		'Read the whole level. Returns the header (name, id, size, ground, theme, area), the script text with line numbers, counts (tiles by kind, enemies by kind, treats by kind), the start and exit if present, the session mode (read-only: the person sets it), the locked layers (locked_layers: ids such as treats or edits, which no edit of yours may touch, exactly as none of the person\'s may), pending proposals (with blocked_by_locked_layers on one that touches a layer locked now) and your notes. The script is reloaded from disk on every call, so it shows anything the person changed. Call this first.',
 	inputSchema: { type: 'object', properties: {}, additionalProperties: false },
 	run(studio) {
 		const level = studio.level();
@@ -114,7 +114,11 @@ const getLevel: Tool = {
 			mode: state.mode,
 			script,
 			parse_errors: level.errors,
-			pending: state.history.filter((h) => h.status === 'pending').map(entryView),
+			locked_layers: readLocks(studio.levelPath),
+			pending: state.history.filter((h) => h.status === 'pending').map((h) => {
+				const blocked = studio.blockedBy(h);
+				return blocked.length > 0 ? { ...entryView(h), blocked_by_locked_layers: blocked } : entryView(h);
+			}),
 			notes: notesIn(studio, null),
 		};
 		const loaded = load(studio, false);
@@ -229,7 +233,7 @@ const listKinds: Tool = {
 const editLevel: Tool = {
 	name: 'edit_level',
 	description:
-		'Change the level by appending lines to its edits block. Each line is a statement the language defines: `paint <tile> x=.. y=..`, `clear x=.. y=..` or `place <item> x=.. y=..` (x and y take numbers, ranges such as 3..7 and comma lists). Every line is checked by the language parser before anything is stored; if any line is bad, the whole call is rejected with each bad line\'s error code, line number and suggested fix, and nothing is stored. Hand-written lines are never rewritten and cannot be changed this way. What happens next depends on the session mode, which the person sets and you cannot change: in propose mode (the default) your edit becomes a pending proposal that only the person can accept or reject, and the level file does not change; in direct mode it is applied at once and recorded as one step that undo can revert. The result tells you which mode applied and the status (pending or applied). Give a short title; explain in why.',
+		'Change the level by appending lines to its edits block. Each line is a statement the language defines: `paint <tile> x=.. y=..`, `clear x=.. y=..` or `place <item> x=.. y=..` (x and y take numbers, ranges such as 3..7 and comma lists). Every line is checked by the language parser before anything is stored; if any line is bad, the whole call is rejected with each bad line\'s error code, line number and suggested fix, and nothing is stored. Hand-written lines are never rewritten and cannot be changed this way. What happens next depends on the session mode, which the person sets and you cannot change: in propose mode (the default) your edit becomes a pending proposal that only the person can accept or reject, and the level file does not change; in direct mode it is applied at once and recorded as one step that undo can revert. The result tells you which mode applied and the status (pending or applied). Layers the person has locked in the studio bind you exactly as they bind the person: a line that would touch a locked layer is refused whole, in either mode, with an error naming the layer and nothing stored. Placing a treat touches treats, painting an exit or a door touches markers, and every line touches edits, so locking edits stops all of your edits. Read the locked_layers in get_level first. Give a short title; explain in why.',
 	inputSchema: {
 		type: 'object',
 		properties: {
@@ -251,7 +255,7 @@ const editLevel: Tool = {
 		} catch (err) {
 			if (err instanceof StudioError) {
 				const detail = err.problems.map((p) => `line ${p.line}: ${p.code} ${p.message} (fix: ${p.fix})`).join('\n');
-				return fail(`${err.message}${detail ? '\n' + detail : ''}`, { stored: false, errors: err.problems });
+				return fail(`${err.message}${detail ? '\n' + detail : ''}`, { stored: false, errors: err.problems, ...(err.locked.length > 0 ? { locked_layers: err.locked, locked: layerNames(err.locked) } : {}) });
 			}
 			throw err;
 		}

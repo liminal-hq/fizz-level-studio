@@ -311,6 +311,9 @@ pub struct GhostProposal {
     pub lines: Vec<String>,
     /// The cells the lines would change, clipped to the level and in line order.
     pub cells: Vec<GhostCell>,
+    /// The layers the lines would touch, by id in panel order (always including `edits`), so the
+    /// panel can say that a lock now blocks the proposal.
+    pub layers: Vec<String>,
 }
 
 /// A recovery copy left by a session that did not close cleanly: an unsaved level and when the

@@ -124,6 +124,23 @@ fn proposal_cells(level_text: &str, lines: &[String], width: u32, height: u32) -
     cells
 }
 
+/// The layers proposal lines would touch if they were appended to the level's `edits` block.
+fn proposal_layers(level_text: &str, lines: &[String]) -> Vec<String> {
+    let parsed = parse(level_text);
+    let Some(header) = parsed
+        .ast
+        .nodes
+        .iter()
+        .find(|n| matches!(n.body, Body::Level { .. }))
+        .and_then(|n| n.raw.clone())
+    else {
+        return Vec::new();
+    };
+    let base = format!("{header}\nstart 0,0\nedits");
+    let with_lines = format!("{base}\n{}", lines.join("\n"));
+    crate::layers::layers_changed(&base, &with_lines)
+}
+
 /// The pending proposals in a sidecar, as ghosts over a level. Anything not pending is ignored, and
 /// a sidecar that is not valid JSON, or has no history, has none: it is never an error to draw
 /// nothing.
@@ -157,6 +174,7 @@ pub fn pending_ghosts(
                 title: text_of(entry, "title").unwrap_or_default(),
                 why: text_of(entry, "why"),
                 cells: proposal_cells(level_text, &lines, width, height),
+                layers: proposal_layers(level_text, &lines),
                 lines,
             })
         })
@@ -213,6 +231,17 @@ mod tests {
         assert_eq!(at(2, 5).op, GhostOp::Place);
         assert_eq!(at(0, 0).op, GhostOp::Clear);
         assert_eq!(ghost.cells.len(), 4);
+    }
+
+    #[test]
+    fn a_proposal_names_the_layers_it_would_touch() {
+        let json = sidecar(
+            r#"{"id":"h1","title":"Snacks","lines":["place cheezie x=2 y=5","paint exit x=3 y=5"],"status":"pending"},
+            {"id":"h2","title":"Ground","lines":["paint grass x=2 y=4"],"status":"pending"}"#,
+        );
+        let ghosts = pending_ghosts(CRATER, 40, 20, &json);
+        assert_eq!(ghosts[0].layers, ["markers", "treats", "edits"]);
+        assert_eq!(ghosts[1].layers, ["edits"]);
     }
 
     #[test]
