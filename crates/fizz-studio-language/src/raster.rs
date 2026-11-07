@@ -316,6 +316,13 @@ fn cells(ranges: &[Range]) -> Vec<f64> {
 /// Runs the script in file order, as the Builder would, and returns the grid and entity lists.
 /// Returns `None` when the script has no level header.
 pub fn rasterise(ast: &Ast) -> Option<World> {
+    rasterise_without(ast, |_| false)
+}
+
+/// Like [`rasterise`], leaving out every statement `skip` picks, as if it were not in the script.
+/// The level header is never skipped, since without it there is no level. With a `skip` that
+/// picks nothing the result is exactly [`rasterise`]'s.
+pub fn rasterise_without(ast: &Ast, skip: impl Fn(&Node) -> bool) -> Option<World> {
     let (name, w, h, ground, id) = ast.nodes.iter().find_map(|n| match &n.body {
         Body::Level {
             name,
@@ -337,6 +344,9 @@ pub fn rasterise(ast: &Ast) -> Option<World> {
         line: 0,
     };
     for n in &ast.nodes {
+        if skip(n) && !matches!(n.body, Body::Level { .. }) {
+            continue;
+        }
         b.line = n.line;
         apply(&mut b, n);
     }

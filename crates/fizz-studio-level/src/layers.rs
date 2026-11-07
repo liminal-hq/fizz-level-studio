@@ -9,8 +9,11 @@
 // statement belongs to the layers of what it builds, wherever it is written, so a `place cheezie`
 // in the `edits` block belongs to `treats` as well as to `edits`.
 
+use std::collections::{HashMap, HashSet};
+
 use fizz_studio_language::ast::{Ast, Body, Node, SectionName};
 use fizz_studio_language::parser::parse;
+use fizz_studio_language::raster::World;
 use fizz_studio_protocol::{ViewSection, ViewSectionAffects, ViewSectionKind};
 
 /// The tiles the objects list shows as things of their own.
@@ -128,6 +131,62 @@ fn runs(statements: &[Statement<'_>], owned: impl Fn(&Statement<'_>) -> bool) ->
     out.extend(open);
     out
 }
+
+/// The layer that owns what a statement sets: its first layer other than `edits`, else `edits`. A
+/// cell belongs to the layer of the last statement that wrote it, so a tile painted into the `edits`
+/// block belongs to `edits`, and an exit painted there belongs to `markers`.
+fn primary(layers: &[&'static str]) -> Option<&'static str> {
+    layers
+        .iter()
+        .copied()
+        .find(|id| *id != "edits")
+        .or_else(|| layers.first().copied())
+}
+
+/// The owning layer of each statement, by its line.
+fn owners_by_line(statements: &[Statement<'_>]) -> HashMap<usize, &'static str> {
+    statements
+        .iter()
+        .filter_map(|s| primary(&s.layers).map(|id| (s.node.line, id)))
+        .collect()
+}
+
+/// The lines of every statement that belongs to one of the `hidden` layers, which the masked
+/// rasteriser leaves out.
+pub(crate) fn lines_in(ast: &Ast, hidden: &[String]) -> HashSet<usize> {
+    statements(ast)
+        .iter()
+        .filter(|s| s.layers.iter().any(|id| hidden.iter().any(|h| h == id)))
+        .map(|s| s.node.line)
+        .collect()
+}
+
+/// Which layer wrote each cell of the world, as an index into `sections` (by the statement that
+/// last set it, from the rasteriser's own line record); [`NO_SECTION`] where no statement did or
+/// the layer has no row.
+pub(crate) fn cell_sections(ast: &Ast, world: &World, sections: &[ViewSection]) -> Vec<u8> {
+    let all = statements(ast);
+    let owner = owners_by_line(&all);
+    let row: HashMap<&str, u8> = sections
+        .iter()
+        .enumerate()
+        .filter_map(|(i, s)| u8::try_from(i).ok().map(|i| (s.id.as_str(), i)))
+        .collect();
+    world
+        .lines
+        .iter()
+        .map(|line| {
+            owner
+                .get(line)
+                .and_then(|id| row.get(id))
+                .copied()
+                .unwrap_or(NO_SECTION)
+        })
+        .collect()
+}
+
+/// The `cell_sections` value of a cell no statement wrote.
+pub const NO_SECTION: u8 = u8::MAX;
 
 fn crystal_cells(ast: &Ast) -> u32 {
     let mut cells = 0.0_f64;

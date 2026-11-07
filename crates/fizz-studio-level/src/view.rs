@@ -7,12 +7,12 @@ use std::collections::HashMap;
 
 use fizz_studio_language::messages::message;
 use fizz_studio_language::parser::parse;
-use fizz_studio_language::raster::{rasterise, World};
+use fizz_studio_language::raster::{rasterise_without, World};
 use fizz_studio_language::tables::{words, TILES};
 use fizz_studio_protocol::{LevelView, ViewDiagnostic, ViewItem, ViewMarker, ViewSpawn, ViewStart};
 use fizz_studio_session::Document;
 
-use crate::layers::{sections, MARKER_TILES};
+use crate::layers::{cell_sections, lines_in, sections, MARKER_TILES};
 use crate::LevelDocument;
 
 /// A rasteriser line as the view carries it: `None` for 0, which no statement has.
@@ -57,6 +57,14 @@ impl LevelDocument {
     /// still gives its diagnostics, with an empty grid. The palette is every tile word in the
     /// language's order, `empty` first, so a cell's index means the same after every edit.
     pub fn view(&self) -> LevelView {
+        self.view_without(&[])
+    }
+
+    /// The level as the canvas draws it with the statements of the `hidden` layers left out, as if
+    /// they were not in the script: the masked drawing behind a layer's eye. Nothing is saved and
+    /// the text is untouched. The rows (`sections`) still list every layer, so a hidden one can be
+    /// shown again. With nothing hidden this is exactly [`LevelDocument::view`].
+    pub fn view_without(&self, hidden: &[String]) -> LevelView {
         let parsed = parse(self.text());
         let diagnostics = parsed
             .errors
@@ -68,7 +76,9 @@ impl LevelDocument {
             })
             .collect();
         let mut palette: Vec<String> = words(TILES).into_iter().map(String::from).collect();
-        let Some(world) = rasterise(&parsed.ast) else {
+        let skipped = lines_in(&parsed.ast, hidden);
+        let Some(world) = rasterise_without(&parsed.ast, |node| skipped.contains(&node.line))
+        else {
             return LevelView {
                 width: 0,
                 height: 0,
@@ -80,6 +90,7 @@ impl LevelDocument {
                 start: None,
                 markers: Vec::new(),
                 sections: Vec::new(),
+                cell_sections: Vec::new(),
                 diagnostics,
             };
         };
@@ -105,6 +116,7 @@ impl LevelDocument {
             world.spawns.len(),
             markers.len(),
         );
+        let cell_sections = cell_sections(&parsed.ast, &world, &sections);
         LevelView {
             width: world.w as u32,
             height: world.h as u32,
@@ -140,6 +152,7 @@ impl LevelDocument {
             }),
             markers,
             sections,
+            cell_sections,
             diagnostics,
         }
     }

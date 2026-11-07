@@ -528,3 +528,93 @@ fn a_fizz_2_level_is_never_locked() {
         .apply_outside_edit(&token, 0, "script fizz2 0\n\n")
         .is_ok());
 }
+
+fn owner_at(view: &fizz_studio_protocol::LevelView, x: usize, y: usize) -> Option<&str> {
+    let index = view.cell_sections[y * view.width as usize + x];
+    view.sections.get(usize::from(index)).map(|s| s.id.as_str())
+}
+
+#[test]
+fn nothing_hidden_is_the_ordinary_view() {
+    let document = LevelDocument::new(CRATER);
+    assert_eq!(document.view_without(&[]), document.view());
+    // A layer the level does not have hides nothing.
+    assert_eq!(
+        document.view_without(&["nonsense".to_string()]),
+        document.view()
+    );
+}
+
+#[test]
+fn every_cell_is_traced_to_the_layer_that_wrote_it() {
+    let view = LevelDocument::new(CRATER).view();
+    assert_eq!(view.cell_sections.len(), view.cells.len());
+    // The ground at the start is terrain, the one-way plat on line 17 is blocks, and the sky is no one's.
+    assert_eq!(owner_at(&view, 5, 1), Some("terrain"));
+    assert_eq!(owner_at(&view, 50, 10), Some("blocks"));
+    assert_eq!(owner_at(&view, 10, 20), None);
+    assert_eq!(view.cell_sections[20 * 192 + 10], 255);
+    // The end walls come from the `walls` statement, the crystals and the exit from their own rows.
+    assert_eq!(owner_at(&view, 0, 10), Some("walls"));
+    assert_eq!(owner_at(&view, 186, 6), Some("markers"));
+    assert!(view.cell_sections.iter().any(|&i| view
+        .sections
+        .get(usize::from(i))
+        .is_some_and(|s| s.id == "crystals")));
+}
+
+#[test]
+fn the_owner_agrees_with_the_line_that_last_changed_the_cell() {
+    let document = LevelDocument::new(CRATER);
+    let view = document.view();
+    let sections = fizz_studio_level_lines(&view);
+    for (x, y) in [(50, 10), (49, 10), (107, 5), (5, 1)] {
+        let line = document.cell_line(x, y).expect("a statement set it");
+        let owner = owner_at(&view, x as usize, y as usize).expect("an owner");
+        let section = sections
+            .iter()
+            .find(|(id, runs)| *id == owner && runs.iter().any(|[a, b]| (*a..=*b).contains(&line)))
+            .map(|(id, _)| *id);
+        assert_eq!(section, Some(owner), "cell {x},{y} on line {line}");
+    }
+}
+
+fn fizz_studio_level_lines(view: &fizz_studio_protocol::LevelView) -> Vec<(&str, Vec<[u32; 2]>)> {
+    view.sections
+        .iter()
+        .map(|s| (s.id.as_str(), s.lines.clone()))
+        .collect()
+}
+
+#[test]
+fn hiding_terrain_leaves_the_ground_out_of_the_drawing_and_the_script_alone() {
+    let document = LevelDocument::new(CRATER);
+    let full = document.view();
+    let masked = document.view_without(&["terrain".to_string()]);
+    assert_ne!(masked.cells, full.cells);
+    assert_eq!(masked.cells.len(), full.cells.len());
+    // The cell at 5,1 was ground; without the terrain statements it is the sky.
+    let word = |view: &fizz_studio_protocol::LevelView, x: usize, y: usize| {
+        view.palette[usize::from(view.cells[y * 192 + x])].clone()
+    };
+    assert_ne!(word(&full, 5, 1), "empty");
+    assert_eq!(word(&masked, 5, 1), "empty");
+    // The plat that blocks wrote is still there, and the rows still list every layer.
+    assert_eq!(word(&masked, 50, 10), word(&full, 50, 10));
+    assert_eq!(masked.sections.len(), full.sections.len());
+    assert_eq!(document.text(), CRATER);
+}
+
+#[test]
+fn hiding_edits_shows_the_level_as_it_was_before_the_studio_changed_it() {
+    let (mut session, token) = open();
+    let edit = paint("grass", 5, 9);
+    let asked = request(&session, edit);
+    session.apply(&token, asked).unwrap();
+    let document = session.document();
+    let full = document.view();
+    let masked = document.view_without(&["edits".to_string()]);
+    assert_eq!(owner_at(&full, 5, 9), Some("edits"));
+    assert_ne!(masked.cells, full.cells);
+    assert_eq!(masked.cells, LevelDocument::new(CRATER).view().cells);
+}

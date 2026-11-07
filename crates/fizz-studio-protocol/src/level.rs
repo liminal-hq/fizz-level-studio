@@ -133,6 +133,10 @@ pub struct LevelView {
     /// The layers of the script in file order, with the derived rows after their header; empty for
     /// a level that has none (a Fizz 2 level, or a script with no readable header).
     pub sections: Vec<ViewSection>,
+    /// Which layer wrote each cell, `y * width + x` like `cells`: an index into `sections` for the
+    /// layer of the statement that last set the cell, or 255 where no statement did. Empty where
+    /// `sections` is.
+    pub cell_sections: Vec<u8>,
     pub diagnostics: Vec<ViewDiagnostic>,
 }
 
