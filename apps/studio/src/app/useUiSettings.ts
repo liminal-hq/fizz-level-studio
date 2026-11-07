@@ -48,15 +48,15 @@ export function useUiSettings(client: UiSettingsClient): UiSettingsHandle {
 		};
 	}, [client]);
 
-	const update = client.update;
+	const canWrite = client.update !== undefined;
 	const latest = useRef(ui);
 	latest.current = ui;
 	const setUi = useCallback(
 		(patch: Partial<UiSettings>) => {
-			if (!update) return;
+			if (!canWrite) return;
 			const save = async (basedOn: number, again: boolean): Promise<void> => {
 				try {
-					const saved = await update({ ui: { ...latest.current, ...patch } }, basedOn);
+					const saved = await client.update!({ ui: { ...latest.current, ...patch } }, basedOn);
 					revision.current = saved.revision;
 					setUiState(saved.settings.ui);
 				} catch {
@@ -69,7 +69,7 @@ export function useUiSettings(client: UiSettingsClient): UiSettingsHandle {
 			};
 			if (revision.current !== null) void save(revision.current, true).catch(() => {});
 		},
-		[update, client],
+		[canWrite, client],
 	);
-	return { ui, setUi: update ? setUi : undefined };
+	return { ui, setUi: canWrite ? setUi : undefined };
 }

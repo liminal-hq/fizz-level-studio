@@ -4,13 +4,20 @@
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
 import { useCallback, useMemo } from 'react';
-import { appMenuItems, commandIdOfRow } from '../commands/appMenuModel';
+import { buildAppMenu, buildMenuBar, commandIdOfRow } from '../commands/appMenuModel';
 import { useBridgeSnapshot } from '../commands/commandBridge';
 import { runCommand } from '../commands/registry';
 
-export function useAppMenu() {
+/**
+ * The rows the title bar's app menu (`flat`, the default) or the menu bar (`bar`) shows, and what
+ * choosing one runs: always a command, through `runCommand`.
+ */
+export function useAppMenu(kind: 'flat' | 'bar' = 'flat') {
 	const snapshot = useBridgeSnapshot();
-	const items = useMemo(() => appMenuItems(snapshot), [snapshot]);
+	const items = useMemo(
+		() => (kind === 'bar' ? buildMenuBar(snapshot) : buildAppMenu(snapshot)),
+		[kind, snapshot],
+	);
 	const onSelect = useCallback(
 		(item: { id: string }) => {
 			runCommand(commandIdOfRow(item.id), snapshot);

@@ -13,7 +13,7 @@ const openWindow = vi.hoisted(() => vi.fn(async () => {}));
 vi.mock('../services/windowsClient', () => ({ openWindow }));
 
 import {
-	appMenuItems,
+	buildMenuBar,
 	APP_MENU_MNEMONICS,
 	commandIdOfRow,
 	HISTORY_MORE_ID,
@@ -51,6 +51,15 @@ const rowsOf = (items: MenuItem[], menu: string): MenuItem[] => {
 	return found?.type === 'submenu' ? found.items : [];
 };
 
+/** The rows of a submenu inside a menu of the bar, such as Panels inside View. */
+const nestedRows = (items: MenuItem[], menu: string, inner: string): MenuItem[] => {
+	const found = rowsOf(items, menu).find((item) => item.id === inner);
+	return found?.type === 'submenu' ? found.items : [];
+};
+
+const ids = (items: MenuItem[]) =>
+	items.filter((item) => item.type !== 'separator').map((item) => item.id);
+
 describe('the registry', () => {
 	it('has unique ids', () => {
 		const ids = COMMANDS.map((command) => command.id);
@@ -86,7 +95,7 @@ describe('the registry', () => {
 	it('lists Show the level only in the View menu with the Tab key, checked while it is on', () => {
 		const handlers = { 'view.levelFirst': () => {} };
 		const rows = rowsOf(
-			appMenuItems(snapshot({ editorOpen: true, levelFirst: true }, handlers)),
+			buildMenuBar(snapshot({ editorOpen: true, levelFirst: true }, handlers)),
 			'menu:view',
 		);
 		const row = rows.find((item) => 'label' in item && item.label === 'Show the level only');
@@ -96,14 +105,14 @@ describe('the registry', () => {
 
 	it('hides the editor rows on the start screen instead of disabling them', () => {
 		const handlers = { 'view.levelFirst': () => {}, 'view.resetLayout': () => {} };
-		const start = rowsOf(appMenuItems(snapshot({ editorOpen: false }, handlers)), 'menu:view');
-		expect(start.map((item) => item.id)).toEqual(['view.commandPalette']);
+		const start = rowsOf(buildMenuBar(snapshot({ editorOpen: false }, handlers)), 'menu:view');
+		expect(ids(start)).toEqual(['view.menuBar', 'view.commandPalette']);
 	});
 
 	it('disables a visible row with a reason worked out from the facts', () => {
 		const handlers = { 'view.levelFirst': () => {}, 'edit.undo': () => {}, 'edit.redo': () => {} };
 		const maximised = rowsOf(
-			appMenuItems(snapshot({ editorOpen: true, maximised: 'script' }, handlers)),
+			buildMenuBar(snapshot({ editorOpen: true, maximised: 'script' }, handlers)),
 			'menu:view',
 		);
 		expect(maximised.find((item) => item.id === 'view.levelFirst')).toMatchObject({
@@ -111,7 +120,7 @@ describe('the registry', () => {
 			title: 'Restore the maximised panel first',
 		});
 		const edit = (facts: Partial<BridgeSnapshot['facts']>) =>
-			rowsOf(appMenuItems(snapshot(facts, handlers)), 'menu:edit');
+			rowsOf(buildMenuBar(snapshot(facts, handlers)), 'menu:edit');
 		// No level: Undo says to open one; with a level and nothing to undo it says that instead.
 		expect(edit({}).find((item) => item.id === 'edit.undo')).toMatchObject({
 			disabled: true,
@@ -158,7 +167,7 @@ describe('the registry', () => {
 
 	it('enables Undo and Redo from the editor facts', () => {
 		const handlers = { 'edit.undo': () => {}, 'edit.redo': () => {} };
-		const items = appMenuItems(snapshot({ canUndo: true }, handlers));
+		const items = buildMenuBar(snapshot({ canUndo: true }, handlers));
 		const [undo, redo] = rowsOf(items, 'menu:edit');
 		expect(undo).toMatchObject({ label: 'Undo', shortcut: 'Ctrl+Z' });
 		expect(undo).not.toHaveProperty('disabled');
@@ -166,7 +175,7 @@ describe('the registry', () => {
 	});
 
 	it('always enables Quit, with its shortcut', () => {
-		const items = appMenuItems(snapshot({}, {}));
+		const items = buildMenuBar(snapshot({}, {}));
 		const quit = rowsOf(items, 'menu:file').find((item) => item.id === 'file.quit');
 		expect(quit).toMatchObject({ label: 'Quit', shortcut: 'Ctrl+Q' });
 		expect(quit).not.toHaveProperty('disabled');
@@ -174,8 +183,8 @@ describe('the registry', () => {
 
 	it('checks the panel rows from the panels shown', () => {
 		const panels = { ...NO_FACTS.panels, script: true };
-		const items = appMenuItems(snapshot({ editorOpen: true, panels }, {}));
-		const view = rowsOf(items, 'menu:view');
+		const items = buildMenuBar(snapshot({ editorOpen: true, panels }, {}));
+		const view = nestedRows(items, 'menu:view', 'menu:panels');
 		expect(view.find((item) => item.id === 'view.panel.script')).toMatchObject({ checked: true });
 		expect(view.find((item) => item.id === 'view.panel.palette')).toMatchObject({
 			checked: false,
@@ -188,16 +197,14 @@ describe('the registry', () => {
 		for (const command of allCommands(NO_FACTS).filter((def) => def.menu)) {
 			expect(names, command.id).toContain(command.menu);
 		}
-		const rows = appMenuItems(snapshot({ editorOpen: true, hasLevel: true })).flatMap((menu) =>
-			menu.type === 'submenu'
-				? menu.items.filter((row) => row.type !== 'separator').map((row) => row.id)
-				: [],
+		const rows = buildMenuBar(snapshot({ editorOpen: true, hasLevel: true })).flatMap((menu) =>
+			menu.type === 'submenu' ? ids(menu.items) : [],
 		);
 		expect(new Set(rows).size).toBe(rows.length);
 	});
 
 	it('arranges File, Edit, View, Window and Help in groups with one rule between them', () => {
-		const items = appMenuItems(snapshot({ editorOpen: true }));
+		const items = buildMenuBar(snapshot({ editorOpen: true }));
 		expect(items.map((item) => (item.type === 'submenu' ? item.label : null))).toEqual([
 			'File',
 			'Edit',
@@ -222,14 +229,18 @@ describe('the registry', () => {
 		]);
 		expect(shape('menu:edit')).toEqual(['edit.undo', 'edit.redo', 'menu:history']);
 		expect(shape('menu:view')).toEqual([
-			...PANEL_SPECS.map((spec) => `view.panel.${spec.id}`),
+			'view.menuBar',
 			'-',
+			'menu:panels',
 			...PANEL_SPECS.filter((spec) => spec.expandable).map((spec) => `view.maximise.${spec.id}`),
 			'view.levelFirst',
 			'view.resetLayout',
 			'-',
 			'view.commandPalette',
 		]);
+		expect(ids(nestedRows(items, 'menu:view', 'menu:panels'))).toEqual(
+			PANEL_SPECS.map((spec) => `view.panel.${spec.id}`),
+		);
 		expect(shape('menu:help')).toEqual(['help.help', 'help.shortcuts', '-', 'help.about']);
 		expect(rowsOf(items, 'menu:file').find((item) => item.id === 'file.preferences')).toMatchObject(
 			{
@@ -240,7 +251,7 @@ describe('the registry', () => {
 	});
 
 	it('puts an ellipsis on the rows that open a dialog or a window, and on no plain action', () => {
-		const items = appMenuItems(snapshot({ editorOpen: true, hasLevel: true }));
+		const items = buildMenuBar(snapshot({ editorOpen: true, hasLevel: true }));
 		const labels = (menu: string) =>
 			Object.fromEntries(
 				rowsOf(items, menu).flatMap((item) =>
@@ -263,7 +274,7 @@ describe('the registry', () => {
 	});
 
 	it('shows the new File and Help keys on their rows', () => {
-		const items = appMenuItems(snapshot({ editorOpen: true, hasLevel: true }));
+		const items = buildMenuBar(snapshot({ editorOpen: true, hasLevel: true }));
 		const shortcut = (menu: string, id: string) => {
 			const row = rowsOf(items, menu).find((item) => item.id === id);
 			return row && 'shortcut' in row ? row.shortcut : undefined;
@@ -283,21 +294,26 @@ describe('the registry', () => {
 		expect(kinds(menuSections([], [a], [], []))).toEqual(['action']);
 		expect(menuSections([], [])).toEqual([]);
 		// The View menu's panel group is hidden on the start screen, so no rule is left at its top.
-		const start = rowsOf(appMenuItems(snapshot()), 'menu:view');
-		expect(start.map((item) => item.type)).toEqual(['action']);
+		const start = rowsOf(buildMenuBar(snapshot()), 'menu:view');
+		expect(start.map((item) => item.type)).toEqual(['checkbox', 'separator', 'action']);
 	});
 
 	it('lists a Tear off row for each panel in the Window menu, and Dock back for one that is away', () => {
-		const ids = (facts: Partial<BridgeSnapshot['facts']>) =>
-			rowsOf(appMenuItems(snapshot(facts)), 'menu:window').map((row) => row.id);
-		expect(ids({ editorOpen: true })).toEqual(PANEL_SPECS.map((spec) => tearOffCommandId(spec.id)));
-		const away = ids({ editorOpen: true, away: { ...NO_FACTS.away, script: true } });
+		const windowIds = (facts: Partial<BridgeSnapshot['facts']>) =>
+			ids(rowsOf(buildMenuBar(snapshot(facts)), 'menu:window'));
+		expect(windowIds({ editorOpen: true })).toEqual([
+			'window.floatFocused',
+			'window.tearOffFocused',
+			'window.dockAllBack',
+			...PANEL_SPECS.map((spec) => tearOffCommandId(spec.id)),
+		]);
+		const away = windowIds({ editorOpen: true, away: { ...NO_FACTS.away, script: true } });
 		expect(away).toContain(dockBackCommandId('script'));
 		expect(away).not.toContain(tearOffCommandId('script'));
 	});
 
 	it('hides the Window rows on the start screen, and the Window menu with them', () => {
-		const items = appMenuItems(snapshot());
+		const items = buildMenuBar(snapshot());
 		expect(items.map((item) => item.id)).toEqual([
 			'menu:file',
 			'menu:edit',
@@ -306,8 +322,8 @@ describe('the registry', () => {
 		]);
 		// Edit keeps Undo and Redo, disabled; View keeps the command palette.
 		expect(rowsOf(items, 'menu:edit').length).toBeGreaterThan(0);
-		expect(rowsOf(items, 'menu:view').map((row) => row.id)).toEqual(['view.commandPalette']);
-		const withEditor = appMenuItems(snapshot({ editorOpen: true }));
+		expect(ids(rowsOf(items, 'menu:view'))).toEqual(['view.menuBar', 'view.commandPalette']);
+		const withEditor = buildMenuBar(snapshot({ editorOpen: true }));
 		expect(withEditor.map((item) => item.id)).toContain('menu:window');
 		// The palette does not offer them either.
 		const entries = paletteEntries(snapshot());
@@ -361,7 +377,7 @@ describe('the palette additions', () => {
 	};
 
 	it('adds Command palette… to the View menu with its keys', () => {
-		const view = rowsOf(appMenuItems(snapshot()), 'menu:view');
+		const view = rowsOf(buildMenuBar(snapshot()), 'menu:view');
 		expect(view.find((item) => item.id === 'view.commandPalette')).toMatchObject({
 			label: 'Command palette…',
 			shortcut: 'Ctrl+Shift+P',
@@ -370,7 +386,7 @@ describe('the palette additions', () => {
 
 	it('leaves the menus alone: palette-only commands have no menu', () => {
 		for (const command of PALETTE_COMMANDS) expect(command.menu).toBeUndefined();
-		const rows = appMenuItems(snapshot(facts)).flatMap((menu) =>
+		const rows = buildMenuBar(snapshot(facts)).flatMap((menu) =>
 			menu.type === 'submenu' ? menu.items.map((row) => row.id ?? '') : [],
 		);
 		expect(rows.some((id) => id.startsWith('tool.') || id.startsWith('brush.'))).toBe(false);
@@ -496,7 +512,7 @@ describe('the menu icons', () => {
 	});
 
 	it('puts an icon on every row and menu of the app menu', () => {
-		const items = appMenuItems(snapshot({ editorOpen: true, hasLevel: true }));
+		const items = buildMenuBar(snapshot({ editorOpen: true, hasLevel: true }));
 		const without = (rows: MenuItem[]): string[] =>
 			rows.flatMap((row) => {
 				if (row.type === 'separator' || row.type === 'section') return [];
@@ -507,7 +523,11 @@ describe('the menu icons', () => {
 	});
 
 	it('reuses the rail icons for the panel rows', () => {
-		const view = rowsOf(appMenuItems(snapshot({ editorOpen: true })), 'menu:view');
+		const view = nestedRows(
+			buildMenuBar(snapshot({ editorOpen: true })),
+			'menu:view',
+			'menu:panels',
+		);
 		const row = view.find((item) => item.id === 'view.panel.script');
 		expect(row).toMatchObject({ type: 'checkbox' });
 		expect(row && 'icon' in row && row.icon).toBeTruthy();
@@ -558,7 +578,7 @@ describe('the Undo history submenu', () => {
 		facts: Partial<BridgeSnapshot['facts']>,
 		given: BridgeSnapshot['handlers'] = handlers,
 	) => {
-		const edit = appMenuItems(snapshot({ hasLevel: true, editorOpen: true, ...facts }, given)).find(
+		const edit = buildMenuBar(snapshot({ hasLevel: true, editorOpen: true, ...facts }, given)).find(
 			(item) => item.id === 'menu:edit',
 		);
 		const sub = edit?.type === 'submenu' ? edit.items.find((i) => i.id === 'menu:history') : null;
@@ -566,7 +586,7 @@ describe('the Undo history submenu', () => {
 	};
 
 	it('sits in the Edit menu after Undo and Redo', () => {
-		const edit = rowsOf(appMenuItems(snapshot({ hasLevel: true, editorOpen: true })), 'menu:edit');
+		const edit = rowsOf(buildMenuBar(snapshot({ hasLevel: true, editorOpen: true })), 'menu:edit');
 		expect(edit.map((item) => item.id)).toEqual(['edit.undo', 'edit.redo', 'menu:history']);
 		expect(edit[2]).toMatchObject({ type: 'submenu', label: 'Undo history' });
 	});

@@ -5,7 +5,6 @@
 
 import { AppMenuButton } from '@liminal-hq/fizz-studio-chrome/TitleBar/AppMenuButton';
 import appMark from '../assets/app-mark.svg';
-import { APP_MENU_MNEMONICS } from '../commands/appMenuModel';
 import { t } from '../i18n/messages';
 import styles from './AppMenu.module.css';
 import { useAppMenu } from './useAppMenu';
@@ -20,8 +19,8 @@ interface AppMenuProps {
 
 /**
  * The menu button for the Main window's title bar start slot: the app mark and name, opening the
- * menus, which are the studio's primary menu. F10 or a lone Alt toggles it, and Alt+F, E, V, W and H
- * open it with that menu out.
+ * flat app menu (New, Open, Save, Undo, the switches, Panels, Window, Preferences, Help, Quit) while
+ * the menu bar is off. F10 or a lone Alt toggles it; with no menu names there are no letter keys.
  */
 export function AppMenu({ menuBar = false }: AppMenuProps) {
 	const { items, onSelect } = useAppMenu();
@@ -31,7 +30,6 @@ export function AppMenu({ menuBar = false }: AppMenuProps) {
 			mark={<img className={styles.mark} src={appMark} alt="" />}
 			items={items}
 			onSelect={onSelect}
-			mnemonics={APP_MENU_MNEMONICS}
 			interactive={!menuBar}
 		/>
 	);

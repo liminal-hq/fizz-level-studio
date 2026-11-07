@@ -10,7 +10,7 @@ import { useAppMenu } from './useAppMenu';
 
 /** The same menus, rows and commands as the title bar's application menu, laid across a bar; shown only when the menu bar setting is on. */
 export function AppMenuBar() {
-	const { items, onSelect } = useAppMenu();
+	const { items, onSelect } = useAppMenu('bar');
 	return (
 		<MenuBar
 			items={items}

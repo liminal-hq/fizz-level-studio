@@ -267,6 +267,8 @@ export const enMessages = {
 	'appMenu.commandPalette': 'Command palette…',
 	// translator: A switch in the View menu. Shows or hides the menu bar (File, Edit, View, Window, Help) under the title bar.
 	'appMenu.menuBar': 'Menu bar',
+	// translator: A submenu of the Window menu. Lists the workspaces, each a saved arrangement of the panels, to switch between.
+	'appMenu.workspace': 'Workspace',
 	// translator: Menu row. Lets the panel the person last used float over the level.
 	'appMenu.floatFocused': 'Float the focused panel',
 	// translator: Menu row. Moves the panel the person last used into a window of its own.
