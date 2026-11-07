@@ -2821,6 +2821,208 @@ async function checkKeycaps(bridge: Bridge, where: string, windowLabel = 'main-1
 	);
 }
 
+/** Lets the page tell whether the Layers panel's rows are there, by name, with their toggles. */
+function layerRows(
+	bridge: Bridge,
+): Promise<{ name: string; hidden: string | null; locked: string | null }[]> {
+	return bridge.js(
+		`const list = document.querySelector('ul[aria-label=Layers]');
+		 if (!list) return [];
+		 return [...list.querySelectorAll('li')].map((li) => {
+			 const buttons = [...li.querySelectorAll('button')];
+			 const eye = buttons.find((b) => (b.getAttribute('aria-label') || '').startsWith('Hide '));
+			 const lock = buttons.find((b) => (b.getAttribute('aria-label') || '').startsWith('Lock '));
+			 return {
+				 name: (li.querySelector('span')?.textContent ?? '').trim(),
+				 hidden: eye ? eye.getAttribute('aria-pressed') : null,
+				 locked: lock ? lock.getAttribute('aria-pressed') : null,
+			 };
+		 });`,
+	);
+}
+
+/** Presses a Layers toggle by its accessible name, such as `Hide Treats on the canvas`. */
+function pressLayerToggle(bridge: Bridge, label: string): Promise<boolean> {
+	return bridge.js<boolean>(
+		`const b = [...document.querySelectorAll('ul[aria-label=Layers] button')].find((x) => x.getAttribute('aria-label') === ${JSON.stringify(label)});
+		 if (!b || b.disabled) return false;
+		 b.click();
+		 return true;`,
+	);
+}
+
+/** A cheap fingerprint of what the level canvas shows now, to tell whether a drawing changed. */
+function canvasFingerprint(bridge: Bridge): Promise<string> {
+	return bridge.js<string>(
+		`const c = document.querySelector('canvas');
+		 const g = c.getContext('2d');
+		 const d = g.getImageData(0, 0, c.width, c.height).data;
+		 let h = 2166136261;
+		 for (let i = 0; i < d.length; i += 4) { h ^= d[i] + (d[i + 1] << 8) + (d[i + 2] << 16); h = Math.imul(h, 16777619); }
+		 return String(h >>> 0);`,
+	);
+}
+
+/** Runs the MCP server's own `edit_level` tool against a level file, as Claude's server would. */
+async function mcpEdit(
+	levelPath: string,
+	lines: string[],
+): Promise<{ isError?: boolean; structured: Record<string, unknown>; text: string }> {
+	const script = `import { Studio } from './packages/mcp/src/studio.ts'; import { callTool } from './packages/mcp/src/tools.ts'; console.log(JSON.stringify(callTool(new Studio(${JSON.stringify(levelPath)}), 'edit_level', { lines: ${JSON.stringify(lines)}, title: 'check' })));`;
+	const run = Bun.spawnSync(['bun', '-e', script], { cwd: root, stdout: 'pipe', stderr: 'pipe' });
+	return JSON.parse(run.stdout.toString().trim().split('\n').pop() ?? '{}');
+}
+
+/**
+ * The Layers panel and the peer lock, in the running app: the panel sits beside the Palette, hiding
+ * Treats changes only the drawing, a locked layer refuses a change from the canvas's own route and
+ * from Claude's server, and an outside write to a locked line is a conflict the studio does not
+ * take in. It leaves the level as it found it (revision 0, no sidecar).
+ */
+async function layerChecks(bridge: Bridge, path: string, original: string): Promise<void> {
+	const sidecar = path.replace(/\.fizz$/, '.studio.json');
+	const rail = await bridge.js<string[]>(
+		`return [...document.querySelectorAll('[role=group][aria-label="Left rail"] [data-rail-item]')].map((x) => x.textContent.trim());`,
+	);
+	check(
+		'the Layers panel sits beside the Palette on the left rail',
+		rail.join() === 'Palette,Layers',
+		JSON.stringify(rail),
+	);
+	await showFromRail(bridge, 'Layers');
+	await within(3000, async () => (await layerRows(bridge)).length >= 5);
+	const names = (await layerRows(bridge)).map((r) => r.name);
+	check(
+		'Layers lists the sections of the level script',
+		names.join() === 'Terrain,Walls,Blocks,Crystals,Markers,Treats,Enemies',
+		JSON.stringify(names),
+	);
+
+	// Hide is a view: it changes what is drawn and nothing else.
+	const drawn = await canvasFingerprint(bridge);
+	check(
+		'hiding Treats is pressed from its eye',
+		await pressLayerToggle(bridge, 'Hide Treats on the canvas'),
+	);
+	const hidden = await within(3000, async () =>
+		(await canvasFingerprint(bridge)) !== drawn ? true : null,
+	);
+	check('hiding Treats removes the treats from the drawing', hidden !== null);
+	check(
+		'hiding leaves the level text and revision alone',
+		(await levelCall(bridge, 'level_snapshot', { id: 'level-1' })).revision === 0,
+	);
+	await pressLayerToggle(bridge, 'Hide Enemies on the canvas');
+	await bridge.js<boolean>(
+		`const b = [...document.querySelectorAll('button')].find((x) => x.textContent.trim() === 'Show all'); b?.click(); return true;`,
+	);
+	const shownAgain = await within(3000, async () =>
+		(await canvasFingerprint(bridge)) === drawn ? true : null,
+	);
+	check('Show all brings the drawing back as it was', shownAgain !== null);
+	check(
+		'the tile layers wait for their eyes',
+		await bridge.js<boolean>(
+			`const b = [...document.querySelectorAll('ul[aria-label=Layers] button')].find((x) => x.getAttribute('aria-label') === 'Hide Terrain on the canvas'); return !!b && b.disabled;`,
+		),
+	);
+
+	// Lock Treats: every route refuses a change to it.
+	check(
+		'locking Treats is pressed from its padlock',
+		await pressLayerToggle(bridge, 'Lock Treats'),
+	);
+	const kept = await within(5000, async () => {
+		try {
+			return JSON.parse(readFileSync(sidecar, 'utf8')).layers?.locked?.includes('treats')
+				? true
+				: null;
+		} catch {
+			return null;
+		}
+	});
+	check('the lock is kept in the level sidecar', kept !== null);
+	const refused = await bridge.js<{ kind?: string; layers?: string[] } | null>(
+		`try { await window.__TAURI_INTERNALS__.invoke('plugin:fizz-studio-worlds|level_apply', { id: 'level-1', edit: { kind: 'place', item: 'cheezie', x: [[5, 5]], y: [[9, 9]] }, basedOn: 0, mergeKey: null }); return null; } catch (e) { return e; }`,
+	);
+	check(
+		'placing a treat while Treats is locked is refused by Rust',
+		refused?.kind === 'locked' && refused.layers?.join() === 'treats',
+		JSON.stringify(refused),
+	);
+	await showFromRail(bridge, 'Palette');
+	const chose = await within(3000, async () => {
+		await bridge.js<boolean>(
+			`const o = [...document.querySelectorAll('[role=option]')].find((x) => (x.getAttribute('aria-label') ?? x.textContent.trim().slice(1)) === 'cheezie'); o?.click(); return true;`,
+		);
+		return bridge.js<boolean>(`return document.body.innerText.includes('Brush: cheezie');`);
+	});
+	check('the Treat brush is chosen in the Palette', chose !== null);
+	const clicked =
+		chose !== null &&
+		(await bridge.js<boolean>(
+			`const m = document.querySelector('[data-map]').getBoundingClientRect();
+		 const c = document.querySelector('[role=application]');
+		 c.setPointerCapture = () => {}; // a synthetic pointer id has nothing to capture
+		 const at = { x: m.left + m.width / 2, y: m.top + m.height / 2 };
+		 for (const type of ['pointerdown', 'pointerup']) c.dispatchEvent(new PointerEvent(type, { bubbles: true, cancelable: true, pointerId: 9, button: 0, clientX: at.x, clientY: at.y }));
+		 return true;`,
+		));
+	const note = await within(3000, () =>
+		bridge.js<boolean>(
+			`return [...document.querySelectorAll('[role=alert]')].some((x) => x.textContent.includes('Treats is locked. Unlock it in Layers to change it.'));`,
+		),
+	);
+	check('painting a treat on the canvas shows the lock note', clicked && note !== null);
+	check(
+		'the refused edits changed nothing',
+		(await levelCall(bridge, 'level_snapshot', { id: 'level-1' })).revision === 0,
+	);
+	const claude = await mcpEdit(path, ['place cheezie x=5 y=9']);
+	check(
+		'edit_level through the MCP server is refused for the locked layer',
+		claude.isError === true &&
+			claude.text.includes('Treats is locked') &&
+			readFileSync(path, 'utf8') === original,
+		claude.text,
+	);
+
+	// An outside write to a line of a locked section is a conflict; the studio keeps its text.
+	const outside = original.replace('soda        x=36 y=5', 'soda        x=37 y=5');
+	writeFileSync(path, outside);
+	const conflict = await within(5000, () =>
+		bridge.js<boolean>(
+			`return document.body.innerText.includes('which is locked, so the studio kept its own text');`,
+		),
+	);
+	check('an outside write to a locked layer is a conflict that names it', conflict !== null);
+	check(
+		'the studio keeps its own text after the refused outside write',
+		(await levelCall(bridge, 'level_snapshot', { id: 'level-1' })).text === original,
+	);
+	writeFileSync(path, original);
+
+	// Leave everything as it was found.
+	await showFromRail(bridge, 'Layers');
+	await pressLayerToggle(bridge, 'Lock Treats');
+	await bridge.js<boolean>(
+		`const b = [...document.querySelectorAll('button')].find((x) => x.getAttribute('aria-label') === 'Dismiss' || x.textContent.trim() === 'Dismiss'); b?.click(); return true;`,
+	);
+	await within(5000, async () => {
+		try {
+			return JSON.parse(readFileSync(sidecar, 'utf8')).layers === undefined ? true : null;
+		} catch {
+			return true;
+		}
+	});
+	rmSync(sidecar, { force: true });
+	await showFromRail(bridge, 'Palette');
+	// The brush the first check chose goes back to the one a level opens with.
+	await bridge.js<boolean>(
+		`const o = [...document.querySelectorAll('[role=option]')].find((x) => (x.getAttribute('aria-label') ?? x.textContent.trim().slice(1)) === 'fill'); o?.click(); return true;`,
+	);
+}
+
 async function main(): Promise<void> {
 	if (!existsSync(binary)) {
 		console.error(`No debug build at ${binary}. Run \`bun run app:build\` first.`);
@@ -3230,6 +3432,7 @@ async function main(): Promise<void> {
 		const opened = await openLevel(bridge, path);
 		check('the open level has its 5,376 cells', opened.cells === 5376, String(opened.cells));
 		check('a fresh level has nothing to undo', !opened.canUndo && opened.revision === 0);
+		await layerChecks(bridge, path, original);
 
 		// 2. Paint, and the canvas and history show it.
 		const painted = await levelCall(bridge, 'level_apply', {
