@@ -52,6 +52,8 @@ export interface CommandFacts {
 	focusedPanel: PanelId | null;
 	/** The layers that are locked in the open level, by id (the Layers panel publishes them; this app only reads them). */
 	locks: readonly string[];
+	/** The layers hidden on the canvas in this window, by id (the editor publishes them; they are a view, not saved). */
+	hiddenLayers: readonly string[];
 	/** The menu bar is on (the `ui.menu_bar` setting). */
 	menuBar: boolean;
 	/** The commands row under the menus (the `ui.toolbar` setting). */
@@ -87,6 +89,7 @@ export const NO_FACTS: CommandFacts = {
 	placeOf: perPanel('hidden'),
 	focusedPanel: null,
 	locks: [],
+	hiddenLayers: [],
 	menuBar: false,
 	toolbar: 'classic',
 	ribbonFolded: false,
@@ -163,7 +166,8 @@ export function createCommandBridge(): CommandBridge {
 				sameJson(next.brush, was.brush) &&
 				sameJson(next.workspace, was.workspace) &&
 				sameJson(next.placeOf, was.placeOf) &&
-				sameJson(next.locks, was.locks);
+				sameJson(next.locks, was.locks) &&
+				sameJson(next.hiddenLayers, was.hiddenLayers);
 			if (!same) set({ ...snapshot, facts: next });
 		},
 		setHandlers(handlers) {

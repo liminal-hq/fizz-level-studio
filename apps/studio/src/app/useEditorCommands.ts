@@ -18,6 +18,7 @@ import {
 	tearOffCommandId,
 	toolCommandId,
 } from '../commands/registry';
+import { LAYERS_SHOW_ALL, LAYERS_UNLOCK_ALL } from '../commands/layerCommands';
 import { panelOfNode } from '../panels/dock/dockKeys';
 import { ZONE_IDS, zoneOf } from '../panels/dock/dockModel';
 import type { useDockLayout } from '../panels/dock/useDockLayout';
@@ -44,6 +45,13 @@ export interface EditorCommandsInput {
 	zoom: CommandFacts['zoom'];
 	/** Asks the canvas to zoom in, out or fit; the zoom commands run it. */
 	onZoom: (kind: 'in' | 'out' | 'fit') => void;
+	/** The Layers panel's state, for Show all and Unlock all and the `locks` and `hiddenLayers` facts. */
+	layers: {
+		locked: readonly string[];
+		hidden: readonly string[];
+		showAll: () => void;
+		unlockAll: () => void;
+	};
 }
 
 /**
@@ -63,6 +71,7 @@ export function useEditorCommands({
 	tearOff,
 	zoom,
 	onZoom,
+	layers,
 }: EditorCommandsInput): void {
 	// The application menu's Edit and View rows: facts as they are now, and actions that call the latest.
 	const latest = {
@@ -84,6 +93,8 @@ export function useEditorCommands({
 		floatPanel: dock.floatPanel,
 		switchWorkspace: dock.switchWorkspace,
 		away: windows.away,
+		showAllLayers: layers.showAll,
+		unlockAllLayers: layers.unlockAll,
 	};
 	const live = useRef(latest);
 	live.current = latest;
@@ -143,6 +154,8 @@ export function useEditorCommands({
 			live.current.activate('script');
 		};
 		handlers['script.tab.level.close'] = () => live.current.setVisible('script', false);
+		handlers[LAYERS_SHOW_ALL] = () => live.current.showAllLayers();
+		handlers[LAYERS_UNLOCK_ALL] = () => live.current.unlockAllLayers();
 		handlers['view.zoomIn'] = () => live.current.onZoom('in');
 		handlers['view.zoomOut'] = () => live.current.onZoom('out');
 		handlers['view.zoomFit'] = () => live.current.onZoom('fit');
@@ -191,6 +204,8 @@ export function useEditorCommands({
 				workspace: NO_FACTS.workspace,
 				placeOf: NO_FACTS.placeOf,
 				focusedPanel: null,
+				locks: [],
+				hiddenLayers: [],
 			});
 		};
 	}, [bridge]);
@@ -249,6 +264,8 @@ export function useEditorCommands({
 			workspace: { active: dock.active, names: dock.workspaceNames },
 			placeOf,
 			focusedPanel,
+			locks: layers.locked,
+			hiddenLayers: layers.hidden,
 		});
 	}, [
 		bridge,
@@ -273,5 +290,7 @@ export function useEditorCommands({
 		dock.workspaceNames,
 		placeOf,
 		focusedPanel,
+		layers.locked,
+		layers.hidden,
 	]);
 }

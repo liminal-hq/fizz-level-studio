@@ -241,6 +241,10 @@ export const enMessages = {
 	'layers.lockFailed': 'That lock could not be saved.',
 	// translator: Verb phrase on a button. Shows every layer that is hidden again.
 	'layers.showAll': 'Show all',
+	// translator: Why Show all cannot be used: no layer is hidden on the canvas.
+	'layers.noneHidden': 'No layer is hidden',
+	// translator: Why Unlock all cannot be used: no layer is locked.
+	'layers.noneLocked': 'No layer is locked',
 	// translator: Tooltip on a layer's name. Choosing it shows the layer's first line in the script.
 	'layers.reveal': 'Show the first line of {layer} in the script',
 	// translator: Short note under the Layers list. Hiding a layer is only for the person's own view.

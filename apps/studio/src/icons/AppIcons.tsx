@@ -238,6 +238,22 @@ export const SearchIcon: IconComponent = ({ size }) => (
 	</Svg>
 );
 
+/** An open eye: Show all layers. */
+export const ShowAllLayersIcon: IconComponent = ({ size }) => (
+	<Svg size={size}>
+		<path d="M1.5 8S4 3.5 8 3.5 14.5 8 14.5 8 12 12.5 8 12.5 1.5 8 1.5 8z" />
+		<circle cx="8" cy="8" r="2" />
+	</Svg>
+);
+
+/** An open padlock: Unlock all layers. */
+export const UnlockAllLayersIcon: IconComponent = ({ size }) => (
+	<Svg size={size}>
+		<rect x="3.5" y="7" width="9" height="6.5" rx="1.4" />
+		<path d="M5.5 7V5.3a2.5 2.5 0 0 1 4.8-1" />
+	</Svg>
+);
+
 /** Two small frames, one over the other: Assets. */
 export const AssetsIcon: IconComponent = ({ size }) => (
 	<Svg size={size}>
@@ -401,6 +417,8 @@ export type IconId =
 	| 'toolbar'
 	| 'ribbon'
 	| 'search'
+	| 'layers.showAll'
+	| 'layers.unlockAll'
 	| `panel.${PanelId}`
 	| `tool.${ToolId}`
 	| 'menu.file'
@@ -450,6 +468,8 @@ export const APP_ICONS: Record<IconId, IconComponent> = {
 	toolbar: ToolbarIcon,
 	ribbon: RibbonIcon,
 	search: SearchIcon,
+	'layers.showAll': ShowAllLayersIcon,
+	'layers.unlockAll': UnlockAllLayersIcon,
 	...(Object.fromEntries(PANEL_ICON_ENTRIES) as Record<`panel.${PanelId}`, IconComponent>),
 	...(Object.fromEntries(TOOL_ICON_ENTRIES) as Record<`tool.${ToolId}`, IconComponent>),
 	'menu.file': FileMenuIcon,

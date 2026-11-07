@@ -13,6 +13,7 @@ import { TOOL_KEYS } from '../tools/shortcuts';
 import { TOOL_IDS, type ToolId } from '../tools/tool';
 import type { Brush } from '../tools/brush';
 import type { BridgeSnapshot, CommandFacts } from './commandBridge';
+import { layerCommands } from './layerCommands';
 import { formatChord, type KeyChord } from './keyChords';
 import type { ZoneId } from '@liminal-hq/fizz-studio-protocol/generated/ZoneId';
 
@@ -616,8 +617,16 @@ export function panelWindowCommands(facts: CommandFacts): CommandDef[] {
 }
 
 /**
- * Every command now: the menu's, the palette's own, a brush for each the level offers and a Tear
- * off or Dock back for each panel.
+ * The commands a feature registers beside the fixed lists: today the Layers panel's Show all and
+ * Unlock all. A feature adds its builder here and nothing else in the registry changes.
+ */
+export function extraCommands(_facts: CommandFacts): CommandDef[] {
+	return [...layerCommands()];
+}
+
+/**
+ * Every command now: the menu's, the palette's own, a brush for each the level offers, a Tear
+ * off or Dock back for each panel and the features' extras.
  */
 export function allCommands(facts: CommandFacts): CommandDef[] {
 	return [
@@ -625,6 +634,7 @@ export function allCommands(facts: CommandFacts): CommandDef[] {
 		...PALETTE_COMMANDS,
 		...brushCommands(facts.brushes),
 		...panelWindowCommands(facts),
+		...extraCommands(facts),
 	];
 }
 

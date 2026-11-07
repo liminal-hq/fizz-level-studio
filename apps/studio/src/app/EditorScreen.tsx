@@ -375,6 +375,12 @@ export function EditorScreen({
 		tearOff: tearOffPanel,
 		zoom,
 		onZoom: (kind) => setZoomRequest((old) => ({ kind, serial: (old?.serial ?? 0) + 1 })),
+		layers: {
+			locked: layerLocks.locked,
+			hidden: hiddenLayers,
+			showAll: () => setHiddenLayers([]),
+			unlockAll: layerLocks.unlockAll,
+		},
 	});
 
 	// Tab, on the level or on nothing, shows the level only and brings the panels back.

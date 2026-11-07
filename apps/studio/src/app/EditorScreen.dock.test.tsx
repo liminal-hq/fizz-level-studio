@@ -10,7 +10,7 @@ import { CommandBridgeContext, createCommandBridge } from '../commands/commandBr
 import { defaultDock } from '../panels/dock/dockModel';
 import { runCommand } from '../commands/registry';
 import { choosePanelMenu, fakeDockClient, openDock } from '../test/dockFixtures';
-import { levelSnapshot } from '../test/levelFixtures';
+import { levelSections, levelSnapshot, levelView } from '../test/levelFixtures';
 import { FakeLevelClient } from '../worlds/fakeLevelClient';
 import { EditorScreen } from './EditorScreen';
 
@@ -19,8 +19,7 @@ function railItem(rail: string, name: string): HTMLElement {
 	return within(screen.getByRole('group', { name: rail })).getByRole('button', { name });
 }
 
-async function mount(dock = openDock()) {
-	const snapshot = levelSnapshot();
+async function mount(dock = openDock(), snapshot = levelSnapshot()) {
 	const client = new FakeLevelClient(snapshot);
 	const docks = fakeDockClient(dock);
 	const bridge = createCommandBridge();
@@ -285,5 +284,22 @@ describe('the editor’s docks', () => {
 		);
 		expect(screen.getByRole('button', { name: 'Script' })).toBeEnabled();
 		expect(user).toBeDefined();
+	});
+
+	it('publishes the hidden and locked layers, and Show all and Unlock all undo them', async () => {
+		const user = userEvent.setup();
+		const { bridge } = await mount(
+			openDock(),
+			levelSnapshot({}, { ...levelView(), sections: levelSections() }),
+		);
+		await user.click(railItem('Left rail', 'Layers'));
+		await user.click(screen.getByRole('button', { name: 'Hide Treats on the canvas' }));
+		await user.click(screen.getByRole('button', { name: 'Lock Terrain' }));
+		await waitFor(() => expect(bridge.getSnapshot().facts.hiddenLayers).toEqual(['treats']));
+		await waitFor(() => expect(bridge.getSnapshot().facts.locks).toEqual(['terrain']));
+		runCommand('layers.showAll', bridge.getSnapshot());
+		await waitFor(() => expect(bridge.getSnapshot().facts.hiddenLayers).toEqual([]));
+		runCommand('layers.unlockAll', bridge.getSnapshot());
+		await waitFor(() => expect(bridge.getSnapshot().facts.locks).toEqual([]));
 	});
 });
