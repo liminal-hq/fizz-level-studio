@@ -4,7 +4,8 @@
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
 import { createContext, useContext, useSyncExternalStore } from 'react';
-import type { PanelId } from '../panels/float/panelSpecs';
+import type { ZoneId } from '@liminal-hq/fizz-studio-protocol/generated/ZoneId';
+import { PANEL_SPECS, type PanelId } from '../panels/float/panelSpecs';
 import type { Brush } from '../tools/brush';
 
 /** What the menu needs to know to enable, disable and check its rows. */
@@ -33,6 +34,27 @@ export interface CommandFacts {
 	brushes: readonly Brush[];
 	/** How many lines the open level's script has; Go to line accepts 1 to this. */
 	lineCount: number;
+	/** The canvas zoom and whether it can still change either way; null until a level canvas publishes it. */
+	zoom: { level: number; canIn: boolean; canOut: boolean } | null;
+	/** The brush the tools paint with; null with no editor open. */
+	brush: Brush | null;
+	/** The spacing between painted cells. */
+	spacing: number;
+	/** The active workspace and the names of all of them. */
+	workspace: { active: string; names: readonly string[] };
+	/** Where each panel is: a dock, floating over the level, in a window of its own, or hidden. */
+	placeOf: Record<PanelId, ZoneId | 'float' | 'window' | 'hidden'>;
+	/** The panel the keyboard focus was last in, for the focused-panel commands. */
+	focusedPanel: PanelId | null;
+	/** The layers that are locked in the open level, by id (the Layers panel publishes them; this app only reads them). */
+	locks: readonly string[];
+	/** The menu bar is on (the `ui.menu_bar` setting). */
+	menuBar: boolean;
+}
+
+/** A record with one entry per panel, so a new panel needs no edit here. */
+export function perPanel<T>(value: T): Record<PanelId, T> {
+	return Object.fromEntries(PANEL_SPECS.map((spec) => [spec.id, value])) as Record<PanelId, T>;
 }
 
 export const NO_FACTS: CommandFacts = {
@@ -45,10 +67,18 @@ export const NO_FACTS: CommandFacts = {
 	author: null,
 	levelFirst: false,
 	maximised: null,
-	panels: { palette: false, objects: false, history: false, proposals: false, script: false },
-	away: { palette: false, objects: false, history: false, proposals: false, script: false },
+	panels: perPanel(false),
+	away: perPanel(false),
 	brushes: [],
 	lineCount: 0,
+	zoom: null,
+	brush: null,
+	spacing: 1,
+	workspace: { active: '', names: [] },
+	placeOf: perPanel('hidden'),
+	focusedPanel: null,
+	locks: [],
+	menuBar: false,
 };
 
 /**
@@ -71,9 +101,11 @@ export interface CommandBridge {
 	setHandlers(handlers: CommandHandlers): () => void;
 }
 
-function samePanels(a: CommandFacts['panels'], b: CommandFacts['panels']): boolean {
+function samePanels(a: Record<PanelId, boolean>, b: Record<PanelId, boolean>): boolean {
 	return (Object.keys(a) as PanelId[]).every((id) => a[id] === b[id]);
 }
+
+const sameJson = (a: unknown, b: unknown) => a === b || JSON.stringify(a) === JSON.stringify(b);
 
 const sameBrushes = (a: readonly Brush[], b: readonly Brush[]) =>
 	a === b ||
@@ -109,7 +141,15 @@ export function createCommandBridge(): CommandBridge {
 				next.levelFirst === was.levelFirst &&
 				next.maximised === was.maximised &&
 				samePanels(next.panels, was.panels) &&
-				samePanels(next.away, was.away);
+				samePanels(next.away, was.away) &&
+				next.spacing === was.spacing &&
+				next.focusedPanel === was.focusedPanel &&
+				next.menuBar === was.menuBar &&
+				sameJson(next.zoom, was.zoom) &&
+				sameJson(next.brush, was.brush) &&
+				sameJson(next.workspace, was.workspace) &&
+				sameJson(next.placeOf, was.placeOf) &&
+				sameJson(next.locks, was.locks);
 			if (!same) set({ ...snapshot, facts: next });
 		},
 		setHandlers(handlers) {

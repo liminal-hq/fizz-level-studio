@@ -29,6 +29,22 @@ describe('useDockLayout', () => {
 		expect(result.current.shown.script).toBe(true);
 	});
 
+	it('names the workspaces and switches to another, saving the choice', async () => {
+		const client = fakeDockClient(defaultDock());
+		const { result } = renderHook(() => useDockLayout(client, windowSize, area));
+		await waitFor(() => expect(client.get).toHaveBeenCalled());
+		expect(result.current.workspaceNames).toEqual(['Paint', 'Review', 'Script']);
+		expect(result.current.active).toBe('Paint');
+		act(() => result.current.switchWorkspace('Script'));
+		expect(result.current.active).toBe('Script');
+		act(() => result.current.switchWorkspace('Nowhere'));
+		expect(result.current.active).toBe('Script');
+		await act(async () => {
+			await vi.advanceTimersByTimeAsync(SAVE_DELAY_MS + 10);
+		});
+		expect(vi.mocked(client.save).mock.calls.at(-1)![0].active).toBe('Script');
+	});
+
 	it('takes the saved dock when it arrives and repairs it', async () => {
 		const dock = defaultDock();
 		const ws = dock.workspaces[dock.active]!;

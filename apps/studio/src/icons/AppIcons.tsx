@@ -10,7 +10,7 @@
 
 import type { ComponentType, ReactNode, SVGProps } from 'react';
 import { PANEL_SPECS, type PanelId } from '../panels/float/panelSpecs';
-import { PANEL_ICONS, TearOffIcon } from '../panels/dock/panelIcons';
+import { FloatIcon, PANEL_ICONS, TearOffIcon, ZoneIcon } from '../panels/dock/panelIcons';
 import type { ToolId } from '../tools/tool';
 
 export type IconComponent = ComponentType<{ size?: number }>;
@@ -152,6 +152,54 @@ export const HelpIcon: IconComponent = ({ size }) => (
 );
 
 /** A keyboard: the Keyboard shortcuts row (Waypoint's keyboard). */
+/** A magnifier with a plus: Zoom in. */
+export const ZoomInIcon: IconComponent = ({ size }) => (
+	<Svg size={size}>
+		<circle cx="7" cy="7" r="4.5" />
+		<path d="M10.4 10.4 14 14M7 5v4M5 7h4" />
+	</Svg>
+);
+
+/** A magnifier with a minus: Zoom out. */
+export const ZoomOutIcon: IconComponent = ({ size }) => (
+	<Svg size={size}>
+		<circle cx="7" cy="7" r="4.5" />
+		<path d="M10.4 10.4 14 14M5 7h4" />
+	</Svg>
+);
+
+/** Four corners: Fit the level to the room. */
+export const ZoomFitIcon: IconComponent = ({ size }) => (
+	<Svg size={size}>
+		<path d="M2 5.5V3a1 1 0 0 1 1-1h2.5M10.5 2H13a1 1 0 0 1 1 1v2.5M14 10.5V13a1 1 0 0 1-1 1h-2.5M5.5 14H3a1 1 0 0 1-1-1v-2.5" />
+	</Svg>
+);
+
+/** A window with a row of menus along its top: the menu bar. */
+export const MenuBarIcon: IconComponent = ({ size }) => (
+	<Svg size={size}>
+		<rect x="1.5" y="2.5" width="13" height="11" rx="1.4" />
+		<path d="M1.5 6h13M3.8 4.3h.1M6 4.3h.1M8.2 4.3h.1" />
+	</Svg>
+);
+
+/** Three bars side by side: a workspace. */
+export const WorkspaceIcon: IconComponent = ({ size }) => (
+	<Svg size={size}>
+		<rect x="1.5" y="2.5" width="13" height="11" rx="1.4" />
+		<path d="M5.8 2.5v11M10.2 2.5v11" />
+	</Svg>
+);
+
+/** Three dots one above another: a panel's menu. */
+export const MoreIcon: IconComponent = ({ size }) => (
+	<Svg size={size}>
+		<circle cx="8" cy="3.5" r="0.9" />
+		<circle cx="8" cy="8" r="0.9" />
+		<circle cx="8" cy="12.5" r="0.9" />
+	</Svg>
+);
+
 export const KeyboardIcon: IconComponent = ({ size }) => (
 	<Svg size={size}>
 		<rect x="1.5" y="4" width="13" height="8" rx="1.4" />
@@ -293,6 +341,16 @@ export type IconId =
 	| 'help'
 	| 'shortcuts'
 	| 'history'
+	| 'dock.left'
+	| 'dock.right'
+	| 'dock.bottom'
+	| 'float'
+	| 'zoomIn'
+	| 'zoomOut'
+	| 'zoomFit'
+	| 'menuBar'
+	| 'workspace'
+	| 'more'
 	| `panel.${PanelId}`
 	| `tool.${ToolId}`
 	| 'menu.file'
@@ -328,6 +386,16 @@ export const APP_ICONS: Record<IconId, IconComponent> = {
 	help: HelpIcon,
 	shortcuts: KeyboardIcon,
 	history: HistoryIcon,
+	'dock.left': ({ size }) => <ZoneIcon zone="left" size={size} />,
+	'dock.right': ({ size }) => <ZoneIcon zone="right" size={size} />,
+	'dock.bottom': ({ size }) => <ZoneIcon zone="bottom" size={size} />,
+	float: FloatIcon,
+	zoomIn: ZoomInIcon,
+	zoomOut: ZoomOutIcon,
+	zoomFit: ZoomFitIcon,
+	menuBar: MenuBarIcon,
+	workspace: WorkspaceIcon,
+	more: MoreIcon,
 	...(Object.fromEntries(PANEL_ICON_ENTRIES) as Record<`panel.${PanelId}`, IconComponent>),
 	...(Object.fromEntries(TOOL_ICON_ENTRIES) as Record<`tool.${ToolId}`, IconComponent>),
 	'menu.file': FileMenuIcon,

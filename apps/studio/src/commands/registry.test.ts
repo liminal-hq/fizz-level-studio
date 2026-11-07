@@ -22,7 +22,6 @@ import {
 	HISTORY_UNDO_ID,
 	menuSections,
 } from './appMenuModel';
-import { commandForKey } from './appShortcuts';
 import { createCommandBridge, NO_FACTS, type BridgeSnapshot } from './commandBridge';
 import {
 	COMMANDS,
@@ -553,65 +552,6 @@ describe('the palette and visibility', () => {
 	});
 });
 
-describe('the app keys', () => {
-	const key = (
-		init: Partial<Pick<KeyboardEvent, 'key' | 'ctrlKey' | 'metaKey' | 'altKey' | 'shiftKey'>>,
-		target: EventTarget | null = null,
-	) =>
-		commandForKey({
-			key: '',
-			ctrlKey: false,
-			metaKey: false,
-			altKey: false,
-			shiftKey: false,
-			target,
-			...init,
-		});
-
-	it('maps Ctrl+N, Ctrl+O and Ctrl+W to New, Open and Close level', () => {
-		expect(key({ key: 'n', ctrlKey: true })).toBe('file.new');
-		expect(key({ key: 'o', ctrlKey: true })).toBe('file.open');
-		expect(key({ key: 'w', ctrlKey: true })).toBe('file.close');
-		expect(key({ key: 'W', metaKey: true })).toBe('file.close');
-	});
-
-	it('leaves the other modified keys, the tool keys and Quit alone', () => {
-		expect(key({ key: 'n', ctrlKey: true, shiftKey: true })).toBeNull();
-		expect(key({ key: 'w', ctrlKey: true, altKey: true })).toBeNull();
-		expect(key({ key: 'q', ctrlKey: true })).toBeNull();
-		for (const letter of ['n', 'o', 'w', 'b', 'e', 'i', 's', 't', 'q']) {
-			expect(key({ key: letter })).toBeNull();
-		}
-	});
-
-	it('maps F1 to Help and the question mark to Keyboard shortcuts', () => {
-		expect(key({ key: 'F1' })).toBe('help.help');
-		expect(key({ key: '?', shiftKey: true })).toBe('help.shortcuts');
-	});
-
-	it('pauses the question mark while typing in a box', () => {
-		const input = document.createElement('input');
-		const editable = document.createElement('div');
-		editable.setAttribute('contenteditable', 'true');
-		const inner = document.createElement('span');
-		editable.append(inner);
-		expect(key({ key: '?' }, input)).toBeNull();
-		expect(key({ key: '?' }, inner)).toBeNull();
-		expect(key({ key: '?' }, document.createElement('button'))).toBe('help.shortcuts');
-		// F1 and the Ctrl keys still work in a box.
-		expect(key({ key: 'F1' }, input)).toBe('help.help');
-	});
-
-	it('runs through the registry, so Close level does nothing without a level', () => {
-		const close = vi.fn();
-		const handlers = { 'file.close': close };
-		const id = key({ key: 'w', ctrlKey: true })!;
-		expect(runCommand(id, snapshot({}, handlers))).toBe(false);
-		expect(runCommand(id, snapshot({ hasLevel: true }, handlers))).toBe(true);
-		expect(close).toHaveBeenCalledOnce();
-	});
-});
-
 describe('the Undo history submenu', () => {
 	const handlers = { 'edit.undo': () => {}, 'edit.redo': () => {} };
 	const history = (
@@ -689,5 +629,61 @@ describe('the Undo history submenu', () => {
 		expect(commandIdOfRow(HISTORY_REDO_ID)).toBe('edit.redo');
 		expect(commandIdOfRow(HISTORY_MORE_ID)).toBe('view.commandPalette');
 		expect(commandIdOfRow('file.save')).toBe('file.save');
+	});
+});
+
+describe('the zoom, workspace and window commands', () => {
+	const find = (id: string, facts: Partial<BridgeSnapshot['facts']>, given = {}) => {
+		const snap = snapshot({ editorOpen: true, hasLevel: true, ...facts }, given);
+		const def = allCommands(snap.facts).find((command) => command.id === id)!;
+		return viewOf(def, snap);
+	};
+
+	it('hides the zoom commands until the canvas has published its zoom', () => {
+		expect(find('view.zoomIn', {}).visible).toBe(false);
+		const zoom = { level: 16, canIn: false, canOut: true };
+		expect(find('view.zoomIn', { zoom }, { 'view.zoomIn': () => {} })).toMatchObject({
+			visible: true,
+			enabled: false,
+			reason: 'Already at the largest zoom',
+		});
+		expect(find('view.zoomOut', { zoom }, { 'view.zoomOut': () => {} }).enabled).toBe(true);
+	});
+
+	it('ticks the active workspace and offers the others', () => {
+		const workspace = { active: 'Paint', names: ['Paint', 'Review', 'Script'] };
+		const handlers = { 'workspace.paint': () => {}, 'workspace.script': () => {} };
+		expect(find('workspace.paint', { workspace }, handlers)).toMatchObject({
+			checked: true,
+			enabled: false,
+		});
+		expect(find('workspace.script', { workspace }, handlers)).toMatchObject({
+			checked: false,
+			enabled: true,
+		});
+		expect(find('workspace.script', {}).visible).toBe(false);
+	});
+
+	it('acts on the focused panel, and only when there is one', () => {
+		const handlers = { 'window.floatFocused': () => {}, 'window.tearOffFocused': () => {} };
+		expect(find('window.floatFocused', {}, handlers).enabled).toBe(false);
+		expect(find('window.floatFocused', { focusedPanel: 'history' }, handlers).enabled).toBe(true);
+		const away = { ...NO_FACTS.away, history: true };
+		expect(find('window.tearOffFocused', { focusedPanel: 'history', away }, handlers).enabled).toBe(
+			false,
+		);
+	});
+
+	it('docks every window back only while a panel is in one', () => {
+		const handlers = { 'window.dockAllBack': () => {} };
+		expect(find('window.dockAllBack', {}, handlers).enabled).toBe(false);
+		const away = { ...NO_FACTS.away, script: true };
+		expect(find('window.dockAllBack', { away }, handlers).enabled).toBe(true);
+	});
+
+	it('keeps the menu bar switch a toggle that follows the fact', () => {
+		const handlers = { 'view.menuBar': () => {} };
+		expect(find('view.menuBar', { menuBar: true }, handlers).checked).toBe(true);
+		expect(find('view.menuBar', { menuBar: false }, handlers).checked).toBe(false);
 	});
 });

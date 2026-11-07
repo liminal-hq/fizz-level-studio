@@ -5,18 +5,10 @@
 
 import { Dialog } from '@liminal-hq/fizz-studio-chrome/Dialog/Dialog';
 import { DialogActions, DialogButton } from '@liminal-hq/fizz-studio-chrome/Dialog/DialogActions';
-import {
-	CLOSE_LEVEL_KEYS,
-	COMMAND_PALETTE_KEYS,
-	HELP_KEYS,
-	MAXIMISE_KEYS,
-	NEW_LEVEL_KEYS,
-	OPEN_LEVEL_KEYS,
-	QUIT_KEYS,
-	SHORTCUTS_KEYS,
-} from '../commands/registry';
+import { NO_FACTS } from '../commands/commandBridge';
+import { allCommands, shortcutOf } from '../commands/registry';
 import { t, type MessageId } from '../i18n/messages';
-import { TOOL_KEYS } from '../tools/shortcuts';
+import { toolCommandId } from '../commands/registry';
 import { TOOL_IDS } from '../tools/tool';
 import styles from './KeyboardShortcutsDialog.module.css';
 
@@ -26,23 +18,45 @@ export interface ShortcutRow {
 	action: MessageId;
 }
 
-/** The keys the studio handles now, in the order of the table in the editor spec (section 3). */
-export const SHORTCUT_ROWS: readonly ShortcutRow[] = [
-	{ keys: TOOL_IDS.map((id) => TOOL_KEYS[id].toUpperCase()).join(', '), action: 'shortcuts.tools' },
-	{ keys: 'Ctrl+Z, Ctrl+Shift+Z', action: 'shortcuts.undoRedo' },
-	{ keys: 'Ctrl+S', action: 'shortcuts.save' },
-	{ keys: NEW_LEVEL_KEYS, action: 'shortcuts.newLevel' },
-	{ keys: OPEN_LEVEL_KEYS, action: 'shortcuts.openLevel' },
-	{ keys: CLOSE_LEVEL_KEYS, action: 'shortcuts.closeLevel' },
-	{ keys: 'Ctrl+,', action: 'shortcuts.preferences' },
-	{ keys: QUIT_KEYS, action: 'shortcuts.quit' },
-	{ keys: COMMAND_PALETTE_KEYS, action: 'shortcuts.commandPalette' },
-	{ keys: 'Tab', action: 'shortcuts.levelFirst' },
-	{ keys: MAXIMISE_KEYS, action: 'shortcuts.maximise' },
-	{ keys: 'Ctrl+Shift+0', action: 'shortcuts.resetLayout' },
-	{ keys: HELP_KEYS, action: 'shortcuts.help' },
-	{ keys: SHORTCUTS_KEYS, action: 'shortcuts.shortcuts' },
+/**
+ * The rows of the table: what each says, and the commands whose keys it shows. The keys come from the
+ * registry (`keys`, or `shortcut` for the few a screen handles itself), so a key changed there
+ * changes here, and a row naming a command that has no keys fails the dialog's test.
+ */
+export const SHORTCUT_SOURCES: readonly { commands: readonly string[]; action: MessageId }[] = [
+	{ commands: TOOL_IDS.map(toolCommandId), action: 'shortcuts.tools' },
+	{ commands: ['edit.undo', 'edit.redo'], action: 'shortcuts.undoRedo' },
+	{ commands: ['file.save'], action: 'shortcuts.save' },
+	{ commands: ['file.new'], action: 'shortcuts.newLevel' },
+	{ commands: ['file.open'], action: 'shortcuts.openLevel' },
+	{ commands: ['file.close'], action: 'shortcuts.closeLevel' },
+	{ commands: ['file.preferences'], action: 'shortcuts.preferences' },
+	{ commands: ['file.quit'], action: 'shortcuts.quit' },
+	{ commands: ['view.commandPalette'], action: 'shortcuts.commandPalette' },
+	{ commands: ['view.levelFirst'], action: 'shortcuts.levelFirst' },
+	{ commands: ['view.maximise.script'], action: 'shortcuts.maximise' },
+	{ commands: ['view.resetLayout'], action: 'shortcuts.resetLayout' },
+	{ commands: ['view.zoomIn'], action: 'shortcuts.zoomIn' },
+	{ commands: ['view.zoomOut'], action: 'shortcuts.zoomOut' },
+	{ commands: ['view.zoomFit'], action: 'shortcuts.zoomFit' },
+	{ commands: ['help.help'], action: 'shortcuts.help' },
+	{ commands: ['help.shortcuts'], action: 'shortcuts.shortcuts' },
 ];
+
+/** The table's rows, with their keys read from the registry. */
+export function shortcutRows(): ShortcutRow[] {
+	const defs = allCommands(NO_FACTS);
+	return SHORTCUT_SOURCES.map(({ commands, action }) => ({
+		action,
+		keys: commands
+			.map((id) => {
+				const def = defs.find((command) => command.id === id);
+				return def ? shortcutOf(def) : undefined;
+			})
+			.filter((keys): keys is string => keys !== undefined)
+			.join(', '),
+	}));
+}
 
 export interface KeyboardShortcutsDialogProps {
 	open: boolean;
@@ -75,7 +89,7 @@ export function KeyboardShortcutsDialog({ open, onClose }: KeyboardShortcutsDial
 						</tr>
 					</thead>
 					<tbody>
-						{SHORTCUT_ROWS.map((row) => (
+						{shortcutRows().map((row) => (
 							<tr key={row.action}>
 								<td className={styles.keys}>
 									{row.keys.split(', ').map((keys, index) => (

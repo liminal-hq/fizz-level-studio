@@ -101,6 +101,12 @@ export const enMessages = {
 	'canvas.zoomLevel': 'Zoom {zoom}×',
 	// translator: Accessible name of the group holding the canvas’s zoom buttons.
 	'canvas.zoomGroup': 'Canvas zoom',
+	// translator: Verb phrase. Chooses the largest whole zoom that shows the whole level in the room there is.
+	'canvas.zoomFit': 'Fit level',
+	// translator: Tooltip on a disabled Zoom in button: the canvas is already at its largest.
+	'canvas.zoomMax': 'Already at the largest zoom',
+	// translator: Tooltip on a disabled Zoom out button: the canvas is already at its smallest.
+	'canvas.zoomMin': 'Already at the smallest zoom',
 
 	// translator: Accessible name of the list of things placed in the level, such as items and enemy spawns.
 	'objects.list': 'Objects',
@@ -259,6 +265,26 @@ export const enMessages = {
 
 	// translator: Verb phrase on a menu item. Opens the command palette, a search box that finds and runs any command. The three dots mean it asks for more input.
 	'appMenu.commandPalette': 'Command palette…',
+	// translator: A switch in the View menu. Shows or hides the menu bar (File, Edit, View, Window, Help) under the title bar.
+	'appMenu.menuBar': 'Menu bar',
+	// translator: Menu row. Lets the panel the person last used float over the level.
+	'appMenu.floatFocused': 'Float the focused panel',
+	// translator: Menu row. Moves the panel the person last used into a window of its own.
+	'appMenu.tearOffFocused': 'Tear off the focused panel',
+	// translator: Menu row. Brings every panel that is in a window of its own back into the main window.
+	'appMenu.dockAllBack': 'Dock every window back',
+	// translator: Tooltip on a disabled Window row: no panel has been used yet.
+	'appMenu.noFocusedPanel': 'Click a panel first',
+	// translator: Tooltip on a disabled row: no panel is in a window of its own.
+	'appMenu.noWindows': 'No panel is in a window of its own',
+	// translator: Name of a workspace, a saved arrangement of the panels for painting the level. Also a menu row that switches to it.
+	'workspace.paint': 'Paint',
+	// translator: Name of a workspace, a saved arrangement of the panels for writing the level’s script. Also a menu row that switches to it.
+	'workspace.script': 'Script',
+	// translator: Name of a workspace, a saved arrangement of the panels for reviewing Claude’s proposals. Also a menu row that switches to it.
+	'workspace.review': 'Review',
+	// translator: Tooltip on a disabled workspace row: that workspace is the one in use.
+	'workspace.current': 'This workspace is open',
 	// translator: The name of the command palette dialog, read aloud by a screen reader. It is a search box listing every command.
 	'cmdPalette.title': 'Command palette',
 	// translator: Accessible name of the search field in the command palette.
@@ -337,6 +363,20 @@ export const enMessages = {
 	// translator: Verb phrase on an icon button. Lets a docked panel float over the level. {title} is the panel’s name.
 	'dock.float': 'Float {title}',
 
+	// translator: A row in a panel’s own menu. Moves that panel into the dock on the left of the level. The panel is already named by the menu.
+	'dock.menu.left': 'Dock left',
+	// translator: A row in a panel’s own menu. Moves that panel into the dock on the right of the level.
+	'dock.menu.right': 'Dock right',
+	// translator: A row in a panel’s own menu. Moves that panel into the dock below the level.
+	'dock.menu.bottom': 'Dock bottom',
+	// translator: A row in a panel’s own menu. Lets that panel float over the level.
+	'dock.menu.float': 'Float',
+	// translator: A row in a panel’s own menu. Moves that panel out of the main window into a window of its own.
+	'dock.menu.tearOff': 'Tear off',
+	// translator: A row in the menu of a panel that is in a window of its own. Brings it back into the main window.
+	'dock.menu.dockBack': 'Dock back',
+	// translator: Tooltip on a disabled row of a panel’s menu: the panel is already in that place.
+	'dock.menu.here': 'Already here',
 	// translator: Verb phrase on an icon button. Moves a panel out of the main window into a window of its own. {title} is the panel’s name.
 	'dock.tearOff': 'Tear off {title} into its own window',
 
@@ -477,6 +517,12 @@ export const enMessages = {
 	'shortcuts.maximise': 'Maximise or restore the focused panel',
 	// translator: Row in the keyboard shortcuts window. Puts every panel back where it starts.
 	'shortcuts.resetLayout': 'Reset layout',
+	// translator: A row of the Keyboard shortcuts table. Makes the level canvas show larger cells.
+	'shortcuts.zoomIn': 'Zoom in',
+	// translator: A row of the Keyboard shortcuts table. Makes the level canvas show smaller cells.
+	'shortcuts.zoomOut': 'Zoom out',
+	// translator: A row of the Keyboard shortcuts table. Chooses the largest whole zoom that shows the whole level.
+	'shortcuts.zoomFit': 'Fit level',
 	// translator: Row in the keyboard shortcuts window. Opens the app’s help.
 	'shortcuts.help': 'Help',
 	// translator: Row in the keyboard shortcuts window. Shows or hides this window.

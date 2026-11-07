@@ -15,6 +15,7 @@ import {
 	maximiseCommandId,
 	panelCommandId,
 	panelWindowCommands,
+	shortcutOf,
 	viewOf,
 	type CommandView,
 	type MenuName,
@@ -47,7 +48,7 @@ const MENU_ICONS: Record<MenuName, IconId> = {
 	help: 'menu.help',
 };
 
-const iconFor = (id: IconId) => createElement(APP_ICONS[id]);
+export const iconFor = (id: IconId) => createElement(APP_ICONS[id]);
 
 /** Alt plus the letter opens that menu: Alt+F File, Alt+E Edit, Alt+V View, Alt+W Window and Alt+H Help. */
 export const APP_MENU_MNEMONICS: Readonly<Record<string, string>> = {
@@ -59,14 +60,15 @@ export const APP_MENU_MNEMONICS: Readonly<Record<string, string>> = {
 };
 
 /** The row of a command: none while it is not visible; a disabled row carries its reason as the tooltip. */
-export function commandRow(view: CommandView): MenuItem[] {
+export function commandRow(view: CommandView, options: { short?: boolean } = {}): MenuItem[] {
 	if (!view.visible) return [];
 	const { def } = view;
+	const keys = shortcutOf(def);
 	const common = {
 		id: def.id,
-		label: commandLabel(def),
+		label: options.short && def.shortLabel ? t(def.shortLabel) : commandLabel(def),
 		...(def.icon ? { icon: iconFor(def.icon) } : {}),
-		...(def.shortcut ? { shortcut: def.shortcut } : {}),
+		...(keys ? { shortcut: keys } : {}),
 		...(view.enabled ? {} : { disabled: true }),
 		...(!view.enabled && view.reason ? { title: view.reason } : {}),
 	};

@@ -12,7 +12,7 @@ const openWindow = vi.hoisted(() => vi.fn(async () => {}));
 vi.mock('../services/windowsClient', () => ({ openWindow }));
 
 import { NO_FACTS, type BridgeSnapshot } from './commandBridge';
-import { CommandPalette, isCommandPaletteShortcut } from './CommandPalette';
+import { CommandPalette } from './CommandPalette';
 import { createRecentCommands } from './paletteRecents';
 
 function setup(
@@ -264,27 +264,5 @@ describe('the command palette', () => {
 		await user.keyboard('{Escape}');
 		expect(screen.queryByRole('dialog')).toBeNull();
 		expect(opener).toHaveFocus();
-	});
-});
-
-describe('the opening shortcut', () => {
-	const key = (init: Partial<KeyboardEvent>) =>
-		isCommandPaletteShortcut({
-			key: 'P',
-			ctrlKey: true,
-			metaKey: false,
-			shiftKey: true,
-			altKey: false,
-			...init,
-		});
-
-	it('is Ctrl or Cmd with Shift and P', () => {
-		expect(key({})).toBe(true);
-		expect(key({ key: 'p' })).toBe(true);
-		expect(key({ ctrlKey: false, metaKey: true })).toBe(true);
-		expect(key({ shiftKey: false })).toBe(false);
-		expect(key({ altKey: true })).toBe(false);
-		expect(key({ ctrlKey: false })).toBe(false);
-		expect(key({ key: 'o' })).toBe(false);
 	});
 });

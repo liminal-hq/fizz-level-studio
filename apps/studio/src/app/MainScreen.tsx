@@ -11,9 +11,9 @@ import {
 	useBridgeSnapshot,
 	type CommandBridge,
 } from '../commands/commandBridge';
-import { commandForKey } from '../commands/appShortcuts';
-import { CommandPalette, isCommandPaletteShortcut } from '../commands/CommandPalette';
-import { runCommand } from '../commands/registry';
+import { commandForKey, type KeyPhase } from '../commands/appShortcuts';
+import { CommandPalette } from '../commands/CommandPalette';
+import { allCommands, runCommand } from '../commands/registry';
 import { t, type MessageId } from '../i18n/messages';
 import { launchClient, type LaunchClient } from '../services/launchClient';
 import { flushPendingWrites } from '../services/pendingWrites';
@@ -21,7 +21,7 @@ import { quitClient, type QuitClient } from '../services/quitClient';
 import { pickLevelFile, type PickLevelFile } from '../services/filePicker';
 import { openWindow } from '../services/windowsClient';
 import { recentClient, type RecentClient } from '../services/recentClient';
-import { settingsClient, type SettingsClient } from '../services/settingsClient';
+import { settingsClient } from '../services/settingsClient';
 import type { LevelClient } from '../worlds/levelClient';
 import { recoveryClient, type RecoveryClient, type RecoveryEntry } from '../worlds/recoveryClient';
 import {
@@ -41,7 +41,7 @@ import { KeyboardShortcutsDialog } from './KeyboardShortcutsDialog';
 import styles from './MainScreen.module.css';
 import { RecoverySection } from './RecoverySection';
 import { newerSnapshot } from './snapshotRule';
-import { useMenuBar } from './useMenuBar';
+import { useUiSettings, type UiSettingsClient } from './useUiSettings';
 
 export interface MainScreenProps {
 	/** The level backend; defaults to the worlds plugin. */
@@ -59,7 +59,7 @@ export interface MainScreenProps {
 	/** Quitting the app; defaults to the app's commands. */
 	quit?: QuitClient;
 	/** The settings document, read for the menu bar choice; defaults to the settings plugin. */
-	settings?: Pick<SettingsClient, 'get' | 'onChanged'>;
+	settings?: UiSettingsClient;
 	/** The channel to panels torn off into their own windows. */
 	panelBridge?: PanelBridge;
 }
@@ -85,21 +85,6 @@ function folderOf(path: string): string {
 /** The level's own name, or its file's name when it has none. */
 export function levelName(snapshot: Pick<LevelSnapshot, 'view' | 'path'>): string {
 	return snapshot.view.name.trim() || baseName(snapshot.path);
-}
-
-/** True for the keys that mean Save: Ctrl+S, or Cmd+S on a Mac. */
-function isSaveShortcut(event: KeyboardEvent): boolean {
-	return (event.ctrlKey || event.metaKey) && !event.altKey && event.key.toLowerCase() === 's';
-}
-
-/** True for the keys that mean Preferences: Ctrl+, or Cmd+,. */
-function isPreferencesShortcut(event: KeyboardEvent): boolean {
-	return (event.ctrlKey || event.metaKey) && !event.altKey && event.key === ',';
-}
-
-/** True for the keys that mean Quit: Ctrl+Q. */
-function isQuitShortcut(event: KeyboardEvent): boolean {
-	return event.ctrlKey && !event.metaKey && !event.altKey && event.key.toLowerCase() === 'q';
 }
 
 /** The main window: provides the command bridge the application menu reads, then the screen. */
@@ -141,7 +126,8 @@ function MainScreenBody({
 	const [paletteOpen, setPaletteOpen] = useState(false);
 	const [shortcutsOpen, setShortcutsOpen] = useState(false);
 	const bridgeSnapshot = useBridgeSnapshot();
-	const menuBar = useMenuBar(settings);
+	const { ui, setUi } = useUiSettings(settings);
+	const menuBar = ui.menu_bar;
 
 	const follow = useCallback((snapshot: LevelSnapshot) => {
 		const kept = levelRef.current ? newerSnapshot(levelRef.current, snapshot) : snapshot;
@@ -410,68 +396,34 @@ function MainScreenBody({
 		[quit, client, save, dropLevel],
 	);
 
+	// One dispatcher for the app-wide keys: each command lists its own `keys`, so a key does exactly
+	// what its menu row does, and nothing while the row is disabled. Chords marked `capture` (the
+	// command palette) run ahead of the script editor, which never sees them; the rest run once the
+	// focused control has had its say. Ctrl+W closes the level, never the window, and the zoom
+	// chords are always taken so the webview's own page zoom never moves.
 	useEffect(() => {
-		const onKey = (event: KeyboardEvent) => {
-			if (!isQuitShortcut(event)) return;
-			event.preventDefault();
-			void quit.request().catch(() => {});
-		};
-		document.addEventListener('keydown', onKey);
-		return () => document.removeEventListener('keydown', onKey);
-	}, [quit]);
-
-	useEffect(() => {
-		if (!level) return;
-		const onKey = (event: KeyboardEvent) => {
-			if (!isSaveShortcut(event)) return;
-			event.preventDefault();
-			void save();
-		};
-		document.addEventListener('keydown', onKey);
-		return () => document.removeEventListener('keydown', onKey);
-	}, [level?.id, save]);
-
-	useEffect(() => {
-		const onKey = (event: KeyboardEvent) => {
-			if (!isPreferencesShortcut(event)) return;
-			event.preventDefault();
-			void openWindow({ kind: 'preferences' });
-		};
-		document.addEventListener('keydown', onKey);
-		return () => document.removeEventListener('keydown', onKey);
-	}, []);
-
-	// Ctrl+Shift+P toggles the command palette on every screen. It is handled at the window in the
-	// capture phase, so it works with focus in the script editor, which never sees the key.
-	useEffect(() => {
-		const onKey = (event: KeyboardEvent) => {
-			if (!isCommandPaletteShortcut(event)) return;
-			event.preventDefault();
-			event.stopPropagation();
-			setPaletteOpen((was) => !was);
-		};
-		window.addEventListener('keydown', onKey, true);
-		return () => window.removeEventListener('keydown', onKey, true);
-	}, []);
-
-	// New level, Open level and Close level (Ctrl+N, Ctrl+O and Ctrl+W), Help (F1) and Keyboard
-	// shortcuts (?) run their menu commands, so a key does exactly what its row does and nothing
-	// while the row is disabled. Ctrl+W closes the level through the same path as Close level, and
-	// never the window.
-	useEffect(() => {
-		const onKey = (event: KeyboardEvent) => {
-			const id = commandForKey(event);
+		const dispatcher = (phase: KeyPhase) => (event: KeyboardEvent) => {
+			const snapshot = bridge.getSnapshot();
+			const id = commandForKey(event, allCommands(snapshot.facts), phase);
 			if (!id) return;
 			event.preventDefault();
-			runCommand(id, bridge.getSnapshot());
+			if (phase === 'capture') event.stopPropagation();
+			runCommand(id, snapshot);
 		};
-		document.addEventListener('keydown', onKey);
-		return () => document.removeEventListener('keydown', onKey);
+		const capture = dispatcher('capture');
+		const bubble = dispatcher('bubble');
+		window.addEventListener('keydown', capture, true);
+		document.addEventListener('keydown', bubble);
+		return () => {
+			window.removeEventListener('keydown', capture, true);
+			document.removeEventListener('keydown', bubble);
+		};
 	}, [bridge]);
 
 	// The application menu runs these through the bridge; the latest closures are read at call time.
-	const live = useRef({ choose, save, requestClose });
-	live.current = { choose, save, requestClose };
+	const requestQuit = () => quit.request().catch(() => {});
+	const live = useRef({ choose, save, requestClose, quit: requestQuit });
+	live.current = { choose, save, requestClose, quit: requestQuit };
 	useEffect(
 		() =>
 			bridge.setHandlers({
@@ -479,11 +431,21 @@ function MainScreenBody({
 				'file.open': () => void live.current.choose(),
 				'file.save': () => void live.current.save(),
 				'file.close': () => live.current.requestClose(),
-				'view.commandPalette': () => setPaletteOpen(true),
+				'file.quit': () => void live.current.quit(),
+				'view.commandPalette': () => setPaletteOpen((was) => !was),
 				'help.shortcuts': () => setShortcutsOpen((was) => !was),
 			}),
 		[bridge],
 	);
+	// The menu bar switch writes the setting, so every Main window follows; it is absent where settings cannot be written.
+	const menuBarOn = menuBar;
+	useEffect(() => {
+		if (!setUi) return;
+		return bridge.setHandlers({ 'view.menuBar': () => setUi({ menu_bar: !menuBarOn }) });
+	}, [bridge, setUi, menuBarOn]);
+	useEffect(() => {
+		bridge.setFacts({ menuBar });
+	}, [bridge, menuBar]);
 	const hasLevel = level !== null;
 	useEffect(() => {
 		bridge.setFacts({ hasLevel });
