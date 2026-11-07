@@ -20,6 +20,7 @@ export function levelView(width = 12, height = 8, overrides: Partial<LevelView> 
 		spawns: [],
 		start: { x: 1, y: 1, line: 2 },
 		markers: [],
+		sections: [],
 		diagnostics: [],
 		...overrides,
 	};

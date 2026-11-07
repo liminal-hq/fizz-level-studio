@@ -71,6 +71,49 @@ pub struct ViewDiagnostic {
     pub message: String,
 }
 
+/// What a layer's eye and lock act on.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "snake_case")]
+#[ts(export, export_to = "../../../packages/protocol/src/generated/")]
+pub enum ViewSectionAffects {
+    /// Tile cells: the ground, walls and blocks. Hiding them needs the masked raster.
+    Cells,
+    /// Things drawn over the cells: items, enemies, exits and doors.
+    Things,
+}
+
+/// Where a layer's row comes from.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "snake_case")]
+#[ts(export, export_to = "../../../packages/protocol/src/generated/")]
+pub enum ViewSectionKind {
+    /// A section header that holds tiles (`terrain`, `blocks`).
+    Tiles,
+    /// A section header that holds things (`treats`, `enemies`) or the `edits` block.
+    Things,
+    /// A row worked out from statements inside other sections (`walls`, `crystals`, `markers`).
+    Derived,
+}
+
+/// One row of the Layers panel: a section of the script, or a group of statements inside one.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[ts(export, export_to = "../../../packages/protocol/src/generated/")]
+pub struct ViewSection {
+    /// A stable word: `terrain`, `walls`, `blocks`, `crystals`, `markers`, `treats`, `enemies` or
+    /// `edits`. It is also the name a lock is kept under.
+    pub id: String,
+    /// The layer's name in English, for a webview that has no name of its own for the id.
+    pub label: String,
+    pub kind: ViewSectionKind,
+    pub affects: ViewSectionAffects,
+    /// The script lines the layer owns, as runs of `[first, last]` counted from 1. A header
+    /// section's runs leave out the lines that a derived row takes.
+    pub lines: Vec<[u32; 2]>,
+    /// How many things the layer holds: statements for a tile layer, items, enemies, exits and
+    /// doors for a thing layer, crystals for Crystals.
+    pub count: u32,
+}
+
 /// The level as the canvas draws it.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS)]
 #[ts(export, export_to = "../../../packages/protocol/src/generated/")]
@@ -87,6 +130,9 @@ pub struct LevelView {
     pub start: Option<ViewStart>,
     /// The exits and doors, in column order and then from the bottom up.
     pub markers: Vec<ViewMarker>,
+    /// The layers of the script in file order, with the derived rows after their header; empty for
+    /// a level that has none (a Fizz 2 level, or a script with no readable header).
+    pub sections: Vec<ViewSection>,
     pub diagnostics: Vec<ViewDiagnostic>,
 }
 

@@ -51,6 +51,10 @@ function cloneSnapshot(snapshot: LevelSnapshot): LevelSnapshot {
 			items: snapshot.view.items.map((item) => ({ ...item })),
 			spawns: snapshot.view.spawns.map((spawn) => ({ ...spawn })),
 			markers: snapshot.view.markers.map((marker) => ({ ...marker })),
+			sections: snapshot.view.sections.map((section) => ({
+				...section,
+				lines: section.lines.map((run) => [...run] as [number, number]),
+			})),
 		},
 	};
 }

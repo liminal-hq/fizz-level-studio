@@ -12,10 +12,8 @@ use fizz_studio_language::tables::{words, TILES};
 use fizz_studio_protocol::{LevelView, ViewDiagnostic, ViewItem, ViewMarker, ViewSpawn, ViewStart};
 use fizz_studio_session::Document;
 
+use crate::layers::{sections, MARKER_TILES};
 use crate::LevelDocument;
-
-/// The tiles the objects list shows as things of their own.
-const MARKER_TILES: [&str; 4] = ["exit", "red-door", "blue-door", "green-door"];
 
 /// A rasteriser line as the view carries it: `None` for 0, which no statement has.
 fn line(line: usize) -> Option<u32> {
@@ -81,6 +79,7 @@ impl LevelDocument {
                 spawns: Vec::new(),
                 start: None,
                 markers: Vec::new(),
+                sections: Vec::new(),
                 diagnostics,
             };
         };
@@ -100,6 +99,12 @@ impl LevelDocument {
             })
             .collect();
         let markers = markers(&world);
+        let sections = sections(
+            &parsed.ast,
+            world.items.len(),
+            world.spawns.len(),
+            markers.len(),
+        );
         LevelView {
             width: world.w as u32,
             height: world.h as u32,
@@ -134,6 +139,7 @@ impl LevelDocument {
                 line: line(s.line),
             }),
             markers,
+            sections,
             diagnostics,
         }
     }

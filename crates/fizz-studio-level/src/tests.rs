@@ -390,3 +390,29 @@ fn crater_has_its_exit_door_and_key_with_their_lines() {
         assert!(text.contains(&marker.kind), "line {line}: {text}");
     }
 }
+
+#[test]
+fn the_view_lists_the_layers_with_the_counts_of_what_the_level_builds() {
+    let view = LevelDocument::new(CRATER).view();
+    let ids: Vec<&str> = view.sections.iter().map(|s| s.id.as_str()).collect();
+    assert_eq!(
+        ids,
+        ["terrain", "walls", "blocks", "crystals", "markers", "treats", "enemies"]
+    );
+    let count = |id: &str| view.sections.iter().find(|s| s.id == id).unwrap().count;
+    assert_eq!(count("treats") as usize, view.items.len());
+    assert_eq!(count("enemies") as usize, view.spawns.len());
+    assert_eq!(count("markers") as usize, view.markers.len());
+}
+
+#[test]
+fn an_edit_adds_the_edits_layer_to_the_view() {
+    let (mut session, token) = open();
+    let edit = paint("grass", 5, 9);
+    let request = request(&session, edit);
+    session.apply(&token, request).unwrap();
+    let view = session.document().view();
+    let edits = view.sections.iter().find(|s| s.id == "edits").unwrap();
+    assert_eq!(edits.count, 1);
+    assert_eq!(view.sections.last().unwrap().id, "edits");
+}

@@ -101,6 +101,7 @@ impl Fizz2LevelDocument {
             spawns: Vec::new(),
             start: start(self.text()),
             markers: Vec::new(),
+            sections: Vec::new(),
             diagnostics: parsed
                 .diagnostics
                 .iter()
