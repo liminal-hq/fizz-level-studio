@@ -1,0 +1,176 @@
+// The editor's side of the command model: the handlers it runs and the facts it publishes to the bridge
+//
+// (c) Copyright 2026 Liminal HQ, Scott Morris
+// SPDX-License-Identifier: Apache-2.0 OR MIT
+
+import type { LevelSnapshot } from '@liminal-hq/fizz-studio-protocol/generated/LevelSnapshot';
+import type { WordDoc } from '@liminal-hq/fizz-studio-protocol/generated/WordDoc';
+import { useContext, useEffect, useMemo, useRef } from 'react';
+import { CommandBridgeContext, NO_FACTS } from '../commands/commandBridge';
+import {
+	brushCommandId,
+	dockBackCommandId,
+	maximiseCommandId,
+	panelCommandId,
+	tearOffCommandId,
+	toolCommandId,
+} from '../commands/registry';
+import type { useDockLayout } from '../panels/dock/useDockLayout';
+import { PANEL_SPECS, type PanelId } from '../panels/float/panelSpecs';
+import type { usePanelWindows } from '../panels/windows/usePanelWindows';
+import { BRUSH_GROUPS, brushWords, type Brush } from '../tools/brush';
+import { TOOL_IDS } from '../tools/tool';
+import type { useTool } from '../tools/useTool';
+
+export interface EditorCommandsInput {
+	snapshot: LevelSnapshot;
+	words: WordDoc[];
+	dock: ReturnType<typeof useDockLayout>;
+	windows: ReturnType<typeof usePanelWindows>;
+	tool: ReturnType<typeof useTool>;
+	undo: () => void;
+	redo: () => void;
+	showLine: (line: number) => void;
+}
+
+/**
+ * Publishes the editor's actions and facts to the command bridge, so the menus, the palette and the
+ * shortcuts can enable, check and run its commands. The handlers always call the latest values.
+ */
+export function useEditorCommands({
+	snapshot,
+	words,
+	dock,
+	windows,
+	tool,
+	undo,
+	redo,
+	showLine,
+}: EditorCommandsInput): void {
+	// The application menu's Edit and View rows: facts as they are now, and actions that call the latest.
+	const bridge = useContext(CommandBridgeContext);
+	const live = useRef({
+		undo,
+		redo,
+		setVisible: dock.setVisible,
+		reset: dock.reset,
+		setTool: tool.setTool,
+		setBrush: tool.setBrush,
+		showLine,
+		levelFirst: dock.toggleLevelFirst,
+		maximise: dock.maximise,
+		restore: dock.restore,
+		tearOff: windows.tearOff,
+		dockBack: windows.dockBack,
+	});
+	live.current = {
+		undo,
+		redo,
+		setVisible: dock.setVisible,
+		reset: dock.reset,
+		setTool: tool.setTool,
+		setBrush: tool.setBrush,
+		showLine,
+		levelFirst: dock.toggleLevelFirst,
+		maximise: dock.maximise,
+		restore: dock.restore,
+		tearOff: windows.tearOff,
+		dockBack: windows.dockBack,
+	};
+	const panelsShown = dock.shown;
+	const panelsKey = PANEL_SPECS.map((spec) => (panelsShown[spec.id] ? '1' : '0')).join('');
+	useEffect(() => {
+		if (!bridge) return;
+		const handlers: Record<string, (argument?: string) => void> = {
+			'edit.undo': () => live.current.undo(),
+			'edit.redo': () => live.current.redo(),
+			'view.resetLayout': () => live.current.reset(),
+			'view.levelFirst': () => live.current.levelFirst(),
+		};
+		for (const spec of PANEL_SPECS) {
+			handlers[panelCommandId(spec.id)] = () =>
+				live.current.setVisible(spec.id, !panelsRef.current[spec.id]);
+			handlers[tearOffCommandId(spec.id)] = () => live.current.tearOff(spec.id);
+			handlers[dockBackCommandId(spec.id)] = () => live.current.dockBack(spec.id);
+		}
+		for (const spec of PANEL_SPECS.filter((candidate) => candidate.expandable)) {
+			handlers[maximiseCommandId(spec.id, false)] = () => live.current.maximise(spec.id);
+			handlers[maximiseCommandId(spec.id, true)] = () => live.current.restore();
+		}
+		for (const id of TOOL_IDS) handlers[toolCommandId(id)] = () => live.current.setTool(id);
+		// Go to line shows the Script panel if it is hidden, then reveals the line in it.
+		handlers['goto.line'] = (argument) => {
+			const line = Number(argument);
+			if (!Number.isInteger(line) || line < 1) return;
+			if (!panelsRef.current.script) live.current.setVisible('script', true);
+			live.current.showLine(line);
+		};
+		const remove = bridge.setHandlers(handlers);
+		return () => {
+			remove();
+			bridge.setFacts({
+				editorOpen: false,
+				canUndo: false,
+				canRedo: false,
+				undoName: null,
+				redoName: null,
+				author: null,
+				levelFirst: false,
+				maximised: null,
+				panels: NO_FACTS.panels,
+				away: NO_FACTS.away,
+				brushes: NO_FACTS.brushes,
+				lineCount: 0,
+			});
+		};
+	}, [bridge]);
+
+	// One palette command per brush the Palette panel offers, so the command palette can choose it.
+	const brushes = useMemo<Brush[]>(
+		() =>
+			BRUSH_GROUPS.flatMap((group) =>
+				brushWords(group, snapshot.view.palette, words).map((kind) => ({ group, kind })),
+			),
+		[snapshot.view.palette, words],
+	);
+	useEffect(() => {
+		if (!bridge) return;
+		const handlers: Record<string, () => void> = {};
+		for (const brush of brushes) {
+			handlers[brushCommandId(brush)] = () => live.current.setBrush(brush);
+		}
+		return bridge.setHandlers(handlers);
+	}, [bridge, brushes]);
+	const lineCount = useMemo(() => snapshot.text.split('\n').length, [snapshot.text]);
+	const panelsRef = useRef(panelsShown);
+	panelsRef.current = panelsShown;
+	useEffect(() => {
+		bridge?.setFacts({
+			editorOpen: true,
+			canUndo: snapshot.can_undo,
+			canRedo: snapshot.can_redo,
+			undoName: snapshot.undo_name,
+			redoName: snapshot.redo_name,
+			author: snapshot.author,
+			levelFirst: dock.session.levelFirst,
+			maximised: (dock.session.maximised as PanelId | null) ?? null,
+			panels: panelsRef.current,
+			away: windows.away,
+			brushes,
+			lineCount,
+		});
+	}, [
+		bridge,
+		snapshot.can_undo,
+		snapshot.can_redo,
+		snapshot.undo_name,
+		snapshot.redo_name,
+		snapshot.author,
+		panelsKey,
+		windows.away,
+		brushes,
+		lineCount,
+		dock.session.levelFirst,
+		dock.session.maximised,
+	]);
+}

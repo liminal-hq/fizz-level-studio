@@ -9,7 +9,6 @@ import type { LevelSnapshot } from '@liminal-hq/fizz-studio-protocol/generated/L
 import type { WordDoc } from '@liminal-hq/fizz-studio-protocol/generated/WordDoc';
 import {
 	useCallback,
-	useContext,
 	useMemo,
 	useEffect,
 	useRef,
@@ -19,7 +18,6 @@ import {
 } from 'react';
 import { LevelCanvas } from '../canvas/LevelCanvas';
 import { enMessages, t, type MessageId } from '../i18n/messages';
-import { CommandBridgeContext, NO_FACTS } from '../commands/commandBridge';
 import { FloatingPanel } from '../panels/float/FloatingPanel';
 import { neighboursOf } from '../panels/float/usePanelLayout';
 import { DockShell } from '../panels/dock/DockShell';
@@ -35,14 +33,6 @@ import {
 } from '../panels/dock/dockDrop';
 import { useDockDrag } from '../panels/dock/useDockDrag';
 import { ZONE_LABELS } from '../panels/dock/DockZone';
-import {
-	brushCommandId,
-	dockBackCommandId,
-	maximiseCommandId,
-	panelCommandId,
-	tearOffCommandId,
-	toolCommandId,
-} from '../commands/registry';
 import { PANEL_SPECS, isExpandable, type PanelId } from '../panels/float/panelSpecs';
 import { PanelsMenu } from '../panels/float/PanelsMenu';
 import { SnapGuides } from '../panels/float/SnapGuides';
@@ -59,16 +49,16 @@ import { zoneOf } from '../panels/dock/dockModel';
 import { visibleWorkspace } from '../panels/dock/dockView';
 import { dockClient as defaultDockClient, type DockClient } from '../services/dockClient';
 import type { PanelWindowClient } from '../services/panelWindowClient';
-import { BRUSH_GROUPS, brushWords, type Brush } from '../tools/brush';
 import { pasteRect } from '../tools/clip';
 import { SPACING_KEYS, toolForKey } from '../tools/shortcuts';
 import { ToolPalette } from '../tools/ToolPalette';
 import { ToolPicker } from '../tools/ToolPicker';
-import { TOOL_IDS, thingAt, type Cell, type PointerPhase, type Thing } from '../tools/tool';
+import { thingAt, type Cell, type PointerPhase, type Thing } from '../tools/tool';
 import { useTool } from '../tools/useTool';
 import { isLevelError, type LevelClient } from '../worlds/levelClient';
 import styles from './EditorScreen.module.css';
 import { panelContent } from './panelContent';
+import { useEditorCommands } from './useEditorCommands';
 import { newerSnapshot } from './snapshotRule';
 
 export interface EditorScreenProps {
@@ -309,132 +299,7 @@ export function EditorScreen({
 		[client, accept, enqueue],
 	);
 
-	// The application menu's Edit and View rows: facts as they are now, and actions that call the latest.
-	const bridge = useContext(CommandBridgeContext);
-	const live = useRef({
-		undo,
-		redo,
-		setVisible: dock.setVisible,
-		reset: dock.reset,
-		setTool: tool.setTool,
-		setBrush: tool.setBrush,
-		showLine,
-		levelFirst: dock.toggleLevelFirst,
-		maximise: dock.maximise,
-		restore: dock.restore,
-		tearOff: windows.tearOff,
-		dockBack: windows.dockBack,
-	});
-	live.current = {
-		undo,
-		redo,
-		setVisible: dock.setVisible,
-		reset: dock.reset,
-		setTool: tool.setTool,
-		setBrush: tool.setBrush,
-		showLine,
-		levelFirst: dock.toggleLevelFirst,
-		maximise: dock.maximise,
-		restore: dock.restore,
-		tearOff: windows.tearOff,
-		dockBack: windows.dockBack,
-	};
-	const panelsShown = dock.shown;
-	const panelsKey = PANEL_SPECS.map((spec) => (panelsShown[spec.id] ? '1' : '0')).join('');
-	useEffect(() => {
-		if (!bridge) return;
-		const handlers: Record<string, (argument?: string) => void> = {
-			'edit.undo': () => live.current.undo(),
-			'edit.redo': () => live.current.redo(),
-			'view.resetLayout': () => live.current.reset(),
-			'view.levelFirst': () => live.current.levelFirst(),
-		};
-		for (const spec of PANEL_SPECS) {
-			handlers[panelCommandId(spec.id)] = () =>
-				live.current.setVisible(spec.id, !panelsRef.current[spec.id]);
-			handlers[tearOffCommandId(spec.id)] = () => live.current.tearOff(spec.id);
-			handlers[dockBackCommandId(spec.id)] = () => live.current.dockBack(spec.id);
-		}
-		for (const spec of PANEL_SPECS.filter((candidate) => candidate.expandable)) {
-			handlers[maximiseCommandId(spec.id, false)] = () => live.current.maximise(spec.id);
-			handlers[maximiseCommandId(spec.id, true)] = () => live.current.restore();
-		}
-		for (const id of TOOL_IDS) handlers[toolCommandId(id)] = () => live.current.setTool(id);
-		// Go to line shows the Script panel if it is hidden, then reveals the line in it.
-		handlers['goto.line'] = (argument) => {
-			const line = Number(argument);
-			if (!Number.isInteger(line) || line < 1) return;
-			if (!panelsRef.current.script) live.current.setVisible('script', true);
-			live.current.showLine(line);
-		};
-		const remove = bridge.setHandlers(handlers);
-		return () => {
-			remove();
-			bridge.setFacts({
-				editorOpen: false,
-				canUndo: false,
-				canRedo: false,
-				undoName: null,
-				redoName: null,
-				author: null,
-				levelFirst: false,
-				maximised: null,
-				panels: NO_FACTS.panels,
-				away: NO_FACTS.away,
-				brushes: NO_FACTS.brushes,
-				lineCount: 0,
-			});
-		};
-	}, [bridge]);
-
-	// One palette command per brush the Palette panel offers, so the command palette can choose it.
-	const brushes = useMemo<Brush[]>(
-		() =>
-			BRUSH_GROUPS.flatMap((group) =>
-				brushWords(group, snapshot.view.palette, words).map((kind) => ({ group, kind })),
-			),
-		[snapshot.view.palette, words],
-	);
-	useEffect(() => {
-		if (!bridge) return;
-		const handlers: Record<string, () => void> = {};
-		for (const brush of brushes) {
-			handlers[brushCommandId(brush)] = () => live.current.setBrush(brush);
-		}
-		return bridge.setHandlers(handlers);
-	}, [bridge, brushes]);
-	const lineCount = useMemo(() => snapshot.text.split('\n').length, [snapshot.text]);
-	const panelsRef = useRef(panelsShown);
-	panelsRef.current = panelsShown;
-	useEffect(() => {
-		bridge?.setFacts({
-			editorOpen: true,
-			canUndo: snapshot.can_undo,
-			canRedo: snapshot.can_redo,
-			undoName: snapshot.undo_name,
-			redoName: snapshot.redo_name,
-			author: snapshot.author,
-			levelFirst: dock.session.levelFirst,
-			maximised: (dock.session.maximised as PanelId | null) ?? null,
-			panels: panelsRef.current,
-			away: windows.away,
-			brushes,
-			lineCount,
-		});
-	}, [
-		bridge,
-		snapshot.can_undo,
-		snapshot.can_redo,
-		snapshot.undo_name,
-		snapshot.redo_name,
-		snapshot.author,
-		panelsKey,
-		windows.away,
-		brushes,
-		lineCount,
-		dock.session.levelFirst,
-		dock.session.maximised,
-	]);
+	useEditorCommands({ snapshot, words, dock, windows, tool, undo, redo, showLine });
 
 	// Tab, on the level or on nothing, shows the level only and brings the panels back.
 	const toggleLevelFirst = dock.toggleLevelFirst;
