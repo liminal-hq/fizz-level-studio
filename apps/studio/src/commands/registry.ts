@@ -115,6 +115,8 @@ export function paletteGroupOf(def: CommandDef): PaletteGroup {
 	return def.group ?? def.menu ?? 'view';
 }
 
+/** The keys that open the command palette, as shown on the search button and its tooltip. */
+export const COMMAND_PALETTE_SHORTCUT = 'Ctrl+Shift+P';
 const COMMAND_PALETTE_CHORD: KeyChord = { key: 'p', mod: true, shift: true, capture: true };
 
 /** The keys that maximise the focused panel or restore it, as shown on its rows and tooltips. */

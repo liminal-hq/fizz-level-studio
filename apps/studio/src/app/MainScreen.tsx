@@ -43,6 +43,7 @@ import { KeyboardShortcutsDialog } from './KeyboardShortcutsDialog';
 import styles from './MainScreen.module.css';
 import { RecoverySection } from './RecoverySection';
 import { newerSnapshot } from './snapshotRule';
+import { CommandSearchButton, WorkspaceSwitcher } from './WorkspaceSwitcher';
 import { useUiSettings, type UiSettingsClient } from './useUiSettings';
 
 export interface MainScreenProps {
@@ -557,17 +558,25 @@ function MainScreenBody({
 	}
 
 	const name = levelName(level);
+	// The command search and the workspace switcher sit at the right end of the menu row, or of the
+	// commands row while there is no menu bar.
+	const editorEnd = (
+		<>
+			<CommandSearchButton />
+			<WorkspaceSwitcher />
+		</>
+	);
 	return (
 		<AppWindow
 			documentName={name}
 			dirty={isDirty(level)}
 			start={<AppMenu menuBar={menuBar} />}
-			menuBar={menuBar ? <AppMenuBar /> : undefined}
+			menuBar={menuBar ? <AppMenuBar end={editorEnd} /> : undefined}
 			toolbar={
 				ui.toolbar === 'classic' ? (
-					<AppToolbar />
+					<AppToolbar end={menuBar ? undefined : editorEnd} />
 				) : ui.toolbar === 'ribbon' ? (
-					<AppRibbon />
+					<AppRibbon end={menuBar ? undefined : editorEnd} />
 				) : undefined
 			}
 		>

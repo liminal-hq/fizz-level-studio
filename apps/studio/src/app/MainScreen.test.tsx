@@ -419,9 +419,12 @@ describe('the dirty marker, saving and closing', () => {
 		]);
 		// The brush chip follows the history, and the panel toggles are at the far end.
 		expect(names[6]).toMatch(/Brush:/);
-		expect(names.slice(7)).toEqual(['Palette', 'Objects', 'History', 'Proposals', 'Script']);
+		expect(names.slice(7, 12)).toEqual(['Palette', 'Objects', 'History', 'Proposals', 'Script']);
+		// With no menu bar the command search and the workspace switcher end the row.
+		expect(names[12]).toMatch(/^Search commands/);
+		expect(names.slice(13)).toEqual(['Paint', 'Script', 'Review']);
 		// The tools are not on it: they float over the map.
-		expect(within(row).queryByRole('button', { name: 'Paint' })).toBeNull();
+		expect(within(row).queryByRole('button', { name: 'Erase' })).toBeNull();
 		const tools = screen.getByRole('group', { name: 'Tools' });
 		expect(tools.closest('[data-map]')?.parentElement).toContainElement(
 			screen.getByRole('application'),
@@ -429,10 +432,8 @@ describe('the dirty marker, saving and closing', () => {
 		// Its buttons run the commands: Save saves, and the panel toggles show their state.
 		await user.click(within(row).getByRole('button', { name: 'Save' }));
 		await waitFor(() => expect(client.saves).toBe(1));
-		expect(within(row).getByRole('button', { name: 'Script' })).toHaveAttribute(
-			'aria-pressed',
-			'true',
-		);
+		const panels = within(within(row).getByRole('group', { name: 'Panels' }));
+		expect(panels.getByRole('button', { name: 'Script' })).toHaveAttribute('aria-pressed', 'true');
 		expect(within(row).getByRole('button', { name: 'Undo' })).toBeDisabled();
 	});
 
@@ -881,6 +882,45 @@ describe('the application menu', () => {
 		await waitFor(() => expect(settings.toolbar).toBe('ribbon'));
 	});
 
+	it('puts the command search and the workspace switcher at the right end of the menu row when the bar is on', async () => {
+		const user = userEvent.setup();
+		setup({ menuBar: true });
+		await openFromDialog(user);
+		const bar = await screen.findByRole('menubar', { name: 'Application menu' });
+		const row = bar.parentElement!.parentElement!;
+		const switcher = within(row).getByRole('group', { name: 'Workspace' });
+		const search = within(row).getByRole('button', { name: /Search commands/ });
+		expect(bar.compareDocumentPosition(switcher) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+		expect(
+			search.compareDocumentPosition(switcher) & Node.DOCUMENT_POSITION_FOLLOWING,
+		).toBeTruthy();
+		// The toolbar below no longer carries them.
+		const toolbar = await screen.findByRole('toolbar', { name: 'Commands' });
+		expect(within(toolbar).queryByRole('group', { name: 'Workspace' })).toBeNull();
+		expect(within(toolbar).queryByRole('button', { name: /Search commands/ })).toBeNull();
+	});
+
+	it('switches workspace from the switcher and opens the palette from the search button', async () => {
+		const user = userEvent.setup();
+		setup();
+		await openFromDialog(user);
+		const toolbar = await screen.findByRole('toolbar', { name: 'Commands' });
+		const group = within(toolbar).getByRole('group', { name: 'Workspace' });
+		await user.click(within(group).getByRole('button', { name: 'Script' }));
+		await waitFor(() =>
+			expect(within(group).getByRole('button', { name: 'Script' })).toHaveAttribute(
+				'aria-pressed',
+				'true',
+			),
+		);
+		expect(within(group).getByRole('button', { name: 'Paint' })).toHaveAttribute(
+			'aria-pressed',
+			'false',
+		);
+		await user.click(within(toolbar).getByRole('button', { name: /Search commands/ }));
+		expect(await screen.findByRole('dialog', { name: 'Command palette' })).toBeInTheDocument();
+	});
+
 	it('resets the layout from the bar’s View menu', async () => {
 		const user = userEvent.setup();
 		setup({ menuBar: true });
@@ -971,7 +1011,10 @@ describe('the command palette', () => {
 		pressShortcut();
 		await user.type(screen.getByRole('combobox'), 'brush: gloop{Enter}');
 		await waitFor(() => expect(screen.getByText('Brush: gloop')).toBeInTheDocument());
-		expect(screen.getByRole('button', { name: /^Paint/ })).toHaveAttribute('aria-pressed', 'true');
+		// Paint is also a workspace's name, so read the tool from its own group.
+		expect(
+			within(screen.getByRole('group', { name: 'Tools' })).getByRole('button', { name: /^Paint/ }),
+		).toHaveAttribute('aria-pressed', 'true');
 	});
 
 	it('hides a panel from the palette', async () => {

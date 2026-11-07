@@ -1,0 +1,42 @@
+/*
+ * The menu row with something at its right end (the command search and the workspace switcher). The
+ * bar keeps the left of the row; the row takes over the background and the hairline, with the title
+ * bar's own mix, so the bar and the controls read as one strip.
+ */
+.row {
+	display: flex;
+	flex: none;
+	align-items: center;
+	gap: 0.5rem;
+	padding-right: 8px;
+	border-bottom: 1px solid var(--fls-border-subtle);
+	background: color-mix(
+		in srgb,
+		var(--fls-bg-chrome) calc(var(--fls-title-bar-opacity, 1) * 100%),
+		transparent
+	);
+	-webkit-backdrop-filter: var(--fls-title-bar-backdrop);
+	backdrop-filter: var(--fls-title-bar-backdrop);
+}
+
+.fill {
+	flex: 1;
+	min-width: 0;
+}
+
+.fill [role='menubar'] {
+	border-bottom: 0;
+}
+
+.fill [role='menubar'][data-transparent] {
+	background: transparent;
+	-webkit-backdrop-filter: none;
+	backdrop-filter: none;
+}
+
+.end {
+	display: flex;
+	flex: none;
+	align-items: center;
+	gap: 0.5rem;
+}

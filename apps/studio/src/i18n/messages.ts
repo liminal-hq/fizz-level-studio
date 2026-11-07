@@ -460,6 +460,12 @@ export const enMessages = {
 	'ribbon.fold': 'Fold the ribbon to its tabs',
 	// translator: Tooltip and name of the button at the right of the ribbon’s tabs that opens a folded ribbon.
 	'ribbon.unfold': 'Open the ribbon',
+	// translator: Accessible name of the group of buttons that switch the workspace. A workspace is a saved arrangement of the panels.
+	'workspace.label': 'Workspace',
+	// translator: Label of the button that opens the command palette, like a search field. Keep it short.
+	'workspace.search': 'Search commands',
+	// translator: Tooltip on the Search commands button. {keys} is the keyboard shortcut that does the same.
+	'workspace.searchTip': 'Search commands ({keys})',
 	// translator: Accessible name of the classic toolbar, the row of buttons under the menus.
 	'toolbar.label': 'Commands',
 	// translator: Accessible name of the group of buttons on the toolbar that show and hide the panels.

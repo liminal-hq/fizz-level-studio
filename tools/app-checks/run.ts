@@ -2206,6 +2206,105 @@ function commandsRowHeight(bridge: Bridge): Promise<{ kind: string; h: number } 
 	);
 }
 
+/** The active workspace as the settings document has it. */
+async function activeWorkspace(bridge: Bridge): Promise<string> {
+	const found = await bridge.js<{ v: string }>(
+		`const s = await window.__TAURI_INTERNALS__.invoke('plugin:fizz-studio-settings|settings_get'); return { v: s.settings.dock.active };`,
+	);
+	return found.v;
+}
+
+/**
+ * The workspace switcher (Paint, Script, Review) and the command search sit at the right end of the
+ * commands row while there is no menu bar, and at the right end of the menu row while there is one.
+ * Choosing a workspace switches it (and saves it); the search button opens the command palette.
+ */
+async function workspaceChecks(bridge: Bridge): Promise<void> {
+	const switcher = () =>
+		bridge.js<{
+			names: string[];
+			pressed: string;
+			inToolbar: boolean;
+			right: number;
+			barRight: number;
+		} | null>(
+			`const g = document.querySelector('[role=group][aria-label="Workspace"]'); if (!g) return null;
+			 const bar = g.closest('[data-app-toolbar]') ?? g.closest('[role=menubar]')?.parentElement?.parentElement ?? g.parentElement.parentElement;
+			 return { names: [...g.querySelectorAll('button')].map((b) => b.textContent.trim()),
+			   pressed: g.querySelector('[aria-pressed=true]')?.textContent.trim() ?? '',
+			   inToolbar: !!g.closest('[data-app-toolbar]'),
+			   right: g.getBoundingClientRect().right, barRight: bar.getBoundingClientRect().right };`,
+		);
+	const found = await within(5000, async () => (await switcher()) !== null);
+	const off = await switcher();
+	check(
+		'workspaces: with no menu bar the switcher is at the right end of the toolbar, Paint pressed',
+		found !== null &&
+			off !== null &&
+			off.names.join('|') === 'Paint|Script|Review' &&
+			off.pressed === 'Paint' &&
+			off.inToolbar &&
+			off.barRight - off.right < 40,
+		JSON.stringify(off),
+	);
+	const click = (name: string) =>
+		bridge.js<boolean>(
+			`const b = [...document.querySelectorAll('[role=group][aria-label="Workspace"] button')].find((x) => x.textContent.trim() === ${JSON.stringify(name)}); if (!b) return false; b.click(); return true;`,
+		);
+	await click('Script');
+	const switched = await within(5000, async () => (await switcher())?.pressed === 'Script');
+	check(
+		'workspaces: choosing Script switches to it',
+		switched !== null,
+		JSON.stringify(await switcher()),
+	);
+	await sleep(600);
+	check(
+		'workspaces: the choice is saved in the settings document',
+		(await activeWorkspace(bridge)) === 'Script',
+	);
+	await click('Paint');
+	await within(5000, async () => (await switcher())?.pressed === 'Paint');
+	await sleep(600);
+	check('workspaces: choosing Paint switches back', (await activeWorkspace(bridge)) === 'Paint');
+	await setMenuBar(bridge, true);
+	const bar = await within(5000, async () => {
+		const now = await switcher();
+		return now !== null && !now.inToolbar ? now : null;
+	});
+	check(
+		'workspaces: with the menu bar on the switcher is at the right end of the menu row',
+		bar !== null && bar.barRight - bar.right < 40 && bar.right > 700,
+		JSON.stringify(bar),
+	);
+	await setMenuBar(bridge, false);
+	await within(5000, async () => (await switcher())?.inToolbar === true);
+	check(
+		'workspaces: the search button opens the command palette, and Escape closes it',
+		await (async () => {
+			await bridge.js<boolean>(
+				`[...document.querySelectorAll('[data-app-toolbar] button')].find((b) => b.textContent.includes('Search commands'))?.click(); return true;`,
+			);
+			const open = await within(3000, () =>
+				bridge.js<boolean>(
+					`return !!document.querySelector('[role=dialog][aria-modal=true], dialog[open]');`,
+				),
+			);
+			await bridge.js<boolean>(
+				`document.querySelector('dialog[open], [role=dialog] input')?.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true })); return true;`,
+			);
+			const closed = await within(
+				3000,
+				async () =>
+					!(await bridge.js<boolean>(
+						`return !!document.querySelector('[role=dialog][aria-modal=true], dialog[open]');`,
+					)),
+			);
+			return open !== null && closed !== null;
+		})(),
+	);
+}
+
 /**
  * The commands row follows the `ui.toolbar` setting: the classic toolbar at 40 px by default, the
  * ribbon at 124 px open and 34 px folded, and nothing when hidden. The ribbon has Home, Level and
@@ -2219,6 +2318,7 @@ async function commandsRowChecks(bridge: Bridge): Promise<void> {
 		});
 		return found;
 	};
+	await workspaceChecks(bridge);
 	const first = await row('toolbar');
 	check(
 		'commands: the classic toolbar is the default, 40 px high',
