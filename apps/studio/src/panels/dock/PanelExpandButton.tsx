@@ -10,7 +10,7 @@
 
 import { t } from '../../i18n/messages';
 import { MAXIMISE_KEYS } from '../../commands/registry';
-import styles from './PanelCommands.module.css';
+import styles from './PanelMenuButton.module.css';
 
 export interface PanelExpandButtonProps {
 	title: string;

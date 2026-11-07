@@ -17,6 +17,8 @@ import { t } from '../../i18n/messages';
 import type { Size } from '../float/panelGeometry';
 import { DockRail, type PeekCause } from './DockRail';
 import { DockZone } from './DockZone';
+import type { RailPlaceholders } from './railPlaceholders';
+import type { PanelMenu } from './PanelMenuButton';
 import { DragGhost } from './DragGhost';
 import type { DockDrag } from './useDockDrag';
 import { PeekPanel } from './PeekPanel';
@@ -31,8 +33,6 @@ export interface DockActions {
 	activate(id: string): void;
 	dockTo(id: string, zone: ZoneId): void;
 	floatPanel(id: string): void;
-	/** Tears a panel off into a window of its own; the dock shows no Tear off button without it. */
-	tearOff?(id: string): void;
 	toggleZone(zone: ZoneId): void;
 	peek(id: string): void;
 	closePeek(): void;
@@ -58,6 +58,10 @@ export interface DockShellProps {
 	/** The real content of a panel. Only the showing panel of each group is asked for. */
 	renderPanel: (id: string) => ReactNode;
 	actions: DockActions;
+	/** The rows of a panel's own ⋮ menu and what choosing one does; headers show no menu button without it. */
+	panelMenu?: (id: string) => PanelMenu;
+	/** Dimmed rail entries for panels that are to come, such as Assets. */
+	railPlaceholders?: RailPlaceholders;
 	/** The drag controller; without one, panels cannot be dragged. */
 	drag?: DockDrag;
 	/** Whether a panel offers the maximise button. */
@@ -94,6 +98,8 @@ export function DockShell({
 	titleOf,
 	renderPanel,
 	actions,
+	panelMenu,
+	railPlaceholders,
 	drag,
 	announcement = '',
 	expandable,
@@ -199,10 +205,10 @@ export function DockShell({
 					disabled={session.levelFirst}
 					onChoose={choose}
 					onPeek={onPeek}
-					onUnfold={() => actions.toggleZone(id)}
 					onReorder={reorder}
 					onDragStart={drag?.begin}
 					dragging={dragging?.id ?? null}
+					placeholders={railPlaceholders?.[id]}
 				/>
 			</div>
 		);
@@ -226,10 +232,7 @@ export function DockShell({
 					groups={z.groups}
 					titleOf={titleOf}
 					renderPanel={renderPanel}
-					onDock={actions.dockTo}
-					onFloat={actions.floatPanel}
-					onTearOff={actions.tearOff}
-					onFold={() => actions.toggleZone(id)}
+					panelMenu={panelMenu}
 					onDragStart={drag?.begin}
 					dragging={dragging?.id ?? null}
 					expandable={expandable}

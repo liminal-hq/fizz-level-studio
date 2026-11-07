@@ -356,15 +356,25 @@ export const enMessages = {
 	'dock.zone.right': 'Right dock',
 	// translator: Name of the dock below the level, where panels sit as tabs. Used as a region name.
 	'dock.zone.bottom': 'Bottom dock',
-	// translator: Verb phrase on an icon button. Moves a panel into the dock on the left of the level. {title} is the panel’s name.
+	// translator: Verb phrase. Names the command that moves a panel into the dock on the left of the level. {title} is the panel’s name.
 	'dock.dockLeft': 'Dock {title} left',
-	// translator: Verb phrase on an icon button. Moves a panel into the dock on the right of the level. {title} is the panel’s name.
+	// translator: Verb phrase. Names the command that moves a panel into the dock on the right of the level. {title} is the panel’s name.
 	'dock.dockRight': 'Dock {title} right',
-	// translator: Verb phrase on an icon button. Moves a panel into the dock below the level. {title} is the panel’s name.
+	// translator: Verb phrase. Names the command that moves a panel into the dock below the level. {title} is the panel’s name.
 	'dock.dockBottom': 'Dock {title} bottom',
-	// translator: Verb phrase on an icon button. Lets a docked panel float over the level. {title} is the panel’s name.
+	// translator: Verb phrase. Names the command that lets a panel float over the level. {title} is the panel’s name.
 	'dock.float': 'Float {title}',
 
+	// translator: Accessible name and tooltip of the ⋮ button in a panel’s header, which opens that panel’s menu. {title} is the panel’s name.
+	'dock.menu.button': '{title} menu',
+	// translator: Tooltip on the rail entry of the panel that is showing in an open dock. Choosing it again folds the dock. {title} is the panel’s name.
+	'dock.rail.hintOpen': '{title}, open; choose again to fold',
+	// translator: Tooltip on the rail entry of a folded dock’s panel. Choosing it opens the dock. {title} is the panel’s name.
+	'dock.rail.hintFolded': '{title}, folded; choose to open',
+	// translator: Name of the Assets panel, shown dimmed on the rail because it is not built yet.
+	'dock.assets': 'Assets',
+	// translator: Tooltip on the dimmed Assets entry of the rail: the panel will come in a later version.
+	'dock.assets.later': 'Assets are coming later',
 	// translator: A row in a panel’s own menu. Moves that panel into the dock on the left of the level. The panel is already named by the menu.
 	'dock.menu.left': 'Dock left',
 	// translator: A row in a panel’s own menu. Moves that panel into the dock on the right of the level.
@@ -379,25 +389,10 @@ export const enMessages = {
 	'dock.menu.dockBack': 'Dock back',
 	// translator: Tooltip on a disabled row of a panel’s menu: the panel is already in that place.
 	'dock.menu.here': 'Already here',
-	// translator: Verb phrase on an icon button. Moves a panel out of the main window into a window of its own. {title} is the panel’s name.
-	'dock.tearOff': 'Tear off {title} into its own window',
-
-	// translator: Verb phrase on an icon button. Folds the open left dock into a thin rail that shows each panel’s icon and title.
-	'dock.fold.left': 'Fold the left dock',
-	// translator: Verb phrase on an icon button. Opens the folded left dock again.
-	'dock.unfold.left': 'Unfold the left dock',
 	// translator: Name of the thin strip along the left edge of the window beside the left dock. It holds one button for each panel in the dock, showing its icon and title.
 	'dock.rail.left': 'Left rail',
-	// translator: Verb phrase on an icon button. Folds the open right dock into a thin rail that shows each panel’s icon and title.
-	'dock.fold.right': 'Fold the right dock',
-	// translator: Verb phrase on an icon button. Opens the folded right dock again.
-	'dock.unfold.right': 'Unfold the right dock',
 	// translator: Name of the thin strip along the right edge of the window beside the right dock. It holds one button for each panel in the dock, showing its icon and title.
 	'dock.rail.right': 'Right rail',
-	// translator: Verb phrase on an icon button. Folds the open bottom dock into a thin rail that shows each panel’s icon and title.
-	'dock.fold.bottom': 'Fold the bottom dock',
-	// translator: Verb phrase on an icon button. Opens the folded bottom dock again.
-	'dock.unfold.bottom': 'Unfold the bottom dock',
 	// translator: Name of the thin strip along the bottom edge of the window beside the bottom dock. It holds one button for each panel in the dock, showing its icon and title.
 	'dock.rail.bottom': 'Bottom rail',
 	// translator: Name of a panel shown briefly over the level from a folded dock’s rail. {title} is the panel’s name.

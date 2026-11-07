@@ -9,10 +9,12 @@ import type { LevelSnapshot } from '@liminal-hq/fizz-studio-protocol/generated/L
 import type { WordDoc } from '@liminal-hq/fizz-studio-protocol/generated/WordDoc';
 import {
 	useCallback,
+	useContext,
 	useMemo,
 	useEffect,
 	useRef,
 	useState,
+	useSyncExternalStore,
 	type KeyboardEvent,
 	type ReactNode,
 } from 'react';
@@ -23,7 +25,8 @@ import { neighboursOf } from '../panels/float/usePanelLayout';
 import { DockShell } from '../panels/dock/DockShell';
 import { isLevelFirstKey, isMaximiseKey, isRestoreKey, panelOfNode } from '../panels/dock/dockKeys';
 import { PanelExpandButton } from '../panels/dock/PanelExpandButton';
-import { PanelCommands } from '../panels/dock/PanelCommands';
+import type { RailPlaceholders } from '../panels/dock/railPlaceholders';
+import { PanelMenuButton } from '../panels/dock/PanelMenuButton';
 import { useDockLayout } from '../panels/dock/useDockLayout';
 import {
 	floatRectAt,
@@ -59,6 +62,13 @@ import { isLevelError, type LevelClient } from '../worlds/levelClient';
 import styles from './EditorScreen.module.css';
 import { panelContent } from './panelContent';
 import { useEditorCommands } from './useEditorCommands';
+import { panelMenuItems } from '../commands/panelMenuModel';
+import {
+	CommandBridgeContext,
+	createCommandBridge,
+	type BridgeSnapshot,
+} from '../commands/commandBridge';
+import { runCommand } from '../commands/registry';
 import { newerSnapshot } from './snapshotRule';
 
 export interface EditorScreenProps {
@@ -75,6 +85,19 @@ export interface EditorScreenProps {
 	panelBridge?: PanelBridge;
 	/** Controls for the start of the row above the level, before the brush (the main screen's Save and Close level). */
 	toolLead?: ReactNode;
+}
+
+/** Assets is drawn on the left rail, dimmed, until it is built. */
+const railPlaceholders = (): RailPlaceholders => ({
+	left: [{ id: 'assets', title: t('dock.assets'), icon: 'assets', reason: t('dock.assets.later') }],
+});
+
+/** A panel's ⋮ menu: its rows, and choosing one runs that command through the registry. */
+function menuOf(id: PanelId, snapshot: BridgeSnapshot) {
+	return {
+		items: panelMenuItems(id, snapshot),
+		onSelect: (item: { id: string }) => void runCommand(item.id, snapshot),
+	};
 }
 
 /** Keys typed into these belong to the control, not to the editor's shortcuts. */
@@ -123,6 +146,13 @@ export function EditorScreen({
 	const windowSize = useElementSize(windowRef);
 	const dock = useDockLayout(docks, windowSize, area);
 	const windows = usePanelWindows(dock, panelWindows);
+	// The main window provides the command bridge. A screen drawn without one (a test, the webview
+	// served alone) keeps its own, so its panel menus still list and run the same commands.
+	const parentBridge = useContext(CommandBridgeContext);
+	const [ownBridge] = useState(() => (parentBridge ? null : createCommandBridge()));
+	const bridge = parentBridge ?? ownBridge!;
+	const commands = useSyncExternalStore(bridge.subscribe, bridge.getSnapshot);
+	const panelMenu = (id: string) => menuOf(id as PanelId, commands);
 	const anyAway = Object.values(windows.away).some(Boolean);
 	// An away panel's tab cannot be made the showing tab in the saved arrangement (the panel is in
 	// no zone), so which away tabs show is kept here; tearing a panel off shows its notice at once.
@@ -299,7 +329,18 @@ export function EditorScreen({
 		[client, accept, enqueue],
 	);
 
-	useEditorCommands({ snapshot, words, dock, windows, tool, undo, redo, showLine });
+	useEditorCommands({
+		bridge,
+		snapshot,
+		words,
+		dock,
+		windows,
+		tool,
+		undo,
+		redo,
+		showLine,
+		tearOff: tearOffPanel,
+	});
 
 	// Tab, on the level or on nothing, shows the level only and brings the panels back.
 	const toggleLevelFirst = dock.toggleLevelFirst;
@@ -511,7 +552,9 @@ export function EditorScreen({
 					renderPanel={(id) => content(id as PanelId)}
 					expandable={(id) => isExpandable(id) && !windows.away[id as PanelId]}
 					maximised={maximised}
-					actions={{ ...dock, activate: activateTab, tearOff: tearOffPanel }}
+					actions={{ ...dock, activate: activateTab }}
+					panelMenu={panelMenu}
+					railPlaceholders={railPlaceholders()}
 					drag={dragFromHere}
 					announcement={dragNote}
 				>
@@ -580,12 +623,10 @@ export function EditorScreen({
 												onToggle={() => dock.maximise(spec.id)}
 											/>
 										)}
-										<PanelCommands
+										<PanelMenuButton
 											title={t(spec.title)}
-											at="float"
-											onDock={(zone) => dock.dockTo(spec.id, zone)}
-											onFloat={() => {}}
-											onTearOff={() => tearOffPanel(spec.id)}
+											items={menuOf(spec.id, commands).items}
+											onSelect={menuOf(spec.id, commands).onSelect}
 										/>
 									</>
 								)

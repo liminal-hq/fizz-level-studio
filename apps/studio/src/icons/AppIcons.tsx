@@ -200,6 +200,14 @@ export const MoreIcon: IconComponent = ({ size }) => (
 	</Svg>
 );
 
+/** Two small frames, one over the other: Assets. */
+export const AssetsIcon: IconComponent = ({ size }) => (
+	<Svg size={size}>
+		<rect x="1.5" y="2.5" width="7" height="6" rx="1.2" />
+		<rect x="7.5" y="7.5" width="7" height="6" rx="1.2" />
+	</Svg>
+);
+
 export const KeyboardIcon: IconComponent = ({ size }) => (
 	<Svg size={size}>
 		<rect x="1.5" y="4" width="13" height="8" rx="1.4" />
@@ -351,6 +359,7 @@ export type IconId =
 	| 'menuBar'
 	| 'workspace'
 	| 'more'
+	| 'assets'
 	| `panel.${PanelId}`
 	| `tool.${ToolId}`
 	| 'menu.file'
@@ -396,6 +405,7 @@ export const APP_ICONS: Record<IconId, IconComponent> = {
 	menuBar: MenuBarIcon,
 	workspace: WorkspaceIcon,
 	more: MoreIcon,
+	assets: AssetsIcon,
 	...(Object.fromEntries(PANEL_ICON_ENTRIES) as Record<`panel.${PanelId}`, IconComponent>),
 	...(Object.fromEntries(TOOL_ICON_ENTRIES) as Record<`tool.${ToolId}`, IconComponent>),
 	'menu.file': FileMenuIcon,

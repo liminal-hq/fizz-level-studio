@@ -9,7 +9,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { CommandBridgeContext, createCommandBridge } from '../commands/commandBridge';
 import { defaultDock } from '../panels/dock/dockModel';
 import { runCommand } from '../commands/registry';
-import { fakeDockClient, openDock } from '../test/dockFixtures';
+import { choosePanelMenu, fakeDockClient, openDock } from '../test/dockFixtures';
 import { levelSnapshot } from '../test/levelFixtures';
 import { FakeLevelClient } from '../worlds/fakeLevelClient';
 import { EditorScreen } from './EditorScreen';
@@ -96,14 +96,14 @@ describe('the editor’s docks', () => {
 		expect(within(opened).getByRole('heading', { name: 'Objects' })).toBeInTheDocument();
 	});
 
-	it('floats a docked panel from its header and docks it back from the floating one', async () => {
+	it('floats a docked panel from its ⋮ menu and docks it back from the floating one’s', async () => {
 		const user = userEvent.setup();
 		await mount();
 		const left = screen.getByRole('region', { name: 'Left dock' });
-		await user.click(within(left).getByRole('button', { name: 'Float Palette' }));
+		await choosePanelMenu(user, left, 'Palette', 'Float');
 		expect(screen.queryByRole('region', { name: 'Left dock' })).toBeNull();
 		const floating = screen.getByRole('region', { name: 'Palette' });
-		await user.click(within(floating).getByRole('button', { name: 'Dock Palette bottom' }));
+		await choosePanelMenu(user, floating, 'Palette', 'Dock bottom');
 		const bottom = screen.getByRole('region', { name: 'Bottom dock' });
 		expect(within(bottom).getByRole('heading', { name: 'Palette' })).toBeInTheDocument();
 		expect(railItem('Bottom rail', 'Palette')).toHaveAttribute('aria-pressed', 'true');
@@ -143,10 +143,11 @@ describe('the editor’s docks', () => {
 	it('saves the layout after a change', async () => {
 		const user = userEvent.setup();
 		const { docks } = await mount();
-		await user.click(
-			within(screen.getByRole('region', { name: 'Left dock' })).getByRole('button', {
-				name: 'Dock Palette right',
-			}),
+		await choosePanelMenu(
+			user,
+			screen.getByRole('region', { name: 'Left dock' }),
+			'Palette',
+			'Dock right',
 		);
 		await waitFor(() => expect(docks.save).toHaveBeenCalled(), { timeout: 2000 });
 		const saved = vi.mocked(docks.save).mock.calls.at(-1)![0];
@@ -156,7 +157,7 @@ describe('the editor’s docks', () => {
 	it('folds a dock to a rail, peeks a panel over the level and pins it back', async () => {
 		const user = userEvent.setup();
 		await mount();
-		await user.click(screen.getByRole('button', { name: 'Fold the right dock' }));
+		await user.click(railItem('Right rail', 'Objects'));
 		expect(screen.queryByRole('region', { name: 'Right dock' })).toBeNull();
 		railItem('Right rail', 'History').focus();
 		await user.keyboard('{ArrowLeft}');
@@ -172,7 +173,7 @@ describe('the editor’s docks', () => {
 	it('closes a peek with Escape and puts focus back on the rail button', async () => {
 		const user = userEvent.setup();
 		await mount();
-		await user.click(screen.getByRole('button', { name: 'Fold the left dock' }));
+		await user.click(railItem('Left rail', 'Palette'));
 		const item = within(screen.getByRole('group', { name: 'Left rail' })).getByRole('button', {
 			name: 'Palette',
 		});
@@ -188,7 +189,7 @@ describe('the editor’s docks', () => {
 	it('opens a folded dock when the Panels menu shows a panel in it', async () => {
 		const user = userEvent.setup();
 		await mount();
-		await user.click(screen.getByRole('button', { name: 'Fold the right dock' }));
+		await user.click(railItem('Right rail', 'Objects'));
 		await user.click(screen.getByRole('button', { name: 'Panels' }));
 		await user.click(screen.getByRole('menuitemcheckbox', { name: 'History' }));
 		await user.click(screen.getByRole('menuitemcheckbox', { name: 'History' }));
@@ -226,10 +227,11 @@ describe('the editor’s docks', () => {
 	it('hides the docks and floating panels with Tab on the level and brings them back', async () => {
 		const user = userEvent.setup();
 		const { bridge } = await mount();
-		await user.click(
-			within(screen.getByRole('region', { name: 'Left dock' })).getByRole('button', {
-				name: 'Float Palette',
-			}),
+		await choosePanelMenu(
+			user,
+			screen.getByRole('region', { name: 'Left dock' }),
+			'Palette',
+			'Float',
 		);
 		expect(screen.getByRole('region', { name: 'Palette' })).toBeInTheDocument();
 		screen.getByRole('application').focus();

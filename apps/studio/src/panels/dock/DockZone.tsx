@@ -7,8 +7,7 @@ import type { TabGroup } from '@liminal-hq/fizz-studio-protocol/generated/TabGro
 import type { ZoneId } from '@liminal-hq/fizz-studio-protocol/generated/ZoneId';
 import type { PointerEvent, ReactNode } from 'react';
 import { t, type MessageId } from '../../i18n/messages';
-import { FoldButton } from './FoldButton';
-import { PanelCommands } from './PanelCommands';
+import { PanelMenuButton, type PanelMenu } from './PanelMenuButton';
 import { PanelExpandButton } from './PanelExpandButton';
 import { GripIcon, PANEL_ICONS } from './panelIcons';
 import type { PanelId } from '../float/panelSpecs';
@@ -20,11 +19,8 @@ export interface DockZoneProps {
 	groups: readonly TabGroup[];
 	titleOf: (id: string) => string;
 	renderPanel: (id: string) => ReactNode;
-	onDock: (id: string, zone: ZoneId) => void;
-	onFloat: (id: string) => void;
-	/** Tears a panel off into a window of its own; the button is left out when this is absent. */
-	onTearOff?: (id: string) => void;
-	onFold: () => void;
+	/** The rows of a panel's own ⋮ menu and what choosing one does; the button is left out when this is absent. */
+	panelMenu?: (id: string) => PanelMenu;
 	/** A press on a header that may become a drag. */
 	onDragStart?: (event: PointerEvent<HTMLElement>, id: string, source: DragSource) => void;
 	/** Whether a panel can be maximised, and the action that does it. */
@@ -45,7 +41,7 @@ export const ZONE_LABELS: Record<ZoneId, MessageId> = {
 
 /**
  * The panels docked in a zone. Each group is a header with a grip, the showing panel's icon and
- * title, and its buttons, over its content; only the showing panel is mounted. The zone's rail is
+ * title, Maximise and its ⋮ menu, over its content; only the showing panel is mounted. The zone's rail is
  * where the other panels are chosen and reordered, so the header has no tab strip of its own and
  * a panel is listed once on the rail and named once here. A press on the header that moves drags
  * the showing panel.
@@ -55,10 +51,7 @@ export function DockZone({
 	groups,
 	titleOf,
 	renderPanel,
-	onDock,
-	onFloat,
-	onTearOff,
-	onFold,
+	panelMenu,
 	onDragStart,
 	dragging = null,
 	expandable,
@@ -76,10 +69,7 @@ export function DockZone({
 					index={index}
 					titleOf={titleOf}
 					renderPanel={renderPanel}
-					onDock={onDock}
-					onFloat={onFloat}
-					onTearOff={onTearOff}
-					onFold={onFold}
+					panelMenu={panelMenu}
 					onDragStart={onDragStart}
 					dragging={dragging}
 					expandable={expandable}
@@ -103,10 +93,7 @@ function Group({
 	index,
 	titleOf,
 	renderPanel,
-	onDock,
-	onFloat,
-	onTearOff,
-	onFold,
+	panelMenu,
 	onDragStart,
 	dragging = null,
 	expandable,
@@ -118,6 +105,7 @@ function Group({
 	const filling = maximised === active;
 	const Icon = PANEL_ICONS[active as PanelId];
 	const title = titleOf(active);
+	const menu = panelMenu?.(active);
 	return (
 		<div
 			className={styles.group}
@@ -155,14 +143,7 @@ function Group({
 								onToggle={() => onMaximise(active)}
 							/>
 						)}
-						<PanelCommands
-							title={title}
-							at={zone}
-							onDock={(to) => onDock(active, to)}
-							onFloat={() => onFloat(active)}
-							onTearOff={onTearOff && (() => onTearOff(active))}
-						/>
-						{index === 0 && <FoldButton zone={zone} folded={false} onClick={onFold} />}
+						{menu && <PanelMenuButton title={title} items={menu.items} onSelect={menu.onSelect} />}
 					</>
 				)}
 			</div>

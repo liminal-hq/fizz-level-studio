@@ -63,3 +63,18 @@ export function fakeDockClient(dock: DockSettings = openDock()): DockClient {
 		save: vi.fn(async () => {}),
 	};
 }
+
+/**
+ * Opens a panel's ⋮ menu from its header (in `region`, the dock or floating panel that holds it) and
+ * chooses `row`, the way a person does: the menu button, then the row by its label.
+ */
+export async function choosePanelMenu(
+	user: UserEvent,
+	region: HTMLElement,
+	title: string,
+	row: string,
+): Promise<void> {
+	await user.click(within(region).getByRole('button', { name: `${title} menu` }));
+	const menu = await screen.findByRole('menu', { name: `${title} menu` });
+	await user.click(within(menu).getByText(row));
+}

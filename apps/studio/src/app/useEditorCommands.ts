@@ -5,8 +5,8 @@
 
 import type { LevelSnapshot } from '@liminal-hq/fizz-studio-protocol/generated/LevelSnapshot';
 import type { WordDoc } from '@liminal-hq/fizz-studio-protocol/generated/WordDoc';
-import { useContext, useEffect, useMemo, useRef, useState } from 'react';
-import { CommandBridgeContext, NO_FACTS, type CommandFacts } from '../commands/commandBridge';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { NO_FACTS, type CommandBridge, type CommandFacts } from '../commands/commandBridge';
 import {
 	brushCommandId,
 	dockBackCommandId,
@@ -28,6 +28,8 @@ import { TOOL_IDS } from '../tools/tool';
 import type { useTool } from '../tools/useTool';
 
 export interface EditorCommandsInput {
+	/** The bridge the handlers and facts go to. */
+	bridge: CommandBridge;
 	snapshot: LevelSnapshot;
 	words: WordDoc[];
 	dock: ReturnType<typeof useDockLayout>;
@@ -36,6 +38,8 @@ export interface EditorCommandsInput {
 	undo: () => void;
 	redo: () => void;
 	showLine: (line: number) => void;
+	/** Tears a panel off; the screen's own, which also shows the panel's notice at once. */
+	tearOff: (id: PanelId) => void;
 }
 
 /**
@@ -43,6 +47,7 @@ export interface EditorCommandsInput {
  * shortcuts can enable, check and run its commands. The handlers always call the latest values.
  */
 export function useEditorCommands({
+	bridge,
 	snapshot,
 	words,
 	dock,
@@ -51,9 +56,9 @@ export function useEditorCommands({
 	undo,
 	redo,
 	showLine,
+	tearOff,
 }: EditorCommandsInput): void {
 	// The application menu's Edit and View rows: facts as they are now, and actions that call the latest.
-	const bridge = useContext(CommandBridgeContext);
 	const latest = {
 		undo,
 		redo,
@@ -65,7 +70,7 @@ export function useEditorCommands({
 		levelFirst: dock.toggleLevelFirst,
 		maximise: dock.maximise,
 		restore: dock.restore,
-		tearOff: windows.tearOff,
+		tearOff,
 		dockBack: windows.dockBack,
 		dockTo: dock.dockTo,
 		floatPanel: dock.floatPanel,
@@ -93,7 +98,6 @@ export function useEditorCommands({
 	const panelsShown = dock.shown;
 	const panelsKey = PANEL_SPECS.map((spec) => (panelsShown[spec.id] ? '1' : '0')).join('');
 	useEffect(() => {
-		if (!bridge) return;
 		const handlers: Record<string, (argument?: string) => void> = {
 			'edit.undo': () => live.current.undo(),
 			'edit.redo': () => live.current.redo(),
@@ -169,7 +173,6 @@ export function useEditorCommands({
 		[snapshot.view.palette, words],
 	);
 	useEffect(() => {
-		if (!bridge) return;
 		const handlers: Record<string, () => void> = {};
 		for (const brush of brushes) {
 			handlers[brushCommandId(brush)] = () => live.current.setBrush(brush);
@@ -195,7 +198,7 @@ export function useEditorCommands({
 		[dock.workspace, windows.away, panelsKey],
 	);
 	useEffect(() => {
-		bridge?.setFacts({
+		bridge.setFacts({
 			editorOpen: true,
 			canUndo: snapshot.can_undo,
 			canRedo: snapshot.can_redo,

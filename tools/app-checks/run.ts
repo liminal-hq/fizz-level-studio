@@ -137,8 +137,58 @@ function railClipping(bridge: Bridge): Promise<string[]> {
 	);
 }
 
-/** The accessible name of the Script panel's Tear off button. */
-const TEAR_OFF_SCRIPT = 'Tear off Script into its own window';
+/**
+ * Opens the ⋮ menu in a panel's header (its button is named "<title> menu") and presses the row
+ * with this label, with the events a mouse click makes.
+ */
+async function choosePanelMenu(
+	bridge: Bridge,
+	title: string,
+	row: string,
+	windowId = 'main-1',
+): Promise<boolean> {
+	const opened = await bridge.js<boolean>(
+		`const b = document.querySelector('button[aria-label=' + JSON.stringify(${JSON.stringify(`${title} menu`)}) + ']');
+		 if (!b) return false;
+		 b.click();
+		 return true;`,
+		windowId,
+	);
+	if (!opened) return false;
+	const pressed = await within(3000, () =>
+		bridge.js<boolean>(
+			`const menu = document.querySelector('[role=menu]');
+			 const el = menu && [...menu.querySelectorAll('[role^=menuitem]')].find((x) => x.textContent.trim().startsWith(${JSON.stringify(row)}));
+			 if (!el || el.getAttribute('aria-disabled') === 'true') return false;
+			 for (const type of ['pointerdown', 'mousedown', 'pointerup', 'mouseup', 'click']) el.dispatchEvent(new MouseEvent(type, { bubbles: true, cancelable: true }));
+			 return true;`,
+			windowId,
+		),
+	);
+	return pressed !== null;
+}
+
+/** Whether a panel's ⋮ menu lists an enabled row with this label; the menu is closed again. */
+async function panelMenuOffers(bridge: Bridge, title: string, row: string): Promise<boolean> {
+	const opened = await bridge.js<boolean>(
+		`const b = document.querySelector('button[aria-label=' + JSON.stringify(${JSON.stringify(`${title} menu`)}) + ']');
+		 if (!b) return false;
+		 b.click();
+		 return true;`,
+	);
+	if (!opened) return false;
+	const offered = await within(3000, () =>
+		bridge.js<boolean>(
+			`const menu = document.querySelector('[role=menu]');
+			 return !!menu && [...menu.querySelectorAll('[role^=menuitem]')].some((x) => x.textContent.trim().startsWith(${JSON.stringify(row)}) && x.getAttribute('aria-disabled') !== 'true');`,
+		),
+	);
+	await bridge.js(
+		`document.querySelector('[role=menu]')?.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true })); return true;`,
+	);
+	await sleep(150);
+	return offered !== null;
+}
 
 /** Clicks the button with this accessible name. */
 function clickLabelled(bridge: Bridge, label: string): Promise<boolean> {
@@ -488,7 +538,7 @@ async function dockChecks(bridge: Bridge): Promise<void> {
 	// Folding shows the rail and gives the room back to the map; the folded rail still lies over
 	// the level.
 	const wide = m.map!.w;
-	check('the left dock folds', await clickLabelled(bridge, 'Fold the left dock'));
+	check('the left dock folds', await clickRailItem(bridge, 'Palette'));
 	await sleep(300);
 	m = await measureLayout(bridge);
 	check(
@@ -501,7 +551,7 @@ async function dockChecks(bridge: Bridge): Promise<void> {
 			overlaid(m),
 		JSON.stringify([m.leftRail, m.map]),
 	);
-	check('the left dock opens again', await clickLabelled(bridge, 'Unfold the left dock'));
+	check('the left dock opens again', await clickRailItem(bridge, 'Palette'));
 	await sleep(300);
 
 	// Level-first hides every dock and brings the same set back.
@@ -1124,7 +1174,10 @@ async function dragAndMaximiseChecks(bridge: Bridge): Promise<void> {
 	);
 
 	// Docking it back puts it at the end; Alt+ArrowUp on its rail entry reorders it, with an announcement.
-	check('drag: the floating panel docks back', await clickLabelled(bridge, 'Dock Objects right'));
+	check(
+		'drag: the floating panel docks back',
+		await choosePanelMenu(bridge, 'Objects', 'Dock right'),
+	);
 	await sleep(300);
 	check(
 		'drag: it sits after History until moved',
@@ -1261,7 +1314,7 @@ async function dragAndMaximiseChecks(bridge: Bridge): Promise<void> {
 	check('maximise: Ctrl+Shift+M maximises and Escape restores', keyed && escaped);
 
 	// A folded dock: Ctrl+Shift+M unfolds it and maximises the Script, which mounts once.
-	check('maximise: the bottom dock folds', await clickLabelled(bridge, 'Fold the bottom dock'));
+	check('maximise: the bottom dock folds', await clickRailItem(bridge, 'Script'));
 	await sleep(300);
 	const foldedAway = await bridge.js<boolean>(
 		`return !document.querySelector('.cm-content') && !document.querySelector('[aria-label="Bottom dock"]');`,
@@ -1291,7 +1344,7 @@ async function dragAndMaximiseChecks(bridge: Bridge): Promise<void> {
 	check('maximise: Restore after a folded start', await clickLabelled(bridge, 'Restore Script'));
 	await sleep(400);
 	const foldedBack = await bridge.js<{ open: boolean; same: boolean; rail: boolean }>(
-		`return { open: !!document.querySelector('[aria-label="Bottom dock"]'), same: document.querySelector('.cm-content') === window.__foldedNode, rail: !!document.querySelector('button[aria-label="Unfold the bottom dock"]') };`,
+		`return { open: !!document.querySelector('[aria-label="Bottom dock"]'), same: document.querySelector('.cm-content') === window.__foldedNode, rail: !!document.querySelector('[data-rail="bottom"][data-folded]') };`,
 	);
 	check(
 		'maximise: the dock is left open after Restore and the Script editor node survived',
@@ -1353,8 +1406,6 @@ const PANEL_WINDOWS = [
 		probe: `return !!document.querySelector('[aria-label="Script text"]');`,
 	},
 ] as const;
-
-const tearOffLabel = (title: string) => `Tear off ${title} into its own window`;
 
 /** The width and height a `manage_window` info answer holds, wherever it nests them. */
 function sizeIn(value: unknown): { w: number; h: number } | null {
@@ -1575,11 +1626,11 @@ async function appMenuIconChecks(bridge: Bridge) {
 		`${rowsJs} return slots(document.querySelector('[role=menu]'));`,
 	);
 	check(
-		'each top-level menu has an icon in a 16 px slot',
-		top.length === 5 && top.every((r) => r.svg && r.w === 16 && r.h === 16),
-		JSON.stringify(top),
+		'each top-level row of the flat menu has an icon in a 16 px slot',
+		top.length >= 10 && top.every((r) => r.svg && r.w === 16 && r.h === 16),
+		JSON.stringify(top.filter((r) => !r.svg || r.w !== 16 || r.h !== 16)),
 	);
-	for (const menu of ['Edit', 'View', 'Window', 'Help', 'File']) {
+	for (const menu of ['Undo history', 'Panels', 'Window']) {
 		await pressByRole(bridge, 'menuitem', menu);
 		const read = () =>
 			bridge.js<{ name: string; svg: boolean; w: number; h: number }[]>(
@@ -1592,21 +1643,6 @@ async function appMenuIconChecks(bridge: Bridge) {
 			rows.length > 0 && rows.every((r) => r.svg && r.w === 16 && r.h === 16),
 			JSON.stringify(rows.filter((r) => !r.svg || r.w !== 16 || r.h !== 16)),
 		);
-		// The rows are written as groups with the ellipsis on every row that opens a dialog or a
-		// window and the keys beside them; each row's text is its label then its keys.
-		const expected: Record<string, string[]> = {
-			File: ['New level\u2026Ctrl+N', 'Open level\u2026Ctrl+O', 'SaveCtrl+S', 'Close levelCtrl+W'],
-			Edit: ['Undo history'],
-			Help: ['HelpF1', 'Keyboard shortcuts\u2026?', 'About Fizz Level Studio\u2026'],
-		};
-		const wanted = expected[menu];
-		if (wanted) {
-			check(
-				`the ${menu} menu lists ${wanted.join(', ')}`,
-				wanted.every((text) => rows.some((r) => r.name === text)),
-				JSON.stringify(rows.map((r) => r.name)),
-			);
-		}
 	}
 }
 
@@ -1683,7 +1719,10 @@ async function checkPanelWindows(
 	for (const panel of PANEL_WINDOWS) {
 		const label = `panel-${panel.id}-1`;
 		await showFromRail(bridge, panel.title);
-		check(`the ${panel.title} panel offers Tear off`, await clickLabel(tearOffLabel(panel.title)));
+		check(
+			`the ${panel.title} panel offers Tear off`,
+			await choosePanelMenu(bridge, panel.title, 'Tear off'),
+		);
 		const opened = await within(10_000, async () => (await bridge.windows()).includes(label));
 		check(`tearing off ${panel.title} opens ${label}`, opened !== null);
 		await bridge.ready(label);
@@ -1716,13 +1755,13 @@ async function checkPanelWindows(
 			),
 		);
 		check(`docking ${panel.title} back closes ${label}`, await dockBackWindow(bridge, panel.id));
-		const back = await within(5000, () => clickLabelOnly(bridge, tearOffLabel(panel.title)));
+		const back = await within(5000, () => panelMenuOffers(bridge, panel.title, 'Tear off'));
 		check(`the ${panel.title} panel is back in the main window`, back !== null);
 	}
 
 	// An action in a torn-off window reaches the main window: a brush chosen in the Palette window.
 	await showFromRail(bridge, 'Palette');
-	await clickLabel(tearOffLabel('Palette'));
+	await choosePanelMenu(bridge, 'Palette', 'Tear off');
 	await bridge.ready('panel-palette-1');
 	await within(20_000, async () =>
 		bridge.js<boolean>(PANEL_WINDOWS[0].probe, 'panel-palette-1').catch(() => false),
@@ -1751,7 +1790,7 @@ async function checkPanelWindows(
 
 	// An object chosen in the Objects window reveals its cell and script line in the main window.
 	await showFromRail(bridge, 'Objects');
-	await clickLabel(tearOffLabel('Objects'));
+	await choosePanelMenu(bridge, 'Objects', 'Tear off');
 	await bridge.ready('panel-objects-1');
 	const picked = await within(20_000, async () => {
 		try {
@@ -1793,7 +1832,7 @@ async function checkPanelWindows(
 	);
 	check('docking the Objects panel back', await dockBackWindow(bridge, 'objects'));
 	await showFromRail(bridge, 'Objects');
-	await clickLabel(tearOffLabel('Objects'));
+	await choosePanelMenu(bridge, 'Objects', 'Tear off');
 	await bridge.ready('panel-objects-1');
 	const again = await within(10_000, async () => {
 		const size = await windowSize(bridge, 'panel-objects-1');
@@ -1849,7 +1888,7 @@ async function checkPanelWindows(
 		JSON.stringify(await windowSize(bridge, 'panel-objects-1')),
 	);
 	check('docking back after the restart', await dockBackWindow(bridge, 'objects'));
-	const finalBack = await within(5000, () => clickLabelOnly(bridge, tearOffLabel('Objects')));
+	const finalBack = await within(5000, () => panelMenuOffers(bridge, 'Objects', 'Tear off'));
 	check('the Objects panel is docked again at the end', finalBack !== null);
 
 	// A panel torn off from floating leaves nothing floating over the level: it is an away tab in
@@ -1859,11 +1898,11 @@ async function checkPanelWindows(
 			`const e = document.querySelector('section[data-panel="objects"]'); if (!e) return null; const r = e.getBoundingClientRect(); return { x: r.left, y: r.top, w: r.width, h: r.height };`,
 		);
 	await showFromRail(bridge, 'Objects');
-	check('floating: Objects floats', await clickLabel('Float Objects'));
+	check('floating: Objects floats', await choosePanelMenu(bridge, 'Objects', 'Float'));
 	const floated = await within(3000, async () => (await floatRect()) !== null);
 	const before = await floatRect();
 	check('floating: the floating Objects panel is drawn', floated !== null && before !== null);
-	check('floating: it offers Tear off', await clickLabel(tearOffLabel('Objects')));
+	check('floating: it offers Tear off', await choosePanelMenu(bridge, 'Objects', 'Tear off'));
 	const away = await within(10_000, async () =>
 		(await bridge.windows()).includes('panel-objects-1'),
 	);
@@ -1898,13 +1937,9 @@ async function checkPanelWindows(
 			(['x', 'y', 'w', 'h'] as const).every((k) => Math.abs(before[k] - after[k]) <= 1),
 		JSON.stringify({ before, after }),
 	);
-	check('floating: Objects docks right again', await clickLabel('Dock Objects right'));
-}
-
-/** Whether a button with this accessible name exists in the main window. */
-function clickLabelOnly(bridge: Bridge, label: string): Promise<boolean> {
-	return bridge.js<boolean>(
-		`return !!document.querySelector('button[aria-label=' + JSON.stringify(${JSON.stringify(label)}) + ']');`,
+	check(
+		'floating: Objects docks right again',
+		await choosePanelMenu(bridge, 'Objects', 'Dock right'),
 	);
 }
 
@@ -2103,16 +2138,49 @@ async function main(): Promise<void> {
 		const rowNames = await bridge.js<string[]>(
 			`return [...document.querySelectorAll('[role=menu] [role=menuitem]')].map((x) => x.textContent.trim());`,
 		);
+		// Menu bar off (the default): one flat, Folio-style list, with no File, Edit or View headings
+		// and no Zoom or Edit rows.
 		check(
-			'the app menu opens to File, Edit, View, Window and Help',
+			'the app menu opens to one flat list in the design’s order',
 			menuRows !== null &&
-				['File', 'Edit', 'View', 'Window', 'Help'].every((name) =>
-					rowNames.some((row) => row.startsWith(name)),
-				),
+				[
+					'New level',
+					'Open level',
+					'Save',
+					'Close level',
+					'Undo',
+					'Redo',
+					'Undo history',
+					'Menu bar',
+					'Panels',
+					'Window',
+					'Command palette',
+					'Preferences',
+					'Help',
+					'Keyboard shortcuts',
+					'About',
+					'Quit',
+				].every((name, i, all) => {
+					const at = rowNames.findIndex((row) => row.startsWith(name));
+					const before = i === 0 ? -1 : rowNames.findIndex((row) => row.startsWith(all[i - 1]!));
+					return at >= 0 && at > before;
+				}),
+			JSON.stringify(rowNames),
+		);
+		check(
+			'the flat menu has no File, Edit or View headings, and no Zoom or Go to line rows',
+			!['File', 'Edit', 'View'].some((name) => rowNames.includes(name)) &&
+				!rowNames.some((row) => /^(Zoom|Fit|Go to line)/.test(row)),
+			JSON.stringify(rowNames),
+		);
+		check(
+			'its rows show their keys',
+			['New level\u2026Ctrl+N', 'Open level\u2026Ctrl+O', 'SaveCtrl+S', 'Close levelCtrl+W'].every(
+				(text) => rowNames.includes(text),
+			) && rowNames.includes('QuitCtrl+Q'),
 			JSON.stringify(rowNames),
 		);
 		await appMenuIconChecks(bridge);
-		check('the app menu offers File', await pressByRole(bridge, 'menuitem', 'File'));
 		const preferencesRow = await within(3000, async () =>
 			(await pressByRole(bridge, 'menuitem', 'Preferences')) ? true : null,
 		);
@@ -2486,7 +2554,7 @@ async function main(): Promise<void> {
 				`const b = [...document.querySelectorAll('button')].find((x) => x.textContent === ${JSON.stringify(text)}); if (!b) return false; b.click(); return true;`,
 				windowId,
 			);
-		check('the Script panel offers Tear off', await clickLabelled(bridge, TEAR_OFF_SCRIPT));
+		check('the Script panel offers Tear off', await choosePanelMenu(bridge, 'Script', 'Tear off'));
 		const tornOff = await within(10_000, async () =>
 			(await bridge.windows()).includes('panel-script-1'),
 		);
@@ -2536,9 +2604,7 @@ async function main(): Promise<void> {
 		await bridge.stop();
 		await bridge.start();
 		const back = await within(3000, () =>
-			bridge.js<boolean>(
-				`return !!document.querySelector('button[aria-label=' + JSON.stringify(${JSON.stringify(TEAR_OFF_SCRIPT)}) + ']');`,
-			),
+			panelMenuOffers(bridge, 'Script', 'Tear off').then((offered) => offered || null),
 		);
 		check('the Script panel is back in the main window', back !== null);
 
@@ -2608,8 +2674,10 @@ async function main(): Promise<void> {
 		await within(3000, async () => (await startMenuRows(bridge)).length > 0);
 		const startMenu = await startMenuRows(bridge);
 		check(
-			'on the start screen the app menu offers File, Edit, View and Help, without Window',
-			startMenu.join('|') === 'File|Edit|View|Help',
+			'on the start screen the flat app menu offers New level, Preferences and Quit, without Panels or Window',
+			['New level', 'Open level', 'Preferences', 'Help', 'Quit'].every((name) =>
+				startMenu.some((row) => row.startsWith(name)),
+			) && !startMenu.some((row) => /^(Panels|Window|File|Edit|View)/.test(row)),
 			JSON.stringify(startMenu),
 		);
 		await bridge.js<boolean>(
@@ -2763,7 +2831,7 @@ async function main(): Promise<void> {
 		);
 		check('closing the Preferences window leaves the app up', prefsGone !== null && app.alive);
 
-		await clickLabelled(bridge, TEAR_OFF_SCRIPT);
+		await choosePanelMenu(bridge, 'Script', 'Tear off');
 		const tornAgain = await within(10_000, async () =>
 			(await bridge.windows()).includes('panel-script-1') ? true : null,
 		);
@@ -2778,9 +2846,7 @@ async function main(): Promise<void> {
 		await bridge.stop();
 		await bridge.start();
 		const redocked = await within(5000, () =>
-			bridge.js<boolean>(
-				`return !!document.querySelector('button[aria-label=' + JSON.stringify(${JSON.stringify(TEAR_OFF_SCRIPT)}) + ']');`,
-			),
+			panelMenuOffers(bridge, 'Script', 'Tear off').then((offered) => offered || null),
 		);
 		if (redocked === null)
 			console.error(

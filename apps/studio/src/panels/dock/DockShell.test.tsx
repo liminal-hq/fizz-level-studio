@@ -39,6 +39,16 @@ function actions(): DockActions {
 	};
 }
 
+/** The rows a test panel menu offers, and the function a chosen row reaches. */
+const onMenuSelect = vi.fn();
+const panelMenu = (id: string) => ({
+	items: [
+		{ type: 'action' as const, id: `${id}.one`, label: 'Dock left' },
+		{ type: 'action' as const, id: `${id}.two`, label: 'Float' },
+	],
+	onSelect: onMenuSelect,
+});
+
 function mount(
 	view = visibleWorkspace(defaultWorkspace()),
 	a = actions(),
@@ -52,6 +62,7 @@ function mount(
 			titleOf={(id) => titles[id]!}
 			renderPanel={(id) => <p>{`content of ${id}`}</p>}
 			actions={a}
+			panelMenu={panelMenu}
 		>
 			<div data-testid="level" />
 		</DockShell>,
@@ -83,23 +94,58 @@ describe('DockShell', () => {
 		expect(within(right).queryByRole('region', { name: 'Objects' })).toBeNull();
 	});
 
-	it('moves the showing panel with the header buttons', async () => {
-		const user = userEvent.setup();
-		const a = mount();
+	it('gives each header a ⋮ menu button and no dock, float, tear-off or fold buttons', () => {
+		mount();
+		for (const [zone, title] of [
+			['Left dock', 'Palette'],
+			['Right dock', 'Objects'],
+			['Bottom dock', 'Script'],
+		]) {
+			const region = screen.getByRole('region', { name: zone });
+			const menu = within(region).getByRole('button', { name: `${title} menu` });
+			expect(menu).toHaveAttribute('aria-haspopup', 'menu');
+			expect(menu).toHaveAttribute('aria-expanded', 'false');
+		}
 		const left = screen.getByRole('region', { name: 'Left dock' });
-		await user.click(within(left).getByRole('button', { name: 'Dock Palette right' }));
-		expect(a.dockTo).toHaveBeenCalledWith('palette', 'right');
-		await user.click(within(left).getByRole('button', { name: 'Dock Palette bottom' }));
-		expect(a.dockTo).toHaveBeenCalledWith('palette', 'bottom');
-		await user.click(within(left).getByRole('button', { name: 'Float Palette' }));
-		expect(a.floatPanel).toHaveBeenCalledWith('palette');
-		expect(within(left).queryByRole('button', { name: 'Dock Palette left' })).toBeNull();
+		for (const name of [/^Dock /, /^Float /, /^Tear off /, /^Fold /, /^Unfold /]) {
+			expect(within(left).queryByRole('button', { name })).toBeNull();
+		}
 	});
 
-	it('names the showing panel in the buttons of a group with several panels', () => {
+	it('names the showing panel in the menu button of a group with several panels', () => {
 		mount();
 		const bottom = screen.getByRole('region', { name: 'Bottom dock' });
-		expect(within(bottom).getByRole('button', { name: 'Float Script' })).toBeInTheDocument();
+		expect(within(bottom).getByRole('button', { name: 'Script menu' })).toBeInTheDocument();
+		expect(within(bottom).queryByRole('button', { name: 'Proposals menu' })).toBeNull();
+	});
+
+	it('opens the panel’s menu from its ⋮ button and runs the chosen row', async () => {
+		const user = userEvent.setup();
+		onMenuSelect.mockClear();
+		mount();
+		const left = screen.getByRole('region', { name: 'Left dock' });
+		const button = within(left).getByRole('button', { name: 'Palette menu' });
+		await user.click(button);
+		expect(button).toHaveAttribute('aria-expanded', 'true');
+		await user.click(screen.getByRole('menuitem', { name: 'Float' }));
+		expect(onMenuSelect).toHaveBeenCalledWith(expect.objectContaining({ id: 'palette.two' }));
+		expect(screen.queryByRole('menu')).toBeNull();
+	});
+
+	it('opens the menu with Enter, Space or Down, focuses its first row and returns focus on Escape', async () => {
+		const user = userEvent.setup();
+		mount();
+		const button = within(screen.getByRole('region', { name: 'Right dock' })).getByRole('button', {
+			name: 'Objects menu',
+		});
+		for (const key of ['{Enter}', ' ', '{ArrowDown}']) {
+			button.focus();
+			await user.keyboard(key);
+			expect(await screen.findByRole('menuitem', { name: 'Dock left' })).toHaveFocus();
+			await user.keyboard('{Escape}');
+			expect(screen.queryByRole('menu')).toBeNull();
+			expect(button).toHaveFocus();
+		}
 	});
 
 	it('takes no room for a dock with nothing showing, not even a rail', () => {
@@ -166,7 +212,10 @@ describe('the rails', () => {
 		mount();
 		const right = within(rail('Right rail')).getAllByRole('button');
 		expect(right.map((b) => b.textContent)).toEqual(['Objects', 'History']);
-		expect(right.map((b) => b.getAttribute('title'))).toEqual(['Objects', 'History']);
+		expect(right.map((b) => b.getAttribute('title'))).toEqual([
+			'Objects, open; choose again to fold',
+			'History',
+		]);
 		expect(within(rail('Left rail')).getByRole('button', { name: 'Palette' })).toBeInTheDocument();
 		const bottom = within(rail('Bottom rail')).getAllByRole('button');
 		expect(bottom.map((b) => b.textContent)).toEqual(['Script', 'Proposals']);
@@ -230,10 +279,58 @@ describe('the rails', () => {
 		expect(screen.getByRole('button', { name: 'Script' })).toHaveFocus();
 	});
 
-	it('has no unfold button while the dock is open', () => {
+	it('hints that the showing entry folds the dock, and that a folded dock’s entry opens it', () => {
 		mount();
-		expect(screen.queryByRole('button', { name: 'Unfold the left dock' })).toBeNull();
-		expect(screen.getByRole('button', { name: 'Fold the left dock' })).toBeInTheDocument();
+		expect(within(rail('Left rail')).getByRole('button', { name: 'Palette' })).toHaveAttribute(
+			'title',
+			'Palette, open; choose again to fold',
+		);
+		cleanup();
+		mount(visibleWorkspace(setZoneCollapsed(defaultWorkspace(), 'left', true)));
+		expect(within(rail('Left rail')).getByRole('button', { name: 'Palette' })).toHaveAttribute(
+			'title',
+			'Palette, folded; choose to open',
+		);
+	});
+
+	it('draws a dimmed placeholder after the real entries, which does nothing and is skipped by the arrows', async () => {
+		const user = userEvent.setup();
+		const a = actions();
+		render(
+			<DockShell
+				view={visibleWorkspace(defaultWorkspace())}
+				window={{ w: 1440, h: 900 }}
+				session={INITIAL_SESSION}
+				titleOf={(id) => titles[id]!}
+				renderPanel={(id) => <p>{`content of ${id}`}</p>}
+				actions={a}
+				railPlaceholders={{
+					left: [{ id: 'assets', title: 'Assets', icon: 'assets', reason: 'Coming later' }],
+				}}
+			>
+				<div data-testid="level" />
+			</DockShell>,
+		);
+		const left = rail('Left rail');
+		const entry = within(left).getByRole('button', { name: 'Assets' });
+		expect(entry).toBeDisabled();
+		expect(entry).toHaveAttribute('title', 'Coming later');
+		expect(left.lastElementChild).toBe(entry);
+		expect(within(rail('Right rail')).queryByRole('button', { name: 'Assets' })).toBeNull();
+		await user.click(entry);
+		expect(a.activate).not.toHaveBeenCalled();
+		expect(a.toggleZone).not.toHaveBeenCalled();
+		within(left).getByRole('button', { name: 'Palette' }).focus();
+		await user.keyboard('{ArrowDown}');
+		expect(within(left).getByRole('button', { name: 'Palette' })).toHaveFocus();
+	});
+
+	it('has no fold or unfold button, open or folded: the showing entry is the switch', () => {
+		mount();
+		expect(screen.queryByRole('button', { name: /^(Fold|Unfold) the/ })).toBeNull();
+		cleanup();
+		mount(visibleWorkspace(setZoneCollapsed(defaultWorkspace(), 'left', true)));
+		expect(screen.queryByRole('button', { name: /^(Fold|Unfold) the/ })).toBeNull();
 	});
 });
 
@@ -254,14 +351,13 @@ describe('folded docks', () => {
 		}
 	};
 
-	it('keeps the rail with an unfold button, and takes the dock away', () => {
+	it('keeps the rail with just its entries, and takes the dock away', () => {
 		mount(folded());
 		const rail = screen.getByRole('group', { name: 'Right rail' });
 		const items = within(rail).getAllByRole('button');
-		expect(items.map((b) => b.textContent)).toEqual(['', 'Objects', 'History']);
-		expect(within(rail).getByRole('button', { name: 'Unfold the right dock' })).toBeInTheDocument();
+		expect(items.map((b) => b.textContent)).toEqual(['Objects', 'History']);
 		expect(screen.queryByRole('region', { name: 'Right dock' })).toBeNull();
-		expect(rail.querySelectorAll('svg').length).toBeGreaterThanOrEqual(3);
+		expect(rail.querySelectorAll('svg').length).toBeGreaterThanOrEqual(2);
 		expect(within(rail).getByRole('button', { name: 'Objects' })).toHaveAttribute(
 			'aria-pressed',
 			'false',
@@ -396,20 +492,6 @@ describe('folded docks', () => {
 		expect(a.closePeek).toHaveBeenCalledTimes(1);
 	});
 
-	it('folds an open dock from its header', async () => {
-		const user = userEvent.setup();
-		const a = mount();
-		await user.click(screen.getByRole('button', { name: 'Fold the left dock' }));
-		expect(a.toggleZone).toHaveBeenCalledWith('left');
-	});
-
-	it('unfolds a folded dock from its rail', async () => {
-		const user = userEvent.setup();
-		const a = mount(folded());
-		await user.click(screen.getByRole('button', { name: 'Unfold the left dock' }));
-		expect(a.toggleZone).toHaveBeenCalledWith('left');
-	});
-
 	it('keeps every rail in level-first, folded and not usable until it ends', () => {
 		mount(visibleWorkspace(defaultWorkspace(), true), actions(), {
 			...INITIAL_SESSION,
@@ -422,7 +504,6 @@ describe('folded docks', () => {
 			expect(screen.getByRole('group', { name })).toBeInTheDocument();
 		}
 		expect(screen.getByRole('button', { name: 'Objects' })).toBeDisabled();
-		expect(screen.getByRole('button', { name: 'Unfold the left dock' })).toBeDisabled();
 	});
 });
 
@@ -545,6 +626,7 @@ describe('a maximised panel', () => {
 				</div>
 			)}
 			actions={actions()}
+			panelMenu={panelMenu}
 			maximised={maximised}
 		>
 			<div data-testid="level" />
@@ -572,7 +654,7 @@ describe('a maximised panel', () => {
 		// The other docks and the level are still mounted, only hidden by the stylesheet.
 		expect(screen.getByTestId('level')).toBeInTheDocument();
 		expect(document.querySelector('[data-body="palette"]')).toBeInTheDocument();
-		// Inside the maximised group the header offers Restore, not the dock's buttons.
+		// Inside the maximised group the header offers Restore, not the panel's menu.
 		expect(
 			within(groupBefore as HTMLElement).getByRole('button', { name: 'Restore Script' }),
 		).toBeInTheDocument();
@@ -580,7 +662,7 @@ describe('a maximised panel', () => {
 			within(groupBefore as HTMLElement).queryByRole('heading', { name: 'Script' }),
 		).toBeInTheDocument();
 		expect(
-			within(groupBefore as HTMLElement).queryByRole('button', { name: 'Float Script' }),
+			within(groupBefore as HTMLElement).queryByRole('button', { name: 'Script menu' }),
 		).toBeNull();
 
 		rerender(shell(null));
@@ -590,6 +672,6 @@ describe('a maximised panel', () => {
 		expect(document.querySelector('[data-panel-maximised]')).toBeNull();
 		const bottom = screen.getByRole('region', { name: 'Bottom dock' });
 		expect(within(bottom).getByRole('heading', { name: 'Script' })).toBeInTheDocument();
-		expect(within(bottom).getByRole('button', { name: 'Float Script' })).toBeInTheDocument();
+		expect(within(bottom).getByRole('button', { name: 'Script menu' })).toBeInTheDocument();
 	});
 });

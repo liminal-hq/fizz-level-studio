@@ -7,9 +7,10 @@ import type { TabGroup } from '@liminal-hq/fizz-studio-protocol/generated/TabGro
 import type { ZoneId } from '@liminal-hq/fizz-studio-protocol/generated/ZoneId';
 import { useEffect, useLayoutEffect, useRef, type KeyboardEvent, type PointerEvent } from 'react';
 import { t, type MessageId } from '../../i18n/messages';
-import { FoldButton } from './FoldButton';
+import { APP_ICONS } from '../../icons/AppIcons';
 import { PANEL_ICONS } from './panelIcons';
 import type { PanelId } from '../float/panelSpecs';
+import type { RailPlaceholder } from './railPlaceholders';
 import type { DragSource } from './useDockDrag';
 import styles from './DockRail.module.css';
 
@@ -32,13 +33,14 @@ export interface DockRailProps {
 	/** An entry chosen: it shows its panel (opening a folded zone), or folds the zone when showing. */
 	onChoose: (id: string) => void;
 	onPeek: (id: string, cause: PeekCause) => void;
-	onUnfold: () => void;
 	/** Moves a panel to a place among its group's panels (the keyboard's way of reordering). */
 	onReorder?: (id: string, index: number) => void;
 	/** A press on an entry that may become a drag. */
 	onDragStart?: (event: PointerEvent<HTMLElement>, id: string, source: DragSource) => void;
 	/** The panel being dragged, dimmed where it sits. */
 	dragging?: string | null;
+	/** Entries for panels that do not exist yet, drawn dimmed after the real ones. */
+	placeholders?: readonly RailPlaceholder[];
 }
 
 const RAIL_LABELS: Record<ZoneId, MessageId> = {
@@ -71,10 +73,10 @@ export function DockRail({
 	disabled,
 	onChoose,
 	onPeek,
-	onUnfold,
 	onReorder,
 	onDragStart,
 	dragging = null,
+	placeholders = [],
 }: DockRailProps) {
 	const rail = useRef<HTMLDivElement>(null);
 	const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -135,7 +137,6 @@ export function DockRail({
 			aria-label={t(RAIL_LABELS[zone])}
 			onKeyDown={onKeyDown}
 		>
-			{collapsed && <FoldButton zone={zone} folded onClick={onUnfold} disabled={disabled} />}
 			{groups.flatMap((group, index) =>
 				group.tabs.map((id) => {
 					const Icon = PANEL_ICONS[id as PanelId];
@@ -152,7 +153,7 @@ export function DockRail({
 							data-peeking={peeking === id || undefined}
 							data-dragging={dragging === id || undefined}
 							aria-pressed={active && !collapsed}
-							title={title}
+							title={hintOf(title, active, collapsed)}
 							disabled={disabled}
 							onPointerEnter={(event) => {
 								if (!canPeek || event.pointerType === 'touch' || peeking === id) return;
@@ -175,6 +176,32 @@ export function DockRail({
 					);
 				}),
 			)}
+			{placeholders.map((entry) => {
+				const Icon = APP_ICONS[entry.icon];
+				return (
+					<button
+						key={entry.id}
+						type="button"
+						className={styles.item}
+						data-rail-placeholder={entry.id}
+						title={entry.reason}
+						disabled
+					>
+						<Icon size={16} />
+						<span className={styles.title}>{entry.title}</span>
+					</button>
+				);
+			})}
 		</div>
 	);
+}
+
+/**
+ * The hint on an entry. The showing entry of an open dock says that choosing it again folds the dock;
+ * on a folded dock the entry that opens with it says choosing it opens the dock again; the others
+ * are named only, since choosing one just shows it.
+ */
+function hintOf(title: string, active: boolean, collapsed: boolean): string {
+	if (!active) return title;
+	return t(collapsed ? 'dock.rail.hintFolded' : 'dock.rail.hintOpen', { title });
 }
