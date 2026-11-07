@@ -11,7 +11,6 @@ import type { ViewSection } from '@liminal-hq/fizz-studio-protocol/generated/Vie
 import { t } from '../../i18n/messages';
 import { EyeClosedIcon, EyeOpenIcon, LockClosedIcon, LockOpenIcon } from './layerIcons';
 import { layerName, layerNote } from './layerNames';
-import { canHide } from './layersView';
 import styles from './LayersPanel.module.css';
 
 export interface LayersPanelProps {
@@ -54,7 +53,6 @@ export function LayersPanel({
 					const note = layerNote(section.id);
 					const isHidden = hidden.includes(section.id);
 					const isLocked = locked.includes(section.id);
-					const usable = canHide(section);
 					const first = section.lines[0]?.[0];
 					return (
 						<li
@@ -69,8 +67,6 @@ export function LayersPanel({
 								data-keycap-exempt=""
 								aria-pressed={isHidden}
 								aria-label={t('layers.hide', { layer: name })}
-								title={usable ? undefined : t('layers.tilesLater')}
-								disabled={!usable}
 								onClick={() => onToggleHidden(section.id)}
 							>
 								{isHidden ? <EyeClosedIcon /> : <EyeOpenIcon />}

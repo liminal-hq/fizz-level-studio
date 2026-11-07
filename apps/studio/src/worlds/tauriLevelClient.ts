@@ -12,6 +12,7 @@ import {
 	levelGhosts,
 	levelLayers,
 	levelSnapshot,
+	levelViewMasked,
 	onLevelChanged,
 	onLevelConflict,
 	onLevelLayers,
@@ -24,6 +25,7 @@ import {
 	type LevelConflict,
 	type LevelEdit,
 	type LevelSnapshot,
+	type LevelView,
 	type WordDoc,
 } from '@liminal-hq/fizz-studio-plugin-worlds';
 import type { LevelClient } from './levelClient';
@@ -152,6 +154,10 @@ export class TauriLevelClient implements LevelClient, WorldsClient {
 
 	ghosts(id: string): Promise<GhostProposal[]> {
 		return levelGhosts(id);
+	}
+
+	viewMasked(id: string, hidden: string[]): Promise<LevelView> {
+		return levelViewMasked(id, hidden);
 	}
 
 	async layers(id: string): Promise<string[]> {

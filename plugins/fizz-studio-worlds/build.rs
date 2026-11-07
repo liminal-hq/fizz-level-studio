@@ -22,6 +22,7 @@ const COMMANDS: &[&str] = &[
     "level_snapshot",
     "level_layers",
     "level_set_layer_locked",
+    "level_view_masked",
 ];
 
 fn main() {

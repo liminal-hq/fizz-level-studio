@@ -5,7 +5,7 @@
 
 import { describe, expect, it } from 'vitest';
 import { levelSections, levelView } from '../../test/levelFixtures';
-import { canHide, layersView, stillHidden } from './layersView';
+import { cellLayers, layersView, stillHidden } from './layersView';
 
 const view = levelView(12, 8, {
 	items: [{ kind: 'cheezie', x: 4, y: 3, line: 9 }],
@@ -40,12 +40,14 @@ describe('layersView', () => {
 	});
 });
 
-describe('canHide', () => {
-	it('lets thing layers be hidden and holds the tile layers back until they can be', () => {
-		const [terrain, , markers, treats] = levelSections();
-		expect(canHide(terrain!)).toBe(false);
-		expect(canHide(markers!)).toBe(true);
-		expect(canHide(treats!)).toBe(true);
+describe('cellLayers', () => {
+	it('picks the hidden layers whose tiles Rust has to leave out, and leaves the things to the filter', () => {
+		expect(cellLayers(levelSections(), ['terrain', 'treats', 'blocks', 'markers'])).toEqual([
+			'terrain',
+			'blocks',
+		]);
+		expect(cellLayers(levelSections(), ['treats'])).toEqual([]);
+		expect(cellLayers(levelSections(), [])).toEqual([]);
 	});
 });
 

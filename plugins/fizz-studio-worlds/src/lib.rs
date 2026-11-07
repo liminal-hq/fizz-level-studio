@@ -77,6 +77,7 @@ pub fn init_with<R: Runtime>(config: RecoveryConfig) -> TauriPlugin<R> {
             commands::level_snapshot,
             commands::level_layers,
             commands::level_set_layer_locked,
+            commands::level_view_masked,
         ])
         .setup(move |app, _api| {
             app.manage(Worlds::from_config(app, config));

@@ -8,7 +8,7 @@ import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import crater from '../../../../fixtures/fizz1/raster/levels-crater.json';
 import { fakeDockClient, floatingDock } from '../test/dockFixtures';
-import { levelSnapshot, levelView } from '../test/levelFixtures';
+import { levelSections, levelSnapshot, levelView } from '../test/levelFixtures';
 import { FakeLevelClient } from '../worlds/fakeLevelClient';
 import { CommandBridgeContext, createCommandBridge } from '../commands/commandBridge';
 import { EditorScreen } from './EditorScreen';
@@ -418,6 +418,27 @@ describe('EditorScreen', () => {
 		expect(await screen.findByRole('alert')).toHaveTextContent(
 			'The level changed first, so that edit was not applied. Try it again.',
 		);
+	});
+
+	it('draws the level without a tile layer the person hid, from Rust, and with it again on Show all', async () => {
+		const view = levelView(12, 8, {
+			sections: levelSections(),
+			cells: new Array<number>(96).fill(1),
+		});
+		const snapshot = levelSnapshot({}, view);
+		const client = new FakeLevelClient(snapshot);
+		render(<EditorScreen snapshot={snapshot} client={client} docks={floating()} />);
+		await screen.findByRole('region', { name: 'Layers' });
+		await userEvent.click(screen.getByRole('button', { name: 'Hide Terrain on the canvas' }));
+		await waitFor(() =>
+			expect(client.masked.at(-1)).toEqual({ id: 'level-1', hidden: ['terrain'] }),
+		);
+		const calls = client.masked.length;
+		await userEvent.click(screen.getByRole('button', { name: 'Show all' }));
+		await waitFor(() => expect(screen.getByRole('button', { name: 'Show all' })).toBeDisabled());
+		expect(client.masked).toHaveLength(calls);
+		// The level in Rust is untouched by hiding.
+		expect(client.applied).toEqual([]);
 	});
 
 	it('names the locked layer when an edit is refused for a lock', async () => {

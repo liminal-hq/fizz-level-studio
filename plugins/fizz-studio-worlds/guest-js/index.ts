@@ -9,6 +9,7 @@ import type { GhostProposal } from '@liminal-hq/fizz-studio-protocol/generated/G
 import type { LevelEdit } from '@liminal-hq/fizz-studio-protocol/generated/LevelEdit';
 import type { LevelError } from '@liminal-hq/fizz-studio-protocol/generated/LevelError';
 import type { LevelSnapshot } from '@liminal-hq/fizz-studio-protocol/generated/LevelSnapshot';
+import type { LevelView } from '@liminal-hq/fizz-studio-protocol/generated/LevelView';
 import type { NewLevelRequest } from '@liminal-hq/fizz-studio-protocol/generated/NewLevelRequest';
 import type { ProjectInfo } from '@liminal-hq/fizz-studio-protocol/generated/ProjectInfo';
 import type { RecoveryEntry } from '@liminal-hq/fizz-studio-protocol/generated/RecoveryEntry';
@@ -156,6 +157,14 @@ export function levelSnapshot(id: string): Promise<LevelSnapshot> {
 	return cmd<LevelSnapshot>('level_snapshot', { id });
 }
 
+/**
+ * The level drawn without the statements of the `hidden` layers, as if they were not in the script:
+ * the drawing behind a layer's eye. Read-only; nothing is saved and the level is untouched.
+ */
+export function levelViewMasked(id: string, hidden: string[]): Promise<LevelView> {
+	return cmd<LevelView>('level_view_masked', { id, hidden });
+}
+
 /** The layers of an open level that are locked. */
 export function levelLayers(id: string): Promise<LevelLayers> {
 	return cmd<LevelLayers>('level_layers', { id });
@@ -218,6 +227,7 @@ export type {
 	LevelEdit,
 	LevelError,
 	LevelSnapshot,
+	LevelView,
 	NewLevelRequest,
 	ProjectInfo,
 	RecoveryEntry,

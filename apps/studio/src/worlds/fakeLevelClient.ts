@@ -6,6 +6,7 @@
 import type { GhostProposal } from '@liminal-hq/fizz-studio-protocol/generated/GhostProposal';
 import type { LevelError } from '@liminal-hq/fizz-studio-protocol/generated/LevelError';
 import type { LevelEdit } from '@liminal-hq/fizz-studio-protocol/generated/LevelEdit';
+import type { LevelView } from '@liminal-hq/fizz-studio-protocol/generated/LevelView';
 import type { LevelSnapshot } from '@liminal-hq/fizz-studio-protocol/generated/LevelSnapshot';
 import type { WordDoc } from '@liminal-hq/fizz-studio-protocol/generated/WordDoc';
 import type { LevelClient } from './levelClient';
@@ -172,6 +173,17 @@ export class FakeLevelClient implements LevelClient {
 	async ghosts(id: string): Promise<GhostProposal[]> {
 		this.check(id);
 		return this.ghostProposals.map((proposal) => ({ ...proposal }));
+	}
+
+	/** Every `viewMasked` call, for tests to inspect. */
+	readonly masked: Array<{ id: string; hidden: string[] }> = [];
+
+	/** Answers the view with every cell empty when anything is hidden, so a test can tell it apart. */
+	async viewMasked(id: string, hidden: string[]): Promise<LevelView> {
+		this.check(id);
+		this.masked.push({ id, hidden: [...hidden] });
+		const view = this.snapshot().view;
+		return hidden.length === 0 ? view : { ...view, cells: view.cells.map(() => 0) };
 	}
 
 	async layers(id: string): Promise<string[]> {

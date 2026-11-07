@@ -42,7 +42,8 @@ import { useDockDrag } from '../panels/dock/useDockDrag';
 import { ZONE_LABELS } from '../panels/dock/DockZone';
 import { useLayerLocks } from '../panels/layers/useLayerLocks';
 import { lockedProblem } from '../panels/layers/lockedNote';
-import { layersView, stillHidden } from '../panels/layers/layersView';
+import { useMaskedView } from '../panels/layers/useMaskedView';
+import { cellLayers, layersView, stillHidden } from '../panels/layers/layersView';
 import { PANEL_SPECS, isExpandable, type PanelId } from '../panels/float/panelSpecs';
 import { SnapGuides } from '../panels/float/SnapGuides';
 import { useElementSize } from '../panels/float/useElementSize';
@@ -323,9 +324,20 @@ export function EditorScreen({
 	// Inspect selects the topmost thing on the pressed cell (null outside the level) and edits nothing.
 	const levelView = snapshot.view;
 	// The canvas draws the level without the things of the layers the person hid.
+	const hiddenNow = useMemo(
+		() => stillHidden(levelView.sections, hiddenLayers),
+		[levelView.sections, hiddenLayers],
+	);
+	// Hiding tiles asks Rust for the level run without those layers; hiding things filters it here.
+	const maskedView = useMaskedView(
+		client,
+		levelId,
+		snapshot.revision,
+		cellLayers(levelView.sections, hiddenNow),
+	);
 	const shownView = useMemo(
-		() => layersView(levelView, stillHidden(levelView.sections, hiddenLayers)),
-		[levelView, hiddenLayers],
+		() => layersView(maskedView ?? levelView, hiddenNow),
+		[maskedView, levelView, hiddenNow],
 	);
 	const onToolEvent = useCallback(
 		(phase: PointerPhase, cell: Cell) => {

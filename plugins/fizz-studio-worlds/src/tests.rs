@@ -510,6 +510,29 @@ fn a_server_rewriting_the_sidecar_without_the_lock_has_it_put_back() {
 }
 
 #[test]
+fn a_level_is_drawn_without_hidden_layers_and_nothing_is_saved() {
+    let app = app();
+    let (_dir, path) = project();
+    let opened = open(&app, &path);
+    let masked = |hidden: &[&str]| {
+        commands::level_view_masked(
+            worlds(&app),
+            opened.id.clone(),
+            hidden.iter().map(|h| (*h).to_string()).collect(),
+        )
+    };
+    assert_eq!(masked(&[]).unwrap(), opened.view);
+    let without = masked(&["terrain"]).unwrap();
+    assert_ne!(without.cells, opened.view.cells);
+    assert_eq!(without.sections.len(), opened.view.sections.len());
+    assert!(masked(&["bogus"]).is_ok());
+    assert!(commands::level_view_masked(worlds(&app), "nope".into(), vec![]).is_err());
+    let after = current(&app, &opened.id);
+    assert_eq!(after.revision, 0);
+    assert_eq!(after.text, CRATER);
+}
+
+#[test]
 fn closing_a_level_forgets_it() {
     let app = app();
     let (_dir, path) = project();

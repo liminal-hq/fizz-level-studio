@@ -7,6 +7,7 @@ import type { GhostProposal } from '@liminal-hq/fizz-studio-protocol/generated/G
 import type { LevelEdit } from '@liminal-hq/fizz-studio-protocol/generated/LevelEdit';
 import type { LevelError } from '@liminal-hq/fizz-studio-protocol/generated/LevelError';
 import type { LevelSnapshot } from '@liminal-hq/fizz-studio-protocol/generated/LevelSnapshot';
+import type { LevelView } from '@liminal-hq/fizz-studio-protocol/generated/LevelView';
 import type { WordDoc } from '@liminal-hq/fizz-studio-protocol/generated/WordDoc';
 
 /**
@@ -41,6 +42,11 @@ export interface LevelClient {
 	ghosts(id: string): Promise<GhostProposal[]>;
 	/** The script line (from 1) of the last statement that changed a cell, or `null` if none did. */
 	cellLine(id: string, x: number, y: number): Promise<number | null>;
+	/**
+	 * The level drawn without the statements of the `hidden` layers, as if they were not in the
+	 * script. Read-only: nothing is saved and the level is untouched.
+	 */
+	viewMasked(id: string, hidden: string[]): Promise<LevelView>;
 	/** The layers of the level that are locked, as layer ids. */
 	layers(id: string): Promise<string[]>;
 	/** Locks or unlocks a layer, and resolves to the locked layers as they are now. */

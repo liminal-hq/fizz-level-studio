@@ -229,8 +229,6 @@ export const enMessages = {
 	'layers.title': 'Layers',
 	// translator: Accessible name of the eye toggle on a layer's row. {layer} is the layer's name (Terrain, Treats, Enemies and so on). Pressed means the layer is hidden. Hiding changes only what the person sees, not the level.
 	'layers.hide': 'Hide {layer} on the canvas',
-	// translator: Why a layer's eye cannot be used yet: layers made of tiles (the ground, walls and blocks) cannot be hidden until a later version.
-	'layers.tilesLater': 'Coming with tile layers',
 	// translator: Accessible name of the lock toggle on a layer's row. {layer} is the layer's name. Pressed means the layer is locked: nothing in it can be changed, by the person or by Claude.
 	'layers.lock': 'Lock {layer}',
 	// translator: Shown under one of Claude's proposals when it would change a locked layer, so it cannot be accepted yet. {layers} is a layer's name or a list of names, such as “Treats and Edits”.

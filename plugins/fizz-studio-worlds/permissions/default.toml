@@ -19,4 +19,5 @@ permissions = [
 	"allow-level-snapshot",
 	"allow-level-layers",
 	"allow-level-set-layer-locked",
+	"allow-level-view-masked",
 ]

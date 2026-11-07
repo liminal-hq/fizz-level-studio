@@ -61,6 +61,15 @@ impl AnyLevelDocument {
         }
     }
 
+    /// The level drawn without the statements of the `hidden` layers. A Fizz 2 level has no layers,
+    /// so it is drawn as it is.
+    pub fn view_without(&self, hidden: &[String]) -> LevelView {
+        match self {
+            Self::Fizz1(d) => d.view_without(hidden),
+            Self::Fizz2(d) => d.view(),
+        }
+    }
+
     /// The script line that last changed the cell. Only a Fizz 1 level answers; a Fizz 2 level is
     /// drawn flat until the game's own view exists.
     pub fn cell_line(&self, x: i64, y: i64) -> Option<u32> {

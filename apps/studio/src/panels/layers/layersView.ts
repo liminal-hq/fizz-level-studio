@@ -20,9 +20,15 @@ export function layersView(view: LevelView, hidden: readonly string[]): LevelVie
 	return { ...view, items, spawns, markers };
 }
 
-/** Whether the layer's eye can be used now: only thing layers can be hidden until tile layers land. */
-export function canHide(section: ViewSection): boolean {
-	return section.affects === 'things';
+/**
+ * The layers among `hidden` whose tiles Rust has to leave out (the ground, walls, blocks, crystals
+ * and edits), which only the masked view can do. The things (items, enemies, exits and doors) are
+ * filtered here by `layersView`.
+ */
+export function cellLayers(sections: readonly ViewSection[], hidden: readonly string[]): string[] {
+	return sections
+		.filter((section) => section.affects === 'cells' && hidden.includes(section.id))
+		.map((section) => section.id);
 }
 
 /** The ids of `hidden` that the level still has, so a layer that went away leaves the set. */

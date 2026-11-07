@@ -103,6 +103,13 @@ var __TAURI_PLUGIN_FIZZ_STUDIO_WORLDS__ = (function (exports, core, event) {
     function levelSnapshot(id) {
         return cmd('level_snapshot', { id });
     }
+    /**
+     * The level drawn without the statements of the `hidden` layers, as if they were not in the script:
+     * the drawing behind a layer's eye. Read-only; nothing is saved and the level is untouched.
+     */
+    function levelViewMasked(id, hidden) {
+        return cmd('level_view_masked', { id, hidden });
+    }
     /** The layers of an open level that are locked. */
     function levelLayers(id) {
         return cmd('level_layers', { id });
@@ -162,6 +169,7 @@ var __TAURI_PLUGIN_FIZZ_STUDIO_WORLDS__ = (function (exports, core, event) {
     exports.levelGhosts = levelGhosts;
     exports.levelLayers = levelLayers;
     exports.levelSnapshot = levelSnapshot;
+    exports.levelViewMasked = levelViewMasked;
     exports.listRecovery = listRecovery;
     exports.newerOnly = newerOnly;
     exports.onLevelChanged = onLevelChanged;

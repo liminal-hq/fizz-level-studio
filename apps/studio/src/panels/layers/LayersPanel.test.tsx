@@ -59,11 +59,13 @@ describe('the Layers panel', () => {
 		expect(onToggleHidden).toHaveBeenCalledWith('treats');
 	});
 
-	it('holds back the eye of a tile layer and says why', () => {
-		setup();
+	it('hides a tile layer from its eye too', async () => {
+		const user = userEvent.setup();
+		const { onToggleHidden } = setup();
 		const terrain = screen.getByRole('button', { name: 'Hide Terrain on the canvas' });
-		expect(terrain).toBeDisabled();
-		expect(terrain).toHaveAttribute('title', 'Coming with tile layers');
+		expect(terrain).toBeEnabled();
+		await user.click(terrain);
+		expect(onToggleHidden).toHaveBeenCalledWith('terrain');
 	});
 
 	it('shows the first line of a layer in the script when its name is chosen', async () => {
@@ -96,11 +98,6 @@ describe('the Layers panel', () => {
 		expect(treats).toHaveAttribute('aria-pressed', 'false');
 		await user.click(treats);
 		expect(onToggleLocked).toHaveBeenCalledWith('treats');
-	});
-
-	it('lets a tile layer be locked though its eye waits', () => {
-		setup();
-		expect(screen.getByRole('button', { name: 'Lock Terrain' })).toBeEnabled();
 	});
 
 	it('unlocks every layer from Unlock all, which waits for something to be locked', async () => {

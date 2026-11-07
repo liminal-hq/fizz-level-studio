@@ -5,8 +5,8 @@
 
 use fizz_studio_level::{new_level_text, new_world_text, step_name};
 use fizz_studio_protocol::{
-    GhostProposal, LevelEdit, LevelError, LevelSnapshot, LevelTarget, NewLevelRequest, ProjectInfo,
-    ProjectKind, RecoveryEntry, WordDoc,
+    GhostProposal, LevelEdit, LevelError, LevelSnapshot, LevelTarget, LevelView, NewLevelRequest,
+    ProjectInfo, ProjectKind, RecoveryEntry, WordDoc,
 };
 use fizz_studio_session::{Author, Request};
 use fizz_studio_world::{write_atomic, Project, ProjectKind as FoundKind, WORLD_FILE};
@@ -274,4 +274,18 @@ pub fn level_set_layer_locked<R: Runtime>(
     let layers = worlds.with(&id, |level| level.set_layer_locked(&layer, locked))?;
     announce_layers(&app, &layers);
     Ok(layers)
+}
+
+/// The level drawn without the statements of the `hidden` layers, as if they were not in the
+/// script, behind a layer's eye. Read-only: nothing is saved, the session is untouched, and the
+/// layers stay listed so a hidden one can be shown again. Hiding nothing answers the ordinary view.
+#[tauri::command]
+pub fn level_view_masked(
+    worlds: State<'_, Worlds>,
+    id: String,
+    hidden: Vec<String>,
+) -> Result<LevelView, LevelError> {
+    worlds.with(&id, |level| {
+        Ok(level.session.document().view_without(&hidden))
+    })
 }
