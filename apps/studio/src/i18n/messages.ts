@@ -227,6 +227,52 @@ export const enMessages = {
 
 	// translator: Heading of the panel that lists the sections of the level's script (terrain, items, enemies and so on), each with a switch to hide it on the canvas and a lock.
 	'layers.title': 'Layers',
+	// translator: Accessible name of the eye toggle on a layer's row. {layer} is the layer's name (Terrain, Treats, Enemies and so on). Pressed means the layer is hidden. Hiding changes only what the person sees, not the level.
+	'layers.hide': 'Hide {layer} on the canvas',
+	// translator: Why a layer's eye cannot be used yet: layers made of tiles (the ground, walls and blocks) cannot be hidden until a later version.
+	'layers.tilesLater': 'Coming with tile layers',
+	// translator: Verb phrase on a button. Shows every layer that is hidden again.
+	'layers.showAll': 'Show all',
+	// translator: Tooltip on a layer's name. Choosing it shows the layer's first line in the script.
+	'layers.reveal': 'Show the first line of {layer} in the script',
+	// translator: Short note under the Layers list. Hiding a layer is only for the person's own view.
+	'layers.hideNote': 'Hiding is for your view only. Claude always sees the whole level.',
+	// translator: Shown in the Layers panel when the level has no sections yet.
+	'layers.none': 'This level has no layers yet.',
+	// translator: Shown in the Layers panel for a level written in the Fizz 2 language, which has no layers yet.
+	'layers.fizz2': 'Layers are not available for Fizz 2 levels yet.',
+	// translator: The name of a layer: the ground, slopes and pools of the level.
+	'layers.name.terrain': 'Terrain',
+	// translator: The name of a layer: the walls at both ends of the level.
+	'layers.name.walls': 'Walls',
+	// translator: The name of a layer: blocks, platforms, ladders and rooms.
+	'layers.name.blocks': 'Blocks',
+	// translator: The name of a layer: the crystals set into the ground.
+	'layers.name.crystals': 'Crystals',
+	// translator: The name of a layer: the exits and doors.
+	'layers.name.markers': 'Markers',
+	// translator: The name of a layer: the items the player collects (cheezies, chocs, cookies, sodas and keys).
+	'layers.name.treats': 'Treats',
+	// translator: The name of a layer: the enemies and props.
+	'layers.name.enemies': 'Enemies',
+	// translator: The name of a layer: the changes made in the studio, which are added to the end of the script.
+	'layers.name.edits': 'Edits',
+	// translator: A short note beside a layer's name that says what it holds: the ground, slopes and pools.
+	'layers.note.terrain': 'Ground, slopes and pools',
+	// translator: A short note beside a layer's name: the walls at both ends of the level.
+	'layers.note.walls': 'The end walls',
+	// translator: A short note beside a layer's name: blocks, platforms and ladders.
+	'layers.note.blocks': 'Blocks, platforms and ladders',
+	// translator: A short note beside a layer's name: crystals set into the ground.
+	'layers.note.crystals': 'Set into the ground',
+	// translator: A short note beside a layer's name: the exits and doors.
+	'layers.note.markers': 'Exits and doors',
+	// translator: A short note beside a layer's name: items to collect.
+	'layers.note.treats': 'Items to collect',
+	// translator: A short note beside a layer's name: enemies and props.
+	'layers.note.enemies': 'Enemies and props',
+	// translator: A short note beside a layer's name: changes made in the studio.
+	'layers.note.edits': 'Made in the studio',
 
 	// translator: Heading of the panel that shows what Claude has proposed and the person has not yet answered.
 	'ghosts.title': 'Proposals',

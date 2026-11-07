@@ -14,6 +14,7 @@ import { ObjectList } from '../canvas/ObjectList';
 import { GhostsPanel } from '../panels/GhostsPanel';
 import type { PanelId } from '../panels/float/panelSpecs';
 import { HistoryPanel } from '../panels/HistoryPanel';
+import { LayersPanel } from '../panels/layers/LayersPanel';
 import { PalettePanel } from '../panels/PalettePanel';
 import { ScriptPanel } from '../panels/ScriptPanel';
 import type { Brush } from '../tools/brush';
@@ -36,6 +37,10 @@ export interface PanelContentContext {
 	onRefreshProposals: () => void;
 	focusLine: number | null;
 	focusSerial: number;
+	/** The ids of the layers hidden on the canvas; hiding is this person's view only. */
+	hiddenLayers: readonly string[];
+	onToggleLayer: (id: string) => void;
+	onShowAllLayers: () => void;
 }
 
 /**
@@ -57,8 +62,16 @@ export function panelContent(id: PanelId, ctx: PanelContentContext): ReactNode {
 				/>
 			);
 		case 'layers':
-			// The Layers panel arrives with its own component.
-			return null;
+			return (
+				<LayersPanel
+					sections={snapshot.view.sections}
+					hidden={ctx.hiddenLayers}
+					target={snapshot.target}
+					onToggleHidden={ctx.onToggleLayer}
+					onShowAll={ctx.onShowAllLayers}
+					onReveal={ctx.showLine}
+				/>
+			);
 		case 'objects':
 			return (
 				<ObjectList

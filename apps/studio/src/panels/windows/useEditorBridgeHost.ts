@@ -21,6 +21,7 @@ export interface EditorBridgeHandlers {
 	chooseObject(cell: Cell): void;
 	showLine(line: number): void;
 	setGhostsShown(shown: boolean): void;
+	setHiddenLayers(hidden: string[]): void;
 }
 
 function isBrush(value: unknown): value is Brush {
@@ -65,6 +66,11 @@ export function useEditorBridgeHost(
 			bridge.on('script/show', (message) => {
 				if (message && Number.isInteger(message.line) && message.line >= 1) {
 					live.current.showLine(message.line);
+				}
+			}),
+			bridge.on('layers/hidden', (message) => {
+				if (message && Array.isArray(message.hidden)) {
+					live.current.setHiddenLayers(message.hidden.filter((id) => typeof id === 'string'));
 				}
 			}),
 			bridge.on('proposals/shown', (message) => {

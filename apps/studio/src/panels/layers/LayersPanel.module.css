@@ -1,0 +1,121 @@
+.panel {
+	display: flex;
+	flex-direction: column;
+	min-height: 0;
+}
+
+.list {
+	margin: 0;
+	padding: 0.25rem;
+	list-style: none;
+}
+
+.row {
+	display: grid;
+	grid-template-columns: auto 1fr auto;
+	align-items: center;
+	gap: 0.25rem;
+	border-radius: 4px;
+}
+
+.row:hover {
+	background: var(--fls-bg-hover);
+}
+
+.row[data-hidden] .label,
+.row[data-hidden] .note,
+.row[data-hidden] .count {
+	opacity: 0.55;
+}
+
+.toggle {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 1.75rem;
+	height: 1.75rem;
+	padding: 0;
+	color: var(--fls-text-primary);
+	background: transparent;
+	border: 0;
+	border-radius: 4px;
+	cursor: default;
+}
+
+.toggle:hover:not(:disabled) {
+	background: var(--fls-bg-hover);
+}
+
+.toggle:disabled {
+	color: var(--fls-text-muted);
+	opacity: 0.5;
+}
+
+.toggle[aria-pressed='true'] {
+	color: var(--fls-text-muted);
+}
+
+.toggle:focus-visible,
+.name:focus-visible {
+	outline: 2px solid var(--fls-focus-ring);
+	outline-offset: -2px;
+}
+
+.name {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	min-width: 0;
+	padding: 0.2rem 0.25rem;
+	color: var(--fls-text-primary);
+	background: transparent;
+	border: 0;
+	border-radius: 4px;
+	font: inherit;
+	text-align: left;
+	cursor: default;
+}
+
+.name:disabled {
+	color: var(--fls-text-muted);
+}
+
+.label {
+	overflow: hidden;
+	max-width: 100%;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.note {
+	overflow: hidden;
+	max-width: 100%;
+	color: var(--fls-text-muted);
+	font-size: 0.8em;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.count {
+	padding-right: 0.5rem;
+	color: var(--fls-text-muted);
+	font-variant-numeric: tabular-nums;
+}
+
+.footer {
+	display: flex;
+	gap: 0.4rem;
+	padding: 0.25rem 0.5rem;
+}
+
+.action {
+	composes: keycap from '@liminal-hq/fizz-studio-chrome/Keycap/keycap.module.css';
+}
+
+.hint,
+.empty {
+	margin: 0;
+	padding: 0.3rem 0.75rem 0.5rem;
+	color: var(--fls-text-muted);
+	font-size: 0.85em;
+}

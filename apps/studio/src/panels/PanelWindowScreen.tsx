@@ -118,6 +118,14 @@ function PanelWindow({ windowLabel, spec, client, levels, bridge: given }: Panel
 							onRefreshProposals: session.refreshProposals,
 							focusLine: share.focus?.line ?? null,
 							focusSerial: share.focus?.serial ?? 0,
+							hiddenLayers: share.hiddenLayers,
+							onToggleLayer: (id) =>
+								bridge.send(owner, 'layers/hidden', {
+									hidden: share.hiddenLayers.includes(id)
+										? share.hiddenLayers.filter((hidden) => hidden !== id)
+										: [...share.hiddenLayers, id],
+								}),
+							onShowAllLayers: () => bridge.send(owner, 'layers/hidden', { hidden: [] }),
 						})
 					) : (
 						<p className={styles.message}>{t('panelWindow.noLevel')}</p>

@@ -1544,8 +1544,9 @@ async function dragAndMaximiseChecks(bridge: Bridge): Promise<void> {
 	// A panel dragged from one dock into another.
 	let m = await measureLayout(bridge);
 	check(
-		'drag: the Palette starts on the left rail',
-		(await tabsIn(bridge, 'Left dock')).join() === 'Palette',
+		'drag: the Palette starts on the left rail beside Layers',
+		(await tabsIn(bridge, 'Left dock')).join() === 'Palette,Layers',
+		JSON.stringify(await tabsIn(bridge, 'Left dock')),
 	);
 	check(
 		'drag: a synthetic drag starts on the Palette rail entry',
@@ -1559,8 +1560,25 @@ async function dragAndMaximiseChecks(bridge: Bridge): Promise<void> {
 	await sleep(300);
 	m = await measureLayout(bridge);
 	check(
-		'drag: the Palette moves to the right rail where it was let go and the left dock and rail go',
+		'drag: the Palette moves to the right rail where it was let go and Layers stays on the left',
 		(await tabsIn(bridge, 'Right dock')).join() === 'Palette,Objects,History' &&
+			(await tabsIn(bridge, 'Left dock')).join() === 'Layers',
+		JSON.stringify([await tabsIn(bridge, 'Right dock'), await tabsIn(bridge, 'Left dock')]),
+	);
+	// Layers follows it, which empties the left dock: its rail goes with it.
+	check(
+		'drag: a synthetic drag starts on the Layers rail entry',
+		await syntheticDrag(bridge, '[data-rail="left"] [data-rail-item="layers"]', {
+			selector: '[data-rail="right"] [data-rail-item="objects"]',
+			fx: 0.5,
+			fy: 0.1,
+		}),
+	);
+	await sleep(300);
+	m = await measureLayout(bridge);
+	check(
+		'drag: with both panels gone the left dock and rail go',
+		(await tabsIn(bridge, 'Right dock')).join() === 'Palette,Layers,Objects,History' &&
 			!m.left &&
 			!m.leftRail,
 		JSON.stringify(await tabsIn(bridge, 'Right dock')),
@@ -1585,9 +1603,22 @@ async function dragAndMaximiseChecks(bridge: Bridge): Promise<void> {
 	check(
 		'drag: an empty dock takes the panel back and the sizes are sane',
 		(await tabsIn(bridge, 'Left dock')).join() === 'Palette' &&
-			(await tabsIn(bridge, 'Right dock')).join() === 'Objects,History' &&
+			(await tabsIn(bridge, 'Right dock')).join() === 'Layers,Objects,History' &&
 			sane(m),
 		JSON.stringify([m.left, m.right, m.bottom, m.canvas, m.map]),
+	);
+	// Layers goes back beside the Palette.
+	await syntheticDrag(bridge, '[data-rail="right"] [data-rail-item="layers"]', {
+		selector: '[data-rail="left"] [data-rail-item="palette"]',
+		fx: 0.5,
+		fy: 0.9,
+	});
+	await sleep(300);
+	check(
+		'drag: Layers goes back beside the Palette',
+		(await tabsIn(bridge, 'Left dock')).join() === 'Palette,Layers' &&
+			(await tabsIn(bridge, 'Right dock')).join() === 'Objects,History',
+		JSON.stringify([await tabsIn(bridge, 'Left dock'), await tabsIn(bridge, 'Right dock')]),
 	);
 
 	// Escape during a drag puts everything back.
@@ -1600,7 +1631,7 @@ async function dragAndMaximiseChecks(bridge: Bridge): Promise<void> {
 	await sleep(300);
 	check(
 		'drag: Escape during a drag cancels it',
-		(await tabsIn(bridge, 'Left dock')).join() === 'Palette' &&
+		(await tabsIn(bridge, 'Left dock')).join() === 'Palette,Layers' &&
 			(await tabsIn(bridge, 'Right dock')).join() === 'Objects,History',
 	);
 

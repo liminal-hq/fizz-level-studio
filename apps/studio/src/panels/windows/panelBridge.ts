@@ -33,6 +33,8 @@ export interface EditorShare {
 	ghostsShown: boolean;
 	/** A script line to mark; `serial` changes each time one is asked for. */
 	focus: { line: number; serial: number } | null;
+	/** The ids of the layers hidden on the canvas. */
+	hiddenLayers: string[];
 }
 
 /** The palette state a panel window may set; the main window applies it through the editor's own setters. */
@@ -56,6 +58,8 @@ export interface BridgeTopics {
 	'script/show': { line: number };
 	/** A panel window to the main window: show or hide Claude's proposals over the level. */
 	'proposals/shown': { shown: boolean };
+	/** A panel window to the main window: hide or show these layers on the canvas. */
+	'layers/hidden': { hidden: string[] };
 }
 
 export type BridgeTopic = keyof BridgeTopics;

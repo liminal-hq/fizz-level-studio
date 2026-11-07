@@ -36,6 +36,7 @@ const share = (overrides: Partial<EditorShare> = {}): EditorShare => ({
 	brush: { group: 'tile', kind: 'wall' },
 	spacing: 1,
 	ghostsShown: true,
+	hiddenLayers: [],
 	focus: null,
 	...overrides,
 });

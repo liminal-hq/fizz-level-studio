@@ -40,6 +40,7 @@ import {
 } from '../panels/dock/dockDrop';
 import { useDockDrag } from '../panels/dock/useDockDrag';
 import { ZONE_LABELS } from '../panels/dock/DockZone';
+import { layersView, stillHidden } from '../panels/layers/layersView';
 import { PANEL_SPECS, isExpandable, type PanelId } from '../panels/float/panelSpecs';
 import { SnapGuides } from '../panels/float/SnapGuides';
 import { useElementSize } from '../panels/float/useElementSize';
@@ -143,6 +144,8 @@ export function EditorScreen({
 	const [words, setWords] = useState<WordDoc[]>([]);
 	const [proposals, setProposals] = useState<GhostProposal[]>([]);
 	const [showGhosts, setShowGhosts] = useState(true);
+	// The layers the person hid on the canvas: this window's view only, never saved or sent to Rust.
+	const [hiddenLayers, setHiddenLayers] = useState<string[]>([]);
 	const levelId = snapshot.id;
 	const revision = snapshot.revision;
 	const areaRef = useRef<HTMLDivElement>(null);
@@ -304,16 +307,21 @@ export function EditorScreen({
 
 	// Inspect selects the topmost thing on the pressed cell (null outside the level) and edits nothing.
 	const levelView = snapshot.view;
+	// The canvas draws the level without the things of the layers the person hid.
+	const shownView = useMemo(
+		() => layersView(levelView, stillHidden(levelView.sections, hiddenLayers)),
+		[levelView, hiddenLayers],
+	);
 	const onToolEvent = useCallback(
 		(phase: PointerPhase, cell: Cell) => {
 			if (tool.tool === 'inspect') {
-				if (phase === 'down') setSelectedThing(thingAt(levelView, cell));
+				if (phase === 'down') setSelectedThing(thingAt(shownView, cell));
 				return;
 			}
 			const edits = tool.pointer(phase, cell);
 			if (edits.length > 0) sendStroke(edits);
 		},
-		[tool, sendStroke, levelView],
+		[tool, sendStroke, shownView],
 	);
 	const inspected = useMemo(
 		() => (selectedThing ? { x: selectedThing.x, y: selectedThing.y } : null),
@@ -484,8 +492,19 @@ export function EditorScreen({
 			spacing: tool.spacing,
 			ghostsShown: showGhosts,
 			focus: focusLine === null ? null : { line: focusLine, serial: focusSerial },
+			hiddenLayers,
 		}),
-		[levelId, tool.tool, brushGroup, brushKind, tool.spacing, showGhosts, focusLine, focusSerial],
+		[
+			levelId,
+			tool.tool,
+			brushGroup,
+			brushKind,
+			tool.spacing,
+			showGhosts,
+			focusLine,
+			focusSerial,
+			hiddenLayers,
+		],
 	);
 	useEditorBridgeHost(panelBridge ?? null, share, anyAway, {
 		setTool: tool.setTool,
@@ -494,6 +513,7 @@ export function EditorScreen({
 		chooseObject: onObjectChosen,
 		showLine,
 		setGhostsShown: setShowGhosts,
+		setHiddenLayers,
 	});
 
 	// A panel in a window of its own cannot be dragged in the main window; its tab only docks it
@@ -548,6 +568,12 @@ export function EditorScreen({
 				onRefreshProposals: () => setReads((n) => n + 1),
 				focusLine,
 				focusSerial,
+				hiddenLayers,
+				onToggleLayer: (id) =>
+					setHiddenLayers((was) =>
+						was.includes(id) ? was.filter((hidden) => hidden !== id) : [...was, id],
+					),
+				onShowAllLayers: () => setHiddenLayers([]),
 			})
 		);
 
@@ -591,7 +617,7 @@ export function EditorScreen({
 				>
 					<div className={styles.canvas}>
 						<LevelCanvas
-							view={snapshot.view}
+							view={shownView}
 							cursor={cursor}
 							onCursorChange={setCursor}
 							onToolEvent={onToolEvent}

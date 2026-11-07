@@ -245,6 +245,20 @@ describe('the bridge to the panel windows', () => {
 		act(() => panel.send('main-1', 'proposals/shown', { shown: false }));
 		await waitFor(() => expect(shown).toBe(false));
 	});
+
+	it('shares the hidden layers both ways', async () => {
+		const { hub } = await mount({ dock: dockWithWindow('layers'), open: ['panel-layers-1'] });
+		const panel = hub.bridgeFor('panel-layers-1');
+		let hidden: unknown = null;
+		panel.on('editor', (share) => (hidden = share.hiddenLayers));
+		panel.send('main-1', 'hello', null);
+		expect(hidden).toEqual([]);
+		act(() => panel.send('main-1', 'layers/hidden', { hidden: ['treats'] }));
+		await waitFor(() => expect(hidden).toEqual(['treats']));
+		act(() => panel.send('main-1', 'layers/hidden', { hidden: 'nope' as never }));
+		act(() => panel.send('main-1', 'layers/hidden', { hidden: [] }));
+		await waitFor(() => expect(hidden).toEqual([]));
+	});
 });
 
 /** The window record the last save holds for a panel in the active workspace. */
