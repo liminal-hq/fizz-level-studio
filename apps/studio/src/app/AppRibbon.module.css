@@ -1,0 +1,40 @@
+/*
+ * The ribbon's host. The copied ribbon is 32 px of tabs over a 102 px panel; the studio's is 33 px of
+ * tabs over a 90 px panel with a hairline under it, which makes it 124 px open and 34 px folded. The
+ * selectors outrank the package's own, which set these variables on the ribbon element itself.
+ */
+.host {
+	position: relative;
+	flex: none;
+}
+
+.host > [data-ribbon] {
+	--fls-ribbon-tab-height: 33px;
+	--fls-ribbon-panel-height: 90px;
+	--fls-ribbon-button-height: 64px;
+	box-sizing: border-box;
+}
+
+.fold {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	align-self: center;
+	width: 26px;
+	height: 26px;
+	padding: 0;
+	color: inherit;
+	background: transparent;
+	border: 0;
+	border-radius: 4px;
+	cursor: default;
+}
+
+.fold:hover {
+	background: var(--fls-control-bg-hover);
+}
+
+.fold:focus-visible {
+	outline: 2px solid var(--fls-focus-ring);
+	outline-offset: -2px;
+}

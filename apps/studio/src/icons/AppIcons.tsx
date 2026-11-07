@@ -216,6 +216,20 @@ export const RibbonIcon: IconComponent = ({ size }) => (
 	</Svg>
 );
 
+/** A chevron pointing up: fold the ribbon to its tabs. */
+export const ChevronUpIcon: IconComponent = ({ size }) => (
+	<Svg size={size}>
+		<path d="M4 10l4-4 4 4" />
+	</Svg>
+);
+
+/** A chevron pointing down: open the folded ribbon. */
+export const ChevronDownIcon: IconComponent = ({ size }) => (
+	<Svg size={size}>
+		<path d="M4 6l4 4 4-4" />
+	</Svg>
+);
+
 /** A magnifier: searching the commands. */
 export const SearchIcon: IconComponent = ({ size }) => (
 	<Svg size={size}>

@@ -2189,6 +2189,97 @@ function setMenuBar(bridge: Bridge, on: boolean): Promise<unknown> {
 	);
 }
 
+/** Changes some of the `ui` settings through the settings command, as the Preferences page and the menus do. */
+function setUi(bridge: Bridge, patch: Record<string, unknown>): Promise<unknown> {
+	return bridge.js(
+		`const cur = await window.__TAURI_INTERNALS__.invoke('plugin:fizz-studio-settings|settings_get'); await window.__TAURI_INTERNALS__.invoke('plugin:fizz-studio-settings|settings_update', { patch: { ui: { ...cur.settings.ui, ...${JSON.stringify(patch)} } }, basedOn: cur.revision }); return true;`,
+	);
+}
+
+/** The height of the commands row (the classic toolbar or the ribbon) under the title bar, or null when there is none. */
+function commandsRowHeight(bridge: Bridge): Promise<{ kind: string; h: number } | null> {
+	return bridge.js<{ kind: string; h: number } | null>(
+		`const bar = document.querySelector('[data-app-toolbar]');
+		 const ribbon = document.querySelector('[data-app-ribbon]');
+		 const el = bar ?? ribbon; if (!el) return null;
+		 return { kind: bar ? 'toolbar' : 'ribbon', h: el.getBoundingClientRect().height };`,
+	);
+}
+
+/**
+ * The commands row follows the `ui.toolbar` setting: the classic toolbar at 40 px by default, the
+ * ribbon at 124 px open and 34 px folded, and nothing when hidden. The ribbon has Home, Level and
+ * View, runs a command from a button, and gains a Script tab while the Script panel is in use.
+ */
+async function commandsRowChecks(bridge: Bridge): Promise<void> {
+	const row = async (kind: string | null) => {
+		const found = await within(5000, async () => {
+			const now = await commandsRowHeight(bridge);
+			return (now?.kind ?? null) === kind ? now : null;
+		});
+		return found;
+	};
+	const first = await row('toolbar');
+	check(
+		'commands: the classic toolbar is the default, 40 px high',
+		Math.abs((first?.h ?? 0) - 40) < 1.5,
+		JSON.stringify(first),
+	);
+	await setUi(bridge, { toolbar: 'hidden' });
+	check(
+		'commands: hidden shows no commands row',
+		(await row(null)) === null && (await commandsRowHeight(bridge)) === null,
+	);
+	await setUi(bridge, { toolbar: 'ribbon', ribbon_folded: false });
+	const open = await row('ribbon');
+	check(
+		'commands: the ribbon is 124 px high open',
+		Math.abs((open?.h ?? 0) - 124) < 2.5,
+		JSON.stringify(open),
+	);
+	const tabs = await bridge.js<string[]>(
+		`return [...document.querySelectorAll('[data-app-ribbon] [role=tab]')].map((t) => t.textContent.trim());`,
+	);
+	check(
+		'commands: the ribbon has Home, Level and View',
+		tabs.join('|') === 'Home|Level|View',
+		JSON.stringify(tabs),
+	);
+	check(
+		'commands: a ribbon button runs its command (Paint lights Paint)',
+		await bridge.js<boolean>(
+			`const b = [...document.querySelectorAll('[data-app-ribbon] button')].find((x) => x.getAttribute('aria-label') === 'Erase'); if (!b) return false; b.click(); await new Promise((r) => setTimeout(r, 200));
+			 const lit = document.querySelector('[data-app-ribbon] button[aria-label="Erase"]')?.getAttribute('aria-pressed') === 'true';
+			 [...document.querySelectorAll('[data-app-ribbon] button')].find((x) => x.getAttribute('aria-label') === 'Paint')?.click();
+			 return lit;`,
+		),
+	);
+	await bridge.js<boolean>(`document.querySelector('.cm-content')?.focus(); return true;`);
+	const scriptTab = await within(3000, async () =>
+		bridge.js<boolean>(
+			`return [...document.querySelectorAll('[data-app-ribbon] [role=tab]')].some((t) => t.textContent.trim() === 'Script');`,
+		),
+	);
+	check('commands: a Script tab appears while the Script panel is in use', scriptTab !== null);
+	await setUi(bridge, { ribbon_folded: true });
+	const folded = await within(5000, async () => {
+		const now = await commandsRowHeight(bridge);
+		return now !== null && now.h < 60 ? now : null;
+	});
+	check(
+		'commands: the ribbon is 34 px high folded',
+		Math.abs((folded?.h ?? 0) - 34) < 2.5,
+		JSON.stringify(folded),
+	);
+	await setUi(bridge, { toolbar: 'classic', ribbon_folded: false });
+	const back = await row('toolbar');
+	check(
+		'commands: the classic toolbar comes back at 40 px',
+		Math.abs((back?.h ?? 0) - 40) < 1.5,
+		JSON.stringify(back),
+	);
+}
+
 /** Presses an element with this role and leading text with the events a mouse click makes. */
 function pressByRole(bridge: Bridge, role: string, name: string, windowId = 'main-1') {
 	return bridge.js<boolean>(
@@ -2894,6 +2985,7 @@ async function main(): Promise<void> {
 			),
 		);
 		check('turning the menu bar off puts the app menu button back live', barGone !== null);
+		await commandsRowChecks(bridge);
 
 		// The title bar shows the document's name and nothing else; the native title is the same text.
 		const barTitle = await titleBarText(bridge);

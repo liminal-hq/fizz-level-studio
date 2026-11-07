@@ -472,13 +472,33 @@ describe('the dirty marker, saving and closing', () => {
 		expect(screen.queryByRole('toolbar', { name: 'Commands' })).toBeNull();
 	});
 
-	it('shows no commands row with the toolbar hidden, and none yet for the ribbon', async () => {
+	it('shows no commands row with the toolbar hidden', async () => {
 		const user = userEvent.setup();
-		const { settings } = setup({ toolbar: 'hidden' });
+		setup({ toolbar: 'hidden' });
 		await openFromDialog(user);
 		await screen.findByRole('application');
 		expect(screen.queryByRole('toolbar', { name: 'Commands' })).toBeNull();
-		expect(settings.toolbar).toBe('hidden');
+		expect(screen.queryByRole('group', { name: 'Ribbon' })).toBeNull();
+	});
+
+	it('shows the ribbon in place of the toolbar when the setting says so, and folds it from its button', async () => {
+		const user = userEvent.setup();
+		const { settings } = setup({ toolbar: 'ribbon' });
+		await openFromDialog(user);
+		const ribbon = await screen.findByRole('group', { name: 'Ribbon' });
+		expect(screen.queryByRole('toolbar', { name: 'Commands' })).toBeNull();
+		expect(
+			within(ribbon)
+				.getAllByRole('tab')
+				.map((tab) => tab.textContent),
+		).toEqual(['Home', 'Level', 'View']);
+		await user.click(within(ribbon).getByRole('button', { name: 'Save' }));
+		await waitFor(() => expect(settings.updates).toEqual([]));
+		await user.click(within(ribbon).getByRole('button', { name: 'Fold the ribbon to its tabs' }));
+		await waitFor(() => expect(settings.ribbonFolded).toBe(true));
+		expect(
+			await within(ribbon).findByRole('button', { name: 'Open the ribbon' }),
+		).toBeInTheDocument();
 	});
 
 	it('marks the title with a bullet while there are unsaved changes, and Save clears it', async () => {

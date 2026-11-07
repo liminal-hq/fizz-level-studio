@@ -29,22 +29,24 @@ export const TOOLBAR_GROUPS: readonly (readonly string[])[] = [
 /**
  * A command as a ribbon item: its label, its icon from the one icon set, its keys and, when it
  * cannot run, why (the tooltip). A command with a checked state is a toggle. Null while the command
- * is not visible or has no toolbar icon.
+ * is not visible or has no icon (the toolbar's own, else its menu row's).
  */
 export function commandItem(
 	view: CommandView,
-	options: { large?: boolean } = {},
+	options: { large?: boolean; active?: boolean } = {},
 ): RibbonItem | null {
 	const { def } = view;
-	if (!view.visible || !def.toolbar) return null;
-	const Icon = APP_ICONS[def.toolbar.icon];
+	const iconId = def.toolbar?.icon ?? def.icon;
+	if (!view.visible || !iconId) return null;
+	const Icon = APP_ICONS[iconId];
+	const active = options.active ?? view.checked;
 	const keys = shortcutOf(def);
 	return {
 		id: def.id,
 		label: commandLabel(def),
 		icon: (px) => createElement(Icon, { size: px }),
 		...(options.large ? { size: 'large' as const } : {}),
-		...(view.checked !== undefined ? { kind: 'toggle' as const, active: view.checked } : {}),
+		...(active !== undefined ? { kind: 'toggle' as const, active } : {}),
 		...(view.enabled ? {} : { disabled: true }),
 		...(keys ? { key: keys } : {}),
 		...(!view.enabled && view.reason ? { desc: view.reason } : {}),
@@ -55,12 +57,18 @@ export function commandItem(
 export function commandItems(
 	snapshot: BridgeSnapshot,
 	ids: readonly string[],
-	options: { large?: boolean } = {},
+	options: { large?: boolean; active?: (id: string) => boolean | undefined } = {},
 ): RibbonItem[] {
 	const defs = allCommands(snapshot.facts);
 	return ids.flatMap((id) => {
 		const def = defs.find((command) => command.id === id);
-		const item = def ? commandItem(viewOf(def, snapshot), options) : null;
+		const active = options.active?.(id);
+		const item = def
+			? commandItem(viewOf(def, snapshot), {
+					...(options.large ? { large: true } : {}),
+					...(active !== undefined ? { active } : {}),
+				})
+			: null;
 		return item ? [item] : [];
 	});
 }

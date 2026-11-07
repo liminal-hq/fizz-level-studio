@@ -8,6 +8,7 @@ import type { ToolbarMode } from '@liminal-hq/fizz-studio-protocol/generated/Too
 import type { ZoneId } from '@liminal-hq/fizz-studio-protocol/generated/ZoneId';
 import { PANEL_SPECS, type PanelId } from '../panels/float/panelSpecs';
 import type { Brush } from '../tools/brush';
+import type { ToolId } from '../tools/tool';
 
 /** What the menu needs to know to enable, disable and check its rows. */
 export interface CommandFacts {
@@ -39,6 +40,8 @@ export interface CommandFacts {
 	zoom: { level: number; canIn: boolean; canOut: boolean } | null;
 	/** The brush the tools paint with; null with no editor open. */
 	brush: Brush | null;
+	/** The tool in use; null with no editor open. */
+	tool: ToolId | null;
 	/** The spacing between painted cells. */
 	spacing: number;
 	/** The active workspace and the names of all of them. */
@@ -78,6 +81,7 @@ export const NO_FACTS: CommandFacts = {
 	lineCount: 0,
 	zoom: null,
 	brush: null,
+	tool: null,
 	spacing: 1,
 	workspace: { active: '', names: [] },
 	placeOf: perPanel('hidden'),
@@ -150,6 +154,7 @@ export function createCommandBridge(): CommandBridge {
 				samePanels(next.panels, was.panels) &&
 				samePanels(next.away, was.away) &&
 				next.spacing === was.spacing &&
+				next.tool === was.tool &&
 				next.focusedPanel === was.focusedPanel &&
 				next.menuBar === was.menuBar &&
 				next.toolbar === was.toolbar &&

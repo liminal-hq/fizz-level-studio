@@ -80,12 +80,13 @@ describe('buildToolbar', () => {
 });
 
 describe('commandItem and commandItems', () => {
-	it('leaves out a command with no toolbar icon, and one that is not visible', () => {
+	it('leaves out a command with no icon at all, and one that is not visible', () => {
 		const snap = snapshot({}, all);
 		const find = (id: string) => allCommands(snap.facts).find((def) => def.id === id)!;
-		expect(commandItem(viewOf(find('help.about'), snap))).toBeNull();
+		// About has a menu icon, so it can be a button; a palette command with no icon cannot.
+		expect(commandItem(viewOf(find('goto.line'), snap))).toBeNull();
 		expect(commandItem(viewOf(find('view.panel.script'), { ...snap, facts: NO_FACTS }))).toBeNull();
-		expect(commandItems(snap, ['help.about', 'file.save']).map((item) => item.id)).toEqual([
+		expect(commandItems(snap, ['goto.line', 'file.save']).map((item) => item.id)).toEqual([
 			'file.save',
 		]);
 	});

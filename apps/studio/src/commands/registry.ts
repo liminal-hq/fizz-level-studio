@@ -528,18 +528,28 @@ export const PALETTE_COMMANDS: readonly CommandDef[] = [
 	},
 	{
 		id: 'panel.palette.show',
+		icon: 'panel.palette',
 		group: 'panels',
 		label: 'toolbar.showPalette',
 		enabled: (facts) => facts.editorOpen,
 	},
 	{
+		id: 'panel.script.show',
+		icon: 'panel.script',
+		group: 'panels',
+		label: 'toolbar.showScript',
+		enabled: (facts) => facts.editorOpen,
+	},
+	{
 		id: 'script.tab.level.activate',
+		icon: 'panel.script',
 		group: 'panels',
 		label: 'scriptTabs.activate',
 		enabled: (facts) => facts.editorOpen,
 	},
 	{
 		id: 'script.tab.level.close',
+		icon: 'close',
 		group: 'panels',
 		label: 'scriptTabs.closeCommand',
 		enabled: (facts) => facts.editorOpen && facts.panels.script,

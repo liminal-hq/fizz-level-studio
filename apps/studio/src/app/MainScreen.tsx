@@ -32,6 +32,7 @@ import {
 } from '../worlds/tauriLevelClient';
 import { AppMenu } from './AppMenu';
 import { AppMenuBar } from './AppMenuBar';
+import { AppRibbon } from './AppRibbon';
 import { AppToolbar } from './AppToolbar';
 import { AppWindow } from './AppWindow';
 import type { DockClient } from '../services/dockClient';
@@ -562,7 +563,13 @@ function MainScreenBody({
 			dirty={isDirty(level)}
 			start={<AppMenu menuBar={menuBar} />}
 			menuBar={menuBar ? <AppMenuBar /> : undefined}
-			toolbar={ui.toolbar === 'classic' ? <AppToolbar /> : undefined}
+			toolbar={
+				ui.toolbar === 'classic' ? (
+					<AppToolbar />
+				) : ui.toolbar === 'ribbon' ? (
+					<AppRibbon />
+				) : undefined
+			}
 		>
 			<div className={styles.editor}>
 				{bannerView}

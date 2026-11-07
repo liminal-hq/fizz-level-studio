@@ -404,6 +404,62 @@ export const enMessages = {
 	'toolbar.foldRibbon': 'Fold the ribbon',
 	// translator: Command palette entry. Shows the Palette panel, where the brush is chosen.
 	'toolbar.showPalette': 'Show the Palette',
+	// translator: Command palette entry and ribbon button. Shows the Script panel, where the script's problems are listed.
+	'toolbar.showScript': 'Show the Script and its problems',
+	// translator: Accessible name of the ribbon, the commands grouped under tabs.
+	'ribbon.label': 'Ribbon',
+	// translator: Accessible name of the panel of buttons under the ribbon tab that is chosen.
+	'ribbon.toolbar': 'Ribbon controls',
+	// translator: Accessible name of the row of tabs of the ribbon.
+	'ribbon.tabs': 'Ribbon tabs',
+	// translator: Button on a folded ribbon that keeps its panel open while it is open.
+	'ribbon.pin': 'Keep the ribbon open',
+	// translator: Button on a folded ribbon that lets its panel close again.
+	'ribbon.unpin': 'Let the ribbon close',
+	// translator: Prefix of the accessible name of a button that makes a number smaller. {label} follows it in the ribbon; this is the word before it.
+	'ribbon.decrease': 'Decrease',
+	// translator: Prefix of the accessible name of a button that makes a number larger.
+	'ribbon.increase': 'Increase',
+	// translator: The File button at the left of the ribbon’s tabs. It opens a menu of New, Open, Save, Close, Preferences and Quit. Keep it short.
+	'ribbon.file': 'File',
+	// translator: Name of the first ribbon tab: the everyday commands. Keep it short.
+	'ribbon.tab.home': 'Home',
+	// translator: Name of a ribbon tab: commands about the open level. Keep it short.
+	'ribbon.tab.level': 'Level',
+	// translator: Name of a ribbon tab: what is on screen and where. Keep it short.
+	'ribbon.tab.view': 'View',
+	// translator: Name of a ribbon tab that appears while the Script panel is the one in use. Keep it short.
+	'ribbon.tab.script': 'Script',
+	// translator: Name of a group of ribbon buttons: New, Open, Save and Close.
+	'ribbon.group.file': 'File',
+	// translator: Name of a group of ribbon buttons: Undo and Redo.
+	'ribbon.group.history': 'History',
+	// translator: Name of a group of ribbon buttons: the tools that edit the level.
+	'ribbon.group.tools': 'Tools',
+	// translator: Name of a group of ribbon buttons: the brush the tools paint with.
+	'ribbon.group.brush': 'Brush',
+	// translator: Name of a group of ribbon buttons: the Layers panel of the level.
+	'ribbon.group.layers': 'Layers',
+	// translator: Name of a group of ribbon buttons: checking the script for problems.
+	'ribbon.group.checks': 'Checks',
+	// translator: Name of a group of ribbon buttons: zooming the level.
+	'ribbon.group.zoom': 'Zoom',
+	// translator: Name of a group of ribbon buttons: showing and hiding the panels.
+	'ribbon.group.panels': 'Panels',
+	// translator: Name of a group of ribbon buttons: how the panels are arranged.
+	'ribbon.group.layout': 'Layout',
+	// translator: Name of a group of ribbon buttons: the menu bar, the toolbar and the ribbon themselves.
+	'ribbon.group.chrome': 'Window',
+	// translator: Name of a group of ribbon buttons: the workspaces, saved arrangements of the panels.
+	'ribbon.group.workspaces': 'Workspaces',
+	// translator: Name of a group of ribbon buttons: the script’s problems.
+	'ribbon.group.problems': 'Problems',
+	// translator: Name of a group of ribbon buttons: closing or tearing off the script tab.
+	'ribbon.group.tabs': 'Tabs',
+	// translator: Tooltip and name of the button at the right of the ribbon’s tabs that folds the ribbon to its tabs.
+	'ribbon.fold': 'Fold the ribbon to its tabs',
+	// translator: Tooltip and name of the button at the right of the ribbon’s tabs that opens a folded ribbon.
+	'ribbon.unfold': 'Open the ribbon',
 	// translator: Accessible name of the classic toolbar, the row of buttons under the menus.
 	'toolbar.label': 'Commands',
 	// translator: Accessible name of the group of buttons on the toolbar that show and hide the panels.

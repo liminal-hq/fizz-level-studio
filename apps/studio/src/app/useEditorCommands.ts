@@ -137,6 +137,11 @@ export function useEditorCommands({
 			live.current.setVisible('palette', true);
 			live.current.activate('palette');
 		};
+		handlers['panel.script.show'] = () => {
+			if (live.current.away.script) return live.current.tearOff('script');
+			live.current.setVisible('script', true);
+			live.current.activate('script');
+		};
 		handlers['script.tab.level.close'] = () => live.current.setVisible('script', false);
 		handlers['view.zoomIn'] = () => live.current.onZoom('in');
 		handlers['view.zoomOut'] = () => live.current.onZoom('out');
@@ -180,6 +185,7 @@ export function useEditorCommands({
 				brushes: NO_FACTS.brushes,
 				lineCount: 0,
 				brush: null,
+				tool: null,
 				zoom: null,
 				spacing: NO_FACTS.spacing,
 				workspace: NO_FACTS.workspace,
@@ -237,6 +243,7 @@ export function useEditorCommands({
 			brushes,
 			lineCount,
 			brush: tool.brush,
+			tool: tool.tool,
 			zoom,
 			spacing: tool.spacing,
 			workspace: { active: dock.active, names: dock.workspaceNames },
@@ -257,6 +264,7 @@ export function useEditorCommands({
 		dock.session.levelFirst,
 		dock.session.maximised,
 		tool.brush,
+		tool.tool,
 		zoom?.level,
 		zoom?.canIn,
 		zoom?.canOut,
