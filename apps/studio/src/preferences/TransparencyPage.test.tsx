@@ -40,7 +40,7 @@ const BASE: Settings = {
 	locale: 'en-CA',
 	recent_worlds: [],
 	layout: {},
-	ui: { menu_bar: false },
+	ui: { menu_bar: false, toolbar: 'classic', ribbon_folded: false },
 	dock: { active: '', workspaces: {} },
 };
 

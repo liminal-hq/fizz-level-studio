@@ -21,7 +21,7 @@ const BASE: Settings = {
 	locale: 'en-CA',
 	recent_worlds: [],
 	layout: {},
-	ui: { menu_bar: false },
+	ui: { menu_bar: false, toolbar: 'classic', ribbon_folded: false },
 	dock: { active: '', workspaces: {} },
 };
 
@@ -70,7 +70,7 @@ describe('usePreferencesSettings', () => {
 			colour_mode: 'system',
 			accent: { kind: 'system' },
 			glass: 'system',
-			ui: { menu_bar: false },
+			ui: { menu_bar: false, toolbar: 'classic', ribbon_folded: false },
 			transparency: TRANSPARENCY_DEFAULTS,
 		});
 	});
@@ -156,11 +156,21 @@ describe('usePreferencesSettings', () => {
 		const { client } = fakeClient();
 		const { result } = renderHook(() => usePreferencesSettings(client));
 		await waitFor(() => expect(result.current.values).not.toBeNull());
-		await act(() => result.current.change('menuBar', { ui: { menu_bar: true } }));
-		expect(client.update).toHaveBeenLastCalledWith({ ui: { menu_bar: true } }, 0);
+		await act(() =>
+			result.current.change('menuBar', {
+				ui: { menu_bar: true, toolbar: 'classic', ribbon_folded: false },
+			}),
+		);
+		expect(client.update).toHaveBeenLastCalledWith(
+			{ ui: { menu_bar: true, toolbar: 'classic', ribbon_folded: false } },
+			0,
+		);
 		expect(result.current.values?.ui.menu_bar).toBe(true);
 		await act(() => result.current.reset('general'));
-		expect(client.update).toHaveBeenLastCalledWith({ ui: { menu_bar: false } }, 1);
+		expect(client.update).toHaveBeenLastCalledWith(
+			{ ui: { menu_bar: false, toolbar: 'classic', ribbon_folded: false } },
+			1,
+		);
 		expect(result.current.values?.ui.menu_bar).toBe(false);
 	});
 
@@ -168,7 +178,11 @@ describe('usePreferencesSettings', () => {
 		const { client } = fakeClient(() => ({ kind: 'storage', message: 'disk full' }));
 		const { result } = renderHook(() => usePreferencesSettings(client));
 		await waitFor(() => expect(result.current.values).not.toBeNull());
-		await act(() => result.current.change('menuBar', { ui: { menu_bar: true } }));
+		await act(() =>
+			result.current.change('menuBar', {
+				ui: { menu_bar: true, toolbar: 'classic', ribbon_folded: false },
+			}),
+		);
 		expect(result.current.errors.menuBar).toBe('The change could not be saved.');
 		expect(result.current.values?.ui.menu_bar).toBe(false);
 	});

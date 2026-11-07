@@ -189,6 +189,21 @@ pub struct PanelLayout {
     pub panels: BTreeMap<String, PanelPlacement>,
 }
 
+/// The commands row under the title bar (and the menu bar, when it is on): the classic toolbar, the
+/// ribbon, or nothing.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "lowercase")]
+#[ts(export, export_to = "../../../packages/protocol/src/generated/")]
+pub enum ToolbarMode {
+    /// A single row of buttons for the common commands, 40 px high. The default.
+    #[default]
+    Classic,
+    /// Tabs of grouped commands, 124 px high open and 34 px folded.
+    Ribbon,
+    /// No commands row; the menus, the palette and the keys still reach every command.
+    Hidden,
+}
+
 /// What the window chrome shows. These are view choices of the windows, kept here so every window
 /// and every restart agree on them.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize, TS)]
@@ -198,6 +213,10 @@ pub struct UiSettings {
     /// Whether Main windows show a permanent menu bar under the title bar, carrying the menus. Off
     /// (the default), the application menu in the title bar carries them and is the primary menu.
     pub menu_bar: bool,
+    /// The commands row under the title bar: the classic toolbar (the default), the ribbon, or none.
+    pub toolbar: ToolbarMode,
+    /// The ribbon is folded to its tab row. Open (the default), it shows its groups too.
+    pub ribbon_folded: bool,
 }
 
 /// The application settings. Every field has a default, so a file written by an older build (or

@@ -136,7 +136,7 @@ fn a_version_one_file_without_layouts_migrates_untouched() {
 #[test]
 fn a_version_with_no_step_is_unreadable_not_guessed() {
     let file = memory_file(Some(r#"{ "version": 0, "settings": {} }"#));
-    assert_eq!(SETTINGS_VERSION, 7);
+    assert_eq!(SETTINGS_VERSION, 8);
     let report = file.load();
     assert!(report
         .problem
@@ -648,7 +648,10 @@ fn a_migration_keeps_a_menu_bar_choice_that_is_already_there() {
 #[test]
 fn a_patch_sets_the_menu_bar_and_it_survives_a_save_and_load() {
     let patch = SettingsPatch {
-        ui: Some(UiSettings { menu_bar: true }),
+        ui: Some(UiSettings {
+            menu_bar: true,
+            ..UiSettings::default()
+        }),
         ..SettingsPatch::default()
     };
     let next = apply_patch(&Settings::default(), &patch).unwrap();

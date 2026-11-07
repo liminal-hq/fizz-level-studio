@@ -11,7 +11,7 @@ import type { SettingsClient } from '../services/settingsClient';
 export type UiSettingsClient = Pick<SettingsClient, 'get' | 'onChanged'> &
 	Partial<Pick<SettingsClient, 'update'>>;
 
-export const DEFAULT_UI: UiSettings = { menu_bar: false };
+export const DEFAULT_UI: UiSettings = { menu_bar: false, toolbar: 'classic', ribbon_folded: false };
 
 export interface UiSettingsHandle {
 	ui: UiSettings;

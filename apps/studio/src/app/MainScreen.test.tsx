@@ -167,7 +167,10 @@ class FakeSettings implements Pick<SettingsClient, 'get' | 'onChanged' | 'update
 	private snapshot(): SettingsSnapshot {
 		return {
 			revision: this.revision,
-			settings: { ...DEFAULT_SETTINGS, ui: { menu_bar: this.menuBar } },
+			settings: {
+				...DEFAULT_SETTINGS,
+				ui: { menu_bar: this.menuBar, toolbar: 'classic', ribbon_folded: false },
+			},
 		};
 	}
 	async get() {
@@ -200,7 +203,7 @@ const DEFAULT_SETTINGS: Settings = {
 	glass: 'system',
 	transparency: TRANSPARENCY_DEFAULTS,
 	larger_controls: false,
-	ui: { menu_bar: false },
+	ui: { menu_bar: false, toolbar: 'classic', ribbon_folded: false },
 	locale: 'en-CA',
 	recent_worlds: [],
 	layout: {},
@@ -762,7 +765,13 @@ describe('the application menu', () => {
 		const { settings } = setup();
 		await openMenu(user);
 		await user.click(await screen.findByRole('menuitemcheckbox', { name: 'Menu bar' }));
-		await waitFor(() => expect(settings.updates).toContainEqual({ menu_bar: true }));
+		await waitFor(() =>
+			expect(settings.updates).toContainEqual({
+				menu_bar: true,
+				toolbar: 'classic',
+				ribbon_folded: false,
+			}),
+		);
 		expect(await screen.findByRole('menubar', { name: 'Application menu' })).toBeInTheDocument();
 	});
 

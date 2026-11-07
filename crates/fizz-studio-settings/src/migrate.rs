@@ -46,7 +46,28 @@ pub const MIGRATIONS: &[Migration] = &[
         from: 6,
         apply: add_transparency,
     },
+    Migration {
+        from: 7,
+        apply: add_toolbar,
+    },
 ];
+
+/// Version 8 adds the commands row to the chrome choices (`ui`): the toolbar, classic by default,
+/// and whether the ribbon is folded, off. A file that already has either keeps it, and the rest of
+/// `ui` (the menu bar) is carried over untouched. A file with no `ui` takes the whole default.
+fn add_toolbar(mut settings: Value) -> Result<Value, String> {
+    let object = settings
+        .as_object_mut()
+        .ok_or("settings is not an object")?;
+    let ui = object
+        .entry("ui")
+        .or_insert_with(|| json!({ "menu_bar": false }))
+        .as_object_mut()
+        .ok_or("ui is not an object")?;
+    ui.entry("toolbar").or_insert_with(|| json!("classic"));
+    ui.entry("ribbon_folded").or_insert_with(|| json!(false));
+    Ok(settings)
+}
 
 /// Version 7 adds the transparency settings: the in-app glass (blur, saturation and panel
 /// opacity), which surfaces wear it, the menus' opacity, and the see-through window. The step

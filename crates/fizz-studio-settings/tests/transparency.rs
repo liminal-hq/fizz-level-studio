@@ -41,8 +41,8 @@ fn refused_field(patch: &SettingsPatch) -> Option<SettingsField> {
 }
 
 #[test]
-fn the_document_is_version_seven() {
-    assert_eq!(SETTINGS_VERSION, 7);
+fn the_document_is_version_eight() {
+    assert_eq!(SETTINGS_VERSION, 8);
 }
 
 #[test]
@@ -195,7 +195,7 @@ fn the_group_survives_a_save_and_load() {
     .unwrap();
     file.save(&next).unwrap();
     let saved: Value = serde_json::from_str(&file.storage().get(SETTINGS_FILE).unwrap()).unwrap();
-    assert_eq!(saved["version"], 7);
+    assert_eq!(saved["version"], 8);
     assert_eq!(saved["settings"]["transparency"]["saturation"], 180);
     assert_eq!(saved["settings"]["transparency"]["window_blur"], "off");
     assert_eq!(file.load().settings, next);

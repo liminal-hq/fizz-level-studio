@@ -391,6 +391,17 @@ export const enMessages = {
 	'scriptTabs.activate': 'Show the level script tab',
 	// translator: Command palette entry. Closes the level’s script tab, which hides the Script panel. The level stays open.
 	'scriptTabs.closeCommand': 'Close the level script tab',
+	// translator: Label of a Preferences setting. The commands row is the row of buttons under the menus: the classic toolbar, the ribbon, or nothing.
+	'toolbar.setting.label': 'Commands row',
+	// translator: Description of the commands row setting in Preferences.
+	'toolbar.setting.description':
+		'The classic toolbar is one row of buttons. The ribbon groups the commands under tabs. None leaves the menus and the command palette.',
+	// translator: A choice of the commands row setting: one row of buttons. Keep it short.
+	'toolbar.setting.classic': 'Toolbar',
+	// translator: A choice of the commands row setting: commands grouped under tabs, as in an office program. Keep it short.
+	'toolbar.setting.ribbon': 'Ribbon',
+	// translator: A choice of the commands row setting: no commands row. Keep it short.
+	'toolbar.setting.hidden': 'None',
 	// translator: Tooltip on the dimmed Assets entry of the rail: the panel will come in a later version.
 	'dock.assets.later': 'Assets are coming later',
 	// translator: A row in a panel’s own menu. Moves that panel into the dock on the left of the level. The panel is already named by the menu.

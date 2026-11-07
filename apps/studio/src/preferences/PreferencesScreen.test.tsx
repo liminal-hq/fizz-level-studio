@@ -39,7 +39,7 @@ const BASE: Settings = {
 	locale: 'en-CA',
 	recent_worlds: [],
 	layout: {},
-	ui: { menu_bar: false },
+	ui: { menu_bar: false, toolbar: 'classic', ribbon_folded: false },
 	dock: { active: '', workspaces: {} },
 };
 
@@ -103,11 +103,39 @@ describe('PreferencesScreen', () => {
 		).toBeInTheDocument();
 	});
 
+	it('offers the commands row with the classic toolbar chosen, and saves a change', async () => {
+		const user = userEvent.setup();
+		const client = setup();
+		const group = await screen.findByRole('radiogroup', { name: 'Commands row' });
+		expect(within(group).getByRole('radio', { name: 'Toolbar' })).toHaveAttribute(
+			'aria-checked',
+			'true',
+		);
+		await user.click(within(group).getByRole('radio', { name: 'Ribbon' }));
+		await waitFor(() =>
+			expect(client.update).toHaveBeenCalledWith(
+				{ ui: { menu_bar: false, toolbar: 'ribbon', ribbon_folded: false } },
+				0,
+			),
+		);
+		await waitFor(() =>
+			expect(within(group).getByRole('radio', { name: 'Ribbon' })).toHaveAttribute(
+				'aria-checked',
+				'true',
+			),
+		);
+	});
+
 	it('saves the menu bar switch and resets it', async () => {
 		const user = userEvent.setup();
 		const client = setup();
 		await user.click(await screen.findByRole('switch', { name: 'Show the menu bar' }));
-		await waitFor(() => expect(client.update).toHaveBeenCalledWith({ ui: { menu_bar: true } }, 0));
+		await waitFor(() =>
+			expect(client.update).toHaveBeenCalledWith(
+				{ ui: { menu_bar: true, toolbar: 'classic', ribbon_folded: false } },
+				0,
+			),
+		);
 		await waitFor(() =>
 			expect(screen.getByRole('switch', { name: 'Show the menu bar' })).toHaveAttribute(
 				'aria-checked',
@@ -116,7 +144,10 @@ describe('PreferencesScreen', () => {
 		);
 		await user.click(screen.getByRole('button', { name: 'Reset to defaults' }));
 		await waitFor(() =>
-			expect(client.update).toHaveBeenLastCalledWith({ ui: { menu_bar: false } }, 1),
+			expect(client.update).toHaveBeenLastCalledWith(
+				{ ui: { menu_bar: false, toolbar: 'classic', ribbon_folded: false } },
+				1,
+			),
 		);
 		await waitFor(() =>
 			expect(screen.getByRole('switch', { name: 'Show the menu bar' })).toHaveAttribute(

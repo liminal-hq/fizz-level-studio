@@ -1,4 +1,4 @@
-// The General page: the title bar choices, today whether the menus sit in a bar below it
+// The General page: the window chrome choices, whether the menus sit in a bar and which commands row shows
 //
 // (c) Copyright 2026 Liminal HQ, Scott Morris
 // SPDX-License-Identifier: Apache-2.0 OR MIT
@@ -6,6 +6,7 @@
 import { ButtonRow } from '@liminal-hq/fizz-studio-chrome/SettingsShell/ButtonRow';
 import { SettingsGroup } from '@liminal-hq/fizz-studio-chrome/SettingsShell/SettingsGroup';
 import { SettingsSection } from '@liminal-hq/fizz-studio-chrome/SettingsShell/SettingsSection';
+import { SegmentedRow } from '@liminal-hq/fizz-studio-chrome/SettingsShell/SegmentedRow';
 import { ToggleRow } from '@liminal-hq/fizz-studio-chrome/SettingsShell/ToggleRow';
 import { t } from '../i18n/messages';
 import type { PreferencesEditor } from './usePreferencesSettings';
@@ -26,6 +27,18 @@ export function GeneralPage({ editor }: GeneralPageProps) {
 					error={errors.menuBar}
 					checked={values.ui.menu_bar}
 					onChange={(menu_bar) => void change('menuBar', { ui: { ...values.ui, menu_bar } })}
+				/>
+				<SegmentedRow
+					label={t('toolbar.setting.label')}
+					description={t('toolbar.setting.description')}
+					error={errors.toolbar}
+					value={values.ui.toolbar}
+					options={[
+						{ value: 'classic', label: t('toolbar.setting.classic') },
+						{ value: 'ribbon', label: t('toolbar.setting.ribbon') },
+						{ value: 'hidden', label: t('toolbar.setting.hidden') },
+					]}
+					onChange={(toolbar) => void change('toolbar', { ui: { ...values.ui, toolbar } })}
 				/>
 			</SettingsGroup>
 			<SettingsGroup>

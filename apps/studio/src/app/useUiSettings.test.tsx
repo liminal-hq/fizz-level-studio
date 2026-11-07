@@ -11,7 +11,10 @@ import { PREFERENCE_DEFAULTS } from '../preferences/usePreferencesSettings';
 import { useUiSettings, type UiSettingsClient } from './useUiSettings';
 
 const settings = (menu_bar: boolean): Settings =>
-	({ ...PREFERENCE_DEFAULTS, ui: { menu_bar } }) as unknown as Settings;
+	({
+		...PREFERENCE_DEFAULTS,
+		ui: { menu_bar, toolbar: 'classic', ribbon_folded: false },
+	}) as unknown as Settings;
 const snapshot = (revision: number, menu_bar: boolean): SettingsSnapshot => ({
 	revision,
 	settings: settings(menu_bar),
