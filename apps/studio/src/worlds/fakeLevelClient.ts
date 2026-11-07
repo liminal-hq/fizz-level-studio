@@ -4,6 +4,7 @@
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
 import type { GhostProposal } from '@liminal-hq/fizz-studio-protocol/generated/GhostProposal';
+import type { LevelError } from '@liminal-hq/fizz-studio-protocol/generated/LevelError';
 import type { LevelEdit } from '@liminal-hq/fizz-studio-protocol/generated/LevelEdit';
 import type { LevelSnapshot } from '@liminal-hq/fizz-studio-protocol/generated/LevelSnapshot';
 import type { WordDoc } from '@liminal-hq/fizz-studio-protocol/generated/WordDoc';
@@ -78,6 +79,8 @@ export class FakeLevelClient implements LevelClient {
 	wordDocs: WordDoc[] = [];
 	/** The line `cellLine()` answers for a cell, keyed `x,y`; a test sets them. */
 	readonly cellLines = new Map<string, number>();
+	/** The refusal every `applyEdit` throws while a test has set it, such as a `locked` error. */
+	refuseEdits: LevelError | null = null;
 	/** What `ghosts()` answers; a test sets it. */
 	ghostProposals: GhostProposal[] = [];
 
@@ -102,6 +105,7 @@ export class FakeLevelClient implements LevelClient {
 		mergeKey?: string,
 	): Promise<LevelSnapshot> {
 		this.check(id, basedOn);
+		if (this.refuseEdits) throw this.refuseEdits;
 		this.applied.push({ edit, basedOn, mergeKey });
 		const joins = mergeKey !== undefined && this.openKey === mergeKey && this.undoStack.length > 0;
 		const before = this.current;

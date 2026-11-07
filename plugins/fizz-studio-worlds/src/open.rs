@@ -84,6 +84,7 @@ pub(crate) fn session_error(error: SessionError) -> LevelError {
             based_on: requested,
             current,
         },
+        SessionError::Locked { layers } => LevelError::Locked { layers },
         other => LevelError::Invalid {
             message: other.to_string(),
         },
@@ -222,6 +223,7 @@ impl OpenLevel {
                 return Heard::Conflict(LevelConflict {
                     id: self.id.clone(),
                     marked,
+                    locked: Vec::new(),
                 });
             }
             Resolution::EditedOutside { text } => (text, true),
@@ -229,12 +231,23 @@ impl OpenLevel {
         };
         let (text, clean) = brought_in;
         let revision = self.session.revision();
-        if let Err(error) = self
+        match self
             .session
             .apply_outside_edit(&self.writer, revision, &text)
         {
-            log::warn!("an outside edit could not be brought in: {error}");
-            return Heard::Nothing;
+            Ok(_) => {}
+            // The studio keeps its text; the person is told which locked layers the change touched.
+            Err(SessionError::Locked { layers }) => {
+                return Heard::Conflict(LevelConflict {
+                    id: self.id.clone(),
+                    marked: text,
+                    locked: layers,
+                });
+            }
+            Err(error) => {
+                log::warn!("an outside edit could not be brought in: {error}");
+                return Heard::Nothing;
+            }
         }
         self.disk_text = disk;
         if clean {

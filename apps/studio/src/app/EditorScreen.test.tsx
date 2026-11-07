@@ -420,6 +420,15 @@ describe('EditorScreen', () => {
 		);
 	});
 
+	it('names the locked layer when an edit is refused for a lock', async () => {
+		const { client, canvas } = await mount();
+		client.refuseEdits = { kind: 'locked', layers: ['edits'] };
+		stroke(canvas, [[2, 2]]);
+		expect(await screen.findByRole('alert')).toHaveTextContent(
+			'Edits is locked. Unlock it in Layers to change it.',
+		);
+	});
+
 	it('reveals the script line that set an object when it is chosen in the list', async () => {
 		const text = 'line one\nline two\nline three\n';
 		const view = levelView(12, 8, { items: [{ kind: 'soda', x: 3, y: 2, line: 7 }] });

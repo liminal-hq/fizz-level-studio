@@ -37,6 +37,10 @@ pub enum SessionError {
     /// There is nothing to redo.
     #[error("there is nothing to redo")]
     NothingToRedo,
+    /// The change would alter a locked layer, so nothing was changed. The ids are the locked layers
+    /// it touches, in the document's order.
+    #[error("the change touches locked layers: {}", .layers.join(", "))]
+    Locked { layers: Vec<String> },
     /// The document refused the intent.
     #[error(transparent)]
     Document(#[from] DocumentError),

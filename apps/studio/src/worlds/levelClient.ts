@@ -51,6 +51,6 @@ export function isLevelError(value: unknown): value is LevelError {
 		typeof value === 'object' &&
 		value !== null &&
 		'kind' in value &&
-		['stale', 'not_open', 'invalid', 'io'].includes((value as { kind: string }).kind)
+		['stale', 'not_open', 'invalid', 'io', 'locked'].includes((value as { kind: string }).kind)
 	);
 }

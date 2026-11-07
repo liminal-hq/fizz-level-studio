@@ -31,6 +31,11 @@ pub struct LevelConflict {
     pub id: String,
     /// The text with conflict markers where both sides changed the same lines.
     pub marked: String,
+    /// The locked layers the outside change would have altered, when the studio refused it for that
+    /// reason (then `marked` is the outside text, and the studio kept its own). Empty for a
+    /// conflict over the same lines.
+    #[serde(default)]
+    pub locked: Vec<String>,
 }
 
 /// Registers the plugin, keeping recovery copies under the app's data directory every

@@ -4,6 +4,7 @@
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
 import type { LevelSnapshot } from '@liminal-hq/fizz-studio-protocol/generated/LevelSnapshot';
+import { layerList } from '../panels/layers/lockedNote';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
 	CommandBridgeContext,
@@ -593,7 +594,13 @@ function MainScreenBody({
 				{conflict && (
 					<section className={styles.conflict}>
 						<p className={styles.warning} role="alert">
-							<span>{t('main.conflict')}</span>
+							<span>
+								{conflict.locked && conflict.locked.length > 0
+									? t('main.conflictLocked', {
+											layers: layerList(conflict.locked, level?.view.sections ?? []),
+										})
+									: t('main.conflict')}
+							</span>
 							<button type="button" className={styles.button} onClick={() => setConflict(null)}>
 								{t('main.dismiss')}
 							</button>

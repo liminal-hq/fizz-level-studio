@@ -607,6 +607,19 @@ describe('conflicts', () => {
 		expect(screen.queryByLabelText('Text with conflict markers')).toBeNull();
 	});
 
+	it('says which locked layer made the studio keep its own text', async () => {
+		const user = userEvent.setup();
+		const { client } = setup();
+		await openFromDialog(user);
+		act(() =>
+			client.conflictListener?.({ id: 'level-1', marked: 'outside text', locked: ['treats'] }),
+		);
+		expect(
+			await screen.findByText(/changed outside the studio in Treats, which is locked/),
+		).toBeVisible();
+		expect(screen.getByLabelText('Text with conflict markers')).toHaveTextContent('outside text');
+	});
+
 	it('ignores a conflict for another level', async () => {
 		const user = userEvent.setup();
 		const { client } = setup();

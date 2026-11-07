@@ -259,6 +259,8 @@ pub enum LevelError {
     Invalid { message: String },
     /// The file could not be read or written.
     Io { message: String },
+    /// The change would alter locked layers, so it was not made. The ids are the layers it touches.
+    Locked { layers: Vec<String> },
 }
 
 /// One word of the language, documented, for the Palette and for completion in the Script panel.

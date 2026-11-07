@@ -28,6 +28,11 @@ export interface LevelConflict {
 	id: string;
 	/** The text with conflict markers where both sides changed the same lines. */
 	marked: string;
+	/**
+	 * The locked layers the outside change would have altered, when the studio refused it for that
+	 * reason (the studio kept its own text and `marked` is the outside text). Empty otherwise.
+	 */
+	locked?: string[];
 }
 
 function cmd<T>(name: string, args?: Record<string, unknown>): Promise<T> {

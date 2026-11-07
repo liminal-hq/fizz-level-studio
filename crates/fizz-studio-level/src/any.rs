@@ -94,4 +94,12 @@ impl Document for AnyLevelDocument {
             Self::Fizz2(d) => d.replace(start, end, with),
         }
     }
+
+    /// Only a Fizz 1 level has layers; a Fizz 2 level is never refused for a lock.
+    fn layers_changed(&self, old: &str, new: &str) -> Vec<String> {
+        match self {
+            Self::Fizz1(d) => d.layers_changed(old, new),
+            Self::Fizz2(_) => Vec::new(),
+        }
+    }
 }

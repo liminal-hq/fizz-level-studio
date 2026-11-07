@@ -202,4 +202,8 @@ impl Document for LevelDocument {
         self.text.replace_range(start..end, with);
         Ok(())
     }
+
+    fn layers_changed(&self, old: &str, new: &str) -> Vec<String> {
+        crate::layers::layers_changed(old, new)
+    }
 }

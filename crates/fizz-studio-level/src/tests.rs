@@ -416,3 +416,115 @@ fn an_edit_adds_the_edits_layer_to_the_view() {
     assert_eq!(edits.count, 1);
     assert_eq!(view.sections.last().unwrap().id, "edits");
 }
+
+fn lock(session: &mut Session<LevelDocument>, layers: &[&str]) {
+    session.set_locks(layers.iter().map(|l| (*l).to_string()));
+}
+
+fn locked(error: fizz_studio_session::SessionError) -> Vec<String> {
+    match error {
+        fizz_studio_session::SessionError::Locked { layers } => layers,
+        other => panic!("expected a lock, got {other:?}"),
+    }
+}
+
+#[test]
+fn locking_treats_refuses_placing_a_treat_but_not_painting_a_tile() {
+    let (mut session, token) = open();
+    lock(&mut session, &["treats"]);
+    let place = LevelEdit::Place {
+        item: "cheezie".to_string(),
+        x: vec![[5, 5]],
+        y: vec![[9, 9]],
+    };
+    let asked = request(&session, place);
+    assert_eq!(
+        locked(session.apply(&token, asked).unwrap_err()),
+        ["treats"]
+    );
+    assert_eq!(session.text(), CRATER);
+    let edit = paint("grass", 5, 9);
+    let asked = request(&session, edit);
+    session.apply(&token, asked).unwrap();
+}
+
+#[test]
+fn locking_enemies_refuses_a_spawn_and_markers_an_exit() {
+    let (mut session, token) = open();
+    lock(&mut session, &["enemies", "markers"]);
+    let spawn = LevelEdit::Spawn {
+        enemy: "gloop".to_string(),
+        x: 9,
+        y: 9,
+    };
+    let asked = request(&session, spawn);
+    assert_eq!(
+        locked(session.apply(&token, asked).unwrap_err()),
+        ["enemies"]
+    );
+    let edit = paint("exit", 9, 9);
+    let asked = request(&session, edit);
+    assert_eq!(
+        locked(session.apply(&token, asked).unwrap_err()),
+        ["markers"]
+    );
+}
+
+#[test]
+fn locking_edits_stops_every_edit() {
+    let (mut session, token) = open();
+    lock(&mut session, &["edits"]);
+    for edit in [
+        paint("grass", 5, 9),
+        LevelEdit::Clear {
+            x: vec![[5, 5]],
+            y: vec![[9, 9]],
+        },
+    ] {
+        let asked = request(&session, edit);
+        assert_eq!(locked(session.apply(&token, asked).unwrap_err()), ["edits"]);
+    }
+    assert_eq!(session.revision(), 0);
+}
+
+#[test]
+fn undo_across_a_lock_is_refused_naming_the_layer() {
+    let (mut session, token) = open();
+    let place = LevelEdit::Place {
+        item: "cheezie".to_string(),
+        x: vec![[5, 5]],
+        y: vec![[9, 9]],
+    };
+    let asked = request(&session, place);
+    session.apply(&token, asked).unwrap();
+    lock(&mut session, &["treats"]);
+    let undone = session.undo(&token, session.revision());
+    assert_eq!(locked(undone.unwrap_err()), ["treats"]);
+    assert!(session.text().contains("place cheezie"));
+    lock(&mut session, &[]);
+    session.undo(&token, session.revision()).unwrap();
+    assert_eq!(session.text(), CRATER);
+}
+
+#[test]
+fn an_outside_edit_to_a_locked_section_is_refused_and_another_is_taken() {
+    let (mut session, token) = open();
+    lock(&mut session, &["treats"]);
+    let changed = CRATER.replace("soda        x=36 y=5", "soda        x=37 y=5");
+    let error = session.apply_outside_edit(&token, 0, &changed).unwrap_err();
+    assert_eq!(locked(error), ["treats"]);
+    assert_eq!(session.text(), CRATER);
+    let changed = CRATER.replace("flat 14, up 2", "flat 15, up 2");
+    session.apply_outside_edit(&token, 0, &changed).unwrap();
+}
+
+#[test]
+fn a_fizz_2_level_is_never_locked() {
+    use crate::open_level_text;
+    let mut session = Session::new(open_level_text("script fizz2 0\n"));
+    session.set_locks(["edits".to_string()]);
+    let token = session.claim_writer("test").unwrap();
+    assert!(session
+        .apply_outside_edit(&token, 0, "script fizz2 0\n\n")
+        .is_ok());
+}

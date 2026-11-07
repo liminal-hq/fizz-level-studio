@@ -40,6 +40,7 @@ import {
 } from '../panels/dock/dockDrop';
 import { useDockDrag } from '../panels/dock/useDockDrag';
 import { ZONE_LABELS } from '../panels/dock/DockZone';
+import { lockedProblem } from '../panels/layers/lockedNote';
 import { layersView, stillHidden } from '../panels/layers/layersView';
 import { PANEL_SPECS, isExpandable, type PanelId } from '../panels/float/panelSpecs';
 import { SnapGuides } from '../panels/float/SnapGuides';
@@ -136,7 +137,10 @@ export function EditorScreen({
 	const [focusLine, setFocusLine] = useState<number | null>(null);
 	const [focusSerial, setFocusSerial] = useState(0);
 	const cellRequests = useRef(0);
-	const [problem, setProblem] = useState<MessageId | null>(null);
+	const [problem, setProblem] = useState<{
+		id: MessageId;
+		values?: Record<string, string | number>;
+	} | null>(null);
 	const tool = useTool(snapshot.view);
 	// What Inspect selected. It lives here, above the tool, so it outlasts a change of tool, never
 	// touches Select's rectangle, and the canvas, the objects list and the inspector read one value.
@@ -247,9 +251,13 @@ export function EditorScreen({
 			try {
 				await run();
 			} catch (error) {
-				setProblem(
-					isLevelError(error) && error.kind === 'stale' ? 'editor.stale' : 'editor.failed',
-				);
+				if (isLevelError(error) && error.kind === 'locked') {
+					setProblem(lockedProblem(error.layers, held.current.view.sections));
+				} else {
+					setProblem({
+						id: isLevelError(error) && error.kind === 'stale' ? 'editor.stale' : 'editor.failed',
+					});
+				}
 			}
 		});
 	}, []);
@@ -596,7 +604,7 @@ export function EditorScreen({
 			)}
 			{problem && (
 				<p className={styles.error} role="alert">
-					{t(problem)}
+					{t(problem.id, problem.values)}
 				</p>
 			)}
 			<div className={styles.body} ref={areaRef}>

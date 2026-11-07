@@ -59,6 +59,12 @@ pub trait Document {
     /// Replaces the byte range `start..end` with `with`. The session uses this to undo, redo and
     /// bring in an outside edit.
     fn replace(&mut self, start: usize, end: usize, with: &str) -> Result<(), DocumentError>;
+
+    /// The layers a change from the text `old` to the text `new` touches, as ids in the document's
+    /// order. A document with no layers has none, so no lock ever applies to it.
+    fn layers_changed(&self, _old: &str, _new: &str) -> Vec<String> {
+        Vec::new()
+    }
 }
 
 /// An intent on a [`PlainText`] document: replace a range with some text.

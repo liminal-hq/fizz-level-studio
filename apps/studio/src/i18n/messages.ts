@@ -692,6 +692,10 @@ export const enMessages = {
 
 	// translator: A banner shown when the level’s file was changed by something other than the studio.
 	'editor.editedOutside': 'This level was changed outside the studio.',
+	// translator: Shown when a change was refused because it would alter a locked layer. {layers} is one layer's name (such as Treats). The layer list is in the Layers panel.
+	'level.locked': '{layers} is locked. Unlock it in Layers to change it.',
+	// translator: Shown when a change was refused because it would alter several locked layers. {layers} is a list of layer names, such as “Treats and Edits”.
+	'level.lockedMany': '{layers} are locked. Unlock them in Layers to change them.',
 	// translator: A note above the grid of a Fizz 2 level. “The game” is Lieutenant Fizz 2; “flat view” is a plain drawing of the tiles.
 	'level.flatFallback':
 		'The game’s own drawing of this level is not available yet, so this is the flat view.',
@@ -997,6 +1001,9 @@ export const enMessages = {
 	// translator: A banner explaining that the level’s file changed outside the studio on the same lines as unsaved changes.
 	'main.conflict':
 		'The file changed outside the studio on lines you also changed. The text below marks where.',
+	// translator: A banner explaining that the file changed outside the studio in a layer that is locked, so the studio kept its own text. {layers} is the layer's name, or a list of names. The text below is the outside version.
+	'main.conflictLocked':
+		'The file changed outside the studio in {layers}, which is locked, so the studio kept its own text. The text below is the outside version. Unlock the layer in Layers and change it again to bring it in.',
 	// translator: Heading of the start-screen section that offers levels whose unsaved changes survived a crash.
 	'main.recovered': 'Recovered changes',
 	// translator: Explains the recovered-changes section.

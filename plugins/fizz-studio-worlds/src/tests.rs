@@ -360,6 +360,51 @@ fn an_outside_edit_over_the_same_lines_is_a_conflict_and_changes_nothing() {
 }
 
 #[test]
+fn an_outside_edit_to_a_locked_layer_is_a_conflict_that_names_it_and_the_studio_keeps_its_text() {
+    let app = app();
+    let (_dir, path) = project();
+    let opened = open(&app, &path);
+    let conflicts = hear::<LevelConflict>(&app, "main-1", CONFLICT_EVENT);
+    worlds(&app)
+        .with(&opened.id, |level| {
+            level.session.set_locks(["treats".to_string()]);
+            Ok(())
+        })
+        .unwrap();
+
+    let outside = CRATER.replace("soda        x=36 y=5", "soda        x=37 y=5");
+    std::fs::write(&path, &outside).unwrap();
+
+    assert!(within(Duration::from_secs(1), || {
+        !conflicts.lock().unwrap().is_empty()
+    }));
+    let conflicts = conflicts.lock().unwrap();
+    assert_eq!(conflicts[0].id, opened.id);
+    assert_eq!(conflicts[0].locked, ["treats"]);
+    assert_eq!(conflicts[0].marked, outside);
+    assert_eq!(current(&app, &opened.id).text, CRATER);
+}
+
+#[test]
+fn an_edit_to_a_locked_layer_is_refused_as_locked_and_changes_nothing() {
+    let app = app();
+    let (_dir, path) = project();
+    let opened = open(&app, &path);
+    worlds(&app)
+        .with(&opened.id, |level| {
+            level.session.set_locks(["edits".to_string()]);
+            Ok(())
+        })
+        .unwrap();
+    let refused = apply(&app, &opened.id, paint("grass", 5), 0);
+    assert!(matches!(
+        refused,
+        Err(LevelError::Locked { ref layers }) if layers == &["edits".to_string()]
+    ));
+    assert_eq!(current(&app, &opened.id).revision, 0);
+}
+
+#[test]
 fn closing_a_level_forgets_it() {
     let app = app();
     let (_dir, path) = project();
