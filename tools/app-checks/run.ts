@@ -2568,6 +2568,47 @@ async function checkPanelWindows(
 		check(`the ${panel.title} panel is back in the main window`, back !== null);
 	}
 
+	// Dragging a panel out of the window by its rail entry. Synthetic events stay inside the page, so
+	// this plays the page's side only (the press, the moves past the edge, the release); the plugin,
+	// the ghost and the cursor are real. Which route the desktop gives is the plugin's to say, so the
+	// check holds for either answer: the panel's window opens (a route exists), or the page says why
+	// not and the panel stays where it was (none does). The panel menu's Tear off is checked above.
+	await showFromRail(bridge, 'Objects');
+	await bridge.js(
+		`const item = [...document.querySelectorAll('[data-rail-item]')].find((t) => t.dataset.railItem === 'objects');
+		 const r = item.getBoundingClientRect();
+		 const at = (type, x, y) => item.dispatchEvent(new PointerEvent(type, { bubbles: true, pointerId: 41, button: 0, clientX: x, clientY: y }));
+		 at('pointerdown', r.left + 5, r.top + 5);
+		 for (const x of [r.left - 40, -60, -120]) document.dispatchEvent(new PointerEvent('pointermove', { bubbles: true, pointerId: 41, clientX: x, clientY: r.top + 5 }));
+		 await new Promise((go) => setTimeout(go, 400));
+		 document.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, pointerId: 41, clientX: -120, clientY: r.top + 5 }));
+		 return true;`,
+	);
+	const dragged = await within(8000, async () => {
+		if ((await bridge.windows()).includes('panel-objects-1')) return 'window';
+		const said = await bridge.js<boolean>(
+			`return [...document.querySelectorAll('[role=status]')].some((n) => /Tear off|cancelled|Move cancelled/.test(n.textContent ?? ''));`,
+		);
+		return said ? 'note' : null;
+	});
+	check(
+		'dragging a rail entry out of the window opens its window, or says why it cannot',
+		dragged !== null,
+		String(dragged),
+	);
+	if (dragged === 'window') {
+		check(
+			'docking the dragged-out Objects panel back closes its window',
+			await dockBackWindow(bridge, 'objects'),
+		);
+	} else {
+		check(
+			'a drag that found no route leaves the panel in the main window',
+			!(await bridge.windows()).includes('panel-objects-1'),
+		);
+	}
+	await within(5000, () => panelMenuOffers(bridge, 'Objects', 'Tear off'));
+
 	// An action in a torn-off window reaches the main window: a brush chosen in the Palette window.
 	await showFromRail(bridge, 'Palette');
 	await choosePanelMenu(bridge, 'Palette', 'Tear off');
