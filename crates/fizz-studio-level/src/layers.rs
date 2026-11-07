@@ -11,9 +11,9 @@
 
 use std::collections::{HashMap, HashSet};
 
-use fizz_studio_language::ast::{Ast, Body, Node, SectionName};
+use fizz_studio_language::ast::{Ast, Body, Node, Range, SectionName};
 use fizz_studio_language::parser::parse;
-use fizz_studio_language::raster::World;
+use fizz_studio_language::raster::{rasterise, World};
 use fizz_studio_protocol::{ViewSection, ViewSectionAffects, ViewSectionKind};
 
 /// The tiles the objects list shows as things of their own.
@@ -188,6 +188,51 @@ pub(crate) fn cell_sections(ast: &Ast, world: &World, sections: &[ViewSection]) 
 /// The `cell_sections` value of a cell no statement wrote.
 pub const NO_SECTION: u8 = u8::MAX;
 
+/// Every cell a `paint` or `clear` covers inside a level of `width` by `height`, as `y * width + x`.
+fn covered(xs: &[Range], ys: &[Range], width: usize, height: usize) -> Vec<usize> {
+    let span = |ranges: &[Range], limit: usize| -> Vec<usize> {
+        let mut out = Vec::new();
+        for r in ranges {
+            let (lo, hi) = (r.lo.max(0.0), r.hi.min(limit as f64 - 1.0));
+            let mut at = lo.ceil();
+            while at <= hi {
+                out.push(at as usize);
+                at += 1.0;
+            }
+        }
+        out
+    };
+    let (columns, rows) = (span(xs, width), span(ys, height));
+    rows.iter()
+        .flat_map(|y| columns.iter().map(move |x| y * width + x))
+        .collect()
+}
+
+/// The layers that own the cells a paint or clear statement covers in `world`, which is the level
+/// as it stands without that statement (before it was added, or after it was taken away).
+fn owners_beneath(
+    body: &Body,
+    world: &World,
+    owner_of_line: &HashMap<usize, &'static str>,
+) -> Vec<&'static str> {
+    let (Body::Paint { xs, ys, .. } | Body::Clear { xs, ys }) = body else {
+        return Vec::new();
+    };
+    let mut owners: Vec<&'static str> = Vec::new();
+    for cell in covered(xs, ys, world.w, world.h) {
+        if let Some(id) = world
+            .lines
+            .get(cell)
+            .and_then(|line| owner_of_line.get(line))
+        {
+            if !owners.contains(id) {
+                owners.push(id);
+            }
+        }
+    }
+    owners
+}
+
 fn crystal_cells(ast: &Ast) -> u32 {
     let mut cells = 0.0_f64;
     for node in &ast.nodes {
@@ -352,13 +397,28 @@ pub fn layers_changed(old: &str, new: &str) -> Vec<String> {
         }
     }
     let mut touched: Vec<&'static str> = Vec::new();
-    for (statement, kept) in old_mid
-        .iter()
-        .zip(&old_kept)
-        .chain(new_mid.iter().zip(&new_kept))
-    {
+    // A paint or clear that was added or taken away changes the cells it covers, which belong to
+    // the layers that wrote them: those layers are touched too (the lock is by effect).
+    let old_world = rasterise(&old_parsed.ast);
+    let new_world = rasterise(&new_parsed.ast);
+    let old_owner = owners_by_line(&statements(&old_parsed.ast));
+    let new_owner = owners_by_line(&statements(&new_parsed.ast));
+    for (statement, kept) in old_mid.iter().zip(&old_kept) {
         if !kept {
             touched.extend(statement.layers.iter().copied());
+            // Taken away: the cells go back to whatever the rest of the script made them.
+            if let Some(world) = &new_world {
+                touched.extend(owners_beneath(&statement.node.body, world, &new_owner));
+            }
+        }
+    }
+    for (statement, kept) in new_mid.iter().zip(&new_kept) {
+        if !kept {
+            touched.extend(statement.layers.iter().copied());
+            // Added: it covers cells the script made before it.
+            if let Some(world) = &old_world {
+                touched.extend(owners_beneath(&statement.node.body, world, &old_owner));
+            }
         }
     }
     LAYER_ORDER

@@ -618,3 +618,106 @@ fn hiding_edits_shows_the_level_as_it_was_before_the_studio_changed_it() {
     assert_ne!(masked.cells, full.cells);
     assert_eq!(masked.cells, LevelDocument::new(CRATER).view().cells);
 }
+
+fn clear(x: u32, y: u32) -> LevelEdit {
+    LevelEdit::Clear {
+        x: vec![[x, x]],
+        y: vec![[y, y]],
+    }
+}
+
+#[test]
+fn locking_terrain_refuses_painting_or_clearing_over_its_cells_and_not_the_sky() {
+    let (mut session, token) = open();
+    lock(&mut session, &["terrain"]);
+    for edit in [paint("grass", 5, 1), clear(5, 1)] {
+        let asked = request(&session, edit);
+        assert_eq!(
+            locked(session.apply(&token, asked).unwrap_err()),
+            ["terrain"]
+        );
+    }
+    assert_eq!(session.text(), CRATER);
+    // Row 20 is open sky that no statement wrote.
+    let edit = paint("grass", 5, 20);
+    let asked = request(&session, edit);
+    session.apply(&token, asked).unwrap();
+}
+
+#[test]
+fn a_range_that_reaches_a_locked_layer_is_refused_whole() {
+    let (mut session, token) = open();
+    lock(&mut session, &["blocks"]);
+    // x 48..52 at y=10 crosses the block line at x=49..51.
+    let edit = LevelEdit::Paint {
+        tile: "grass".to_string(),
+        x: vec![[48, 52]],
+        y: vec![[10, 10]],
+    };
+    let asked = request(&session, edit);
+    assert_eq!(
+        locked(session.apply(&token, asked).unwrap_err()),
+        ["blocks"]
+    );
+    let edit = LevelEdit::Paint {
+        tile: "grass".to_string(),
+        x: vec![[40, 44]],
+        y: vec![[10, 10]],
+    };
+    let asked = request(&session, edit);
+    session.apply(&token, asked).unwrap();
+}
+
+#[test]
+fn locking_the_end_walls_and_the_doors_guards_their_cells() {
+    let (mut session, token) = open();
+    lock(&mut session, &["walls", "markers"]);
+    let asked = request(&session, paint("grass", 0, 10));
+    assert_eq!(locked(session.apply(&token, asked).unwrap_err()), ["walls"]);
+    let asked = request(&session, clear(186, 6));
+    assert_eq!(
+        locked(session.apply(&token, asked).unwrap_err()),
+        ["markers"]
+    );
+}
+
+#[test]
+fn a_cell_painted_in_the_studio_belongs_to_edits_not_to_what_was_beneath() {
+    let (mut session, token) = open();
+    let asked = request(&session, paint("grass", 5, 1));
+    session.apply(&token, asked).unwrap();
+    // The cell now belongs to the edit that painted it, so locking the terrain does not guard it
+    // again, and locking edits does.
+    lock(&mut session, &["terrain"]);
+    let asked = request(&session, paint("rock", 5, 1));
+    session.apply(&token, asked).unwrap();
+    lock(&mut session, &["edits"]);
+    let asked = request(&session, paint("grass", 5, 1));
+    assert_eq!(locked(session.apply(&token, asked).unwrap_err()), ["edits"]);
+}
+
+#[test]
+fn undoing_a_paint_that_covered_a_cell_of_a_locked_layer_is_refused() {
+    let (mut session, token) = open();
+    let asked = request(&session, paint("grass", 5, 1));
+    session.apply(&token, asked).unwrap();
+    lock(&mut session, &["terrain"]);
+    // Taking the paint away puts the terrain's own cell back, which a lock on terrain forbids.
+    let undone = session.undo(&token, session.revision());
+    assert_eq!(locked(undone.unwrap_err()), ["terrain"]);
+    assert!(session.text().contains("paint grass x=5 y=1"));
+    lock(&mut session, &[]);
+    session.undo(&token, session.revision()).unwrap();
+    assert_eq!(session.text(), CRATER);
+}
+
+#[test]
+fn an_outside_edit_that_adds_a_paint_over_locked_cells_is_refused_and_a_free_one_is_taken() {
+    let (mut session, token) = open();
+    lock(&mut session, &["terrain"]);
+    let over = format!("{CRATER}\nedits\n  paint grass x=5 y=1\n");
+    let error = session.apply_outside_edit(&token, 0, &over).unwrap_err();
+    assert_eq!(locked(error), ["terrain"]);
+    let sky = format!("{CRATER}\nedits\n  paint grass x=5 y=20\n");
+    session.apply_outside_edit(&token, 0, &sky).unwrap();
+}

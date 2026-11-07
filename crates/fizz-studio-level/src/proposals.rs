@@ -124,21 +124,34 @@ fn proposal_cells(level_text: &str, lines: &[String], width: u32, height: u32) -
     cells
 }
 
-/// The layers proposal lines would touch if they were appended to the level's `edits` block.
+/// The layers proposal lines would touch if they were appended to the level's `edits` block: those
+/// of what the lines build, `edits`, and the layers that wrote the cells a paint or clear covers.
 fn proposal_layers(level_text: &str, lines: &[String]) -> Vec<String> {
     let parsed = parse(level_text);
-    let Some(header) = parsed
+    if !parsed
         .ast
         .nodes
         .iter()
-        .find(|n| matches!(n.body, Body::Level { .. }))
-        .and_then(|n| n.raw.clone())
-    else {
+        .any(|n| matches!(n.body, Body::Level { .. }))
+    {
         return Vec::new();
-    };
-    let base = format!("{header}\nstart 0,0\nedits");
-    let with_lines = format!("{base}\n{}", lines.join("\n"));
-    crate::layers::layers_changed(&base, &with_lines)
+    }
+    let has_edits = parsed.ast.nodes.iter().any(|n| {
+        matches!(
+            n.body,
+            Body::Section {
+                name: fizz_studio_language::ast::SectionName::Edits
+            }
+        )
+    });
+    let mut with_lines = level_text.trim_end().to_string();
+    if !has_edits {
+        with_lines.push_str("\n\nedits");
+    }
+    with_lines.push('\n');
+    with_lines.push_str(&lines.join("\n"));
+    with_lines.push('\n');
+    crate::layers::layers_changed(level_text, &with_lines)
 }
 
 /// The pending proposals in a sidecar, as ghosts over a level. Anything not pending is ignored, and
@@ -237,11 +250,14 @@ mod tests {
     fn a_proposal_names_the_layers_it_would_touch() {
         let json = sidecar(
             r#"{"id":"h1","title":"Snacks","lines":["place cheezie x=2 y=5","paint exit x=3 y=5"],"status":"pending"},
-            {"id":"h2","title":"Ground","lines":["paint grass x=2 y=4"],"status":"pending"}"#,
+            {"id":"h2","title":"Ground","lines":["paint grass x=2 y=3"],"status":"pending"},
+            {"id":"h3","title":"Sky","lines":["paint grass x=2 y=15"],"status":"pending"}"#,
         );
         let ghosts = pending_ghosts(CRATER, 40, 20, &json);
         assert_eq!(ghosts[0].layers, ["markers", "treats", "edits"]);
-        assert_eq!(ghosts[1].layers, ["edits"]);
+        // Painting grass on a cell the terrain wrote touches the terrain as well.
+        assert_eq!(ghosts[1].layers, ["terrain", "edits"]);
+        assert_eq!(ghosts[2].layers, ["edits"]);
     }
 
     #[test]
