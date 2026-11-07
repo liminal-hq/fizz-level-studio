@@ -32,6 +32,7 @@ import {
 } from '../worlds/tauriLevelClient';
 import { AppMenu } from './AppMenu';
 import { AppMenuBar } from './AppMenuBar';
+import { AppToolbar } from './AppToolbar';
 import { AppWindow } from './AppWindow';
 import type { DockClient } from '../services/dockClient';
 import type { PanelBridge } from '../panels/windows/panelBridge';
@@ -439,13 +440,22 @@ function MainScreenBody({
 	);
 	// The menu bar switch writes the setting, so every Main window follows; it is absent where settings cannot be written.
 	const menuBarOn = menuBar;
+	const { toolbar, ribbon_folded: ribbonFolded } = ui;
 	useEffect(() => {
 		if (!setUi) return;
-		return bridge.setHandlers({ 'view.menuBar': () => setUi({ menu_bar: !menuBarOn }) });
-	}, [bridge, setUi, menuBarOn]);
+		// Toolbar and Ribbon are switches: choosing the one that is showing hides the commands row.
+		return bridge.setHandlers({
+			'view.menuBar': () => setUi({ menu_bar: !menuBarOn }),
+			'view.toolbar.classic': () =>
+				setUi({ toolbar: toolbar === 'classic' ? 'hidden' : 'classic' }),
+			'view.toolbar.ribbon': () => setUi({ toolbar: toolbar === 'ribbon' ? 'hidden' : 'ribbon' }),
+			'view.toolbar.hidden': () => setUi({ toolbar: 'hidden' }),
+			'view.ribbon.fold': () => setUi({ ribbon_folded: !ribbonFolded }),
+		});
+	}, [bridge, setUi, menuBarOn, toolbar, ribbonFolded]);
 	useEffect(() => {
-		bridge.setFacts({ menuBar });
-	}, [bridge, menuBar]);
+		bridge.setFacts({ menuBar, toolbar, ribbonFolded });
+	}, [bridge, menuBar, toolbar, ribbonFolded]);
 	const hasLevel = level !== null;
 	useEffect(() => {
 		bridge.setFacts({ hasLevel });
@@ -552,6 +562,7 @@ function MainScreenBody({
 			dirty={isDirty(level)}
 			start={<AppMenu menuBar={menuBar} />}
 			menuBar={menuBar ? <AppMenuBar /> : undefined}
+			toolbar={ui.toolbar === 'classic' ? <AppToolbar /> : undefined}
 		>
 			<div className={styles.editor}>
 				{bannerView}
@@ -584,16 +595,6 @@ function MainScreenBody({
 						onSnapshot={follow}
 						docks={docks}
 						panelBridge={panelBridge}
-						toolLead={
-							<div className={styles.actions} role="toolbar" aria-label={t('main.levelActions')}>
-								<button type="button" className={styles.button} onClick={() => void save()}>
-									{t('main.save')}
-								</button>
-								<button type="button" className={styles.button} onClick={requestClose}>
-									{t('main.closeLevel')}
-								</button>
-							</div>
-						}
 					/>
 				</div>
 			</div>

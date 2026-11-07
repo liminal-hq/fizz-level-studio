@@ -47,6 +47,12 @@
 	touch-action: none;
 }
 
+.note {
+	flex: 1;
+	color: var(--fls-text-secondary);
+	text-align: right;
+}
+
 .canvas:focus-visible {
 	outline: 2px solid var(--fls-focus-ring);
 	outline-offset: -2px;

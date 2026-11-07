@@ -7,7 +7,7 @@ import { t } from '../i18n/messages';
 import { MAX_SPACING } from './brush';
 import { SPACING_KEYS } from './shortcuts';
 import styles from './SpacingStepper.module.css';
-import { spacingText } from './ToolPalette';
+import { spacingText } from './spacingText';
 
 export interface SpacingStepperProps {
 	spacing: number;

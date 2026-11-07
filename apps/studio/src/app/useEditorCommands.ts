@@ -132,6 +132,11 @@ export function useEditorCommands({
 			live.current.setVisible('script', true);
 			live.current.activate('script');
 		};
+		handlers['panel.palette.show'] = () => {
+			if (live.current.away.palette) return live.current.tearOff('palette');
+			live.current.setVisible('palette', true);
+			live.current.activate('palette');
+		};
 		handlers['script.tab.level.close'] = () => live.current.setVisible('script', false);
 		handlers['view.zoomIn'] = () => live.current.onZoom('in');
 		handlers['view.zoomOut'] = () => live.current.onZoom('out');

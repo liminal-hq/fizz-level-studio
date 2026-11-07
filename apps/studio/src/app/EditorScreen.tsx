@@ -16,7 +16,6 @@ import {
 	useState,
 	useSyncExternalStore,
 	type KeyboardEvent,
-	type ReactNode,
 } from 'react';
 import { LevelCanvas } from '../canvas/LevelCanvas';
 import type { ZoomKind } from '../canvas/ZoomControl';
@@ -42,7 +41,6 @@ import {
 import { useDockDrag } from '../panels/dock/useDockDrag';
 import { ZONE_LABELS } from '../panels/dock/DockZone';
 import { PANEL_SPECS, isExpandable, type PanelId } from '../panels/float/panelSpecs';
-import { PanelsMenu } from '../panels/float/PanelsMenu';
 import { SnapGuides } from '../panels/float/SnapGuides';
 import { useElementSize } from '../panels/float/useElementSize';
 import type { Guide } from '../panels/float/snap';
@@ -59,7 +57,6 @@ import { dockClient as defaultDockClient, type DockClient } from '../services/do
 import type { PanelWindowClient } from '../services/panelWindowClient';
 import { pasteRect } from '../tools/clip';
 import { SPACING_KEYS, toolForKey } from '../tools/shortcuts';
-import { ToolPalette } from '../tools/ToolPalette';
 import { ToolPicker } from '../tools/ToolPicker';
 import { thingAt, type Cell, type PointerPhase, type Thing } from '../tools/tool';
 import { useTool } from '../tools/useTool';
@@ -89,8 +86,6 @@ export interface EditorScreenProps {
 	docks?: DockClient;
 	/** The channel to the panels torn off into their own windows; without one they get no state. */
 	panelBridge?: PanelBridge;
-	/** Controls for the start of the row above the level, before the brush (the main screen's Save and Close level). */
-	toolLead?: ReactNode;
 }
 
 /** The command each button of the zoom control runs. */
@@ -131,7 +126,6 @@ export function EditorScreen({
 	panelWindows,
 	docks = defaultDockClient,
 	panelBridge,
-	toolLead,
 }: EditorScreenProps) {
 	const [snapshot, setSnapshot] = useState(initial);
 	const held = useRef(initial);
@@ -579,10 +573,6 @@ export function EditorScreen({
 					{t(problem)}
 				</p>
 			)}
-			<div className={styles.bar}>
-				<ToolPalette handle={tool} lead={toolLead} />
-				<PanelsMenu visible={dock.shown} onToggle={dock.setVisible} onReset={dock.reset} />
-			</div>
 			<div className={styles.body} ref={areaRef}>
 				<DockShell
 					view={dockView}
@@ -617,6 +607,7 @@ export function EditorScreen({
 							insets={insets}
 							zoomRequest={zoomRequest}
 							onZoomChange={setZoom}
+							statusNote={tool.tool === 'stamp' && !tool.clip ? t('tools.stampEmpty') : undefined}
 							onZoomAction={(kind) => void runCommand(ZOOM_COMMANDS[kind], commands)}
 							overlay={(map) => (
 								<ToolPicker

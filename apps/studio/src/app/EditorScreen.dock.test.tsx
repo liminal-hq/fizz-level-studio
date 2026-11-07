@@ -110,18 +110,20 @@ describe('the editor’s docks', () => {
 		expect(screen.queryByRole('group', { name: 'Left rail' })).toBeNull();
 	});
 
-	it('hides a docked panel from the Panels menu and shows it as the showing tab', async () => {
-		const user = userEvent.setup();
-		await mount();
+	it('hides a docked panel with its command and shows it as the showing tab', async () => {
+		const { bridge } = await mount();
+		await waitFor(() => expect(bridge.getSnapshot().facts.editorOpen).toBe(true));
 		const right = screen.getByRole('region', { name: 'Right dock' });
-		await user.click(screen.getByRole('button', { name: 'Panels' }));
-		await user.click(screen.getByRole('menuitemcheckbox', { name: 'Objects' }));
+		runCommand('view.panel.objects', bridge.getSnapshot());
 		const rail = screen.getByRole('group', { name: 'Right rail' });
-		expect(within(rail).queryByRole('button', { name: 'Objects' })).toBeNull();
+		await waitFor(() => expect(within(rail).queryByRole('button', { name: 'Objects' })).toBeNull());
 		expect(railItem('Right rail', 'History')).toHaveAttribute('aria-pressed', 'true');
 		expect(within(right).getByRole('heading', { name: 'History' })).toBeInTheDocument();
-		await user.click(screen.getByRole('menuitemcheckbox', { name: 'Objects' }));
-		expect(railItem('Right rail', 'Objects')).toHaveAttribute('aria-pressed', 'true');
+		await waitFor(() => expect(bridge.getSnapshot().facts.panels.objects).toBe(false));
+		runCommand('view.panel.objects', bridge.getSnapshot());
+		await waitFor(() =>
+			expect(railItem('Right rail', 'Objects')).toHaveAttribute('aria-pressed', 'true'),
+		);
 	});
 
 	it('runs the View menu’s panel rows against the docks', async () => {
@@ -186,13 +188,15 @@ describe('the editor’s docks', () => {
 		expect(item).not.toHaveAttribute('data-peeking');
 	});
 
-	it('opens a folded dock when the Panels menu shows a panel in it', async () => {
+	it('opens a folded dock when a command shows a panel in it', async () => {
 		const user = userEvent.setup();
-		await mount();
+		const { bridge } = await mount();
+		await waitFor(() => expect(bridge.getSnapshot().facts.editorOpen).toBe(true));
 		await user.click(railItem('Right rail', 'Objects'));
-		await user.click(screen.getByRole('button', { name: 'Panels' }));
-		await user.click(screen.getByRole('menuitemcheckbox', { name: 'History' }));
-		await user.click(screen.getByRole('menuitemcheckbox', { name: 'History' }));
+		runCommand('view.panel.history', bridge.getSnapshot());
+		await waitFor(() => expect(bridge.getSnapshot().facts.panels.history).toBe(false));
+		runCommand('view.panel.history', bridge.getSnapshot());
+		await screen.findByRole('region', { name: 'Right dock' });
 		const right = screen.getByRole('region', { name: 'Right dock' });
 		expect(within(right).getByRole('heading', { name: 'History' })).toBeInTheDocument();
 		expect(railItem('Right rail', 'History')).toHaveAttribute('aria-pressed', 'true');

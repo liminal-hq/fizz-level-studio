@@ -106,7 +106,12 @@ describe('the registry', () => {
 	it('hides the editor rows on the start screen instead of disabling them', () => {
 		const handlers = { 'view.levelFirst': () => {}, 'view.resetLayout': () => {} };
 		const start = rowsOf(buildMenuBar(snapshot({ editorOpen: false }, handlers)), 'menu:view');
-		expect(ids(start)).toEqual(['view.menuBar', 'view.commandPalette']);
+		expect(ids(start)).toEqual([
+			'view.menuBar',
+			'view.toolbar.classic',
+			'view.toolbar.ribbon',
+			'view.commandPalette',
+		]);
 	});
 
 	it('disables a visible row with a reason worked out from the facts', () => {
@@ -230,6 +235,8 @@ describe('the registry', () => {
 		expect(shape('menu:edit')).toEqual(['edit.undo', 'edit.redo', 'menu:history']);
 		expect(shape('menu:view')).toEqual([
 			'view.menuBar',
+			'view.toolbar.classic',
+			'view.toolbar.ribbon',
 			'-',
 			'menu:panels',
 			...PANEL_SPECS.filter((spec) => spec.expandable).map((spec) => `view.maximise.${spec.id}`),
@@ -295,7 +302,13 @@ describe('the registry', () => {
 		expect(menuSections([], [])).toEqual([]);
 		// The View menu's panel group is hidden on the start screen, so no rule is left at its top.
 		const start = rowsOf(buildMenuBar(snapshot()), 'menu:view');
-		expect(start.map((item) => item.type)).toEqual(['checkbox', 'separator', 'action']);
+		expect(start.map((item) => item.type)).toEqual([
+			'checkbox',
+			'checkbox',
+			'checkbox',
+			'separator',
+			'action',
+		]);
 	});
 
 	it('lists a Tear off row for each panel in the Window menu, and Dock back for one that is away', () => {
@@ -322,7 +335,12 @@ describe('the registry', () => {
 		]);
 		// Edit keeps Undo and Redo, disabled; View keeps the command palette.
 		expect(rowsOf(items, 'menu:edit').length).toBeGreaterThan(0);
-		expect(ids(rowsOf(items, 'menu:view'))).toEqual(['view.menuBar', 'view.commandPalette']);
+		expect(ids(rowsOf(items, 'menu:view'))).toEqual([
+			'view.menuBar',
+			'view.toolbar.classic',
+			'view.toolbar.ribbon',
+			'view.commandPalette',
+		]);
 		const withEditor = buildMenuBar(snapshot({ editorOpen: true }));
 		expect(withEditor.map((item) => item.id)).toContain('menu:window');
 		// The palette does not offer them either.

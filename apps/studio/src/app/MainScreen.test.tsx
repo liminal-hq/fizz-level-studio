@@ -160,16 +160,19 @@ class FakeSettings implements Pick<SettingsClient, 'get' | 'onChanged' | 'update
 	/** The `ui` values the chrome saved, in order. */
 	updates: UiSettings[] = [];
 	menuBar: boolean;
+	toolbar: UiSettings['toolbar'];
+	ribbonFolded = false;
 	private listener: ((snapshot: SettingsSnapshot) => void) | null = null;
-	constructor(menuBar: boolean) {
+	constructor(menuBar: boolean, toolbar: UiSettings['toolbar'] = 'classic') {
 		this.menuBar = menuBar;
+		this.toolbar = toolbar;
 	}
 	private snapshot(): SettingsSnapshot {
 		return {
 			revision: this.revision,
 			settings: {
 				...DEFAULT_SETTINGS,
-				ui: { menu_bar: this.menuBar, toolbar: 'classic', ribbon_folded: false },
+				ui: { menu_bar: this.menuBar, toolbar: this.toolbar, ribbon_folded: this.ribbonFolded },
 			},
 		};
 	}
@@ -186,6 +189,8 @@ class FakeSettings implements Pick<SettingsClient, 'get' | 'onChanged' | 'update
 		if (basedOn !== this.revision) throw new Error('stale');
 		this.updates.push(patch.ui!);
 		this.menuBar = patch.ui!.menu_bar;
+		this.toolbar = patch.ui!.toolbar;
+		this.ribbonFolded = patch.ui!.ribbon_folded;
 		this.revision += 1;
 		this.listener?.(this.snapshot());
 		return this.snapshot();
@@ -213,6 +218,7 @@ const DEFAULT_SETTINGS: Settings = {
 function setup(
 	options: {
 		menuBar?: boolean;
+		toolbar?: UiSettings['toolbar'];
 		recent?: string[];
 		launchPaths?: string[];
 		pick?: string | null;
@@ -235,7 +241,7 @@ function setup(
 	);
 	const recovery = options.recovery ?? new FakeRecoveryClient();
 	const quit = new FakeQuit();
-	const settings = new FakeSettings(options.menuBar ?? false);
+	const settings = new FakeSettings(options.menuBar ?? false, options.toolbar);
 	render(
 		<MainScreen
 			client={client}
@@ -393,32 +399,86 @@ describe('opening', () => {
 });
 
 describe('the dirty marker, saving and closing', () => {
-	it('puts Save and Close level at the start of the row above the level, and the tools over the map', async () => {
+	it('shows the classic toolbar under the title bar: files, history, the brush chip, then the panels', async () => {
 		const user = userEvent.setup();
-		setup();
+		const { client } = setup();
+		// The start screen has no commands row: there is no level to run them on.
+		expect(screen.queryByRole('toolbar', { name: 'Commands' })).toBeNull();
 		await openFromDialog(user);
-		const row = screen.getByRole('group', { name: 'Editor toolbar' });
-		const save = screen.getByRole('button', { name: 'Save' });
-		const close = screen.getByRole('button', { name: 'Close level' });
-		expect(row).toContainElement(save);
-		expect(row).toContainElement(close);
-		expect(save.compareDocumentPosition(close) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-		// The brush chip follows them on the same row; the tools are not in it.
-		expect(
-			close.compareDocumentPosition(within(row).getByText(/Brush:/)) &
-				Node.DOCUMENT_POSITION_FOLLOWING,
-		).toBeTruthy();
+		const row = await screen.findByRole('toolbar', { name: 'Commands' });
+		const names = within(row)
+			.getAllByRole('button')
+			.map((button) => button.getAttribute('aria-label') ?? button.textContent?.trim());
+		expect(names.slice(0, 6)).toEqual([
+			'New level…',
+			'Open level…',
+			'Save',
+			'Close level',
+			'Undo',
+			'Redo',
+		]);
+		// The brush chip follows the history, and the panel toggles are at the far end.
+		expect(names[6]).toMatch(/Brush:/);
+		expect(names.slice(7)).toEqual(['Palette', 'Objects', 'History', 'Proposals', 'Script']);
+		// The tools are not on it: they float over the map.
 		expect(within(row).queryByRole('button', { name: 'Paint' })).toBeNull();
 		const tools = screen.getByRole('group', { name: 'Tools' });
-		expect(tools).toContainElement(screen.getByRole('button', { name: 'Paint' }));
 		expect(tools.closest('[data-map]')?.parentElement).toContainElement(
 			screen.getByRole('application'),
 		);
-		// The Panels menu stays at the end of the same row.
-		expect(row.parentElement).toContainElement(screen.getByRole('button', { name: /Panels/ }));
-		expect(
-			screen.getByRole('toolbar', { name: 'Level actions' }).parentElement?.parentElement,
-		).toBe(row);
+		// Its buttons run the commands: Save saves, and the panel toggles show their state.
+		await user.click(within(row).getByRole('button', { name: 'Save' }));
+		await waitFor(() => expect(client.saves).toBe(1));
+		expect(within(row).getByRole('button', { name: 'Script' })).toHaveAttribute(
+			'aria-pressed',
+			'true',
+		);
+		expect(within(row).getByRole('button', { name: 'Undo' })).toBeDisabled();
+	});
+
+	it('hides and shows a panel from its toggle on the toolbar', async () => {
+		const user = userEvent.setup();
+		setup();
+		await openFromDialog(user);
+		const row = await screen.findByRole('toolbar', { name: 'Commands' });
+		const history = within(row).getByRole('button', { name: 'History' });
+		expect(history).toHaveAttribute('aria-pressed', 'true');
+		await user.click(history);
+		await waitFor(() =>
+			expect(within(row).getByRole('button', { name: 'History' })).toHaveAttribute(
+				'aria-pressed',
+				'false',
+			),
+		);
+		await user.click(within(row).getByRole('button', { name: 'History' }));
+		await waitFor(() =>
+			expect(within(row).getByRole('button', { name: 'History' })).toHaveAttribute(
+				'aria-pressed',
+				'true',
+			),
+		);
+	});
+
+	it('closes the level from the toolbar, and opens the Palette from the brush chip', async () => {
+		const user = userEvent.setup();
+		const { client } = setup();
+		await openFromDialog(user);
+		const row = await screen.findByRole('toolbar', { name: 'Commands' });
+		await user.click(within(row).getByRole('button', { name: /Brush:/ }));
+		expect(await screen.findByRole('heading', { name: 'Palette' })).toBeInTheDocument();
+		await user.click(within(row).getByRole('button', { name: 'Close level' }));
+		await waitFor(() => expect(client.closed.length).toBe(1));
+		await screen.findByRole('heading', { name: 'Fizz Level Studio' });
+		expect(screen.queryByRole('toolbar', { name: 'Commands' })).toBeNull();
+	});
+
+	it('shows no commands row with the toolbar hidden, and none yet for the ribbon', async () => {
+		const user = userEvent.setup();
+		const { settings } = setup({ toolbar: 'hidden' });
+		await openFromDialog(user);
+		await screen.findByRole('application');
+		expect(screen.queryByRole('toolbar', { name: 'Commands' })).toBeNull();
+		expect(settings.toolbar).toBe('hidden');
 	});
 
 	it('marks the title with a bullet while there are unsaved changes, and Save clears it', async () => {
@@ -773,6 +833,32 @@ describe('the application menu', () => {
 			}),
 		);
 		expect(await screen.findByRole('menubar', { name: 'Application menu' })).toBeInTheDocument();
+	});
+
+	it('has Toolbar and Ribbon switches in the app menu: choosing the one that shows hides the row', async () => {
+		const user = userEvent.setup();
+		const { settings } = setup();
+		await openFromDialog(user);
+		await screen.findByRole('toolbar', { name: 'Commands' });
+		await openMenu(user);
+		expect(screen.getByRole('menuitemcheckbox', { name: 'Toolbar' })).toHaveAttribute(
+			'aria-checked',
+			'true',
+		);
+		expect(screen.getByRole('menuitemcheckbox', { name: 'Ribbon' })).toHaveAttribute(
+			'aria-checked',
+			'false',
+		);
+		await user.click(screen.getByRole('menuitemcheckbox', { name: 'Toolbar' }));
+		await waitFor(() => expect(settings.toolbar).toBe('hidden'));
+		await waitFor(() => expect(screen.queryByRole('toolbar', { name: 'Commands' })).toBeNull());
+		await openMenu(user);
+		await user.click(screen.getByRole('menuitemcheckbox', { name: 'Toolbar' }));
+		await waitFor(() => expect(settings.toolbar).toBe('classic'));
+		expect(await screen.findByRole('toolbar', { name: 'Commands' })).toBeInTheDocument();
+		await openMenu(user);
+		await user.click(screen.getByRole('menuitemcheckbox', { name: 'Ribbon' }));
+		await waitFor(() => expect(settings.toolbar).toBe('ribbon'));
 	});
 
 	it('resets the layout from the bar’s View menu', async () => {

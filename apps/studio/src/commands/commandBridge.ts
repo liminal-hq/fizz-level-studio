@@ -4,6 +4,7 @@
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
 import { createContext, useContext, useSyncExternalStore } from 'react';
+import type { ToolbarMode } from '@liminal-hq/fizz-studio-protocol/generated/ToolbarMode';
 import type { ZoneId } from '@liminal-hq/fizz-studio-protocol/generated/ZoneId';
 import { PANEL_SPECS, type PanelId } from '../panels/float/panelSpecs';
 import type { Brush } from '../tools/brush';
@@ -50,6 +51,10 @@ export interface CommandFacts {
 	locks: readonly string[];
 	/** The menu bar is on (the `ui.menu_bar` setting). */
 	menuBar: boolean;
+	/** The commands row under the menus (the `ui.toolbar` setting). */
+	toolbar: ToolbarMode;
+	/** The ribbon is folded to its tabs (the `ui.ribbon_folded` setting). */
+	ribbonFolded: boolean;
 }
 
 /** A record with one entry per panel, so a new panel needs no edit here. */
@@ -79,6 +84,8 @@ export const NO_FACTS: CommandFacts = {
 	focusedPanel: null,
 	locks: [],
 	menuBar: false,
+	toolbar: 'classic',
+	ribbonFolded: false,
 };
 
 /**
@@ -145,6 +152,8 @@ export function createCommandBridge(): CommandBridge {
 				next.spacing === was.spacing &&
 				next.focusedPanel === was.focusedPanel &&
 				next.menuBar === was.menuBar &&
+				next.toolbar === was.toolbar &&
+				next.ribbonFolded === was.ribbonFolded &&
 				sameJson(next.zoom, was.zoom) &&
 				sameJson(next.brush, was.brush) &&
 				sameJson(next.workspace, was.workspace) &&

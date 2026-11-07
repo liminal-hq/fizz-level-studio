@@ -95,6 +95,8 @@ export interface LevelCanvasProps {
 	 * the caller runs the matching command, which comes back as a `zoomRequest`.
 	 */
 	onZoomAction?: (kind: ZoomKind) => void;
+	/** A line of guidance shown after the cell in the status line, such as what Stamp needs. */
+	statusNote?: string;
 }
 
 /** The room the tool picker leaves at the bottom of the map for the zoom control. */
@@ -124,6 +126,7 @@ export function LevelCanvas({
 	zoomRequest = null,
 	onZoomChange,
 	onZoomAction,
+	statusNote,
 }: LevelCanvasProps) {
 	const canvasRef = useRef<HTMLCanvasElement>(null);
 	const frameRef = useRef<HTMLDivElement>(null);
@@ -460,6 +463,7 @@ export function LevelCanvas({
 					<span className={styles.status} role="status">
 						{t('canvas.cell', { x: cursor.x, y: cursor.y, tile: word })}
 					</span>
+					{statusNote && <span className={styles.note}>{statusNote}</span>}
 				</div>
 			</div>
 		</div>

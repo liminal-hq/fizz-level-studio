@@ -13,14 +13,17 @@ export interface AppWindowProps extends AppTitleBarProps {
 	children: ReactNode;
 	/** A row of menus between the title bar and the content: the Main window's menu bar. */
 	menuBar?: ReactNode;
+	/** The commands row under the menu bar (or the title bar when there is none): the toolbar or the ribbon. */
+	toolbar?: ReactNode;
 }
 
-export function AppWindow({ children, menuBar, ...title }: AppWindowProps) {
+export function AppWindow({ children, menuBar, toolbar, ...title }: AppWindowProps) {
 	return (
 		<AppWindowChrome>
 			<WindowFrame className={styles.surface}>
 				<AppTitleBar {...title} />
 				{menuBar}
+				{toolbar}
 				{children}
 			</WindowFrame>
 		</AppWindowChrome>

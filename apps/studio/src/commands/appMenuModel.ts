@@ -224,7 +224,7 @@ const focusedPanelIds = ['window.floatFocused', 'window.tearOffFocused', 'window
  * bar (Edit's Go to line, Zoom, Fit); the menu bar's View menu carries them.
  *
  *   New level, Open level | Save, Close level | Undo, Redo, Undo history |
- *   Menu bar | Panels, Window, Command palette | Preferences, Help, Keyboard shortcuts, About | Quit
+ *   Menu bar, Toolbar, Ribbon | Panels, Window, Command palette | Preferences, Help, Keyboard shortcuts, About | Quit
  */
 export function buildAppMenu(snapshot: BridgeSnapshot): MenuItem[] {
 	const rows = rowsFor(snapshot);
@@ -232,7 +232,7 @@ export function buildAppMenu(snapshot: BridgeSnapshot): MenuItem[] {
 		rows('file.new', 'file.open'),
 		rows('file.save', 'file.close'),
 		[...rows('edit.undo', 'edit.redo'), historySubmenu(snapshot)],
-		rows('view.menuBar'),
+		rows('view.menuBar', 'view.toolbar.classic', 'view.toolbar.ribbon'),
 		[
 			...submenu(PANELS_MENU_ID, 'panels.menu', 'menu.view', rows(...panelIds)),
 			...submenu(
@@ -268,7 +268,7 @@ export function buildMenuBar(snapshot: BridgeSnapshot): MenuItem[] {
 		),
 		edit: menuSections([...rows('edit.undo', 'edit.redo'), historySubmenu(snapshot)]),
 		view: menuSections(
-			rows('view.menuBar'),
+			rows('view.menuBar', 'view.toolbar.classic', 'view.toolbar.ribbon', 'view.ribbon.fold'),
 			rows('view.zoomIn', 'view.zoomOut', 'view.zoomFit'),
 			[
 				...submenu(PANELS_MENU_ID, 'panels.menu', 'menu.view', rows(...panelIds)),

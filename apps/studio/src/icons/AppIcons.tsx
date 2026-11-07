@@ -200,6 +200,30 @@ export const MoreIcon: IconComponent = ({ size }) => (
 	</Svg>
 );
 
+/** A window with a row of buttons across its top: the classic toolbar. */
+export const ToolbarIcon: IconComponent = ({ size }) => (
+	<Svg size={size}>
+		<rect x="1.5" y="2.5" width="13" height="11" rx="1.4" />
+		<path d="M1.5 6.5h13M4 4.6h.1M6.2 4.6h.1M8.4 4.6h.1" />
+	</Svg>
+);
+
+/** A window with tabs along its top and a panel under them: the ribbon. */
+export const RibbonIcon: IconComponent = ({ size }) => (
+	<Svg size={size}>
+		<rect x="1.5" y="2.5" width="13" height="11" rx="1.4" />
+		<path d="M1.5 5.5h13M5 2.5v3M9 2.5v3M3.5 8.5h4M3.5 10.8h2.5" />
+	</Svg>
+);
+
+/** A magnifier: searching the commands. */
+export const SearchIcon: IconComponent = ({ size }) => (
+	<Svg size={size}>
+		<circle cx="7" cy="7" r="4.5" />
+		<path d="M10.4 10.4 14 14" />
+	</Svg>
+);
+
 /** Two small frames, one over the other: Assets. */
 export const AssetsIcon: IconComponent = ({ size }) => (
 	<Svg size={size}>
@@ -360,6 +384,9 @@ export type IconId =
 	| 'workspace'
 	| 'more'
 	| 'assets'
+	| 'toolbar'
+	| 'ribbon'
+	| 'search'
 	| `panel.${PanelId}`
 	| `tool.${ToolId}`
 	| 'menu.file'
@@ -406,6 +433,9 @@ export const APP_ICONS: Record<IconId, IconComponent> = {
 	workspace: WorkspaceIcon,
 	more: MoreIcon,
 	assets: AssetsIcon,
+	toolbar: ToolbarIcon,
+	ribbon: RibbonIcon,
+	search: SearchIcon,
 	...(Object.fromEntries(PANEL_ICON_ENTRIES) as Record<`panel.${PanelId}`, IconComponent>),
 	...(Object.fromEntries(TOOL_ICON_ENTRIES) as Record<`tool.${ToolId}`, IconComponent>),
 	'menu.file': FileMenuIcon,

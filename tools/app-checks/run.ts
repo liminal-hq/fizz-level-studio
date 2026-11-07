@@ -2645,9 +2645,9 @@ async function main(): Promise<void> {
 			laidOut.canvas > 300 && laidOut.map > 300 && laidOut.canvas >= laidOut.map,
 			JSON.stringify(laidOut),
 		);
-		// One row sits above the level: it holds Save, Close level, a divider, the brush chip and
-		// the Panels menu, in that order (the tools float over the map), and nothing sits between
-		// the title bar and it.
+		// One 40 px row sits above the level: the classic toolbar, with the file buttons, the history, the
+		// brush chip and (at its end) the panel toggles, in that order. The tools float over the map, and
+		// nothing sits between the title bar and the row.
 		const rowBox = await bridge.js<{
 			names: string[];
 			titleBottom: number;
@@ -2657,49 +2657,85 @@ async function main(): Promise<void> {
 			panelsMid: number;
 			canvasTop: number;
 			canvasHeight: number;
+			menuBar: boolean;
 		} | null>(
-			`const tools = document.querySelector('[role=group][aria-label="Editor toolbar"]');
+			`const tools = document.querySelector('[role=toolbar][aria-label="Commands"]');
 			 const region = document.querySelector('[role=group][aria-label="Level editor"]');
 			 const title = document.querySelector('[data-title-align]');
 			 const canvas = document.querySelector('canvas');
-			 const panels = [...document.querySelectorAll('button[aria-haspopup=menu]')].find((b) => b.textContent.trim() === 'Panels');
+			 const panels = tools && tools.querySelector('[role=group][aria-label="Panels"]');
 			 if (!tools || !region || !title || !canvas || !panels) return null;
 			 const row = tools.getBoundingClientRect();
 			 const p = panels.getBoundingClientRect();
 			 return {
-				 names: [...tools.querySelectorAll('button, [role=status]')].map((b) => b.getAttribute('aria-label') || b.textContent.trim()),
+				 names: [...tools.querySelectorAll('button')].map((b) => b.getAttribute('aria-label') || b.textContent.trim()),
 				 titleBottom: title.getBoundingClientRect().bottom,
 				 rowTop: row.top, rowBottom: row.bottom, regionTop: region.getBoundingClientRect().top,
 				 panelsMid: (p.top + p.bottom) / 2,
 				 canvasTop: canvas.getBoundingClientRect().top, canvasHeight: canvas.getBoundingClientRect().height,
+				 menuBar: !!document.querySelector('[role=menubar]'),
 			 };`,
 		);
-		check('the tool row is on screen', rowBox !== null);
+		check('the toolbar is on screen', rowBox !== null);
 		if (rowBox) {
 			check(
-				'the tool row holds Save, Close level and then the brush chip',
-				rowBox.names[0] === 'Save' &&
-					rowBox.names[1] === 'Close level' &&
-					rowBox.names[2]?.includes('Brush:') === true,
+				'the toolbar holds the file buttons, the history, the brush chip and then the panel toggles',
+				rowBox.names.slice(0, 6).join('|') ===
+					'New level…|Open level…|Save|Close level|Undo|Redo' &&
+					rowBox.names[6]?.includes('Brush:') === true &&
+					rowBox.names.slice(7).join('|') === 'Palette|Objects|History|Proposals|Script',
 				JSON.stringify(rowBox.names),
 			);
 			check(
-				'the Panels menu sits on the same row, at its end',
+				'the panel toggles sit on the same row, at its end',
 				rowBox.panelsMid > rowBox.rowTop && rowBox.panelsMid < rowBox.rowBottom,
 				JSON.stringify(rowBox),
 			);
 			check(
-				'nothing sits between the title bar and the tool row',
-				Math.abs(rowBox.regionTop - rowBox.titleBottom) < 2 &&
-					Math.abs(rowBox.rowTop - rowBox.regionTop) < 2,
+				'the classic toolbar is 40 px high by default',
+				Math.abs(rowBox.rowBottom - rowBox.rowTop - 40) < 1.5,
 				JSON.stringify(rowBox),
 			);
 			check(
-				'the level starts straight under the one tool row',
-				rowBox.canvasTop - rowBox.rowBottom < 40 && rowBox.rowBottom - rowBox.rowTop < 70,
+				'nothing sits between the title bar and the toolbar',
+				Math.abs(rowBox.rowTop - rowBox.titleBottom) < 2,
+				JSON.stringify(rowBox),
+			);
+			check(
+				'the level starts straight under the one toolbar',
+				Math.abs(rowBox.regionTop - rowBox.rowBottom) < 2 &&
+					rowBox.canvasTop - rowBox.rowBottom < 40,
 				JSON.stringify(rowBox),
 			);
 		}
+		const toolbarState = await bridge.js<{ pressed: string[]; undoDisabled: boolean }>(
+			`const tools = document.querySelector('[role=toolbar][aria-label="Commands"]');
+			 return { pressed: [...tools.querySelectorAll('[role=group][aria-label="Panels"] [aria-pressed=true]')].map((b) => b.getAttribute('aria-label')),
+			   undoDisabled: tools.querySelector('button[aria-label="Undo"]').disabled };`,
+		);
+		check(
+			'the panel toggles show every panel pressed, and Undo is dim with nothing to undo',
+			toolbarState.pressed.length === 5 && toolbarState.undoDisabled,
+			JSON.stringify(toolbarState),
+		);
+		check(
+			'a panel toggle hides its panel and shows it again',
+			await (async () => {
+				const click = () =>
+					bridge.js<boolean>(
+						`document.querySelector('[role=toolbar][aria-label="Commands"] button[aria-label="History"]')?.click(); return true;`,
+					);
+				const pressed = () =>
+					bridge.js<boolean>(
+						`return document.querySelector('[role=toolbar][aria-label="Commands"] button[aria-label="History"]')?.getAttribute('aria-pressed') === 'true';`,
+					);
+				await click();
+				const hidden = await within(3000, async () => !(await pressed()));
+				await click();
+				const shown = await within(3000, async () => await pressed());
+				return hidden !== null && shown !== null;
+			})(),
+		);
 		await dockChecks(bridge);
 		await panelMenuStaysPutChecks(bridge);
 		await scriptPopupChecks(bridge);

@@ -56,8 +56,6 @@ export const enMessages = {
 	'tools.inspect': 'Inspect',
 	// translator: A hint shown while the Stamp tool has nothing copied yet.
 	'tools.stampEmpty': 'Outline an area with Select, then choose Stamp to paste it.',
-	// translator: The accessible name of the row above the level that holds Save, Close level, the brush chip and the Panels menu.
-	'tools.bar': 'Editor toolbar',
 	// translator: Label of the grip a person drags, or moves with the arrow keys, to move the floating group of tools over the level.
 	'tools.move': 'Move the tools',
 	// translator: Tooltip of a tool's key. {tool} is the tool’s name, such as “Paint”; {key} is the letter that chooses it, such as “B”.
@@ -66,12 +64,6 @@ export const enMessages = {
 	'brush.chip': 'Brush: {kind}',
 	// translator: The brush chip when the brush is an item that is spaced out. {kind} is the item; {spacing} says how far apart, such as “Every 3 cells”.
 	'brush.chipSpaced': 'Brush: {kind}, {spacing}',
-	// translator: The kind of thing the brush lays down: a tile of the grid.
-	'brush.group.tile': 'Tile',
-	// translator: The kind of thing the brush lays down: an item, a collectable such as a cheezie or a key.
-	'brush.group.item': 'Item',
-	// translator: The kind of thing the brush lays down: an enemy, or a prop the game places like one (a switch, a terminal).
-	'brush.group.enemy': 'Enemy',
 	// translator: Accessible name of the group holding the item spacing control.
 	'spacing.group': 'Item spacing',
 	// translator: Label before the control that sets how many cells apart a dragged row of items is placed.
@@ -402,6 +394,22 @@ export const enMessages = {
 	'toolbar.setting.ribbon': 'Ribbon',
 	// translator: A choice of the commands row setting: no commands row. Keep it short.
 	'toolbar.setting.hidden': 'None',
+	// translator: A switch in the View menu and the app menu. Shows the classic toolbar, one row of buttons under the menus.
+	'toolbar.classic': 'Toolbar',
+	// translator: A switch in the View menu and the app menu. Shows the ribbon, the commands grouped under tabs.
+	'toolbar.ribbon': 'Ribbon',
+	// translator: Command palette entry. Hides the commands row (the toolbar or the ribbon) under the menus.
+	'toolbar.hidden': 'Hide the toolbar and ribbon',
+	// translator: Command palette entry and ribbon button. Folds the ribbon to its tabs, or opens it again.
+	'toolbar.foldRibbon': 'Fold the ribbon',
+	// translator: Command palette entry. Shows the Palette panel, where the brush is chosen.
+	'toolbar.showPalette': 'Show the Palette',
+	// translator: Accessible name of the classic toolbar, the row of buttons under the menus.
+	'toolbar.label': 'Commands',
+	// translator: Accessible name of the group of buttons on the toolbar that show and hide the panels.
+	'toolbar.panels': 'Panels',
+	// translator: Tooltip on the brush chip of the toolbar. Choosing it shows the Palette, where the brush is chosen.
+	'toolbar.brushTip': 'The brush. Choose to show the Palette.',
 	// translator: Tooltip on the dimmed Assets entry of the rail: the panel will come in a later version.
 	'dock.assets.later': 'Assets are coming later',
 	// translator: A row in a panel’s own menu. Moves that panel into the dock on the left of the level. The panel is already named by the menu.
@@ -863,8 +871,6 @@ export const enMessages = {
 	'main.closeFailed': 'The level could not be closed.',
 	// translator: Verb. A button that hides a message.
 	'main.dismiss': 'Dismiss',
-	// translator: Accessible name of the group of buttons that act on the open level.
-	'main.levelActions': 'Level actions',
 	// translator: Verb. A button that writes the level to its file.
 	'main.save': 'Save',
 	// translator: Verb phrase on a button. Closes the open level and returns to the start screen.

@@ -10,6 +10,7 @@ import crater from '../../../../fixtures/fizz1/raster/levels-crater.json';
 import { fakeDockClient, floatingDock } from '../test/dockFixtures';
 import { levelSnapshot, levelView } from '../test/levelFixtures';
 import { FakeLevelClient } from '../worlds/fakeLevelClient';
+import { CommandBridgeContext, createCommandBridge } from '../commands/commandBridge';
 import { EditorScreen } from './EditorScreen';
 import { newerSnapshot } from './snapshotRule';
 
@@ -81,9 +82,6 @@ describe('EditorScreen', () => {
 		// The status line is below the map, not inside it.
 		const status = screen.getByText(/^Cell /);
 		expect(map).not.toContainElement(status);
-		expect(screen.getByRole('group', { name: 'Editor toolbar' })).not.toContainElement(
-			screen.getByRole('button', { name: 'Paint' }),
-		);
 	});
 
 	it('saves where the tools were moved to in the workspace', async () => {
@@ -285,19 +283,26 @@ describe('EditorScreen', () => {
 			{},
 			levelView(12, 8, { items: [{ kind: 'soda', x: 4, y: 3, line: 7 }] }),
 		);
+		const bridge = createCommandBridge();
 		render(
-			<EditorScreen
-				snapshot={snapshot}
-				client={new FakeLevelClient(snapshot)}
-				docks={floating()}
-			/>,
+			<CommandBridgeContext.Provider value={bridge}>
+				<EditorScreen
+					snapshot={snapshot}
+					client={new FakeLevelClient(snapshot)}
+					docks={floating()}
+				/>
+			</CommandBridgeContext.Provider>,
 		);
 		await user.click(screen.getByRole('button', { name: 'Pick' }));
 		stroke(screen.getByRole('application'), [[4, 3]]);
 		await waitFor(() =>
 			expect(screen.getByRole('button', { name: 'Paint' })).toHaveAttribute('aria-pressed', 'true'),
 		);
-		expect(screen.getByText('Brush: soda, Every cell')).toBeInTheDocument();
+		// The brush chip is on the toolbar, which reads the brush from these facts.
+		await waitFor(() =>
+			expect(bridge.getSnapshot().facts.brush).toEqual({ group: 'item', kind: 'soda' }),
+		);
+		expect(bridge.getSnapshot().facts.spacing).toBe(1);
 	});
 
 	it('inspects what is on a cell with Q, editing nothing, keeps it across tools, and clears on Escape', async () => {
@@ -481,9 +486,14 @@ describe('EditorScreen panels', () => {
 				cells: [{ x: 2, y: 2, op: 'paint', word: 'grass' }],
 			},
 		];
-		render(<EditorScreen snapshot={snapshot} client={client} docks={floating()} />);
+		const bridge = createCommandBridge();
+		render(
+			<CommandBridgeContext.Provider value={bridge}>
+				<EditorScreen snapshot={snapshot} client={client} docks={floating()} />
+			</CommandBridgeContext.Provider>,
+		);
 		await screen.findByRole('region', { name: 'History' });
-		return client;
+		return Object.assign(client, { bridge });
 	}
 
 	it('chooses a tool with its key and ignores the key while a field has focus', async () => {
@@ -502,7 +512,7 @@ describe('EditorScreen panels', () => {
 
 	it('chooses a palette tile, then an item, as the one brush for Paint', async () => {
 		const user = userEvent.setup();
-		await mountWithWords();
+		const { bridge } = await mountWithWords();
 		const region = await screen.findByRole('region', { name: 'Palette' });
 		await user.click(screen.getByRole('button', { name: 'Stamp' }));
 		await user.click(within(region).getByRole('option', { name: 'grass' }));
@@ -511,10 +521,12 @@ describe('EditorScreen panels', () => {
 			'aria-selected',
 			'true',
 		);
-		expect(screen.getByText('Brush: grass')).toBeInTheDocument();
+		await waitFor(() =>
+			expect(bridge.getSnapshot().facts.brush).toEqual({ group: 'tile', kind: 'grass' }),
+		);
 		await user.click(await within(region).findByRole('option', { name: 'soda' }));
 		expect(screen.getByRole('button', { name: /^Paint/ })).toHaveAttribute('aria-pressed', 'true');
-		expect(screen.getByText(/^Brush: soda/)).toBeInTheDocument();
+		await waitFor(() => expect(bridge.getSnapshot().facts.brush?.kind).toBe('soda'));
 	});
 
 	it("lists Claude's pending proposals from the backend", async () => {

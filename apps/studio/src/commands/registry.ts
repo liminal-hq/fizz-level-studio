@@ -130,6 +130,7 @@ const hasLevel = (facts: CommandFacts) => facts.hasLevel;
 
 const panelCommand = (id: PanelId, title: MessageId): CommandDef => ({
 	id: `view.panel.${id}`,
+	toolbar: { icon: `panel.${id}` },
 	menu: 'view',
 	group: 'panels',
 	icon: `panel.${id}`,
@@ -264,6 +265,7 @@ const zoomCommand = (
 export const COMMANDS: readonly CommandDef[] = [
 	{
 		id: 'file.new',
+		toolbar: { icon: 'new' },
 		icon: 'new',
 		menu: 'file',
 		label: 'main.newLevel',
@@ -272,6 +274,7 @@ export const COMMANDS: readonly CommandDef[] = [
 	},
 	{
 		id: 'file.open',
+		toolbar: { icon: 'open' },
 		icon: 'open',
 		menu: 'file',
 		label: 'main.openLevel',
@@ -280,6 +283,7 @@ export const COMMANDS: readonly CommandDef[] = [
 	},
 	{
 		id: 'file.save',
+		toolbar: { icon: 'save' },
 		icon: 'save',
 		menu: 'file',
 		label: 'main.save',
@@ -289,6 +293,7 @@ export const COMMANDS: readonly CommandDef[] = [
 	},
 	{
 		id: 'file.close',
+		toolbar: { icon: 'close' },
 		icon: 'close',
 		menu: 'file',
 		label: 'main.closeLevel',
@@ -316,6 +321,7 @@ export const COMMANDS: readonly CommandDef[] = [
 	},
 	{
 		id: 'edit.undo',
+		toolbar: { icon: 'undo' },
 		icon: 'undo',
 		menu: 'edit',
 		label: 'history.undo',
@@ -325,6 +331,7 @@ export const COMMANDS: readonly CommandDef[] = [
 	},
 	{
 		id: 'edit.redo',
+		toolbar: { icon: 'redo' },
 		icon: 'redo',
 		menu: 'edit',
 		label: 'history.redo',
@@ -382,6 +389,27 @@ export const COMMANDS: readonly CommandDef[] = [
 	),
 	zoomCommand('out', 'zoomOut', 'canvas.zoomOut', [{ key: '-', mod: true }], (zoom) => zoom.canOut),
 	zoomCommand('fit', 'zoomFit', 'canvas.zoomFit', [{ key: '0', mod: true }], () => true),
+	{
+		id: 'view.toolbar.classic',
+		icon: 'toolbar',
+		menu: 'view',
+		group: 'view',
+		label: 'toolbar.classic',
+		kind: 'toggle',
+		visible: always,
+		enabled: always,
+		checked: (facts) => facts.toolbar === 'classic',
+	},
+	{
+		id: 'view.toolbar.ribbon',
+		icon: 'ribbon',
+		menu: 'view',
+		group: 'view',
+		label: 'toolbar.ribbon',
+		kind: 'toggle',
+		enabled: always,
+		checked: (facts) => facts.toolbar === 'ribbon',
+	},
 	{
 		id: 'view.menuBar',
 		icon: 'menuBar',
@@ -480,6 +508,30 @@ export const PALETTE_COMMANDS: readonly CommandDef[] = [
 			enabled: (facts) => facts.editorOpen,
 		}),
 	),
+	{
+		id: 'view.toolbar.hidden',
+		icon: 'toolbar',
+		group: 'view',
+		label: 'toolbar.hidden',
+		visible: (facts) => facts.toolbar !== 'hidden',
+		enabled: always,
+	},
+	{
+		id: 'view.ribbon.fold',
+		icon: 'ribbon',
+		group: 'view',
+		label: 'toolbar.foldRibbon',
+		kind: 'toggle',
+		visible: (facts) => facts.toolbar === 'ribbon',
+		enabled: always,
+		checked: (facts) => facts.ribbonFolded,
+	},
+	{
+		id: 'panel.palette.show',
+		group: 'panels',
+		label: 'toolbar.showPalette',
+		enabled: (facts) => facts.editorOpen,
+	},
 	{
 		id: 'script.tab.level.activate',
 		group: 'panels',
