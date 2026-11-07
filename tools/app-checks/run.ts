@@ -2920,12 +2920,26 @@ async function layerChecks(bridge: Bridge, path: string, original: string): Prom
 		(await canvasFingerprint(bridge)) === drawn ? true : null,
 	);
 	check('Show all brings the drawing back as it was', shownAgain !== null);
+	// Tile layers are drawn without too: Rust runs the level without their statements.
 	check(
-		'the tile layers wait for their eyes',
-		await bridge.js<boolean>(
-			`const b = [...document.querySelectorAll('ul[aria-label=Layers] button')].find((x) => x.getAttribute('aria-label') === 'Hide Terrain on the canvas'); return !!b && b.disabled;`,
-		),
+		'hiding Terrain is pressed from its eye',
+		await pressLayerToggle(bridge, 'Hide Terrain on the canvas'),
 	);
+	const noGround = await within(5000, async () =>
+		(await canvasFingerprint(bridge)) !== drawn ? true : null,
+	);
+	check('hiding Terrain removes the ground from the drawing', noGround !== null);
+	check(
+		'hiding Terrain leaves the level text and revision alone',
+		(await levelCall(bridge, 'level_snapshot', { id: 'level-1' })).revision === 0,
+	);
+	await bridge.js<boolean>(
+		`const b = [...document.querySelectorAll('button')].find((x) => x.textContent.trim() === 'Show all'); b?.click(); return true;`,
+	);
+	const groundBack = await within(5000, async () =>
+		(await canvasFingerprint(bridge)) === drawn ? true : null,
+	);
+	check('Show all brings the ground back', groundBack !== null);
 
 	// Lock Treats: every route refuses a change to it.
 	check(
@@ -2985,6 +2999,28 @@ async function layerChecks(bridge: Bridge, path: string, original: string): Prom
 			claude.text.includes('Treats is locked') &&
 			readFileSync(path, 'utf8') === original,
 		claude.text,
+	);
+
+	// A paint over the cells a locked tile layer wrote is refused too, and the sky is free.
+	await showFromRail(bridge, 'Layers');
+	check(
+		'locking Terrain is pressed from its padlock',
+		await pressLayerToggle(bridge, 'Lock Terrain'),
+	);
+	await within(3000, async () =>
+		(await layerRows(bridge)).some((r) => r.name === 'Terrain' && r.locked === 'true'),
+	);
+	const overGround = await bridge.js<{ kind?: string; layers?: string[] } | null>(
+		`try { await window.__TAURI_INTERNALS__.invoke('plugin:fizz-studio-worlds|level_apply', { id: 'level-1', edit: { kind: 'paint', tile: 'grass', x: [[5, 5]], y: [[1, 1]] }, basedOn: 0, mergeKey: null }); return null; } catch (e) { return e; }`,
+	);
+	check(
+		'painting over the ground while Terrain is locked is refused',
+		overGround?.kind === 'locked' && overGround.layers?.join() === 'terrain',
+		JSON.stringify(overGround),
+	);
+	await pressLayerToggle(bridge, 'Lock Terrain');
+	await within(3000, async () =>
+		(await layerRows(bridge)).every((r) => (r.name === 'Terrain' ? r.locked === 'false' : true)),
 	);
 
 	// An outside write to a line of a locked section is a conflict; the studio keeps its text.
