@@ -101,6 +101,10 @@ export const enMessages = {
 	'canvas.zoomLevel': 'Zoom {zoom}×',
 	// translator: Accessible name of the group holding the canvas’s zoom buttons.
 	'canvas.zoomGroup': 'Canvas zoom',
+	// translator: The zoom factor shown on the zoom control, such as 4×. {zoom} is a whole number from 1 to 16.
+	'canvas.zoomFactor': '{zoom}×',
+	// translator: Short label on the button of the zoom control that fits the whole level in the room there is.
+	'canvas.zoomFitShort': 'Fit',
 	// translator: Verb phrase. Chooses the largest whole zoom that shows the whole level in the room there is.
 	'canvas.zoomFit': 'Fit level',
 	// translator: Tooltip on a disabled Zoom in button: the canvas is already at its largest.

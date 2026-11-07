@@ -39,7 +39,7 @@ describe('LevelCanvas', () => {
 		const { canvas } = setup();
 		expect(canvas).toHaveAccessibleName('Level canvas, Test Level, 12 by 8 cells');
 		expect(canvas).toHaveAttribute('tabindex', '0');
-		expect(screen.getByRole('status')).toHaveTextContent('Cell 5, 4: empty');
+		expect(screen.getByText(/^Cell 5, 4/)).toHaveTextContent('Cell 5, 4: empty');
 	});
 
 	it('moves the cursor with the arrow keys, Home and End', async () => {
@@ -92,6 +92,61 @@ describe('LevelCanvas', () => {
 		expect(screen.getByRole('button', { name: 'Zoom in' })).toBeDisabled();
 	});
 
+	it('has no zoom buttons in the status line, only in the floating control', () => {
+		setup();
+		const bar = document.querySelector('[data-canvas-bar]')!;
+		expect(bar.querySelector('button')).toBeNull();
+		expect(bar).not.toHaveTextContent('Zoom');
+		const pill = screen.getByRole('group', { name: 'Canvas zoom' });
+		expect(pill.closest('[data-map]')).not.toBeNull();
+		expect(pill).toHaveTextContent('4×');
+		expect(screen.getByRole('button', { name: 'Fit level' })).toBeInTheDocument();
+	});
+
+	it('reports the zoom, and whether it can still change, as it changes', async () => {
+		const user = userEvent.setup();
+		const onZoomChange = vi.fn();
+		const { canvas } = setup({ onZoomChange });
+		expect(onZoomChange).toHaveBeenLastCalledWith({ level: 4, canIn: true, canOut: true });
+		canvas.focus();
+		for (let i = 0; i < 20; i++) await user.keyboard('+');
+		expect(onZoomChange).toHaveBeenLastCalledWith({ level: 16, canIn: false, canOut: true });
+		for (let i = 0; i < 20; i++) await user.keyboard('-');
+		expect(onZoomChange).toHaveBeenLastCalledWith({ level: 1, canIn: true, canOut: false });
+	});
+
+	it('zooms and fits when asked with a request, once for each serial', () => {
+		const props = { view, cursor: { x: 5, y: 4 }, onCursorChange: vi.fn(), onToolEvent: vi.fn() };
+		const { rerender } = render(<LevelCanvas {...props} zoomRequest={null} />);
+		rerender(<LevelCanvas {...props} zoomRequest={{ kind: 'in', serial: 1 }} />);
+		expect(screen.getByText('Zoom 5×')).toBeInTheDocument();
+		rerender(<LevelCanvas {...props} zoomRequest={{ kind: 'in', serial: 1 }} />);
+		expect(screen.getByText('Zoom 5×')).toBeInTheDocument();
+		rerender(<LevelCanvas {...props} zoomRequest={{ kind: 'out', serial: 2 }} />);
+		expect(screen.getByText('Zoom 4×')).toBeInTheDocument();
+		// Each zoom step is 48 by 32 px for the 12 by 8 level, so 384 px of height allows 12x.
+		rerender(<LevelCanvas {...props} zoomRequest={{ kind: 'fit', serial: 3 }} />);
+		expect(screen.getByText('Zoom 12×')).toBeInTheDocument();
+	});
+
+	it('asks its caller when its buttons are pressed, if the caller wants to run the commands', async () => {
+		const user = userEvent.setup();
+		const onZoomAction = vi.fn();
+		setup({ onZoomAction });
+		await user.click(screen.getByRole('button', { name: 'Zoom in' }));
+		await user.click(screen.getByRole('button', { name: 'Fit level' }));
+		expect(onZoomAction.mock.calls.map((call) => call[0])).toEqual(['in', 'fit']);
+		// The caller zooms; the canvas has not moved by itself.
+		expect(screen.getByText('Zoom 4×')).toBeInTheDocument();
+	});
+
+	it('fits the level with its own button when nothing else runs it', async () => {
+		const user = userEvent.setup();
+		setup();
+		await user.click(screen.getByRole('button', { name: 'Fit level' }));
+		expect(screen.getByText('Zoom 12×')).toBeInTheDocument();
+	});
+
 	it('zooms with the mouse wheel', () => {
 		const { canvas } = setup();
 		fireEvent.wheel(canvas, { deltaY: -100, clientX: 300, clientY: 200 });
@@ -141,7 +196,8 @@ describe('LevelCanvas', () => {
 	it('gives the floating controls the uncovered part of the map, and the status line its edges', () => {
 		const overlay = vi.fn(() => <span data-testid="floating" />);
 		setup({ insets: { top: 0, right: 60, bottom: 84, left: 100 }, overlay });
-		expect(overlay).toHaveBeenLastCalledWith({ w: 480, h: 300 });
+		// The picker is told the map less the room the zoom control keeps at the bottom.
+		expect(overlay).toHaveBeenLastCalledWith({ w: 480, h: 248 });
 		const map = screen.getByTestId('floating').parentElement!;
 		expect(map).toHaveAttribute('data-map');
 		const root = map.closest<HTMLElement>('[style]')!;
@@ -149,7 +205,9 @@ describe('LevelCanvas', () => {
 		expect(root.style.getPropertyValue('--fls-map-w')).toBe('480px');
 		expect(root.style.getPropertyValue('--fls-cover-bottom')).toBe('84px');
 		expect(root.style.getPropertyValue('--fls-cover-right')).toBe('60px');
-		expect(map).not.toContainElement(screen.getByRole('status'));
+		expect(map).not.toContainElement(screen.getByText(/^Cell /));
+		// The zoom control is in the map, which is the part nothing covers.
+		expect(map).toContainElement(screen.getByRole('group', { name: 'Canvas zoom' }));
 	});
 
 	it('sends no move events while the pointer is up', () => {

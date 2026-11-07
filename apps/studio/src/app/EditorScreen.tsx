@@ -19,6 +19,7 @@ import {
 	type ReactNode,
 } from 'react';
 import { LevelCanvas } from '../canvas/LevelCanvas';
+import type { ZoomKind } from '../canvas/ZoomControl';
 import { enMessages, t, type MessageId } from '../i18n/messages';
 import { FloatingPanel } from '../panels/float/FloatingPanel';
 import { neighboursOf } from '../panels/float/usePanelLayout';
@@ -71,6 +72,7 @@ import {
 	CommandBridgeContext,
 	createCommandBridge,
 	type BridgeSnapshot,
+	type CommandFacts,
 } from '../commands/commandBridge';
 import { runCommand } from '../commands/registry';
 import { newerSnapshot } from './snapshotRule';
@@ -90,6 +92,13 @@ export interface EditorScreenProps {
 	/** Controls for the start of the row above the level, before the brush (the main screen's Save and Close level). */
 	toolLead?: ReactNode;
 }
+
+/** The command each button of the zoom control runs. */
+const ZOOM_COMMANDS: Record<ZoomKind, string> = {
+	in: 'view.zoomIn',
+	out: 'view.zoomOut',
+	fit: 'view.zoomFit',
+};
 
 /** Assets is drawn on the left rail, dimmed, until it is built. */
 const railPlaceholders = (): RailPlaceholders => ({
@@ -182,6 +191,9 @@ export function EditorScreen({
 		windows.tearOff(id as PanelId);
 	};
 	const [guides, setGuides] = useState<Guide[]>([]);
+	// The canvas zoom for the zoom commands: what it last reported, and the zoom they last asked for.
+	const [zoom, setZoom] = useState<CommandFacts['zoom']>(null);
+	const [zoomRequest, setZoomRequest] = useState<{ kind: ZoomKind; serial: number } | null>(null);
 	const [dragNote, setDragNote] = useState('');
 	const [reveal, setReveal] = useState<{ cell: Cell; serial: number } | null>(null);
 
@@ -344,6 +356,8 @@ export function EditorScreen({
 		redo,
 		showLine,
 		tearOff: tearOffPanel,
+		zoom,
+		onZoom: (kind) => setZoomRequest((old) => ({ kind, serial: (old?.serial ?? 0) + 1 })),
 	});
 
 	// Tab, on the level or on nothing, shows the level only and brings the panels back.
@@ -601,6 +615,9 @@ export function EditorScreen({
 							reveal={reveal}
 							onCellChosen={onCellChosen}
 							insets={insets}
+							zoomRequest={zoomRequest}
+							onZoomChange={setZoom}
+							onZoomAction={(kind) => void runCommand(ZOOM_COMMANDS[kind], commands)}
 							overlay={(map) => (
 								<ToolPicker
 									tool={tool.tool}

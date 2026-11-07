@@ -1,0 +1,73 @@
+/* A glass pill in the bottom-right corner of the map; it follows the floating-panel glass switch. */
+.pill {
+	position: absolute;
+	right: 0.75rem;
+	bottom: 0.75rem;
+	display: inline-flex;
+	align-items: center;
+	gap: 0.15rem;
+	padding: 0.2rem;
+	color: var(--fls-text-primary);
+	background: var(--fls-glass-floating-bg);
+	-webkit-backdrop-filter: var(--fls-glass-floating-filter);
+	backdrop-filter: var(--fls-glass-floating-filter);
+	border: 1px solid var(--fls-glass-border);
+	border-radius: 999px;
+	box-shadow: var(--fls-glass-shadow);
+	font-variant-numeric: tabular-nums;
+}
+
+.button {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 0.3rem;
+	min-width: var(--fls-hit-target);
+	height: var(--fls-hit-target);
+	padding: 0 0.3rem;
+	color: inherit;
+	background: transparent;
+	border: 0;
+	border-radius: 999px;
+	font: inherit;
+	font-size: 0.8rem;
+	font-weight: 500;
+	cursor: default;
+}
+
+.button:hover:not(:disabled) {
+	background: var(--fls-bg-hover);
+}
+
+.button:focus-visible {
+	outline: 2px solid var(--fls-focus-ring);
+	outline-offset: -2px;
+}
+
+.button:disabled {
+	opacity: 0.4;
+}
+
+.fit {
+	padding: 0 0.6rem 0 0.45rem;
+	border-left: 1px solid var(--fls-border-subtle);
+	border-radius: 0 999px 999px 0;
+}
+
+.factor {
+	min-width: 2.4rem;
+	font-size: 0.85rem;
+	font-weight: 600;
+	text-align: center;
+}
+
+.hidden {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	margin: -1px;
+	padding: 0;
+	overflow: hidden;
+	clip-path: inset(50%);
+	white-space: nowrap;
+}

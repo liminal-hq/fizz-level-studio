@@ -40,6 +40,10 @@ export interface EditorCommandsInput {
 	showLine: (line: number) => void;
 	/** Tears a panel off; the screen's own, which also shows the panel's notice at once. */
 	tearOff: (id: PanelId) => void;
+	/** The canvas zoom as it is now (null until the canvas reports it), published for the zoom commands. */
+	zoom: CommandFacts['zoom'];
+	/** Asks the canvas to zoom in, out or fit; the zoom commands run it. */
+	onZoom: (kind: 'in' | 'out' | 'fit') => void;
 }
 
 /**
@@ -57,6 +61,8 @@ export function useEditorCommands({
 	redo,
 	showLine,
 	tearOff,
+	zoom,
+	onZoom,
 }: EditorCommandsInput): void {
 	// The application menu's Edit and View rows: facts as they are now, and actions that call the latest.
 	const latest = {
@@ -71,6 +77,7 @@ export function useEditorCommands({
 		maximise: dock.maximise,
 		restore: dock.restore,
 		tearOff,
+		onZoom,
 		dockBack: windows.dockBack,
 		activate: dock.activate,
 		dockTo: dock.dockTo,
@@ -126,6 +133,9 @@ export function useEditorCommands({
 			live.current.activate('script');
 		};
 		handlers['script.tab.level.close'] = () => live.current.setVisible('script', false);
+		handlers['view.zoomIn'] = () => live.current.onZoom('in');
+		handlers['view.zoomOut'] = () => live.current.onZoom('out');
+		handlers['view.zoomFit'] = () => live.current.onZoom('fit');
 		handlers['window.floatFocused'] = () => {
 			if (focusedRef.current) live.current.floatPanel(focusedRef.current);
 		};
@@ -165,6 +175,7 @@ export function useEditorCommands({
 				brushes: NO_FACTS.brushes,
 				lineCount: 0,
 				brush: null,
+				zoom: null,
 				spacing: NO_FACTS.spacing,
 				workspace: NO_FACTS.workspace,
 				placeOf: NO_FACTS.placeOf,
@@ -221,6 +232,7 @@ export function useEditorCommands({
 			brushes,
 			lineCount,
 			brush: tool.brush,
+			zoom,
 			spacing: tool.spacing,
 			workspace: { active: dock.active, names: dock.workspaceNames },
 			placeOf,
@@ -240,6 +252,9 @@ export function useEditorCommands({
 		dock.session.levelFirst,
 		dock.session.maximised,
 		tool.brush,
+		zoom?.level,
+		zoom?.canIn,
+		zoom?.canOut,
 		tool.spacing,
 		dock.active,
 		dock.workspaceNames,

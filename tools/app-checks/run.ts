@@ -1016,6 +1016,121 @@ function pickerOffset(l: PickerLayout): { x: number; y: number } {
 	return { x: Math.round(l.picker.x - l.map.x), y: Math.round(l.picker.y - l.map.y) };
 }
 
+/** The floating zoom control, the map it floats over, the tool picker and the docks, as drawn. */
+interface ZoomLayout {
+	pill: Box;
+	map: Box;
+	picker: Box | null;
+	docks: Box[];
+	status: Box | null;
+	readout: string;
+	statusZoomButtons: number;
+}
+
+function measureZoom(bridge: Bridge): Promise<ZoomLayout | null> {
+	return bridge.js<ZoomLayout | null>(
+		`const box = (e) => { if (!e) return null; const r = e.getBoundingClientRect(); return { x: r.left, y: r.top, w: r.width, h: r.height }; };
+		 const pill = document.querySelector('[data-zoom-control]');
+		 const map = document.querySelector('[data-map]');
+		 if (!pill || !map) return null;
+		 const bar = document.querySelector('[data-canvas-bar]');
+		 return { pill: box(pill), map: box(map), picker: box(document.querySelector('[data-tool-picker]')),
+		   docks: ['Left dock', 'Right dock', 'Bottom dock'].map((n) => box(document.querySelector('[aria-label="' + n + '"]'))).filter(Boolean),
+		   status: box(bar), readout: pill.querySelector('[aria-hidden=true]')?.textContent ?? '',
+		   statusZoomButtons: bar ? bar.querySelectorAll('button').length : -1 };`,
+	);
+}
+
+/** Presses a key chord on the page the way the app-wide dispatcher hears it. */
+function pressChord(bridge: Bridge, key: string, init = 'ctrlKey: true') {
+	return bridge.js<boolean>(
+		`document.body.dispatchEvent(new KeyboardEvent('keydown', { key: ${JSON.stringify(key)}, ${init}, bubbles: true, cancelable: true })); return true;`,
+	);
+}
+
+/**
+ * The floating zoom pill lies in the bottom-right corner of the part of the level no dock covers,
+ * clear of the docks, the tool picker and the status line; the status line has no zoom buttons; and
+ * Ctrl+=, Ctrl+- and Ctrl+0 zoom in, out and to fit.
+ */
+async function zoomPillChecks(bridge: Bridge): Promise<void> {
+	const found = await within(5000, async () => (await measureZoom(bridge)) !== null);
+	const m = await measureZoom(bridge);
+	check('zoom: the floating zoom control is on screen', found !== null && m !== null);
+	if (!m) return;
+	const rightGap = m.map.x + m.map.w - (m.pill.x + m.pill.w);
+	const bottomGap = m.map.y + m.map.h - (m.pill.y + m.pill.h);
+	check(
+		'zoom: the control sits at the bottom-right of the map, inside it',
+		m.pill.x >= m.map.x &&
+			m.pill.y >= m.map.y &&
+			rightGap >= 0 &&
+			rightGap < 40 &&
+			bottomGap >= 0 &&
+			bottomGap < 40,
+		JSON.stringify({ pill: m.pill, map: m.map }),
+	);
+	check(
+		'zoom: the control is clear of every dock, the tool picker and the status line',
+		m.docks.every((d) => apart(d, m.pill)) &&
+			(m.picker === null || apart(m.picker, m.pill)) &&
+			(m.status === null || m.pill.y + m.pill.h <= m.status.y + 1),
+		JSON.stringify(m),
+	);
+	check(
+		'zoom: the status line has no zoom buttons',
+		m.statusZoomButtons === 0,
+		String(m.statusZoomButtons),
+	);
+	check(
+		'zoom: the control shows the factor, not a percentage',
+		/^\d+×$/.test(m.readout),
+		m.readout,
+	);
+	const readout = async () => (await measureZoom(bridge))?.readout ?? '';
+	const start = Number.parseInt(m.readout, 10);
+	await pressChord(bridge, '=');
+	const zoomedIn = await within(
+		3000,
+		async () => Number.parseInt(await readout(), 10) === start + 1,
+	);
+	check('zoom: Ctrl+= zooms in', zoomedIn !== null, await readout());
+	await pressChord(bridge, '-');
+	const zoomedOut = await within(3000, async () => Number.parseInt(await readout(), 10) === start);
+	check('zoom: Ctrl+- zooms out', zoomedOut !== null, await readout());
+	await pressChord(bridge, '0');
+	const fitted = await within(3000, async () => Number.parseInt(await readout(), 10) !== start);
+	const fit = Number.parseInt(await readout(), 10);
+	check('zoom: Ctrl+0 fits the level', fitted !== null && fit >= 1 && fit <= 16, await readout());
+	const after = await measureZoom(bridge);
+	check(
+		'zoom: the page itself did not zoom',
+		await bridge.js<boolean>(
+			`return Math.abs(window.visualViewport.scale - 1) < 0.001 && window.devicePixelRatio === ${await bridge.js<number>('return window.devicePixelRatio;')};`,
+		),
+	);
+	// The Fit button does the same as the key, and Zoom in is reachable from the pill.
+	await bridge.js<boolean>(
+		`document.querySelector('[data-zoom-control] button[aria-label="Zoom in"]')?.click(); return true;`,
+	);
+	const buttoned = await within(
+		3000,
+		async () => Number.parseInt(await readout(), 10) === Math.min(16, fit + 1),
+	);
+	check('zoom: the Zoom in button zooms in', buttoned !== null || fit === 16, await readout());
+	await bridge.js<boolean>(
+		`document.querySelector('[data-zoom-control] button[aria-label="Fit level"]')?.click(); return true;`,
+	);
+	const refit = await within(3000, async () => Number.parseInt(await readout(), 10) === fit);
+	check('zoom: the Fit button fits the level', refit !== null, await readout());
+	void after;
+	// Put the default zoom back for the checks that follow.
+	for (let i = 0; i < 20; i++) await pressChord(bridge, '-');
+	await sleep(200);
+	for (let i = 0; i < 3; i++) await pressChord(bridge, '=');
+	await sleep(300);
+}
+
 /**
  * The tools float over the map in a glass pill: it starts at the map's top-left, its keys are
  * square, named and lit for the current tool, a click on one chooses that tool, a drag of its
@@ -2415,6 +2530,7 @@ async function main(): Promise<void> {
 		await transparentEditorChecks(bridge);
 		await dragAndMaximiseChecks(bridge);
 		await toolPickerChecks(bridge);
+		await zoomPillChecks(bridge);
 		// With the default settings there is no menu bar: the title bar's app menu button is the
 		// primary menu, and a real click on it opens File, Edit, View, Window and Help. Choosing
 		// File, then Preferences opens the Preferences window.

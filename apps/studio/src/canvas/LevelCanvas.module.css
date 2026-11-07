@@ -71,13 +71,3 @@
 	-webkit-backdrop-filter: var(--fls-glass-docks-filter);
 	border-top: 1px solid var(--fls-glass-border);
 }
-
-.zoom {
-	display: inline-flex;
-	align-items: center;
-	gap: 0.5rem;
-}
-
-.button {
-	composes: keycap from '@liminal-hq/fizz-studio-chrome/Keycap/keycap.module.css';
-}

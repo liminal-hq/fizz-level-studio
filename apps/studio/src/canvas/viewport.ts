@@ -80,6 +80,33 @@ export function frameViewport(viewport: Viewport, uncovered: FrameRect): Viewpor
 	};
 }
 
+/**
+ * The largest whole zoom, from 1 to 16, at which the whole level fits in `window` (in pixels). A level
+ * too large for the window even at 1x is shown at 1x (and centred by `fitCamera`).
+ */
+export function fitZoom(level: Size, window: Size): number {
+	if (level.width <= 0 || level.height <= 0) return MIN_ZOOM;
+	for (let zoom = MAX_ZOOM; zoom > MIN_ZOOM; zoom -= 1) {
+		const world = worldSize(level, zoom);
+		if (world.width <= window.width && world.height <= window.height) return zoom;
+	}
+	return MIN_ZOOM;
+}
+
+/**
+ * The camera that fits the level: `fitZoom`, with the level centred in the window (a level too large
+ * for the window is centred too, so its middle is what shows).
+ */
+export function fitCamera(level: Size, window: Size): Viewport {
+	const zoom = fitZoom(level, window);
+	const world = worldSize(level, zoom);
+	return {
+		zoom,
+		scrollX: (world.width - window.width) / 2 || 0,
+		scrollY: (world.height - window.height) / 2 || 0,
+	};
+}
+
 export function clampZoom(zoom: number): number {
 	return Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, Math.round(zoom)));
 }

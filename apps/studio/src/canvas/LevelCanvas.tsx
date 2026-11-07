@@ -21,12 +21,14 @@ import type { Cell, PointerPhase, Rect } from '../tools/tool';
 import { drawLevel, readCanvasColours, type DrawContext } from './drawLevel';
 import styles from './LevelCanvas.module.css';
 import { resolveTileColours } from './tileColours';
+import { ZoomControl, type ZoomKind } from './ZoomControl';
 import { wheelAction } from './wheel';
 import {
 	DEFAULT_ZOOM,
 	MAX_ZOOM,
 	MIN_ZOOM,
 	clampScroll,
+	fitCamera,
 	NO_INSETS,
 	clampZoom,
 	frameViewport,
@@ -80,7 +82,22 @@ export interface LevelCanvasProps {
 	 * inside them.
 	 */
 	insets?: Insets;
+	/**
+	 * Asks the canvas to zoom in, out or to fit the level, such as the zoom commands do. A new
+	 * `serial` asks again for the same thing.
+	 */
+	zoomRequest?: { kind: ZoomKind; serial: number } | null;
+	/** Called when the zoom, or whether it can still change either way, changes. */
+	onZoomChange?: (zoom: { level: number; canIn: boolean; canOut: boolean }) => void;
+	/**
+	 * Called when a button of the zoom control is pressed. Without it the canvas zooms itself; with it
+	 * the caller runs the matching command, which comes back as a `zoomRequest`.
+	 */
+	onZoomAction?: (kind: ZoomKind) => void;
 }
+
+/** The room the tool picker leaves at the bottom of the map for the zoom control. */
+const ZOOM_CONTROL_ROOM = 52;
 
 const NO_CELLS: readonly Cell[] = [];
 const NO_GHOSTS: readonly GhostCell[] = [];
@@ -103,6 +120,9 @@ export function LevelCanvas({
 	onCellChosen,
 	overlay,
 	insets = NO_INSETS,
+	zoomRequest = null,
+	onZoomChange,
+	onZoomAction,
 }: LevelCanvasProps) {
 	const canvasRef = useRef<HTMLCanvasElement>(null);
 	const frameRef = useRef<HTMLDivElement>(null);
@@ -283,6 +303,35 @@ export function LevelCanvas({
 		const centre = { x: seen.width / 2, y: seen.height / 2 };
 		setCamera(zoomAt(viewport, viewport.zoom + step, centre.x, centre.y, seen, view));
 	};
+	const zoomTo = (kind: ZoomKind) => {
+		if (kind === 'fit') setCamera(fitCamera(view, seen));
+		else zoomBy(kind === 'in' ? 1 : -1);
+	};
+
+	// A zoom the commands asked for; each new serial asks once.
+	const lastZoom = useRef(0);
+	useEffect(() => {
+		if (!zoomRequest || zoomRequest.serial === lastZoom.current) return;
+		lastZoom.current = zoomRequest.serial;
+		if (zoomRequest.kind === 'fit') setCamera(fitCamera(view, seen));
+		else {
+			const centre = { x: seen.width / 2, y: seen.height / 2 };
+			const step = zoomRequest.kind === 'in' ? 1 : -1;
+			setCamera((current) => zoomAt(current, current.zoom + step, centre.x, centre.y, seen, view));
+		}
+	}, [zoomRequest, seen, view]);
+
+	// The zoom is told to whoever keeps the facts, so the zoom commands know when they can run.
+	const zoomLevel = clampZoom(viewport.zoom);
+	const zoomChange = useRef(onZoomChange);
+	zoomChange.current = onZoomChange;
+	useEffect(() => {
+		zoomChange.current?.({
+			level: zoomLevel,
+			canIn: zoomLevel < MAX_ZOOM,
+			canOut: zoomLevel > MIN_ZOOM,
+		});
+	}, [zoomLevel]);
 
 	const onKeyDown = (event: KeyboardEvent<HTMLCanvasElement>) => {
 		if (event.ctrlKey || event.metaKey || event.altKey) return;
@@ -339,35 +388,20 @@ export function LevelCanvas({
 						onPointerUp={onPointerEnd}
 						onPointerCancel={onPointerEnd}
 					/>
-					{overlay && (
-						<div className={styles.map} data-map="">
-							{overlay({ w: visible.width, h: visible.height })}
-						</div>
-					)}
+					<div className={styles.map} data-map="">
+						{overlay?.({ w: visible.width, h: Math.max(0, visible.height - ZOOM_CONTROL_ROOM) })}
+						<ZoomControl
+							zoom={zoomLevel}
+							canIn={zoomLevel < MAX_ZOOM}
+							canOut={zoomLevel > MIN_ZOOM}
+							onZoom={onZoomAction ?? zoomTo}
+						/>
+					</div>
 				</div>
 				<div className={styles.bar} ref={barRef} data-canvas-bar="">
 					<span className={styles.status} role="status">
 						{t('canvas.cell', { x: cursor.x, y: cursor.y, tile: word })}
 					</span>
-					<div className={styles.zoom} role="group" aria-label={t('canvas.zoomGroup')}>
-						<button
-							type="button"
-							className={styles.button}
-							disabled={viewport.zoom <= MIN_ZOOM}
-							onClick={() => zoomBy(-1)}
-						>
-							{t('canvas.zoomOut')}
-						</button>
-						<span>{t('canvas.zoomLevel', { zoom: clampZoom(viewport.zoom) })}</span>
-						<button
-							type="button"
-							className={styles.button}
-							disabled={viewport.zoom >= MAX_ZOOM}
-							onClick={() => zoomBy(1)}
-						>
-							{t('canvas.zoomIn')}
-						</button>
-					</div>
 				</div>
 			</div>
 		</div>
