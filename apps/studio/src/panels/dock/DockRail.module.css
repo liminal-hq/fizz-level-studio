@@ -61,6 +61,25 @@
 	opacity: 0.5;
 }
 
+/* The entry of the panel that has just landed from a drag back out of its own window. */
+.item[data-landed] {
+	outline: 2px solid var(--fls-accent);
+	outline-offset: -2px;
+	animation: landed 1.6s ease-out forwards;
+}
+
+@keyframes landed {
+	to {
+		outline-color: transparent;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.item[data-landed] {
+		animation: none;
+	}
+}
+
 .rail[data-rail='bottom'] .item {
 	height: calc(var(--fls-rail) - 0.3rem - 1px);
 }

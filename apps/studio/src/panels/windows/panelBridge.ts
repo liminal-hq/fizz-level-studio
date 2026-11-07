@@ -13,6 +13,7 @@
 // not started listening yet simply misses it (the panel window asks again with `hello`).
 
 import { emit, listen } from '@tauri-apps/api/event';
+import type { ZoneId } from '@liminal-hq/fizz-studio-protocol/generated/ZoneId';
 import type { Brush } from '../../tools/brush';
 import type { Cell, ToolId } from '../../tools/tool';
 
@@ -60,6 +61,14 @@ export interface BridgeTopics {
 	'proposals/shown': { shown: boolean };
 	/** A panel window to the main window: hide or show these layers on the canvas. */
 	'layers/hidden': { hidden: string[] };
+	/**
+	 * A panel window to the main window: the panel was dragged back and let go over this place in the
+	 * dock (a dock, a tab group in it, and the place among its tabs; null is the end). The main
+	 * window docks it there, which closes the panel's window.
+	 */
+	dockBackTo: { panel: string; zone: ZoneId; group: number | null; index: number | null };
+	/** A panel window to the main window: the panel being dragged is over this region (null: none), so show where it would land. */
+	dockHint: { panel: string; region: string | null };
 }
 
 export type BridgeTopic = keyof BridgeTopics;

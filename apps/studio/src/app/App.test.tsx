@@ -32,6 +32,9 @@ vi.mock('../preferences/PreferencesScreen', () => ({
 	PreferencesScreen: () => <p data-testid="preferences-screen" />,
 }));
 
+// The ghost's own tests cover it; here it only has to be chosen.
+vi.mock('./TearGhostScreen', () => ({ TearGhostScreen: () => <p data-testid="tear-ghost" /> }));
+
 vi.mock('./NewLevelScreen', () => ({ NewLevelScreen: () => <p data-testid="new-level-screen" /> }));
 
 import { App } from './App';
@@ -63,13 +66,15 @@ describe('App', () => {
 		expect(screen.getByTestId('new-level-screen')).toBeInTheDocument();
 	});
 
-	it.each(['mystery', 'main-0', 'panel-game-view-1', 'tear-ghost'])(
-		'shows nothing for %s',
-		(label) => {
-			const { container } = render(<App windowLabel={label} />);
-			expect(container).toBeEmptyDOMElement();
-		},
-	);
+	it('shows the tear-off ghost in the tear-ghost window', () => {
+		render(<App windowLabel="tear-ghost" />);
+		expect(screen.getByTestId('tear-ghost')).toBeInTheDocument();
+	});
+
+	it.each(['mystery', 'main-0', 'panel-game-view-1'])('shows nothing for %s', (label) => {
+		const { container } = render(<App windowLabel={label} />);
+		expect(container).toBeEmptyDOMElement();
+	});
 
 	it.each(['palette', 'objects', 'history', 'proposals', 'script'])(
 		'shows a Dock back button and waits for the main window in the %s panel window',

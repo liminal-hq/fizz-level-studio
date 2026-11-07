@@ -39,6 +39,8 @@ import {
 	type Point,
 } from '../panels/dock/dockDrop';
 import { useDockDrag } from '../panels/dock/useDockDrag';
+import { useTearOffDrag } from '../panels/windows/useTearOffDrag';
+import type { TearoffClient } from '../services/tearoffClient';
 import { ZONE_LABELS } from '../panels/dock/DockZone';
 import { useLayerLocks } from '../panels/layers/useLayerLocks';
 import { lockedProblem } from '../panels/layers/lockedNote';
@@ -90,6 +92,8 @@ export interface EditorScreenProps {
 	docks?: DockClient;
 	/** The channel to the panels torn off into their own windows; without one they get no state. */
 	panelBridge?: PanelBridge;
+	/** The tear-off plugin, for dragging a panel out into a window and back; without it a drag stays in the window. */
+	tearoff?: TearoffClient;
 }
 
 /** The command each button of the zoom control runs. */
@@ -130,6 +134,7 @@ export function EditorScreen({
 	panelWindows,
 	docks = defaultDockClient,
 	panelBridge,
+	tearoff,
 }: EditorScreenProps) {
 	const [snapshot, setSnapshot] = useState(initial);
 	const held = useRef(initial);
@@ -480,7 +485,20 @@ export function EditorScreen({
 	// Dragging a panel: the docks and the level are the places it can be let go.
 	const dragLive = useRef({ dock, titleOf, area });
 	dragLive.current = { dock, titleOf, area };
+	// Out of the window and back: the tear-off drag's side of the docks. Its hint is shown through the
+	// drag controller, which is made next.
+	const hoverRef = useRef<(id: string, point: Point | null) => void>(() => {});
+	const tearDrag = useTearOffDrag({
+		client: tearoff,
+		areaRef,
+		dock,
+		windows,
+		titleOf,
+		hover: (id, point) => hoverRef.current(id, point),
+		say: setDragNote,
+	});
 	const drag = useDockDrag({
+		onLeaveWindow: tearDrag.onLeaveWindow,
 		locate: (point: Point, id: string) =>
 			areaRef.current ? locateDropTarget(areaRef.current, point, id) : null,
 		onDrop: (id: string, target: DropTarget, point: Point) => {
@@ -510,6 +528,8 @@ export function EditorScreen({
 		onCancel: (id: string) =>
 			setDragNote(t('dock.drag.cancelled', { title: dragLive.current.titleOf(id) })),
 	});
+
+	hoverRef.current = drag.hoverFloat;
 
 	// A panel in a window of its own keeps its tab and its place; its content is the notice.
 	const tabTitleOf = (id: string) =>
@@ -547,6 +567,8 @@ export function EditorScreen({
 		showLine,
 		setGhostsShown: setShowGhosts,
 		setHiddenLayers,
+		dockBackTo: tearDrag.dockBackTo,
+		dockHint: tearDrag.dockHint,
 	});
 
 	// A panel in a window of its own cannot be dragged in the main window; its tab only docks it
@@ -575,7 +597,7 @@ export function EditorScreen({
 				controls="panel-body-script"
 				onActivate={() => (windows.away.script ? tearOffPanel('script') : dock.activate('script'))}
 				onClose={() => dock.setVisible('script', false)}
-				onTabDragStart={(event) => dragFromHere.begin(event, 'script', 'header')}
+				onTabDragStart={(event) => dragFromHere.begin(event, 'script', 'scriptTab')}
 			/>
 		);
 	}
@@ -650,6 +672,7 @@ export function EditorScreen({
 					railPlaceholders={railPlaceholders()}
 					drag={dragFromHere}
 					announcement={dragNote}
+					landed={tearDrag.landed}
 				>
 					<div className={styles.canvas}>
 						<LevelCanvas

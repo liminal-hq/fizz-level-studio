@@ -12,6 +12,10 @@ import { panelWindowClient, type PanelWindowClient } from '../services/panelWind
 import { PANEL_SPECS } from './float/panelSpecs';
 import { useLayerLocks } from './layers/useLayerLocks';
 import { createPanelBridge, type PanelBridge } from './windows/panelBridge';
+import { usePanelWindowDrag } from './windows/usePanelWindowDrag';
+import { tearoffClient } from '../services/tauriTearoffClient';
+import type { TearoffClient } from '../services/tearoffClient';
+import { PANEL_ICONS } from './dock/panelIcons';
 import { usePanelSession } from './windows/usePanelSession';
 import { TauriLevelClient } from '../worlds/tauriLevelClient';
 import type { LevelClient } from '../worlds/levelClient';
@@ -28,6 +32,8 @@ export interface PanelWindowScreenProps {
 	levels?: LevelClient;
 	/** The channel to the main window; defaults to the app's events. */
 	bridge?: PanelBridge;
+	/** The tear-off plugin, for dragging the panel back to the main window; defaults to the app's. */
+	tearoff?: TearoffClient;
 }
 
 let sharedLevels: TauriLevelClient | null = null;
@@ -46,6 +52,7 @@ export function PanelWindowScreen({
 	client = panelWindowClient,
 	levels,
 	bridge,
+	tearoff = tearoffClient,
 }: PanelWindowScreenProps) {
 	const panel = panelFromLabel(windowLabel);
 	const spec = PANEL_SPECS.find((candidate) => candidate.id === panel);
@@ -57,6 +64,7 @@ export function PanelWindowScreen({
 			client={client}
 			levels={levels ?? defaultLevels()}
 			bridge={bridge}
+			tearoff={tearoff}
 		/>
 	);
 }
@@ -67,14 +75,33 @@ interface PanelWindowProps {
 	client: PanelWindowClient;
 	levels: LevelClient;
 	bridge: PanelBridge | undefined;
+	tearoff: TearoffClient;
 }
 
-function PanelWindow({ windowLabel, spec, client, levels, bridge: given }: PanelWindowProps) {
+function PanelWindow({
+	windowLabel,
+	spec,
+	client,
+	levels,
+	bridge: given,
+	tearoff,
+}: PanelWindowProps) {
 	const bridge = useMemo(() => given ?? createPanelBridge(windowLabel, true), [given, windowLabel]);
 	const owner = ownerOfPanel(windowLabel) ?? 'main-1';
 	const session = usePanelSession(windowLabel, bridge, levels);
 	const { share, snapshot } = session;
 	const layerLocks = useLayerLocks(levels, share?.levelId ?? null);
+	// Dragging the tab or the title back over the main window docks the panel where it is let go.
+	const drag = usePanelWindowDrag({
+		client: tearoff,
+		bridge,
+		owner,
+		label: windowLabel,
+		panel: spec.id,
+		title: t(spec.title),
+		dockBack: () => void client.dockBack(spec.id),
+	});
+	const Icon = PANEL_ICONS[spec.id];
 	return (
 		<AppWindow titleId={spec.title}>
 			<main className={styles.panel}>
@@ -91,7 +118,18 @@ function PanelWindow({ windowLabel, spec, client, levels, bridge: given }: Panel
 							controls="panel-window-body"
 							onActivate={() => {}}
 							onClose={() => void client.dockBack(spec.id)}
+							onTabDragStart={(event) => drag.onPointerDown(event, 'scriptTab')}
 						/>
+					)}
+					{spec.id !== 'script' && (
+						// The panel's name, the handle to drag it back to the main window by.
+						<h2
+							className={styles.title}
+							onPointerDown={(event) => drag.onPointerDown(event, 'header')}
+						>
+							<Icon />
+							<span>{t(spec.title)}</span>
+						</h2>
 					)}
 					<button
 						type="button"

@@ -73,6 +73,8 @@ export interface DockShellProps {
 	 * whose group is laid over the workspace by the stylesheet while everything else is hidden.
 	 */
 	maximised?: string | null;
+	/** The panel that has just landed from a drag (back from its own window, say): its header and rail entry are marked for a moment. */
+	landed?: string | null;
 	/** What the last drag did, for the screen reader. */
 	announcement?: string;
 	/**
@@ -105,6 +107,7 @@ export function DockShell({
 	railPlaceholders,
 	drag,
 	announcement = '',
+	landed = null,
 	expandable,
 	maximised = null,
 	children,
@@ -211,6 +214,7 @@ export function DockShell({
 					onReorder={reorder}
 					onDragStart={drag?.begin}
 					dragging={dragging?.id ?? null}
+					landed={landed}
 					placeholders={railPlaceholders?.[id]}
 				/>
 			</div>
@@ -239,6 +243,7 @@ export function DockShell({
 					headerExtra={headerExtra}
 					onDragStart={drag?.begin}
 					dragging={dragging?.id ?? null}
+					landed={landed}
 					expandable={expandable}
 					onMaximise={actions.maximise}
 					maximised={maximised}

@@ -3,7 +3,7 @@
 // (c) Copyright 2026 Liminal HQ, Scott Morris
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
-import { act, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import type { EditorShare } from './windows/panelBridge';
@@ -29,6 +29,8 @@ import { fakePanelWindows } from '../test/panelWindowFixtures';
 import { FakeLevelClient } from '../worlds/fakeLevelClient';
 import { PanelWindowScreen } from './PanelWindowScreen';
 import { createBridgeHub } from './windows/fakePanelBridge';
+import { createFakeTearoff, type FakeTearoff } from '../services/fakeTearoffClient';
+import type { TearoffFeatures } from '../services/tearoffClient';
 
 const share = (overrides: Partial<EditorShare> = {}): EditorShare => ({
 	levelId: 'level-1',
@@ -42,7 +44,11 @@ const share = (overrides: Partial<EditorShare> = {}): EditorShare => ({
 });
 
 /** A panel window with a main window that answers hello as the editor does. */
-function mount(label: string, state: EditorShare | null = share()) {
+function mount(
+	label: string,
+	state: EditorShare | null = share(),
+	tearoff: FakeTearoff = createFakeTearoff(),
+) {
 	const hub = createBridgeHub();
 	const main = hub.bridgeFor('main-1');
 	if (state) main.on('hello', (_none, from) => main.send(from, 'editor', state));
@@ -52,6 +58,8 @@ function mount(label: string, state: EditorShare | null = share()) {
 		'objects/choose',
 		'script/show',
 		'proposals/shown',
+		'dockBackTo',
+		'dockHint',
 	] as const) {
 		main.on(topic, (payload) => heard.push({ topic, payload }));
 	}
@@ -64,9 +72,10 @@ function mount(label: string, state: EditorShare | null = share()) {
 			client={windows.client}
 			levels={levels}
 			bridge={hub.bridgeFor(label)}
+			tearoff={tearoff}
 		/>,
 	);
-	return { hub, main, levels, windows, heard };
+	return { hub, main, levels, windows, heard, tearoff };
 }
 
 describe('a panel window', () => {
@@ -192,5 +201,159 @@ describe('a panel window', () => {
 	it('shows nothing for a panel it does not have', () => {
 		const { container } = render(<PanelWindowScreen windowLabel="panel-game-view-1" />);
 		expect(container).toBeEmptyDOMElement();
+	});
+});
+
+const ghostDesktop: Partial<TearoffFeatures> = {
+	ghost: true,
+	cursorFollow: true,
+	hitTest: true,
+	windowPosition: true,
+};
+const down = (el: Element, x: number, y: number) =>
+	fireEvent.pointerDown(el, { pointerId: 1, button: 0, clientX: x, clientY: y });
+const move = (x: number, y: number) =>
+	fireEvent.pointerMove(document, { pointerId: 1, clientX: x, clientY: y });
+const up = (x: number, y: number) =>
+	fireEvent.pointerUp(document, { pointerId: 1, clientX: x, clientY: y });
+const settle = (ms = 0) => act(() => new Promise<void>((resolve) => setTimeout(resolve, ms)));
+
+describe('dragging a panel window back to the main window', () => {
+	async function startDrag(label: string, tearoff: FakeTearoff) {
+		const view = mount(label, share(), tearoff);
+		const handle =
+			label === 'panel-script-1'
+				? await screen.findByRole('tab', { name: 'test.fizz' })
+				: screen.getByRole('heading', { name: 'Objects' });
+		await settle();
+		return { ...view, handle };
+	}
+
+	it('starts from the Script’s tab, with the scriptTab source, and docks where it is let go', async () => {
+		const tearoff = createFakeTearoff(ghostDesktop);
+		const { handle, heard } = await startDrag('panel-script-1', tearoff);
+		tearoff.hit = { window: 'main-1', region: 'group:right:0', x: 5, y: 5 };
+		tearoff.dropReport = {
+			cursor: { x: 100, y: 100 },
+			scaleFactor: 1,
+			cursorStale: false,
+			hit: { window: 'main-1', region: 'rail:left:0:1', x: 5, y: 5 },
+		};
+		down(handle, 20, 10);
+		move(60, 10);
+		await settle();
+		expect(tearoff.begun[0]!.payload).toMatchObject({ panel: 'script', source: 'scriptTab' });
+		act(() => up(60, 10));
+		await settle();
+		expect(tearoff.ended).toEqual(['drop']);
+		expect(heard).toContainEqual({
+			topic: 'dockBackTo',
+			payload: { panel: 'script', zone: 'left', group: 0, index: 1 },
+		});
+	});
+
+	it('tells the main window where the panel would land while the ghost is over a region', async () => {
+		const tearoff = createFakeTearoff(ghostDesktop);
+		const { handle, heard } = await startDrag('panel-objects-1', tearoff);
+		tearoff.hit = { window: 'main-1', region: 'group:right:0', x: 5, y: 5 };
+		down(handle, 20, 10);
+		move(60, 10);
+		await settle(200);
+		expect(heard).toContainEqual({
+			topic: 'dockHint',
+			payload: { panel: 'objects', region: 'group:right:0' },
+		});
+		expect(tearoff.updates.at(-1)!.label).toMatch(/dock here/);
+		tearoff.hit = null;
+		await settle(200);
+		expect(heard.filter((h) => h.topic === 'dockHint').at(-1)!.payload).toEqual({
+			panel: 'objects',
+			region: null,
+		});
+		act(() => up(60, 10));
+		await settle();
+	});
+
+	it('docks back to where it was when let go over the level', async () => {
+		const tearoff = createFakeTearoff(ghostDesktop);
+		const { handle, windows } = await startDrag('panel-objects-1', tearoff);
+		tearoff.dropReport = {
+			cursor: { x: 1, y: 1 },
+			scaleFactor: 1,
+			cursorStale: false,
+			hit: { window: 'main-1', region: 'level', x: 5, y: 5 },
+		};
+		down(handle, 20, 10);
+		move(60, 10);
+		await settle();
+		act(() => up(60, 10));
+		await settle();
+		expect(windows.client.dockBack).toHaveBeenCalledWith('objects');
+	});
+
+	it('changes nothing when let go over nothing, or over a region of another window', async () => {
+		const tearoff = createFakeTearoff(ghostDesktop);
+		const { handle, windows, heard } = await startDrag('panel-objects-1', tearoff);
+		tearoff.dropReport = {
+			cursor: { x: 1, y: 1 },
+			scaleFactor: 1,
+			cursorStale: false,
+			hit: { window: 'main-2', region: 'zone:left', x: 5, y: 5 },
+		};
+		down(handle, 20, 10);
+		move(60, 10);
+		await settle();
+		act(() => up(60, 10));
+		await settle();
+		expect(windows.client.dockBack).not.toHaveBeenCalled();
+		expect(heard.filter((h) => h.topic === 'dockBackTo')).toEqual([]);
+	});
+
+	it('cancels the ghost with Escape and sends no drop', async () => {
+		const tearoff = createFakeTearoff(ghostDesktop);
+		const { handle, heard } = await startDrag('panel-objects-1', tearoff);
+		down(handle, 20, 10);
+		move(60, 10);
+		await settle();
+		act(() => {
+			fireEvent.keyDown(document, { key: 'Escape' });
+		});
+		await settle();
+		expect(tearoff.ended).toEqual(['cancel']);
+		expect(heard.filter((h) => h.topic === 'dockBackTo')).toEqual([]);
+	});
+
+	it('is still a click when the pointer barely moves', async () => {
+		const tearoff = createFakeTearoff(ghostDesktop);
+		const { handle } = await startDrag('panel-objects-1', tearoff);
+		down(handle, 20, 10);
+		move(21, 10);
+		act(() => up(21, 10));
+		await settle();
+		expect(tearoff.calls).not.toContain('begin');
+	});
+
+	it('on Wayland has the compositor drag this window, with its own label', async () => {
+		const tearoff = createFakeTearoff({ toplevelDrag: true });
+		const { handle } = await startDrag('panel-objects-1', tearoff);
+		down(handle, 20, 10);
+		move(60, 10);
+		await settle();
+		expect(tearoff.toplevel[0]).toMatchObject({
+			label: 'panel-objects-1',
+			payload: { panel: 'objects', source: 'header' },
+		});
+		expect(tearoff.begun).toEqual([]);
+	});
+
+	it('starts nothing where the desktop has no route, and Dock back is still there', async () => {
+		const tearoff = createFakeTearoff();
+		const { handle } = await startDrag('panel-objects-1', tearoff);
+		down(handle, 20, 10);
+		move(60, 10);
+		await settle();
+		act(() => up(60, 10));
+		expect(tearoff.calls).toEqual([]);
+		expect(screen.getByRole('button', { name: 'Dock back' })).toBeInTheDocument();
 	});
 });

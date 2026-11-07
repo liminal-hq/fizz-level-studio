@@ -38,6 +38,7 @@ import { AppToolbar } from './AppToolbar';
 import { AppWindow } from './AppWindow';
 import type { DockClient } from '../services/dockClient';
 import type { PanelBridge } from '../panels/windows/panelBridge';
+import type { TearoffClient } from '../services/tearoffClient';
 import { CloseLevelDialog } from './CloseLevelDialog';
 import { EditorScreen } from './EditorScreen';
 import { KeyboardShortcutsDialog } from './KeyboardShortcutsDialog';
@@ -66,6 +67,8 @@ export interface MainScreenProps {
 	settings?: UiSettingsClient;
 	/** The channel to panels torn off into their own windows. */
 	panelBridge?: PanelBridge;
+	/** The tear-off plugin for dragging panels out and back; the app passes the real one. */
+	tearoff?: TearoffClient;
 }
 
 // One client for the app: it remembers each level's latest snapshot between calls.
@@ -112,6 +115,7 @@ function MainScreenBody({
 	quit = quitClient,
 	settings = settingsClient,
 	panelBridge,
+	tearoff,
 }: MainScreenProps & { bridge: CommandBridge }) {
 	/** The snapshot the level was opened from; the editor takes later ones from `level`. */
 	const [level, setLevel] = useState<LevelSnapshot | null>(null);
@@ -618,6 +622,7 @@ function MainScreenBody({
 						onSnapshot={follow}
 						docks={docks}
 						panelBridge={panelBridge}
+						tearoff={tearoff}
 					/>
 				</div>
 			</div>

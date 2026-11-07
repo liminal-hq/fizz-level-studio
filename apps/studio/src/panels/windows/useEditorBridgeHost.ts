@@ -9,7 +9,10 @@
 // window's word, and a bad one is dropped.
 
 import { useEffect, useRef } from 'react';
+import type { ZoneId } from '@liminal-hq/fizz-studio-protocol/generated/ZoneId';
 import { BRUSH_GROUPS, type Brush } from '../../tools/brush';
+import { ZONE_IDS } from '../dock/dockModel';
+import { PANEL_SPECS, type PanelId } from '../float/panelSpecs';
 import { TOOL_IDS, type Cell } from '../../tools/tool';
 import { EVERY_PANEL, type EditorShare, type PaletteChoice, type PanelBridge } from './panelBridge';
 
@@ -22,6 +25,10 @@ export interface EditorBridgeHandlers {
 	showLine(line: number): void;
 	setGhostsShown(shown: boolean): void;
 	setHiddenLayers(hidden: string[]): void;
+	/** A panel window dragged a panel back and let go over a place in the docks. */
+	dockBackTo(panel: PanelId, zone: ZoneId, group: number | null, index: number | null): void;
+	/** A panel window is dragging a panel over a region of the docks (null: none). */
+	dockHint(panel: PanelId, region: string | null): void;
 }
 
 function isBrush(value: unknown): value is Brush {
@@ -29,6 +36,14 @@ function isBrush(value: unknown): value is Brush {
 	const v = value as Record<string, unknown>;
 	return BRUSH_GROUPS.includes(v.group as Brush['group']) && typeof v.kind === 'string';
 }
+
+const isPanelId = (value: unknown): value is PanelId =>
+	PANEL_SPECS.some((spec) => spec.id === value);
+
+const isZoneId = (value: unknown): value is ZoneId => ZONE_IDS.includes(value as ZoneId);
+
+const isPlace = (value: unknown): value is number | null =>
+	value === null || (typeof value === 'number' && Number.isInteger(value) && value >= 0);
 
 const isCoordinate = (value: unknown): value is number =>
 	typeof value === 'number' && Number.isFinite(value);
@@ -72,6 +87,16 @@ export function useEditorBridgeHost(
 				if (message && Array.isArray(message.hidden)) {
 					live.current.setHiddenLayers(message.hidden.filter((id) => typeof id === 'string'));
 				}
+			}),
+			bridge.on('dockBackTo', (message) => {
+				if (!message || !isPanelId(message.panel) || !isZoneId(message.zone)) return;
+				if (!isPlace(message.group) || !isPlace(message.index)) return;
+				live.current.dockBackTo(message.panel, message.zone, message.group, message.index);
+			}),
+			bridge.on('dockHint', (message) => {
+				if (!message || !isPanelId(message.panel)) return;
+				if (message.region !== null && typeof message.region !== 'string') return;
+				live.current.dockHint(message.panel, message.region);
 			}),
 			bridge.on('proposals/shown', (message) => {
 				if (message && typeof message.shown === 'boolean') {

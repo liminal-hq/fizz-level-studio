@@ -33,6 +33,8 @@ export interface DockZoneProps {
 	onRestore?: () => void;
 	/** The panel being dragged, dimmed where it sits. */
 	dragging?: string | null;
+	/** The panel that just landed from a drag: its header is marked for a moment. */
+	landed?: string | null;
 }
 
 /** How much room a header has: a side dock is narrow. */
@@ -60,6 +62,7 @@ export function DockZone({
 	headerExtra,
 	onDragStart,
 	dragging = null,
+	landed = null,
 	expandable,
 	onMaximise,
 	maximised = null,
@@ -79,6 +82,7 @@ export function DockZone({
 					headerExtra={headerExtra}
 					onDragStart={onDragStart}
 					dragging={dragging}
+					landed={landed}
 					expandable={expandable}
 					onMaximise={onMaximise}
 					maximised={maximised}
@@ -104,6 +108,7 @@ function Group({
 	headerExtra,
 	onDragStart,
 	dragging = null,
+	landed = null,
 	expandable,
 	onMaximise,
 	maximised = null,
@@ -127,6 +132,7 @@ function Group({
 				className={styles.header}
 				data-strip=""
 				data-dragging={active === dragging || undefined}
+				data-landed={active === landed || undefined}
 				onPointerDown={(event) => {
 					if (filling || (event.target as HTMLElement).closest('button')) return;
 					onDragStart?.(event, active, 'header');

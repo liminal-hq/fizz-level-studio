@@ -31,9 +31,14 @@ export interface PanelWindowClient {
 	/**
 	 * Opens the panel's window, or focuses it when it is already open, and answers where it is.
 	 * `placement` is the remembered place from the saved workspace; Rust fits it to the screens that
-	 * exist now, and a platform that cannot place windows keeps only the size.
+	 * exist now, and a platform that cannot place windows keeps only the size. `hidden` makes the
+	 * window and leaves it hidden, for the compositor's window drag to show.
 	 */
-	tearOff(panel: string, placement?: WindowPlacement | null): Promise<PanelPlaced>;
+	tearOff(
+		panel: string,
+		placement?: WindowPlacement | null,
+		options?: { hidden?: boolean },
+	): Promise<PanelPlaced>;
 	/** Closes the panel's window, which puts the panel back where it was. */
 	dockBack(panel: string): Promise<void>;
 	/** A panel window closed, however it closed; the argument is its label. */
@@ -61,8 +66,13 @@ function hear<T>(event: string, listener: (payload: T) => void): () => void {
 /** The real client: Rust's `tear_off_panel`, `open_panels` and `close_panel` commands. */
 export const panelWindowClient: PanelWindowClient = {
 	open: () => invoke<string[]>('open_panels'),
-	tearOff: (panel, placement) =>
-		invoke<PanelPlaced>('tear_off_panel', { panel, placement: placement ?? null }),
+	tearOff: (panel, placement, options) =>
+		invoke<PanelPlaced>('tear_off_panel', {
+			panel,
+			placement: placement ?? null,
+			// Hidden only for the compositor's window drag, which shows the window itself.
+			...(options?.hidden ? { hidden: true } : {}),
+		}),
 	dockBack: (panel) => invoke('close_panel', { id: panelWindowId(panel) }),
 	onClosed: (listener) => hear<string>(PANEL_CLOSED_EVENT, listener),
 	onPlaced: (listener) => hear<PanelPlaced>(PANEL_PLACED_EVENT, listener),

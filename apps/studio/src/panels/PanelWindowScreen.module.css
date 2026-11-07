@@ -30,3 +30,22 @@
 .button {
 	composes: keycap from '@liminal-hq/fizz-studio-chrome/Keycap/keycap.module.css';
 }
+
+/* The panel's name at the start of the bar: the handle to drag the panel back to the main window by. */
+.title {
+	display: flex;
+	flex: 1;
+	align-items: center;
+	gap: 0.4rem;
+	margin: 0;
+	padding: 0.25rem 0.5rem 0.25rem 0;
+	font-size: 0.95rem;
+	font-weight: 600;
+	cursor: grab;
+	user-select: none;
+	touch-action: none;
+}
+
+.title:active {
+	cursor: grabbing;
+}

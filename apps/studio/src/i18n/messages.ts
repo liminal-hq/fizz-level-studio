@@ -575,6 +575,21 @@ export const enMessages = {
 	'dock.drag.floated': '{title} is floating over the level.',
 	// translator: Announced to screen readers when a drag of a panel is cancelled and the panel stays where it was. {title} is the panel’s name.
 	'dock.drag.cancelled': 'Move cancelled. {title} stays where it was.',
+	// translator: Small line under a panel’s name on the card that follows the pointer while the panel is dragged out of the window. Releasing turns the panel into a window of its own.
+	'tearoff.ghost.tearOff': 'Release to tear off',
+	// translator: Small line under a panel’s name on the card that follows the pointer while a panel in its own window is dragged. The pointer is not over a place in the main window that takes it.
+	'tearoff.ghost.drag': 'Drag onto the editor to dock',
+	// translator: Small line under a panel’s name on the card that follows the pointer while a panel in its own window is dragged over the main window. Releasing docks it there.
+	'tearoff.ghost.dock': 'Release to dock here',
+	// translator: Announced to screen readers when a panel was dragged out into a window of its own. {title} is the panel’s name.
+	'tearoff.drag.torn': '{title} is now in a window of its own.',
+	// translator: Announced to screen readers when dragging a panel out of the window is not possible on this desktop. The panel’s own menu has a Tear off row that works everywhere.
+	'tearoff.drag.unavailable':
+		'This desktop cannot drag a panel into a window. Use the panel’s ⋮ menu, then Tear off.',
+	// translator: Announced to screen readers when a drag that would have torn a panel off into a window was cancelled. {title} is the panel’s name.
+	'tearoff.drag.cancelled': 'Tear off cancelled. {title} stays where it was.',
+	// translator: Announced to screen readers when a panel in a window of its own was dragged back into the main window. {title} is the panel’s name.
+	'tearoff.drag.dockedBack': '{title} is back in the main window.',
 	// translator: Name and tooltip of a button in a panel’s header. Makes the panel fill the editor’s whole workspace, with the level and the other panels hidden behind it. This is not the window’s own maximise button. {title} is the panel’s name.
 	'panel.maximise': 'Maximise {title}',
 	// translator: Tooltip of the button that maximises a panel. {title} is the panel’s name and {keys} the keys that do the same, such as “Ctrl+Shift+M”.

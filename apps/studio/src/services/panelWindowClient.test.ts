@@ -44,6 +44,12 @@ describe('panelWindowClient', () => {
 		const place = { x: 1, y: 2, w: 300, h: 400 };
 		await panelWindowClient.tearOff('history', place);
 		expect(invoke).toHaveBeenCalledWith('tear_off_panel', { panel: 'history', placement: place });
+		await panelWindowClient.tearOff('layers', null, { hidden: true });
+		expect(invoke).toHaveBeenCalledWith('tear_off_panel', {
+			panel: 'layers',
+			placement: null,
+			hidden: true,
+		});
 		await panelWindowClient.dockBack('script');
 		expect(invoke).toHaveBeenCalledWith('close_panel', {
 			id: { kind: 'panel', panel: 'script', n: 1 },

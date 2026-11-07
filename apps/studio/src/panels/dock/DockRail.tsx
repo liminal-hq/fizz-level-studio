@@ -39,6 +39,8 @@ export interface DockRailProps {
 	onDragStart?: (event: PointerEvent<HTMLElement>, id: string, source: DragSource) => void;
 	/** The panel being dragged, dimmed where it sits. */
 	dragging?: string | null;
+	/** The panel that just landed from a drag: its entry is marked for a moment. */
+	landed?: string | null;
 	/** Entries for panels that do not exist yet, drawn dimmed after the real ones. */
 	placeholders?: readonly RailPlaceholder[];
 }
@@ -76,6 +78,7 @@ export function DockRail({
 	onReorder,
 	onDragStart,
 	dragging = null,
+	landed = null,
 	placeholders = [],
 }: DockRailProps) {
 	const rail = useRef<HTMLDivElement>(null);
@@ -152,6 +155,7 @@ export function DockRail({
 							data-active={active || undefined}
 							data-peeking={peeking === id || undefined}
 							data-dragging={dragging === id || undefined}
+							data-landed={landed === id || undefined}
 							aria-pressed={active && !collapsed}
 							title={hintOf(title, active, collapsed)}
 							disabled={disabled}

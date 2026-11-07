@@ -13,6 +13,8 @@ import { PanelWindowScreen } from '../panels/PanelWindowScreen';
 import { NewLevelScreen } from './NewLevelScreen';
 import { PreferencesScreen } from '../preferences/PreferencesScreen';
 import { createPanelBridge } from '../panels/windows/panelBridge';
+import { TearGhostScreen } from './TearGhostScreen';
+import { tearoffClient } from '../services/tauriTearoffClient';
 import { windowKindFromLabel } from './windowKind';
 
 interface AppProps {
@@ -40,7 +42,7 @@ export function App({ windowLabel }: AppProps) {
 	);
 	switch (kind) {
 		case 'main':
-			return <MainScreen panelBridge={panelBridge} />;
+			return <MainScreen panelBridge={panelBridge} tearoff={tearoffClient} />;
 		case 'about':
 			return <PlaceholderScreen titleId="window.about.title" messageId="placeholder.about" />;
 		case 'preferences':
@@ -49,8 +51,10 @@ export function App({ windowLabel }: AppProps) {
 			return <NewLevelScreen />;
 		case 'panel':
 			return <PanelWindowScreen windowLabel={windowLabel} />;
+		case 'tear-ghost':
+			return <TearGhostScreen />;
 		default:
-			// The tear ghost has no screen yet, and an unknown label shows nothing.
+			// An unknown label shows nothing.
 			return null;
 	}
 }
