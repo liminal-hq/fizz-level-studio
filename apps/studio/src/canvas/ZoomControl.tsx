@@ -35,6 +35,7 @@ export function ZoomControl({ zoom, canIn, canOut, onZoom }: ZoomControlProps) {
 			<button
 				type="button"
 				className={styles.button}
+				data-keycap-exempt=""
 				aria-label={t('canvas.zoomOut')}
 				title={t('canvas.zoomOut')}
 				disabled={!canOut}
@@ -49,6 +50,7 @@ export function ZoomControl({ zoom, canIn, canOut, onZoom }: ZoomControlProps) {
 			<button
 				type="button"
 				className={styles.button}
+				data-keycap-exempt=""
 				aria-label={t('canvas.zoomIn')}
 				title={t('canvas.zoomIn')}
 				disabled={!canIn}
@@ -59,6 +61,7 @@ export function ZoomControl({ zoom, canIn, canOut, onZoom }: ZoomControlProps) {
 			<button
 				type="button"
 				className={`${styles.button} ${styles.fit}`}
+				data-keycap-exempt=""
 				aria-label={t('canvas.zoomFit')}
 				title={t('canvas.zoomFit')}
 				onClick={() => onZoom('fit')}

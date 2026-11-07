@@ -688,7 +688,7 @@ async function dockChecks(bridge: Bridge): Promise<void> {
 		 if (onDock) { fire(onDock, 'pointerdown', at); fire(onDock, 'pointerup', at); }
 		 await new Promise((r) => setTimeout(r, 150));
 		 const dockCell = cell();
-		 const onMap = document.elementFromPoint(m.right - 24, m.bottom - 24);
+		 const onMap = document.elementFromPoint(m.right - 24, m.top + 24);
 		 return { dock: onDock ? onDock.tagName : null, inDock: !!onDock && zone.contains(onDock), dockCell, map: onMap ? onMap.tagName : null, startCell };`,
 	);
 	check(
@@ -1016,6 +1016,107 @@ function pickerOffset(l: PickerLayout): { x: number; y: number } {
 	return { x: Math.round(l.picker.x - l.map.x), y: Math.round(l.picker.y - l.map.y) };
 }
 
+/**
+ * The ⋮ menu is a menu button: ArrowDown opens it with the first row focused, and Escape closes it
+ * and returns the focus to the button. The Script panel's header holds its tabs, which are narrow
+ * in a side dock and wide in the bottom one.
+ */
+async function panelHeaderChecks(bridge: Bridge): Promise<void> {
+	const key = (selector: string, name: string) =>
+		bridge.js<boolean>(
+			`const el = document.querySelector(${JSON.stringify(selector)}); if (!el) return false;
+			 el.dispatchEvent(new KeyboardEvent('keydown', { key: ${JSON.stringify(name)}, bubbles: true, cancelable: true })); return true;`,
+		);
+	const state = () =>
+		bridge.js<{ open: string | null; menu: boolean; first: boolean; focusOnButton: boolean }>(
+			`const b = document.querySelector('button[aria-label="Objects menu"]');
+			 const menu = document.querySelector('[role=menu]');
+			 return { open: b?.getAttribute('aria-expanded') ?? null, menu: !!menu,
+			   first: !!menu && document.activeElement === menu.querySelector('[role^=menuitem]'),
+			   focusOnButton: !!b && document.activeElement === b };`,
+		);
+	await bridge.js<boolean>(
+		`document.querySelector('button[aria-label="Objects menu"]')?.focus(); return true;`,
+	);
+	check(
+		'header: the ⋮ button is a menu button',
+		await bridge.js<boolean>(
+			`const b = document.querySelector('button[aria-label="Objects menu"]'); return !!b && b.getAttribute('aria-haspopup') === 'menu' && b.getAttribute('aria-expanded') === 'false';`,
+		),
+	);
+	await key('button[aria-label="Objects menu"]', 'ArrowDown');
+	const opened = await within(3000, async () => (await state()).menu);
+	const afterOpen = await state();
+	check(
+		'header: ArrowDown opens the menu with the first row focused',
+		opened !== null && afterOpen.open === 'true' && afterOpen.first,
+		JSON.stringify(afterOpen),
+	);
+	await key('[role=menu]', 'Escape');
+	const closed = await within(3000, async () => !(await state()).menu);
+	const afterClose = await state();
+	check(
+		'header: Escape closes the menu and returns the focus to the button',
+		closed !== null && afterClose.focusOnButton,
+		JSON.stringify(afterClose),
+	);
+	check(
+		'header: no header holds dock, float, tear-off or fold buttons',
+		await bridge.js<boolean>(
+			`return ![...document.querySelectorAll('button')].some((b) => /^(Dock |Float |Tear off |Fold |Unfold )/.test(b.getAttribute('aria-label') ?? ''));`,
+		),
+	);
+	// The Script tabs.
+	const tabs = () =>
+		bridge.js<{
+			label: string;
+			selected: string;
+			controls: boolean;
+			narrow: boolean;
+			zone: string;
+			close: string;
+		} | null>(
+			`const list = document.querySelector('[role=tablist][aria-label="Scripts"]'); if (!list) return null;
+			 const tab = list.querySelector('[role=tab]');
+			 return { label: tab?.textContent.trim() ?? '', selected: tab?.getAttribute('aria-selected') ?? '',
+			   controls: !!document.getElementById(tab?.getAttribute('aria-controls') ?? ''),
+			   narrow: list.parentElement.hasAttribute('data-narrow'),
+			   zone: list.closest('[data-zone]')?.getAttribute('data-zone') ?? '',
+			   close: list.querySelector('button[aria-label^="Close "]')?.getAttribute('aria-label') ?? '' };`,
+		);
+	await showFromRail(bridge, 'Script');
+	const wide = await within(3000, async () => (await tabs()) !== null);
+	const w = await tabs();
+	check(
+		'tabs: the Script header holds one selected tab named after the level file, wide in the bottom dock',
+		wide !== null &&
+			w !== null &&
+			/\.fizz$/.test(w.label) &&
+			w.selected === 'true' &&
+			w.controls &&
+			!w.narrow &&
+			w.zone === 'bottom' &&
+			w.close === `Close ${w.label}`,
+		JSON.stringify(w),
+	);
+	check(
+		'tabs: Script docks right from its menu',
+		await choosePanelMenu(bridge, 'Script', 'Dock right'),
+	);
+	const narrow = await within(3000, async () => (await tabs())?.narrow === true);
+	check('tabs: the strip is narrow in a side dock', narrow !== null, JSON.stringify(await tabs()));
+	check(
+		'tabs: Script docks back to the bottom',
+		await choosePanelMenu(bridge, 'Script', 'Dock bottom'),
+	);
+	const back = await within(3000, async () => (await tabs())?.zone === 'bottom');
+	check(
+		'tabs: the strip is wide again in the bottom dock',
+		back !== null,
+		JSON.stringify(await tabs()),
+	);
+}
+
 /** The floating zoom control, the map it floats over, the tool picker and the docks, as drawn. */
 interface ZoomLayout {
 	pill: Box;
@@ -1036,7 +1137,7 @@ function measureZoom(bridge: Bridge): Promise<ZoomLayout | null> {
 		 const bar = document.querySelector('[data-canvas-bar]');
 		 return { pill: box(pill), map: box(map), picker: box(document.querySelector('[data-tool-picker]')),
 		   docks: ['Left dock', 'Right dock', 'Bottom dock'].map((n) => box(document.querySelector('[aria-label="' + n + '"]'))).filter(Boolean),
-		   status: box(bar), readout: pill.querySelector('[aria-hidden=true]')?.textContent ?? '',
+		   status: box(bar), readout: pill.querySelector('[role=status] [aria-hidden=true]')?.textContent ?? '',
 		   statusZoomButtons: bar ? bar.querySelectorAll('button').length : -1 };`,
 	);
 }
@@ -2531,6 +2632,7 @@ async function main(): Promise<void> {
 		await dragAndMaximiseChecks(bridge);
 		await toolPickerChecks(bridge);
 		await zoomPillChecks(bridge);
+		await panelHeaderChecks(bridge);
 		// With the default settings there is no menu bar: the title bar's app menu button is the
 		// primary menu, and a real click on it opens File, Edit, View, Window and Help. Choosing
 		// File, then Preferences opens the Preferences window.
