@@ -32,6 +32,7 @@
         "@liminal-hq/fizz-studio-plugin-settings": "workspace:*",
         "@liminal-hq/fizz-studio-plugin-worlds": "workspace:*",
         "@liminal-hq/fizz-studio-protocol": "workspace:*",
+        "@liminal-hq/fizz-studio-ribbon": "workspace:*",
         "@liminal-hq/plugin-system-appearance": "^0.1.0",
         "@liminal-hq/plugin-window-effects": "workspace:*",
         "@liminal-hq/plugin-window-manager": "^0.1.0",
@@ -86,6 +87,32 @@
     "packages/protocol": {
       "name": "@liminal-hq/fizz-studio-protocol",
       "version": "0.0.0",
+    },
+    "packages/ribbon": {
+      "name": "@liminal-hq/fizz-studio-ribbon",
+      "version": "0.0.0",
+      "dependencies": {
+        "@liminal-hq/fizz-studio-chrome": "workspace:*",
+      },
+      "devDependencies": {
+        "@testing-library/jest-dom": "^6.9.1",
+        "@testing-library/react": "^16.3.2",
+        "@testing-library/user-event": "^14.6.1",
+        "@types/node": "^24.0.0",
+        "@types/react": "^19.1.8",
+        "@types/react-dom": "^19.1.6",
+        "@vitejs/plugin-react": "^4.6.0",
+        "happy-dom": "^20.8.4",
+        "react": "^19.1.0",
+        "react-dom": "^19.1.0",
+        "typescript": "~5.8.3",
+        "vite": "^7.0.4",
+        "vitest": "^4.1.9",
+      },
+      "peerDependencies": {
+        "react": "^19.1.0",
+        "react-dom": "^19.1.0",
+      },
     },
     "plugins/fizz-studio-host": {
       "name": "@liminal-hq/fizz-studio-plugin-host",
@@ -301,6 +328,8 @@
     "@liminal-hq/fizz-studio-plugin-worlds": ["@liminal-hq/fizz-studio-plugin-worlds@workspace:plugins/fizz-studio-worlds"],
 
     "@liminal-hq/fizz-studio-protocol": ["@liminal-hq/fizz-studio-protocol@workspace:packages/protocol"],
+
+    "@liminal-hq/fizz-studio-ribbon": ["@liminal-hq/fizz-studio-ribbon@workspace:packages/ribbon"],
 
     "@liminal-hq/plugin-system-appearance": ["@liminal-hq/plugin-system-appearance@0.1.0", "", { "dependencies": { "@tauri-apps/api": "^2.10.0" } }, "sha512-UHv1VBWXbtpTPCvL37G5YVt2RJHD3+xDPx8ZU0s2pcjMv0ZpAEUIyp4avWPXpdjlft0+xcHrlvT0D5/7AzvraA=="],
 

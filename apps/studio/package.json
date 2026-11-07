@@ -33,6 +33,7 @@
 		"@liminal-hq/fizz-studio-plugin-settings": "workspace:*",
 		"@liminal-hq/fizz-studio-plugin-worlds": "workspace:*",
 		"@liminal-hq/fizz-studio-protocol": "workspace:*",
+		"@liminal-hq/fizz-studio-ribbon": "workspace:*",
 		"@liminal-hq/plugin-window-effects": "workspace:*",
 		"@liminal-hq/plugin-window-tearoff": "workspace:*",
 		"@liminal-hq/plugin-system-appearance": "^0.1.0",
