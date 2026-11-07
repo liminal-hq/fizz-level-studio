@@ -23,7 +23,11 @@ describe('visibleWorkspace', () => {
 	});
 
 	it('drops a group and a zone with nothing showing', () => {
-		const ws = setPanelVisible(defaultWorkspace(), 'palette', false);
+		const ws = setPanelVisible(
+			setPanelVisible(defaultWorkspace(), 'palette', false),
+			'layers',
+			false,
+		);
 		expect(visibleWorkspace(ws).zones.left.groups).toEqual([]);
 	});
 
@@ -33,7 +37,7 @@ describe('visibleWorkspace', () => {
 		for (const zone of ['left', 'right', 'bottom'] as const) {
 			expect(view.zones[zone].collapsed).toBe(true);
 		}
-		expect(dockedIn(view, 'left')).toEqual(['palette']);
+		expect(dockedIn(view, 'left')).toEqual(['palette', 'layers']);
 		expect(dockedIn(view, 'right')).toEqual(['objects', 'history']);
 		expect(dockedIn(view, 'bottom')).toEqual(['script', 'proposals']);
 		expect(ws.zones.left.collapsed).toBe(false);

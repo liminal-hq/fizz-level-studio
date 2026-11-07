@@ -26,7 +26,9 @@ const all = Object.fromEntries(
 		'file.close',
 		'edit.undo',
 		'edit.redo',
-		...['palette', 'objects', 'history', 'proposals', 'script'].map((id) => `view.panel.${id}`),
+		...['palette', 'layers', 'objects', 'history', 'proposals', 'script'].map(
+			(id) => `view.panel.${id}`,
+		),
 	].map((id) => [id, () => {}]),
 );
 
@@ -103,6 +105,7 @@ describe('panelToggles', () => {
 		const toggles = panelToggles(snapshot({ panels: { ...perPanel(false), history: true } }, all));
 		expect(toggles.map((toggle) => toggle.label)).toEqual([
 			'Palette',
+			'Layers',
 			'Objects',
 			'History',
 			'Proposals',

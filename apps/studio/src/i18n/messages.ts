@@ -225,6 +225,9 @@ export const enMessages = {
 	// translator: Shown in place of the Palette’s item and enemy lists while the words are loading or unavailable.
 	'palette.unavailable': 'The word list is not available.',
 
+	// translator: Heading of the panel that lists the sections of the level's script (terrain, items, enemies and so on), each with a switch to hide it on the canvas and a lock.
+	'layers.title': 'Layers',
+
 	// translator: Heading of the panel that shows what Claude has proposed and the person has not yet answered.
 	'ghosts.title': 'Proposals',
 	// translator: Label of the switch that shows or hides Claude’s proposed changes as faint cells on the canvas.

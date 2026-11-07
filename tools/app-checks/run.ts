@@ -2873,9 +2873,10 @@ async function main(): Promise<void> {
 				rowBox.names.slice(0, 6).join('|') ===
 					'New level…|Open level…|Save|Close level|Undo|Redo' &&
 					rowBox.names[6]?.includes('Brush:') === true &&
-					rowBox.names.slice(7, 12).join('|') === 'Palette|Objects|History|Proposals|Script' &&
-					rowBox.names[12]?.startsWith('Search commands') === true &&
-					rowBox.names.slice(13).join('|') === 'Paint|Script|Review',
+					rowBox.names.slice(7, 13).join('|') ===
+						'Palette|Layers|Objects|History|Proposals|Script' &&
+					rowBox.names[13]?.startsWith('Search commands') === true &&
+					rowBox.names.slice(14).join('|') === 'Paint|Script|Review',
 				JSON.stringify(rowBox.names),
 			);
 			check(
@@ -2907,7 +2908,7 @@ async function main(): Promise<void> {
 		);
 		check(
 			'the panel toggles show every panel pressed, and Undo is dim with nothing to undo',
-			toolbarState.pressed.length === 5 && toolbarState.undoDisabled,
+			toolbarState.pressed.length === 6 && toolbarState.undoDisabled,
 			JSON.stringify(toolbarState),
 		);
 		check(

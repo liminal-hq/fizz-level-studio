@@ -101,13 +101,21 @@ describe('the editor’s docks', () => {
 		await mount();
 		const left = screen.getByRole('region', { name: 'Left dock' });
 		await choosePanelMenu(user, left, 'Palette', 'Float');
-		expect(screen.queryByRole('region', { name: 'Left dock' })).toBeNull();
+		expect(
+			within(screen.getByRole('region', { name: 'Left dock' })).getByRole('heading', {
+				name: 'Layers',
+			}),
+		).toBeInTheDocument();
 		const floating = screen.getByRole('region', { name: 'Palette' });
 		await choosePanelMenu(user, floating, 'Palette', 'Dock bottom');
 		const bottom = screen.getByRole('region', { name: 'Bottom dock' });
 		expect(within(bottom).getByRole('heading', { name: 'Palette' })).toBeInTheDocument();
 		expect(railItem('Bottom rail', 'Palette')).toHaveAttribute('aria-pressed', 'true');
-		expect(screen.queryByRole('group', { name: 'Left rail' })).toBeNull();
+		expect(
+			within(screen.getByRole('group', { name: 'Left rail' })).queryByRole('button', {
+				name: 'Palette',
+			}),
+		).toBeNull();
 	});
 
 	it('hides a docked panel with its command and shows it as the showing tab', async () => {
@@ -153,7 +161,7 @@ describe('the editor’s docks', () => {
 		);
 		await waitFor(() => expect(docks.save).toHaveBeenCalled(), { timeout: 2000 });
 		const saved = vi.mocked(docks.save).mock.calls.at(-1)![0];
-		expect(saved.workspaces[saved.active]!.zones.left.groups).toEqual([]);
+		expect(saved.workspaces[saved.active]!.zones.left.groups[0]!.tabs).toEqual(['layers']);
 	});
 
 	it('folds a dock to a rail, peeks a panel over the level and pins it back', async () => {

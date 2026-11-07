@@ -3,7 +3,7 @@
 // (c) Copyright 2026 Liminal HQ, Scott Morris
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 //
-// An id that names no command now (Layers before it exists, Tear off while a panel is away) is
+// An id that names no command now (Tear off while a panel is away) is
 // skipped when the model is built, and a group or tab left with nothing is dropped, so the layout can
 // name what is coming without drawing a dead button. What a command is, how it looks and when it can
 // run come from the registry, as for every other surface.

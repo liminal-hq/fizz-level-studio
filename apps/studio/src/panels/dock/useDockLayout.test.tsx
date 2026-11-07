@@ -96,7 +96,7 @@ describe('useDockLayout', () => {
 		const { result } = renderHook(() => useDockLayout(client, windowSize, area));
 		act(() => result.current.floatPanel('palette'));
 		expect(result.current.floating.palette.visible).toBe(true);
-		expect(dockedIn(result.current.workspace, 'left')).toEqual([]);
+		expect(dockedIn(result.current.workspace, 'left')).toEqual(['layers']);
 		act(() => result.current.dockTo('palette', 'right'));
 		expect(dockedIn(result.current.view, 'right')).toContain('palette');
 		act(() => result.current.setVisible('palette', false));
@@ -122,12 +122,12 @@ describe('useDockLayout', () => {
 		const { result } = renderHook(() => useDockLayout(client, windowSize, area));
 		act(() => result.current.dockTo('palette', 'bottom'));
 		act(() => result.current.reset());
-		expect(dockedIn(result.current.workspace, 'left')).toEqual(['palette']);
+		expect(dockedIn(result.current.workspace, 'left')).toEqual(['palette', 'layers']);
 		await act(async () => {
 			await vi.advanceTimersByTimeAsync(SAVE_DELAY_MS + 10);
 		});
 		const saved = vi.mocked(client.save).mock.calls.at(-1)![0];
-		expect(dockedIn(saved.workspaces[saved.active]!, 'left')).toEqual(['palette']);
+		expect(dockedIn(saved.workspaces[saved.active]!, 'left')).toEqual(['palette', 'layers']);
 	});
 
 	it('keeps what the person moved when the saved dock arrives late', async () => {

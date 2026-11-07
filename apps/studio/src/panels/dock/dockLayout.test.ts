@@ -41,7 +41,7 @@ describe('the default layout', () => {
 	it('puts every panel in exactly one place', () => {
 		const ws = defaultWorkspace();
 		sound(ws);
-		expect(dockedIn(ws, 'left')).toEqual(['palette']);
+		expect(dockedIn(ws, 'left')).toEqual(['palette', 'layers']);
 		expect(dockedIn(ws, 'right')).toEqual(['objects', 'history']);
 		expect(dockedIn(ws, 'bottom')).toEqual(['script', 'proposals']);
 		expect(PANEL_IDS.every((id) => zoneOf(ws, id) !== null)).toBe(true);
@@ -53,7 +53,7 @@ describe('dockPanel', () => {
 		const ws = dockPanel(defaultWorkspace(), 'palette', 'right');
 		expect(dockedIn(ws, 'right')).toEqual(['objects', 'history', 'palette']);
 		expect(ws.zones.right.groups[0]!.active).toBe('palette');
-		expect(ws.zones.left.groups).toEqual([]);
+		expect(dockedIn(ws, 'left')).toEqual(['layers']);
 		expect(ws.panels.palette!.home).toBe('right');
 		sound(ws);
 	});
@@ -73,8 +73,10 @@ describe('dockPanel', () => {
 
 	it('starts a group in an empty zone', () => {
 		const ws = dockPanel(defaultWorkspace(), 'objects', 'left', { alone: false });
-		expect(ws.zones.left.groups.map((g) => g.tabs)).toEqual([['palette', 'objects']]);
-		const empty = dockPanel(dockPanel(defaultWorkspace(), 'palette', 'right'), 'objects', 'left');
+		expect(ws.zones.left.groups.map((g) => g.tabs)).toEqual([['palette', 'layers', 'objects']]);
+		const bare = dockPanel(dockPanel(defaultWorkspace(), 'palette', 'right'), 'layers', 'right');
+		expect(bare.zones.left.groups).toEqual([]);
+		const empty = dockPanel(bare, 'objects', 'left');
 		expect(empty.zones.left.groups).toEqual([{ tabs: ['objects'], active: 'objects' }]);
 	});
 
@@ -164,7 +166,8 @@ describe('floating', () => {
 
 	it('docks back into a zone that has been emptied meanwhile', () => {
 		let ws = floatPanel(defaultWorkspace(), 'palette');
-		ws = dockPanel(ws, 'objects', 'bottom');
+		ws = dockPanel(ws, 'layers', 'bottom');
+		expect(ws.zones.left.groups).toEqual([]);
 		const back = dockBack(ws, 'palette');
 		expect(back.zones.left.groups).toEqual([{ tabs: ['palette'], active: 'palette' }]);
 	});
@@ -229,7 +232,7 @@ describe('zones', () => {
 		expect(collapsed.zones.left.collapsed).toBe(true);
 		expect(setZoneCollapsed(collapsed, 'left', true)).toBe(collapsed);
 		expect(toggleZone(collapsed, 'left').zones.left.collapsed).toBe(false);
-		expect(dockedIn(collapsed, 'left')).toEqual(['palette']);
+		expect(dockedIn(collapsed, 'left')).toEqual(['palette', 'layers']);
 	});
 
 	it('resizes within the caps and minimums for the window', () => {

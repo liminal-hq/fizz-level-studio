@@ -32,6 +32,7 @@ pub fn default_layout(kind: &str) -> PanelLayout {
     if kind == MAIN_KIND {
         let panels = &mut layout.panels;
         panels.insert("palette".to_owned(), place(76, 8, 252, 300, false, 1));
+        panels.insert("layers".to_owned(), place(336, 434, 260, 240, false, 6));
         panels.insert("objects".to_owned(), place(336, 126, 260, 300, false, 2));
         panels.insert("history".to_owned(), place(336, 8, 380, 110, false, 3));
         panels.insert("proposals".to_owned(), place(76, 316, 252, 200, true, 4));

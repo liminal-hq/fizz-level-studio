@@ -30,9 +30,9 @@ describe('withAwayTabs', () => {
 	});
 
 	it('makes a group of its own in a zone with none', () => {
-		const ws = sendToWindow(defaultWorkspace(), 'palette');
+		const ws = sendToWindow(sendToWindow(defaultWorkspace(), 'layers'), 'palette');
 		expect(dockedIn(ws, 'left')).toEqual([]);
-		expect(dockedIn(withAwayTabs(ws), 'left')).toEqual(['palette']);
+		expect(dockedIn(withAwayTabs(ws), 'left')).toEqual(['palette', 'layers']);
 	});
 
 	it('shows a panel that came from floating in its home zone and keeps its floating rectangle', () => {

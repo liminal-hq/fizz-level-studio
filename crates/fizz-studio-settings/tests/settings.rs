@@ -430,7 +430,14 @@ fn the_editor_defaults_fit_a_1280_by_700_area_and_keep_the_palette_where_the_pro
     let ids: Vec<&str> = layout.panels.keys().map(String::as_str).collect();
     assert_eq!(
         ids,
-        ["history", "objects", "palette", "proposals", "script"]
+        [
+            "history",
+            "layers",
+            "objects",
+            "palette",
+            "proposals",
+            "script"
+        ]
     );
     let palette = layout.panels["palette"];
     assert_eq!(
@@ -465,7 +472,7 @@ fn a_saved_layout_is_laid_over_the_defaults_panel_by_panel() {
         layout.panels["palette"],
         default_layout("main").panels["palette"]
     );
-    assert_eq!(layout.panels.len(), 5);
+    assert_eq!(layout.panels.len(), 6);
 }
 
 #[test]

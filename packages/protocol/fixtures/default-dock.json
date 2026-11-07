@@ -25,6 +25,21 @@
 				"window": null,
 				"window_from": "docked"
 			},
+			"layers": {
+				"place": "docked",
+				"home": "left",
+				"float": {
+					"x": 336,
+					"y": 434,
+					"w": 260,
+					"h": 240,
+					"collapsed": false,
+					"visible": true,
+					"z": 6
+				},
+				"window": null,
+				"window_from": "docked"
+			},
 			"objects": {
 				"place": "docked",
 				"home": "right",
@@ -93,7 +108,8 @@
 				"groups": [
 					{
 						"tabs": [
-							"palette"
+							"palette",
+							"layers"
 						],
 						"active": "palette"
 					}
@@ -146,6 +162,21 @@
 					"window": null,
 					"window_from": "docked"
 				},
+				"layers": {
+					"place": "docked",
+					"home": "left",
+					"float": {
+						"x": 336,
+						"y": 434,
+						"w": 260,
+						"h": 240,
+						"collapsed": false,
+						"visible": true,
+						"z": 6
+					},
+					"window": null,
+					"window_from": "docked"
+				},
 				"objects": {
 					"place": "docked",
 					"home": "right",
@@ -214,7 +245,8 @@
 					"groups": [
 						{
 							"tabs": [
-								"palette"
+								"palette",
+								"layers"
 							],
 							"active": "palette"
 						}
@@ -266,6 +298,21 @@
 					"window": null,
 					"window_from": "docked"
 				},
+				"layers": {
+					"place": "docked",
+					"home": "left",
+					"float": {
+						"x": 336,
+						"y": 434,
+						"w": 260,
+						"h": 240,
+						"collapsed": false,
+						"visible": true,
+						"z": 6
+					},
+					"window": null,
+					"window_from": "docked"
+				},
 				"objects": {
 					"place": "docked",
 					"home": "right",
@@ -334,7 +381,8 @@
 					"groups": [
 						{
 							"tabs": [
-								"palette"
+								"palette",
+								"layers"
 							],
 							"active": "palette"
 						}
@@ -386,6 +434,21 @@
 					"window": null,
 					"window_from": "docked"
 				},
+				"layers": {
+					"place": "docked",
+					"home": "left",
+					"float": {
+						"x": 336,
+						"y": 434,
+						"w": 260,
+						"h": 240,
+						"collapsed": false,
+						"visible": true,
+						"z": 6
+					},
+					"window": null,
+					"window_from": "docked"
+				},
 				"objects": {
 					"place": "docked",
 					"home": "right",
@@ -454,7 +517,8 @@
 					"groups": [
 						{
 							"tabs": [
-								"palette"
+								"palette",
+								"layers"
 							],
 							"active": "palette"
 						}

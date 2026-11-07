@@ -419,10 +419,17 @@ describe('the dirty marker, saving and closing', () => {
 		]);
 		// The brush chip follows the history, and the panel toggles are at the far end.
 		expect(names[6]).toMatch(/Brush:/);
-		expect(names.slice(7, 12)).toEqual(['Palette', 'Objects', 'History', 'Proposals', 'Script']);
+		expect(names.slice(7, 13)).toEqual([
+			'Palette',
+			'Layers',
+			'Objects',
+			'History',
+			'Proposals',
+			'Script',
+		]);
 		// With no menu bar the command search and the workspace switcher end the row.
-		expect(names[12]).toMatch(/^Search commands/);
-		expect(names.slice(13)).toEqual(['Paint', 'Script', 'Review']);
+		expect(names[13]).toMatch(/^Search commands/);
+		expect(names.slice(14)).toEqual(['Paint', 'Script', 'Review']);
 		// The tools are not on it: they float over the map.
 		expect(within(row).queryByRole('button', { name: 'Erase' })).toBeNull();
 		const tools = screen.getByRole('group', { name: 'Tools' });

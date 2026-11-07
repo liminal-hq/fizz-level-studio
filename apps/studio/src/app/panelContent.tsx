@@ -56,6 +56,9 @@ export function panelContent(id: PanelId, ctx: PanelContentContext): ReactNode {
 					onSpacing={ctx.onSpacing}
 				/>
 			);
+		case 'layers':
+			// The Layers panel arrives with its own component.
+			return null;
 		case 'objects':
 			return (
 				<ObjectList

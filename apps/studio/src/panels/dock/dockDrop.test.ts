@@ -5,7 +5,7 @@
 
 import { describe, expect, it } from 'vitest';
 import { dropOnZone, floatRectAt, insertionIndex, insertionX } from './dockDrop';
-import { defaultWorkspace } from './dockModel';
+import { defaultWorkspace, dockedIn } from './dockModel';
 
 const tabs = [
 	{ left: 0, right: 100 },
@@ -34,7 +34,7 @@ describe('dropOnZone', () => {
 	it('docks a panel as a tab at the place given', () => {
 		const next = dropOnZone(defaultWorkspace(), 'palette', 'right', 0, 1);
 		expect(next.zones.right.groups[0]!.tabs).toEqual(['objects', 'palette', 'history']);
-		expect(next.zones.left.groups).toEqual([]);
+		expect(dockedIn(next, 'left')).toEqual(['layers']);
 	});
 
 	it('puts a panel at the end of the first group when no group is given', () => {
@@ -49,6 +49,8 @@ describe('dropOnZone', () => {
 
 	it('changes nothing when a lone panel is dropped on its own group', () => {
 		const ws = defaultWorkspace();
+		ws.zones.left.groups = [{ tabs: ['palette'], active: 'palette' }];
+		ws.panels.layers!.place = 'floating';
 		expect(dropOnZone(ws, 'palette', 'left', 0, 0)).toBe(ws);
 	});
 

@@ -62,6 +62,7 @@ describe('tearing a panel off', () => {
 			const { windows } = await mount();
 			const title = {
 				palette: 'Palette',
+				layers: 'Layers',
 				objects: 'Objects',
 				history: 'History',
 				proposals: 'Proposals',

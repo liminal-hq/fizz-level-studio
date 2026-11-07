@@ -78,9 +78,9 @@ describe('usePanelLayout', () => {
 		const client = fakeClient();
 		const { result } = renderHook(() => usePanelLayout(client, area));
 		await waitFor(() => expect(client.get).toHaveBeenCalled());
-		const top = result.current.panels.script.z;
-		act(() => result.current.raise('script'));
-		expect(result.current.panels.script.z).toBe(top);
+		const top = result.current.panels.layers.z;
+		act(() => result.current.raise('layers'));
+		expect(result.current.panels.layers.z).toBe(top);
 		act(() => result.current.raise('palette'));
 		expect(result.current.panels.palette.z).toBeGreaterThan(top);
 	});
@@ -134,9 +134,9 @@ describe('neighboursOf', () => {
 		const { result } = renderHook(() => usePanelLayout(client, area));
 		await waitFor(() => expect(client.get).toHaveBeenCalled());
 		const others = neighboursOf('script', result.current.panels);
-		expect(others).toHaveLength(4);
+		expect(others).toHaveLength(5);
 		expect(others.some((r) => r.h === 46)).toBe(true);
 		act(() => result.current.setVisible('palette', false));
-		expect(neighboursOf('script', result.current.panels)).toHaveLength(3);
+		expect(neighboursOf('script', result.current.panels)).toHaveLength(4);
 	});
 });

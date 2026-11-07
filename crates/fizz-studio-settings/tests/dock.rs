@@ -103,7 +103,8 @@ fn every_panel_is_in_exactly_one_place_in_every_default_workspace() {
 }
 
 #[test]
-fn the_default_arrangement_is_palette_left_objects_and_history_right_script_and_proposals_below() {
+fn the_default_arrangement_is_palette_and_layers_left_objects_and_history_right_script_and_proposals_below(
+) {
     let ws = default_workspace();
     let tabs = |zone: ZoneId| -> Vec<String> {
         ws.zones
@@ -113,7 +114,7 @@ fn the_default_arrangement_is_palette_left_objects_and_history_right_script_and_
             .flat_map(|g| g.tabs.clone())
             .collect()
     };
-    assert_eq!(tabs(ZoneId::Left), ["palette"]);
+    assert_eq!(tabs(ZoneId::Left), ["palette", "layers"]);
     assert_eq!(tabs(ZoneId::Right), ["objects", "history"]);
     assert_eq!(tabs(ZoneId::Bottom), ["script", "proposals"]);
     assert_eq!(
@@ -271,7 +272,10 @@ fn a_tool_picker_off_the_map_is_refused_and_one_on_it_is_accepted() {
 #[test]
 fn a_window_on_a_screen_to_the_left_is_accepted() {
     let settings = with_workspace(|ws| {
-        ws.zones.left.groups.clear();
+        ws.zones.left.groups = vec![TabGroup {
+            tabs: vec!["layers".to_owned()],
+            active: "layers".to_owned(),
+        }];
         let entry = ws.panels.get_mut("palette").unwrap();
         entry.place = PlaceKind::Window;
         entry.window = Some(WindowPlacement {
@@ -470,11 +474,9 @@ fn a_version_five_file_keeps_a_tool_picker_place_already_there() {
 #[test]
 fn a_file_with_a_broken_dock_is_set_aside_not_half_loaded() {
     let mut dock = default_dock();
-    dock.workspaces
-        .get_mut("Paint")
-        .unwrap()
-        .panels
-        .remove("palette");
+    let paint = dock.workspaces.get_mut("Paint").unwrap();
+    let stray = paint.panels["palette"].clone();
+    paint.panels.insert("scratch".to_owned(), stray);
     let text = json!({ "version": 4, "settings": { "dock": dock } }).to_string();
     let file = memory_file(&text);
     let report = file.load();
@@ -484,4 +486,48 @@ fn a_file_with_a_broken_dock_is_set_aside_not_half_loaded() {
         Some("settings.json.unreadable-1")
     );
     assert!(report.settings.dock.workspaces.is_empty());
+}
+
+#[test]
+fn a_saved_workspace_without_layers_gains_it_beside_the_palette_and_loads_unchanged() {
+    // A dock saved before the Layers panel existed: every panel but `layers`.
+    let mut dock = default_dock();
+    for ws in dock.workspaces.values_mut() {
+        ws.panels.remove("layers");
+        for zone in [
+            &mut ws.zones.left,
+            &mut ws.zones.right,
+            &mut ws.zones.bottom,
+        ] {
+            for group in &mut zone.groups {
+                group.tabs.retain(|t| t != "layers");
+            }
+        }
+    }
+    let settings = Settings {
+        dock,
+        ..Settings::default()
+    };
+    let text = serde_json::to_string(&json!({
+        "version": SETTINGS_VERSION,
+        "settings": serde_json::to_value(&settings).unwrap(),
+    }))
+    .unwrap();
+    let report = memory_file(&text).load();
+    assert!(report.problem.is_none(), "{:?}", report.problem);
+    assert!(report.set_aside.is_none());
+    for (name, ws) in &report.settings.dock.workspaces {
+        assert!(ws.panels.contains_key("layers"), "{name}");
+        let left: Vec<&str> = ws.zones.left.groups[0]
+            .tabs
+            .iter()
+            .map(String::as_str)
+            .collect();
+        assert_eq!(left, ["palette", "layers"], "{name}");
+    }
+    assert_eq!(report.settings.dock, {
+        let mut expected = default_dock();
+        expected.active = report.settings.dock.active.clone();
+        expected
+    });
 }

@@ -144,7 +144,7 @@ function Harness({
 			>
 				<div data-testid="level" />
 			</DockShell>
-			{(['palette', 'objects', 'history', 'proposals', 'script'] as const).map((id) => {
+			{(['palette', 'layers', 'objects', 'history', 'proposals', 'script'] as const).map((id) => {
 				const entry = ws.panels[id]!;
 				if (entry.place !== 'floating') return null;
 				return (
@@ -208,7 +208,7 @@ describe('dragging a docked panel', () => {
 		expect(line).toHaveAttribute('data-across');
 		up(entry, 985, 20);
 		expect(zonesOf().right.groups[0]!.tabs).toEqual(['palette', 'objects', 'history']);
-		expect(zonesOf().left.groups).toEqual([]);
+		expect(zonesOf().left.groups[0]!.tabs).toEqual(['layers']);
 		expect(document.querySelector('[data-drag-ghost]')).toBeNull();
 	});
 
@@ -242,7 +242,7 @@ describe('dragging a docked panel', () => {
 		down(entry, 15, 40);
 		move(entry, 500, 300);
 		up(entry, 500, 300);
-		expect(zonesOf().left.groups).toEqual([]);
+		expect(zonesOf().left.groups[0]!.tabs).toEqual(['layers']);
 		expect(screen.getByText('floating palette')).toBeInTheDocument();
 	});
 
@@ -289,7 +289,7 @@ describe('dragging a docked panel', () => {
 		expect(document.querySelector('[data-drop-zone="left"]')).toHaveAttribute('data-lit');
 		up(entry, 100, 100);
 		expect(zonesOf().left.collapsed).toBe(false);
-		expect(zonesOf().left.groups[0]!.tabs).toEqual(['palette', 'objects']);
+		expect(zonesOf().left.groups[0]!.tabs).toEqual(['palette', 'layers', 'objects']);
 	});
 
 	it('reorders the panels along a side rail', () => {

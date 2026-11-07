@@ -15,8 +15,8 @@ mod storage;
 mod store;
 
 pub use dock::{
-    default_dock, default_workspace, default_workspace_for, resolve_dock, BOTTOM_MIN,
-    DEFAULT_ACTIVE, PANEL_IDS, SIDE_MIN, ZONE_MAX,
+    default_dock, default_workspace, default_workspace_for, fill_missing_panels, resolve_dock,
+    BOTTOM_MIN, DEFAULT_ACTIVE, PANEL_IDS, SIDE_MIN, ZONE_MAX,
 };
 pub use document::{DocumentError, LoadReport, SettingsFile, SETTINGS_FILE, SETTINGS_VERSION};
 pub use layout::{default_layout, resolve_layout, MAIN_KIND};

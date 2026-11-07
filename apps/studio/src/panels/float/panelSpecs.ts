@@ -11,7 +11,7 @@ import type { Size } from './panelGeometry';
 /** The window kind whose layout the editor saves. */
 export const EDITOR_KIND = 'main';
 
-export type PanelId = 'palette' | 'objects' | 'history' | 'proposals' | 'script';
+export type PanelId = 'palette' | 'layers' | 'objects' | 'history' | 'proposals' | 'script';
 
 export interface PanelSpec {
 	id: PanelId;
@@ -29,6 +29,7 @@ export function isExpandable(id: string): boolean {
 
 export const PANEL_SPECS: readonly PanelSpec[] = [
 	{ id: 'palette', title: 'palette.title', min: { w: 200, h: 120 } },
+	{ id: 'layers', title: 'layers.title', min: { w: 200, h: 120 } },
 	{ id: 'objects', title: 'objects.list', min: { w: 200, h: 120 } },
 	{ id: 'history', title: 'history.title', min: { w: 240, h: 96 } },
 	{ id: 'proposals', title: 'ghosts.title', min: { w: 200, h: 120 }, expandable: true },

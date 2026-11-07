@@ -138,9 +138,19 @@ describe('normaliseWorkspace', () => {
 		ws.zones.bottom.groups.push({ tabs: 'nope' }, 4);
 		const fixed = normaliseWorkspace(ws, big);
 		expect(kinds(fixed)).toEqual([]);
-		expect(dockedIn(fixed, 'left')).toEqual(['palette', 'objects']);
+		expect(dockedIn(fixed, 'left')).toEqual(['palette', 'layers', 'objects']);
 		expect(dockedIn(fixed, 'right')).toEqual(['history']);
 		exactlyOnce(fixed);
+	});
+
+	it('adds a panel a saved workspace lacks beside the panels already docked in its home zone', () => {
+		const ws = defaultWorkspace() as unknown as Record<string, any>;
+		delete ws.panels.layers;
+		ws.zones.left.groups[0].tabs = ['palette'];
+		const fixed = normaliseWorkspace(ws, big);
+		expect(kinds(fixed)).toEqual([]);
+		expect(dockedIn(fixed, 'left')).toEqual(['palette', 'layers']);
+		expect(fixed.panels.layers).toEqual(defaultWorkspace().panels.layers);
 	});
 
 	it('repairs an active tab that does not exist', () => {
@@ -157,7 +167,7 @@ describe('normaliseWorkspace', () => {
 		exactlyOnce(fixed);
 		const emptied = defaultWorkspace();
 		emptied.zones.left.groups = [];
-		expect(dockedIn(normaliseWorkspace(emptied, big), 'left')).toEqual(['palette']);
+		expect(dockedIn(normaliseWorkspace(emptied, big), 'left')).toEqual(['palette', 'layers']);
 	});
 
 	it('lets a panel that is not docked leave the groups that still name it', () => {

@@ -16,6 +16,7 @@ import { visibleWorkspace } from './dockView';
 
 const titles: Record<string, string> = {
 	palette: 'Palette',
+	layers: 'Layers',
 	objects: 'Objects',
 	history: 'History',
 	proposals: 'Proposals',
@@ -149,7 +150,11 @@ describe('DockShell', () => {
 	});
 
 	it('takes no room for a dock with nothing showing, not even a rail', () => {
-		const ws = setPanelVisible(defaultWorkspace(), 'palette', false);
+		const ws = setPanelVisible(
+			setPanelVisible(defaultWorkspace(), 'palette', false),
+			'layers',
+			false,
+		);
 		mount(visibleWorkspace(ws));
 		expect(screen.queryByRole('region', { name: 'Left dock' })).toBeNull();
 		expect(screen.queryByRole('group', { name: 'Left rail' })).toBeNull();
@@ -320,8 +325,9 @@ describe('the rails', () => {
 		await user.click(entry);
 		expect(a.activate).not.toHaveBeenCalled();
 		expect(a.toggleZone).not.toHaveBeenCalled();
-		within(left).getByRole('button', { name: 'Palette' }).focus();
+		within(left).getByRole('button', { name: 'Layers' }).focus();
 		await user.keyboard('{ArrowDown}');
+		// The arrows wrap past the dimmed Assets entry to the first real one.
 		expect(within(left).getByRole('button', { name: 'Palette' })).toHaveFocus();
 	});
 
