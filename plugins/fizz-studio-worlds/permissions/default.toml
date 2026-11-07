@@ -17,4 +17,6 @@ permissions = [
 	"allow-level-cell-line",
 	"allow-level-ghosts",
 	"allow-level-snapshot",
+	"allow-level-layers",
+	"allow-level-set-layer-locked",
 ]

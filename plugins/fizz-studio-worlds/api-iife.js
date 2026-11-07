@@ -11,6 +11,8 @@ var __TAURI_PLUGIN_FIZZ_STUDIO_WORLDS__ = (function (exports, core, event) {
     const LEVEL_CHANGED_EVENT = 'level://changed';
     /** Sent to every window when an outside edit collides with unsaved changes; the payload is a `LevelConflict`. */
     const LEVEL_CONFLICT_EVENT = 'level://conflict';
+    /** Sent to every window when a level's locked layers change; the payload is a `LevelLayers`. */
+    const LEVEL_LAYERS_EVENT = 'level://layers';
     function cmd(name, args) {
         return core.invoke(`${PREFIX}${name}`, args);
     }
@@ -101,6 +103,19 @@ var __TAURI_PLUGIN_FIZZ_STUDIO_WORLDS__ = (function (exports, core, event) {
     function levelSnapshot(id) {
         return cmd('level_snapshot', { id });
     }
+    /** The layers of an open level that are locked. */
+    function levelLayers(id) {
+        return cmd('level_layers', { id });
+    }
+    /**
+     * Locks or unlocks a layer of an open level, and keeps the choice in the level's sidecar. A locked
+     * layer refuses every change to it, from the person and from Claude alike. Rejects with a
+     * `LevelError` of kind `invalid` for a word that is not a layer, and `io` when the sidecar cannot be
+     * rewritten (the lock is then left as it was).
+     */
+    function setLayerLocked(id, layer, locked) {
+        return cmd('level_set_layer_locked', { id, layer, locked });
+    }
     /**
      * Wraps `listener` so it hears only snapshots newer than what it has applied for that level.
      * Events can arrive out of order or twice (a window's own edit comes back as an event), and a
@@ -129,9 +144,14 @@ var __TAURI_PLUGIN_FIZZ_STUDIO_WORLDS__ = (function (exports, core, event) {
     function onLevelConflict(listener) {
         return event.listen(LEVEL_CONFLICT_EVENT, (event) => listener(event.payload));
     }
+    /** Hears when a level's locked layers change, whichever window changed them. */
+    function onLevelLayers(listener) {
+        return event.listen(LEVEL_LAYERS_EVENT, (event) => listener(event.payload));
+    }
 
     exports.LEVEL_CHANGED_EVENT = LEVEL_CHANGED_EVENT;
     exports.LEVEL_CONFLICT_EVENT = LEVEL_CONFLICT_EVENT;
+    exports.LEVEL_LAYERS_EVENT = LEVEL_LAYERS_EVENT;
     exports.applyEdit = applyEdit;
     exports.closeLevel = closeLevel;
     exports.createLevel = createLevel;
@@ -140,16 +160,19 @@ var __TAURI_PLUGIN_FIZZ_STUDIO_WORLDS__ = (function (exports, core, event) {
     exports.languageWords = languageWords;
     exports.levelCellLine = levelCellLine;
     exports.levelGhosts = levelGhosts;
+    exports.levelLayers = levelLayers;
     exports.levelSnapshot = levelSnapshot;
     exports.listRecovery = listRecovery;
     exports.newerOnly = newerOnly;
     exports.onLevelChanged = onLevelChanged;
     exports.onLevelConflict = onLevelConflict;
+    exports.onLevelLayers = onLevelLayers;
     exports.openLevel = openLevel;
     exports.openProject = openProject;
     exports.redo = redo;
     exports.restoreRecovery = restoreRecovery;
     exports.saveLevel = saveLevel;
+    exports.setLayerLocked = setLayerLocked;
     exports.undo = undo;
 
     return exports;

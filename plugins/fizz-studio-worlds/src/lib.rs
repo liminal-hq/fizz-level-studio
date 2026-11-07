@@ -24,6 +24,17 @@ pub const CHANGED_EVENT: &str = "level://changed";
 /// The session is left as it was; the payload is a [`LevelConflict`].
 pub const CONFLICT_EVENT: &str = "level://conflict";
 
+/// Sent to every window when a level's locked layers change, whoever changed them; the payload is
+/// a [`LevelLayers`].
+pub const LAYERS_EVENT: &str = "level://layers";
+
+/// The locked layers of one open level, by layer id in panel order.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct LevelLayers {
+    pub id: String,
+    pub locked: Vec<String>,
+}
+
 /// What the person is shown to settle a conflicting outside edit.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct LevelConflict {
@@ -64,6 +75,8 @@ pub fn init_with<R: Runtime>(config: RecoveryConfig) -> TauriPlugin<R> {
             commands::level_cell_line,
             commands::level_ghosts,
             commands::level_snapshot,
+            commands::level_layers,
+            commands::level_set_layer_locked,
         ])
         .setup(move |app, _api| {
             app.manage(Worlds::from_config(app, config));

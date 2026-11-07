@@ -35,6 +35,15 @@ export interface LevelConflict {
 	locked?: string[];
 }
 
+/** Sent to every window when a level's locked layers change; the payload is a `LevelLayers`. */
+export const LEVEL_LAYERS_EVENT = 'level://layers';
+
+/** The locked layers of one open level, as layer ids in panel order. */
+export interface LevelLayers {
+	id: string;
+	locked: string[];
+}
+
 function cmd<T>(name: string, args?: Record<string, unknown>): Promise<T> {
 	return invoke<T>(`${PREFIX}${name}`, args);
 }
@@ -147,6 +156,21 @@ export function levelSnapshot(id: string): Promise<LevelSnapshot> {
 	return cmd<LevelSnapshot>('level_snapshot', { id });
 }
 
+/** The layers of an open level that are locked. */
+export function levelLayers(id: string): Promise<LevelLayers> {
+	return cmd<LevelLayers>('level_layers', { id });
+}
+
+/**
+ * Locks or unlocks a layer of an open level, and keeps the choice in the level's sidecar. A locked
+ * layer refuses every change to it, from the person and from Claude alike. Rejects with a
+ * `LevelError` of kind `invalid` for a word that is not a layer, and `io` when the sidecar cannot be
+ * rewritten (the lock is then left as it was).
+ */
+export function setLayerLocked(id: string, layer: string, locked: boolean): Promise<LevelLayers> {
+	return cmd<LevelLayers>('level_set_layer_locked', { id, layer, locked });
+}
+
 /**
  * Wraps `listener` so it hears only snapshots newer than what it has applied for that level.
  * Events can arrive out of order or twice (a window's own edit comes back as an event), and a
@@ -182,6 +206,11 @@ export function onLevelChanged(
 /** Hears when an outside edit cannot be merged with unsaved changes. */
 export function onLevelConflict(listener: (conflict: LevelConflict) => void): Promise<UnlistenFn> {
 	return listen<LevelConflict>(LEVEL_CONFLICT_EVENT, (event) => listener(event.payload));
+}
+
+/** Hears when a level's locked layers change, whichever window changed them. */
+export function onLevelLayers(listener: (layers: LevelLayers) => void): Promise<UnlistenFn> {
+	return listen<LevelLayers>(LEVEL_LAYERS_EVENT, (event) => listener(event.payload));
 }
 
 export type {

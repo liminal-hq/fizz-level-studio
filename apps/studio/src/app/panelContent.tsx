@@ -41,6 +41,10 @@ export interface PanelContentContext {
 	hiddenLayers: readonly string[];
 	onToggleLayer: (id: string) => void;
 	onShowAllLayers: () => void;
+	/** The ids of the locked layers, from Rust. */
+	lockedLayers: readonly string[];
+	onToggleLock: (id: string) => void;
+	onUnlockAll: () => void;
 }
 
 /**
@@ -69,6 +73,9 @@ export function panelContent(id: PanelId, ctx: PanelContentContext): ReactNode {
 					target={snapshot.target}
 					onToggleHidden={ctx.onToggleLayer}
 					onShowAll={ctx.onShowAllLayers}
+					locked={ctx.lockedLayers}
+					onToggleLocked={ctx.onToggleLock}
+					onUnlockAll={ctx.onUnlockAll}
 					onReveal={ctx.showLine}
 				/>
 			);

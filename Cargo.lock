@@ -1195,6 +1195,7 @@ dependencies = [
  "fizz-studio-profile",
  "fizz-studio-protocol",
  "fizz-studio-session",
+ "indexmap 2.14.2",
  "serde_json",
 ]
 

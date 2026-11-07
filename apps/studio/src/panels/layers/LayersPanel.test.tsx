@@ -10,9 +10,22 @@ import { levelSections } from '../../test/levelFixtures';
 import { LayersPanel, type LayersPanelProps } from './LayersPanel';
 
 function setup(props: Partial<LayersPanelProps> = {}) {
-	const handlers = { onToggleHidden: vi.fn(), onShowAll: vi.fn(), onReveal: vi.fn() };
+	const handlers = {
+		onToggleHidden: vi.fn(),
+		onShowAll: vi.fn(),
+		onToggleLocked: vi.fn(),
+		onUnlockAll: vi.fn(),
+		onReveal: vi.fn(),
+	};
 	render(
-		<LayersPanel sections={levelSections()} hidden={[]} target="fizz1" {...handlers} {...props} />,
+		<LayersPanel
+			sections={levelSections()}
+			hidden={[]}
+			locked={[]}
+			target="fizz1"
+			{...handlers}
+			{...props}
+		/>,
 	);
 	return handlers;
 }
@@ -72,9 +85,40 @@ describe('the Layers panel', () => {
 		expect(screen.getByRole('button', { name: 'Show all' })).toBeDisabled();
 	});
 
+	it('locks a layer from its padlock, which says whether it is locked', async () => {
+		const user = userEvent.setup();
+		const { onToggleLocked } = setup({ locked: ['terrain'] });
+		expect(screen.getByRole('button', { name: 'Lock Terrain' })).toHaveAttribute(
+			'aria-pressed',
+			'true',
+		);
+		const treats = screen.getByRole('button', { name: 'Lock Treats' });
+		expect(treats).toHaveAttribute('aria-pressed', 'false');
+		await user.click(treats);
+		expect(onToggleLocked).toHaveBeenCalledWith('treats');
+	});
+
+	it('lets a tile layer be locked though its eye waits', () => {
+		setup();
+		expect(screen.getByRole('button', { name: 'Lock Terrain' })).toBeEnabled();
+	});
+
+	it('unlocks every layer from Unlock all, which waits for something to be locked', async () => {
+		const user = userEvent.setup();
+		const first = setup({ locked: ['edits'] });
+		await user.click(screen.getByRole('button', { name: 'Unlock all' }));
+		expect(first.onUnlockAll).toHaveBeenCalledOnce();
+	});
+
+	it('disables Unlock all while nothing is locked', () => {
+		setup();
+		expect(screen.getByRole('button', { name: 'Unlock all' })).toBeDisabled();
+	});
+
 	it('says that hiding is only for the person', () => {
 		setup();
 		expect(screen.getByText(/Claude always sees the whole level/)).toBeVisible();
+		expect(screen.getByText(/cannot be changed, by you or by Claude/)).toBeVisible();
 	});
 
 	it('explains a level with no layers', () => {

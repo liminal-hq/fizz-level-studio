@@ -12,7 +12,8 @@ use fizz_studio_session::{Author, Request};
 use fizz_studio_world::{write_atomic, Project, ProjectKind as FoundKind, WORLD_FILE};
 use tauri::{AppHandle, Runtime, State};
 
-use crate::open::{announce, io_error, session_error, Worlds};
+use crate::open::{announce, announce_layers, io_error, session_error, Worlds};
+use crate::LevelLayers;
 
 fn text(path: &std::path::Path) -> String {
     path.to_string_lossy().into_owned()
@@ -252,4 +253,25 @@ pub fn level_ghosts(
 #[tauri::command]
 pub fn level_snapshot(worlds: State<'_, Worlds>, id: String) -> Result<LevelSnapshot, LevelError> {
     worlds.with(&id, |level| Ok(level.snapshot()))
+}
+
+/// The layers of an open level that are locked, by id. Read-only.
+#[tauri::command]
+pub fn level_layers(worlds: State<'_, Worlds>, id: String) -> Result<LevelLayers, LevelError> {
+    worlds.with(&id, |level| Ok(level.layers()))
+}
+
+/// Locks or unlocks a layer of an open level and keeps the choice in its sidecar. A locked layer
+/// refuses every change to it, whoever makes it. Every window hears `level://layers`.
+#[tauri::command]
+pub fn level_set_layer_locked<R: Runtime>(
+    app: AppHandle<R>,
+    worlds: State<'_, Worlds>,
+    id: String,
+    layer: String,
+    locked: bool,
+) -> Result<LevelLayers, LevelError> {
+    let layers = worlds.with(&id, |level| level.set_layer_locked(&layer, locked))?;
+    announce_layers(&app, &layers);
+    Ok(layers)
 }

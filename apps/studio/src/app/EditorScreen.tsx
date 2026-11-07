@@ -40,6 +40,7 @@ import {
 } from '../panels/dock/dockDrop';
 import { useDockDrag } from '../panels/dock/useDockDrag';
 import { ZONE_LABELS } from '../panels/dock/DockZone';
+import { useLayerLocks } from '../panels/layers/useLayerLocks';
 import { lockedProblem } from '../panels/layers/lockedNote';
 import { layersView, stillHidden } from '../panels/layers/layersView';
 import { PANEL_SPECS, isExpandable, type PanelId } from '../panels/float/panelSpecs';
@@ -151,6 +152,12 @@ export function EditorScreen({
 	// The layers the person hid on the canvas: this window's view only, never saved or sent to Rust.
 	const [hiddenLayers, setHiddenLayers] = useState<string[]>([]);
 	const levelId = snapshot.id;
+	// Which layers are locked is Rust's to say; this only follows it and asks it to change.
+	const layerLocks = useLayerLocks(client, levelId);
+	const lockFailures = layerLocks.failures;
+	useEffect(() => {
+		if (lockFailures > 0) setProblem({ id: 'layers.lockFailed' });
+	}, [lockFailures]);
 	const revision = snapshot.revision;
 	const areaRef = useRef<HTMLDivElement>(null);
 	const area = useElementSize(areaRef);
@@ -582,6 +589,9 @@ export function EditorScreen({
 						was.includes(id) ? was.filter((hidden) => hidden !== id) : [...was, id],
 					),
 				onShowAllLayers: () => setHiddenLayers([]),
+				lockedLayers: layerLocks.locked,
+				onToggleLock: layerLocks.toggle,
+				onUnlockAll: layerLocks.unlockAll,
 			})
 		);
 

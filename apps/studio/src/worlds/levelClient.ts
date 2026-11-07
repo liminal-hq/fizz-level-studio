@@ -41,6 +41,12 @@ export interface LevelClient {
 	ghosts(id: string): Promise<GhostProposal[]>;
 	/** The script line (from 1) of the last statement that changed a cell, or `null` if none did. */
 	cellLine(id: string, x: number, y: number): Promise<number | null>;
+	/** The layers of the level that are locked, as layer ids. */
+	layers(id: string): Promise<string[]>;
+	/** Locks or unlocks a layer, and resolves to the locked layers as they are now. */
+	setLayerLocked(id: string, layer: string, locked: boolean): Promise<string[]>;
+	/** Listens for changes to a level's locked layers, from any window. */
+	onLayersChanged(listener: (id: string, locked: string[]) => void): () => void;
 	/** Listens for snapshots the backend pushes (another window, Claude, an outside edit). */
 	onChanged(listener: (snapshot: LevelSnapshot) => void): () => void;
 }

@@ -10,6 +10,7 @@ mod document;
 mod fizz2;
 mod fizz2_view;
 mod layers;
+mod locks;
 mod new;
 mod proposals;
 mod view;
@@ -26,6 +27,7 @@ pub use any::{open_level_text, AnyLevelDocument};
 pub use document::{step_name, LevelDocument};
 pub use fizz2::Fizz2LevelDocument;
 pub use layers::{layers_changed, LAYER_ORDER};
+pub use locks::{locked_layers, sidecar_with_locks};
 pub use new::{
     default_ground, is_slug, new_level_text, new_world_text, pack_name, validate_new_level,
     HEIGHT_RANGE, WIDTH_RANGE,

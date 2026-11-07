@@ -14,7 +14,8 @@ use tauri::test::{mock_builder, mock_context, noop_assets, MockRuntime};
 use tauri::{Listener, Manager, WebviewUrl, WebviewWindowBuilder};
 
 use crate::{
-    commands, init_with, LevelConflict, RecoveryConfig, Worlds, CHANGED_EVENT, CONFLICT_EVENT,
+    commands, init_with, LevelConflict, LevelLayers, RecoveryConfig, Worlds, CHANGED_EVENT,
+    CONFLICT_EVENT, LAYERS_EVENT,
 };
 
 type App = tauri::App<MockRuntime>;
@@ -402,6 +403,110 @@ fn an_edit_to_a_locked_layer_is_refused_as_locked_and_changes_nothing() {
         Err(LevelError::Locked { ref layers }) if layers == &["edits".to_string()]
     ));
     assert_eq!(current(&app, &opened.id).revision, 0);
+}
+
+fn set_locked(app: &App, id: &str, layer: &str, locked: bool) -> Result<LevelLayers, LevelError> {
+    commands::level_set_layer_locked(
+        app.handle().clone(),
+        worlds(app),
+        id.to_string(),
+        layer.to_string(),
+        locked,
+    )
+}
+
+fn sidecar(path: &Path) -> PathBuf {
+    PathBuf::from(fizz_studio_level::sidecar_path(&path.to_string_lossy()))
+}
+
+#[test]
+fn locking_a_layer_is_kept_in_the_sidecar_keeping_the_other_keys_and_announced() {
+    let app = app();
+    let (_dir, path) = project();
+    let opened = open(&app, &path);
+    let heard = hear::<LevelLayers>(&app, "panel-layers-1", LAYERS_EVENT);
+    let mcp = "{\n  \"version\": 1,\n  \"mode\": \"propose\",\n  \"history\": []\n}\n";
+    std::fs::write(sidecar(&path), mcp).unwrap();
+
+    let layers = set_locked(&app, &opened.id, "treats", true).unwrap();
+    assert_eq!(layers.locked, ["treats"]);
+    let text = std::fs::read_to_string(sidecar(&path)).unwrap();
+    assert!(text.starts_with("{\n  \"version\": 1,\n  \"mode\": \"propose\",\n  \"history\": [],"));
+    assert_eq!(fizz_studio_level::locked_layers(&text), ["treats"]);
+    assert!(within(Duration::from_secs(1), || !heard
+        .lock()
+        .unwrap()
+        .is_empty()));
+    assert_eq!(heard.lock().unwrap()[0].locked, ["treats"]);
+
+    let again = commands::level_layers(worlds(&app), opened.id.clone()).unwrap();
+    assert_eq!(again.locked, ["treats"]);
+
+    set_locked(&app, &opened.id, "treats", false).unwrap();
+    assert_eq!(std::fs::read_to_string(sidecar(&path)).unwrap(), mcp);
+    assert!(set_locked(&app, &opened.id, "bogus", true).is_err());
+    assert!(set_locked(&app, "nope", "treats", true).is_err());
+}
+
+#[test]
+fn a_level_opens_with_the_locks_its_sidecar_holds_and_enforces_them() {
+    let app = app();
+    let (_dir, path) = project();
+    std::fs::write(
+        sidecar(&path),
+        r#"{"layers":{"locked":["edits"]},"mode":"direct"}"#,
+    )
+    .unwrap();
+    let opened = open(&app, &path);
+    let layers = commands::level_layers(worlds(&app), opened.id.clone()).unwrap();
+    assert_eq!(layers.locked, ["edits"]);
+    let refused = apply(&app, &opened.id, paint("grass", 5), 0);
+    assert!(matches!(refused, Err(LevelError::Locked { .. })));
+}
+
+#[test]
+fn a_lock_survives_the_level_being_closed_and_opened_again() {
+    let app = app();
+    let (_dir, path) = project();
+    let opened = open(&app, &path);
+    set_locked(&app, &opened.id, "enemies", true).unwrap();
+    commands::level_close(worlds(&app), opened.id).unwrap();
+    let again = open(&app, &path);
+    let layers = commands::level_layers(worlds(&app), again.id).unwrap();
+    assert_eq!(layers.locked, ["enemies"]);
+}
+
+#[test]
+fn a_sidecar_that_cannot_be_read_is_not_overwritten_and_the_lock_stays_off() {
+    let app = app();
+    let (_dir, path) = project();
+    let opened = open(&app, &path);
+    std::fs::write(sidecar(&path), "not json").unwrap();
+    let refused = set_locked(&app, &opened.id, "treats", true);
+    assert!(matches!(refused, Err(LevelError::Io { .. })));
+    assert_eq!(std::fs::read_to_string(sidecar(&path)).unwrap(), "not json");
+    let layers = commands::level_layers(worlds(&app), opened.id).unwrap();
+    assert!(layers.locked.is_empty());
+}
+
+#[test]
+fn a_server_rewriting_the_sidecar_without_the_lock_has_it_put_back() {
+    let app = app();
+    let (_dir, path) = project();
+    let opened = open(&app, &path);
+    set_locked(&app, &opened.id, "treats", true).unwrap();
+    std::fs::write(
+        sidecar(&path),
+        r#"{"version":1,"mode":"propose","history":[]}"#,
+    )
+    .unwrap();
+    assert!(within(Duration::from_secs(2), || {
+        std::fs::read_to_string(sidecar(&path))
+            .map(|text| fizz_studio_level::locked_layers(&text) == ["treats"])
+            .unwrap_or(false)
+    }));
+    let text = std::fs::read_to_string(sidecar(&path)).unwrap();
+    assert!(text.contains("\"mode\": \"propose\""));
 }
 
 #[test]

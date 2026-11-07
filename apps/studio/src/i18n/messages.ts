@@ -231,12 +231,19 @@ export const enMessages = {
 	'layers.hide': 'Hide {layer} on the canvas',
 	// translator: Why a layer's eye cannot be used yet: layers made of tiles (the ground, walls and blocks) cannot be hidden until a later version.
 	'layers.tilesLater': 'Coming with tile layers',
+	// translator: Accessible name of the lock toggle on a layer's row. {layer} is the layer's name. Pressed means the layer is locked: nothing in it can be changed, by the person or by Claude.
+	'layers.lock': 'Lock {layer}',
+	// translator: Verb phrase on a button. Unlocks every layer that is locked.
+	'layers.unlockAll': 'Unlock all',
+	// translator: Shown when a lock could not be saved to the level's sidecar file, so it stays as it was.
+	'layers.lockFailed': 'That lock could not be saved.',
 	// translator: Verb phrase on a button. Shows every layer that is hidden again.
 	'layers.showAll': 'Show all',
 	// translator: Tooltip on a layer's name. Choosing it shows the layer's first line in the script.
 	'layers.reveal': 'Show the first line of {layer} in the script',
 	// translator: Short note under the Layers list. Hiding a layer is only for the person's own view.
-	'layers.hideNote': 'Hiding is for your view only. Claude always sees the whole level.',
+	'layers.hideNote':
+		'Hiding is for your view only; Claude always sees the whole level. A locked layer cannot be changed, by you or by Claude.',
 	// translator: Shown in the Layers panel when the level has no sections yet.
 	'layers.none': 'This level has no layers yet.',
 	// translator: Shown in the Layers panel for a level written in the Fizz 2 language, which has no layers yet.

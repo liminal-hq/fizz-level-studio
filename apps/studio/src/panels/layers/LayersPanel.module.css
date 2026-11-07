@@ -12,7 +12,7 @@
 
 .row {
 	display: grid;
-	grid-template-columns: auto 1fr auto;
+	grid-template-columns: auto auto 1fr auto;
 	align-items: center;
 	gap: 0.25rem;
 	border-radius: 4px;
@@ -51,8 +51,21 @@
 	opacity: 0.5;
 }
 
+/* A hidden layer's eye is dimmed; a locked layer's padlock stands out. */
 .toggle[aria-pressed='true'] {
 	color: var(--fls-text-muted);
+}
+
+.lock {
+	composes: toggle;
+}
+
+.lock[aria-pressed='false'] {
+	color: var(--fls-text-muted);
+}
+
+.lock[aria-pressed='true'] {
+	color: var(--fls-text-primary);
 }
 
 .toggle:focus-visible,

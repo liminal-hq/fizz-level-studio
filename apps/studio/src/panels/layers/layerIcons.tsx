@@ -43,3 +43,23 @@ export function EyeClosedIcon() {
 		</Svg>
 	);
 }
+
+/** A shut padlock: the layer is locked. */
+export function LockClosedIcon() {
+	return (
+		<Svg>
+			<rect x="3.5" y="7" width="9" height="6.5" rx="1.4" />
+			<path d="M5.5 7V5.3a2.5 2.5 0 0 1 5 0V7" />
+		</Svg>
+	);
+}
+
+/** An open padlock: the layer can be changed. */
+export function LockOpenIcon() {
+	return (
+		<Svg>
+			<rect x="3.5" y="7" width="9" height="6.5" rx="1.4" />
+			<path d="M5.5 7V5.3a2.5 2.5 0 0 1 4.8-1" />
+		</Svg>
+	);
+}

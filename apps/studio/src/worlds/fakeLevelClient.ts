@@ -81,6 +81,9 @@ export class FakeLevelClient implements LevelClient {
 	readonly cellLines = new Map<string, number>();
 	/** The refusal every `applyEdit` throws while a test has set it, such as a `locked` error. */
 	refuseEdits: LevelError | null = null;
+	/** The locked layers; a test may set them, and `setLayerLocked` changes them. */
+	locked: string[] = [];
+	private layerListeners = new Set<(id: string, locked: string[]) => void>();
 	/** What `ghosts()` answers; a test sets it. */
 	ghostProposals: GhostProposal[] = [];
 
@@ -168,6 +171,26 @@ export class FakeLevelClient implements LevelClient {
 	async ghosts(id: string): Promise<GhostProposal[]> {
 		this.check(id);
 		return this.ghostProposals.map((proposal) => ({ ...proposal }));
+	}
+
+	async layers(id: string): Promise<string[]> {
+		this.check(id);
+		return [...this.locked];
+	}
+
+	async setLayerLocked(id: string, layer: string, locked: boolean): Promise<string[]> {
+		this.check(id);
+		this.locked = this.locked.filter((held) => held !== layer);
+		if (locked) this.locked.push(layer);
+		for (const listener of this.layerListeners) listener(id, [...this.locked]);
+		return [...this.locked];
+	}
+
+	onLayersChanged(listener: (id: string, locked: string[]) => void): () => void {
+		this.layerListeners.add(listener);
+		return () => {
+			this.layerListeners.delete(listener);
+		};
 	}
 
 	onChanged(listener: (snapshot: LevelSnapshot) => void): () => void {

@@ -9,7 +9,7 @@
 import type { LevelTarget } from '@liminal-hq/fizz-studio-protocol/generated/LevelTarget';
 import type { ViewSection } from '@liminal-hq/fizz-studio-protocol/generated/ViewSection';
 import { t } from '../../i18n/messages';
-import { EyeClosedIcon, EyeOpenIcon } from './layerIcons';
+import { EyeClosedIcon, EyeOpenIcon, LockClosedIcon, LockOpenIcon } from './layerIcons';
 import { layerName, layerNote } from './layerNames';
 import { canHide } from './layersView';
 import styles from './LayersPanel.module.css';
@@ -22,6 +22,10 @@ export interface LayersPanelProps {
 	target: LevelTarget;
 	onToggleHidden: (id: string) => void;
 	onShowAll: () => void;
+	/** The ids of the locked layers. */
+	locked: readonly string[];
+	onToggleLocked: (id: string) => void;
+	onUnlockAll: () => void;
 	/** Called with the first line (from 1) of the layer the person chose. */
 	onReveal: (line: number) => void;
 }
@@ -32,6 +36,9 @@ export function LayersPanel({
 	target,
 	onToggleHidden,
 	onShowAll,
+	locked,
+	onToggleLocked,
+	onUnlockAll,
 	onReveal,
 }: LayersPanelProps) {
 	if (sections.length === 0) {
@@ -46,10 +53,16 @@ export function LayersPanel({
 					const name = layerName(section);
 					const note = layerNote(section.id);
 					const isHidden = hidden.includes(section.id);
+					const isLocked = locked.includes(section.id);
 					const usable = canHide(section);
 					const first = section.lines[0]?.[0];
 					return (
-						<li key={section.id} className={styles.row} data-hidden={isHidden || undefined}>
+						<li
+							key={section.id}
+							className={styles.row}
+							data-hidden={isHidden || undefined}
+							data-locked={isLocked || undefined}
+						>
 							<button
 								type="button"
 								className={styles.toggle}
@@ -61,6 +74,16 @@ export function LayersPanel({
 								onClick={() => onToggleHidden(section.id)}
 							>
 								{isHidden ? <EyeClosedIcon /> : <EyeOpenIcon />}
+							</button>
+							<button
+								type="button"
+								className={styles.lock}
+								data-keycap-exempt=""
+								aria-pressed={isLocked}
+								aria-label={t('layers.lock', { layer: name })}
+								onClick={() => onToggleLocked(section.id)}
+							>
+								{isLocked ? <LockClosedIcon /> : <LockOpenIcon />}
 							</button>
 							<button
 								type="button"
@@ -86,6 +109,14 @@ export function LayersPanel({
 					onClick={onShowAll}
 				>
 					{t('layers.showAll')}
+				</button>
+				<button
+					type="button"
+					className={styles.action}
+					disabled={locked.length === 0}
+					onClick={onUnlockAll}
+				>
+					{t('layers.unlockAll')}
 				</button>
 			</div>
 			<p className={styles.hint}>{t('layers.hideNote')}</p>

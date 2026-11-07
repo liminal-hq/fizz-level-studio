@@ -10,12 +10,15 @@ import {
 	languageWords,
 	levelCellLine,
 	levelGhosts,
+	levelLayers,
 	levelSnapshot,
 	onLevelChanged,
 	onLevelConflict,
+	onLevelLayers,
 	openLevel,
 	redo,
 	saveLevel,
+	setLayerLocked,
 	undo,
 	type GhostProposal,
 	type LevelConflict,
@@ -149,6 +152,18 @@ export class TauriLevelClient implements LevelClient, WorldsClient {
 
 	ghosts(id: string): Promise<GhostProposal[]> {
 		return levelGhosts(id);
+	}
+
+	async layers(id: string): Promise<string[]> {
+		return (await levelLayers(id)).locked;
+	}
+
+	async setLayerLocked(id: string, layer: string, locked: boolean): Promise<string[]> {
+		return (await setLayerLocked(id, layer, locked)).locked;
+	}
+
+	onLayersChanged(listener: (id: string, locked: string[]) => void): () => void {
+		return subscribe(() => onLevelLayers((layers) => listener(layers.id, layers.locked)));
 	}
 
 	onChanged(listener: (snapshot: LevelSnapshot) => void): () => void {

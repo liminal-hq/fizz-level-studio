@@ -10,6 +10,7 @@ import { ownerOfPanel, panelFromLabel } from '../app/windowKind';
 import { t } from '../i18n/messages';
 import { panelWindowClient, type PanelWindowClient } from '../services/panelWindowClient';
 import { PANEL_SPECS } from './float/panelSpecs';
+import { useLayerLocks } from './layers/useLayerLocks';
 import { createPanelBridge, type PanelBridge } from './windows/panelBridge';
 import { usePanelSession } from './windows/usePanelSession';
 import { TauriLevelClient } from '../worlds/tauriLevelClient';
@@ -73,6 +74,7 @@ function PanelWindow({ windowLabel, spec, client, levels, bridge: given }: Panel
 	const owner = ownerOfPanel(windowLabel) ?? 'main-1';
 	const session = usePanelSession(windowLabel, bridge, levels);
 	const { share, snapshot } = session;
+	const layerLocks = useLayerLocks(levels, share?.levelId ?? null);
 	return (
 		<AppWindow titleId={spec.title}>
 			<main className={styles.panel}>
@@ -126,6 +128,9 @@ function PanelWindow({ windowLabel, spec, client, levels, bridge: given }: Panel
 										: [...share.hiddenLayers, id],
 								}),
 							onShowAllLayers: () => bridge.send(owner, 'layers/hidden', { hidden: [] }),
+							lockedLayers: layerLocks.locked,
+							onToggleLock: layerLocks.toggle,
+							onUnlockAll: layerLocks.unlockAll,
 						})
 					) : (
 						<p className={styles.message}>{t('panelWindow.noLevel')}</p>

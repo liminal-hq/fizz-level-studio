@@ -20,6 +20,8 @@ const COMMANDS: &[&str] = &[
     "level_cell_line",
     "level_ghosts",
     "level_snapshot",
+    "level_layers",
+    "level_set_layer_locked",
 ];
 
 fn main() {
