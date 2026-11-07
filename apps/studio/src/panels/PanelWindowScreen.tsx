@@ -14,6 +14,9 @@ import { createPanelBridge, type PanelBridge } from './windows/panelBridge';
 import { usePanelSession } from './windows/usePanelSession';
 import { TauriLevelClient } from '../worlds/tauriLevelClient';
 import type { LevelClient } from '../worlds/levelClient';
+import { isDirty } from '../worlds/tauriLevelClient';
+import { ScriptTabStrip } from './script/ScriptTabStrip';
+import { LEVEL_TAB, scriptTabsFor } from './script/scriptTabs';
 import styles from './PanelWindowScreen.module.css';
 
 export interface PanelWindowScreenProps {
@@ -74,6 +77,20 @@ function PanelWindow({ windowLabel, spec, client, levels, bridge: given }: Panel
 		<AppWindow titleId={spec.title}>
 			<main className={styles.panel}>
 				<div className={styles.bar}>
+					{spec.id === 'script' && snapshot && (
+						// The window holds one script: its one tab. Closing the tab docks the panel back.
+						<ScriptTabStrip
+							tabs={scriptTabsFor({
+								path: snapshot.path,
+								dirty: isDirty(snapshot),
+								away: false,
+							})}
+							active={LEVEL_TAB}
+							controls="panel-window-body"
+							onActivate={() => {}}
+							onClose={() => void client.dockBack(spec.id)}
+						/>
+					)}
 					<button
 						type="button"
 						className={styles.button}
@@ -82,7 +99,7 @@ function PanelWindow({ windowLabel, spec, client, levels, bridge: given }: Panel
 						{t('panel.dockBack')}
 					</button>
 				</div>
-				<div className={styles.body}>
+				<div className={styles.body} id="panel-window-body">
 					{share && snapshot ? (
 						panelContent(spec.id, {
 							snapshot,

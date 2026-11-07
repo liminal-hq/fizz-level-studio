@@ -707,3 +707,23 @@ describe('the zoom, workspace and window commands', () => {
 		expect(find('view.menuBar', { menuBar: false }, handlers).checked).toBe(false);
 	});
 });
+
+describe('the script tab commands', () => {
+	const find = (id: string, facts: Partial<BridgeSnapshot['facts']>, given = {}) => {
+		const snap = snapshot({ editorOpen: true, hasLevel: true, ...facts }, given);
+		return viewOf(allCommands(snap.facts).find((command) => command.id === id)!, snap);
+	};
+
+	it('are palette commands for the level script, with no menu row', () => {
+		for (const id of ['script.tab.level.activate', 'script.tab.level.close']) {
+			expect(PALETTE_COMMANDS.some((command) => command.id === id && !command.menu)).toBe(true);
+		}
+	});
+
+	it('close only while the Script panel is shown', () => {
+		const handlers = { 'script.tab.level.close': () => {} };
+		expect(find('script.tab.level.close', {}, handlers).enabled).toBe(false);
+		const panels = { ...NO_FACTS.panels, script: true };
+		expect(find('script.tab.level.close', { panels }, handlers).enabled).toBe(true);
+	});
+});

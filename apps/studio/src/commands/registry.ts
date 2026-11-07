@@ -481,6 +481,19 @@ export const PALETTE_COMMANDS: readonly CommandDef[] = [
 		}),
 	),
 	{
+		id: 'script.tab.level.activate',
+		group: 'panels',
+		label: 'scriptTabs.activate',
+		enabled: (facts) => facts.editorOpen,
+	},
+	{
+		id: 'script.tab.level.close',
+		group: 'panels',
+		label: 'scriptTabs.closeCommand',
+		enabled: (facts) => facts.editorOpen && facts.panels.script,
+		reason: () => 'view.maximiseNeedsPanel',
+	},
+	{
 		id: 'goto.line',
 		group: 'goto',
 		label: 'cmdPalette.gotoLine',

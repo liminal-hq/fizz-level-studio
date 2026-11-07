@@ -373,6 +373,20 @@ export const enMessages = {
 	'dock.rail.hintFolded': '{title}, folded; choose to open',
 	// translator: Name of the Assets panel, shown dimmed on the rail because it is not built yet.
 	'dock.assets': 'Assets',
+	// translator: Accessible name of the row of tabs in the Script panel’s header, one tab for each open script.
+	'scriptTabs.label': 'Scripts',
+	// translator: Accessible name of a script tab’s close button. {name} is the script’s file name. Closing a tab hides the Script panel; it does not close the level.
+	'scriptTabs.close': 'Close {name}',
+	// translator: Accessible name of a script tab’s close button when the script has changes that are not saved. {name} is the script’s file name.
+	'scriptTabs.closeDirty': 'Close {name}, unsaved changes',
+	// translator: Tooltip of the tab of a script that is open in a window of its own. Choosing it brings that window forward. {name} is the script’s file name.
+	'scriptTabs.away': '{name}, open in its own window; choose to bring it forward',
+	// translator: Accessible name and tooltip of the button that lists every script tab when they do not all fit in a narrow header.
+	'scriptTabs.more': 'More tabs',
+	// translator: Command palette entry. Shows the Script panel with the level’s script tab.
+	'scriptTabs.activate': 'Show the level script tab',
+	// translator: Command palette entry. Closes the level’s script tab, which hides the Script panel. The level stays open.
+	'scriptTabs.closeCommand': 'Close the level script tab',
 	// translator: Tooltip on the dimmed Assets entry of the rail: the panel will come in a later version.
 	'dock.assets.later': 'Assets are coming later',
 	// translator: A row in a panel’s own menu. Moves that panel into the dock on the left of the level. The panel is already named by the menu.

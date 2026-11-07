@@ -16,7 +16,7 @@ import {
 import { t } from '../../i18n/messages';
 import type { Size } from '../float/panelGeometry';
 import { DockRail, type PeekCause } from './DockRail';
-import { DockZone } from './DockZone';
+import { DockZone, type HeaderWidth } from './DockZone';
 import type { RailPlaceholders } from './railPlaceholders';
 import type { PanelMenu } from './PanelMenuButton';
 import { DragGhost } from './DragGhost';
@@ -60,6 +60,8 @@ export interface DockShellProps {
 	actions: DockActions;
 	/** The rows of a panel's own ⋮ menu and what choosing one does; headers show no menu button without it. */
 	panelMenu?: (id: string) => PanelMenu;
+	/** What a panel's header shows in place of its title text, such as the Script's tab strip. */
+	headerExtra?: (id: string, width: HeaderWidth) => ReactNode;
 	/** Dimmed rail entries for panels that are to come, such as Assets. */
 	railPlaceholders?: RailPlaceholders;
 	/** The drag controller; without one, panels cannot be dragged. */
@@ -99,6 +101,7 @@ export function DockShell({
 	renderPanel,
 	actions,
 	panelMenu,
+	headerExtra,
 	railPlaceholders,
 	drag,
 	announcement = '',
@@ -233,6 +236,7 @@ export function DockShell({
 					titleOf={titleOf}
 					renderPanel={renderPanel}
 					panelMenu={panelMenu}
+					headerExtra={headerExtra}
 					onDragStart={drag?.begin}
 					dragging={dragging?.id ?? null}
 					expandable={expandable}

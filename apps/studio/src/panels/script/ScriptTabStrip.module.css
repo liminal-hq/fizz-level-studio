@@ -1,0 +1,140 @@
+.strip {
+	display: flex;
+	flex: 1;
+	align-items: stretch;
+	align-self: stretch;
+	min-width: 0;
+	gap: 0.15rem;
+}
+
+.tabs {
+	display: flex;
+	flex: 0 1 auto;
+	align-items: stretch;
+	min-width: 0;
+	gap: 1px;
+	overflow-x: auto;
+	scrollbar-width: none;
+}
+
+/* A tab: a label and its close button, with the accent along the top while it is the active one. */
+.tab {
+	position: relative;
+	display: inline-flex;
+	flex: none;
+	align-items: center;
+	box-sizing: border-box;
+	max-width: 16rem;
+	color: var(--fls-text-secondary);
+	border-radius: 6px 6px 0 0;
+}
+
+.strip[data-narrow] .tab {
+	min-width: 6.5rem;
+	max-width: 11rem;
+}
+
+.tab::before {
+	position: absolute;
+	top: 0;
+	right: 0.4rem;
+	left: 0.4rem;
+	height: 2px;
+	content: '';
+	background: transparent;
+	border-radius: 2px;
+}
+
+.tab[data-active] {
+	color: var(--fls-text-primary);
+	background: var(--fls-bg-selected);
+}
+
+.tab[data-active]::before {
+	background: var(--fls-accent);
+}
+
+.tab:hover:not([data-active]) {
+	color: var(--fls-text-primary);
+	background: var(--fls-bg-hover);
+}
+
+.label {
+	display: inline-flex;
+	flex: 1;
+	align-items: center;
+	gap: 0.4rem;
+	min-width: 0;
+	padding: 0.2rem 0.2rem 0.2rem 0.55rem;
+	color: inherit;
+	background: transparent;
+	border: 0;
+	border-radius: 6px;
+	font: inherit;
+	font-size: 0.82rem;
+	font-weight: 500;
+	white-space: nowrap;
+	cursor: default;
+	/* A press on a tab may become a drag out of the header. */
+	touch-action: none;
+}
+
+.label:focus-visible,
+.close:focus-visible,
+.more:focus-visible {
+	outline: 2px solid var(--fls-focus-ring);
+	outline-offset: -2px;
+}
+
+.name {
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.tab[data-away] .name {
+	font-style: italic;
+}
+
+.dot {
+	flex: none;
+	width: 0.5rem;
+	height: 0.5rem;
+	background: var(--fls-warning);
+	border-radius: 50%;
+}
+
+.dot[data-kind='behaviour'] {
+	background: var(--fls-accent-text);
+}
+
+/* The close button: a cross that turns into a dot while the script has unsaved changes. */
+.close,
+.more {
+	display: inline-flex;
+	flex: none;
+	align-items: center;
+	justify-content: center;
+	width: 1.4rem;
+	height: 1.4rem;
+	padding: 0;
+	color: var(--fls-text-muted);
+	background: transparent;
+	border: 0;
+	border-radius: 4px;
+	cursor: default;
+}
+
+.close:hover,
+.more:hover {
+	color: var(--fls-text-primary);
+	background: var(--fls-bg-hover);
+}
+
+.close[data-dirty] {
+	color: var(--fls-text-secondary);
+}
+
+.more {
+	align-self: center;
+}

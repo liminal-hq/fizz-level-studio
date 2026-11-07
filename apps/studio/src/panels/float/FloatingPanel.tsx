@@ -59,8 +59,10 @@ export interface FloatingPanelProps {
 	maximised?: boolean;
 	/** Another panel is maximised: this one stays mounted, hidden. */
 	suppressed?: boolean;
-	/** Extra controls in the header, such as a Tear off button. */
+	/** Extra controls in the header, such as Maximise and the ⋮ menu. */
 	actions?: ReactNode;
+	/** Shown in the header in place of the title text, such as the Script's tab strip. */
+	headerExtra?: ReactNode;
 	children: ReactNode;
 }
 
@@ -103,6 +105,7 @@ export function FloatingPanel({
 	maximised = false,
 	suppressed = false,
 	actions,
+	headerExtra,
 	children,
 }: FloatingPanelProps) {
 	// Until the area has been laid out it has no edges to keep a panel inside.
@@ -287,11 +290,11 @@ export function FloatingPanel({
 							<circle cx="9" cy="9" r="1.2" />
 						</svg>
 					</button>
-					<h2 id={titleId} className={styles.title}>
+					<h2 id={titleId} className={headerExtra ? styles.hiddenTitle : styles.title}>
 						{title}
 					</h2>
-					{subtitle && <span className={styles.subtitle}>{subtitle}</span>}
-					<span className={styles.spacer} />
+					{subtitle && !headerExtra && <span className={styles.subtitle}>{subtitle}</span>}
+					{headerExtra ?? <span className={styles.spacer} />}
 					{actions}
 					<button
 						type="button"
@@ -314,7 +317,9 @@ export function FloatingPanel({
 						</svg>
 					</button>
 				</header>
-				<div className={styles.body}>{children}</div>
+				<div className={styles.body} id={`panel-body-${id}`}>
+					{children}
+				</div>
 			</div>
 			{!collapsed &&
 				!maximised &&

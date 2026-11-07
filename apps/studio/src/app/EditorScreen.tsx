@@ -26,6 +26,10 @@ import { DockShell } from '../panels/dock/DockShell';
 import { isLevelFirstKey, isMaximiseKey, isRestoreKey, panelOfNode } from '../panels/dock/dockKeys';
 import { PanelExpandButton } from '../panels/dock/PanelExpandButton';
 import type { RailPlaceholders } from '../panels/dock/railPlaceholders';
+import { ScriptTabStrip } from '../panels/script/ScriptTabStrip';
+import { LEVEL_TAB, scriptTabsFor } from '../panels/script/scriptTabs';
+import { isDirty } from '../worlds/tauriLevelClient';
+import type { HeaderWidth } from '../panels/dock/DockZone';
 import { PanelMenuButton } from '../panels/dock/PanelMenuButton';
 import { useDockLayout } from '../panels/dock/useDockLayout';
 import {
@@ -493,6 +497,28 @@ export function EditorScreen({
 		},
 	};
 
+	// The Script panel's header holds its tabs: the level's script (the only one until Fizz 2), marked
+	// when it is open in a window of its own. Closing the tab hides the panel and never closes the level.
+	const scriptTabs = scriptTabsFor({
+		path: snapshot.path,
+		dirty: isDirty(snapshot),
+		away: windows.away.script,
+	});
+	function headerExtra(id: string, width: HeaderWidth) {
+		if (id !== 'script') return null;
+		return (
+			<ScriptTabStrip
+				tabs={scriptTabs}
+				active={LEVEL_TAB}
+				narrow={width === 'narrow'}
+				controls="panel-body-script"
+				onActivate={() => (windows.away.script ? tearOffPanel('script') : dock.activate('script'))}
+				onClose={() => dock.setVisible('script', false)}
+				onTabDragStart={(event) => dragFromHere.begin(event, 'script', 'header')}
+			/>
+		);
+	}
+
 	const content = (id: PanelId) =>
 		windows.away[id] ? (
 			<TornOffNotice title={titleOf(id)} onDockBack={() => windows.dockBack(id)} />
@@ -554,6 +580,7 @@ export function EditorScreen({
 					maximised={maximised}
 					actions={{ ...dock, activate: activateTab }}
 					panelMenu={panelMenu}
+					headerExtra={headerExtra}
 					railPlaceholders={railPlaceholders()}
 					drag={dragFromHere}
 					announcement={dragNote}
@@ -611,6 +638,7 @@ export function EditorScreen({
 							onRaise={() => dock.raise(spec.id)}
 							maximised={maximised === spec.id}
 							suppressed={maximised !== null && maximised !== spec.id}
+							headerExtra={headerExtra(spec.id, 'wide')}
 							actions={
 								maximised === spec.id ? (
 									<PanelExpandButton title={t(spec.title)} expanded onToggle={dock.restore} />

@@ -74,6 +74,23 @@ describe('a panel window', () => {
 		expect(await screen.findByRole('textbox', { name: 'Script text' })).toBeVisible();
 	});
 
+	it('shows the Script window’s one tab, and closing it docks the panel back', async () => {
+		const user = userEvent.setup();
+		const { windows } = mount('panel-script-1');
+		expect(await screen.findByRole('tab', { name: 'test.fizz' })).toHaveAttribute(
+			'aria-selected',
+			'true',
+		);
+		await user.click(screen.getByRole('button', { name: 'Close test.fizz' }));
+		expect(windows.client.dockBack).toHaveBeenCalledWith('script');
+	});
+
+	it('shows no tab in the window of another panel', async () => {
+		mount('panel-history-1');
+		await screen.findByRole('button', { name: /Undo/ });
+		expect(screen.queryByRole('tab')).toBeNull();
+	});
+
 	it('says so while the main window has no level open', async () => {
 		mount('panel-script-1', share({ levelId: null }));
 		expect(

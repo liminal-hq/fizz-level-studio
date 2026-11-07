@@ -21,6 +21,8 @@ export interface DockZoneProps {
 	renderPanel: (id: string) => ReactNode;
 	/** The rows of a panel's own ⋮ menu and what choosing one does; the button is left out when this is absent. */
 	panelMenu?: (id: string) => PanelMenu;
+	/** What a panel's header shows in place of its title text (the Script's tab strip); `width` is `narrow` in a side dock. */
+	headerExtra?: (id: string, width: HeaderWidth) => ReactNode;
 	/** A press on a header that may become a drag. */
 	onDragStart?: (event: PointerEvent<HTMLElement>, id: string, source: DragSource) => void;
 	/** Whether a panel can be maximised, and the action that does it. */
@@ -32,6 +34,9 @@ export interface DockZoneProps {
 	/** The panel being dragged, dimmed where it sits. */
 	dragging?: string | null;
 }
+
+/** How much room a header has: a side dock is narrow. */
+export type HeaderWidth = 'wide' | 'narrow';
 
 export const ZONE_LABELS: Record<ZoneId, MessageId> = {
 	left: 'dock.zone.left',
@@ -52,6 +57,7 @@ export function DockZone({
 	titleOf,
 	renderPanel,
 	panelMenu,
+	headerExtra,
 	onDragStart,
 	dragging = null,
 	expandable,
@@ -70,6 +76,7 @@ export function DockZone({
 					titleOf={titleOf}
 					renderPanel={renderPanel}
 					panelMenu={panelMenu}
+					headerExtra={headerExtra}
 					onDragStart={onDragStart}
 					dragging={dragging}
 					expandable={expandable}
@@ -94,6 +101,7 @@ function Group({
 	titleOf,
 	renderPanel,
 	panelMenu,
+	headerExtra,
 	onDragStart,
 	dragging = null,
 	expandable,
@@ -106,6 +114,7 @@ function Group({
 	const Icon = PANEL_ICONS[active as PanelId];
 	const title = titleOf(active);
 	const menu = panelMenu?.(active);
+	const extra = headerExtra?.(active, zone === 'bottom' ? 'wide' : 'narrow');
 	return (
 		<div
 			className={styles.group}
@@ -134,8 +143,8 @@ function Group({
 							<GripIcon size={14} />
 						</span>
 						{Icon && <Icon size={14} />}
-						<h2 className={styles.title}>{title}</h2>
-						<span className={styles.spacer} />
+						<h2 className={extra ? styles.hiddenTitle : styles.title}>{title}</h2>
+						{extra ?? <span className={styles.spacer} />}
 						{onMaximise && expandable?.(active) && (
 							<PanelExpandButton
 								title={title}
@@ -147,7 +156,7 @@ function Group({
 					</>
 				)}
 			</div>
-			<div className={styles.body} data-panel-id={active}>
+			<div className={styles.body} data-panel-id={active} id={`panel-body-${active}`}>
 				{renderPanel(active)}
 			</div>
 		</div>

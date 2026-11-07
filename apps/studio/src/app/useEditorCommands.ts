@@ -72,6 +72,7 @@ export function useEditorCommands({
 		restore: dock.restore,
 		tearOff,
 		dockBack: windows.dockBack,
+		activate: dock.activate,
 		dockTo: dock.dockTo,
 		floatPanel: dock.floatPanel,
 		switchWorkspace: dock.switchWorkspace,
@@ -117,6 +118,14 @@ export function useEditorCommands({
 		for (const entry of WORKSPACE_COMMANDS) {
 			handlers[entry.id] = () => live.current.switchWorkspace(entry.name);
 		}
+		// The level script's tab: choosing it shows the Script panel (or brings its window forward);
+		// closing it hides the panel and never closes the level.
+		handlers['script.tab.level.activate'] = () => {
+			if (live.current.away.script) return live.current.tearOff('script');
+			live.current.setVisible('script', true);
+			live.current.activate('script');
+		};
+		handlers['script.tab.level.close'] = () => live.current.setVisible('script', false);
 		handlers['window.floatFocused'] = () => {
 			if (focusedRef.current) live.current.floatPanel(focusedRef.current);
 		};

@@ -390,10 +390,11 @@ async function dockChecks(bridge: Bridge): Promise<void> {
 			(await railItemPressed(bridge, 'History')) === false,
 	);
 	check(
-		'an open dock names its panel once, with no tab strip beside the rail',
+		'an open dock names its panel once, and only the Script header has tabs (the rail is the switch)',
 		await bridge.js<boolean>(
 			`const headers = [...document.querySelectorAll('section[aria-label$=" dock"] [data-strip]')];
-			 return headers.length === 3 && headers.every((h) => h.querySelector('[role=tab], [role=tablist]') === null && h.querySelectorAll('h2').length === 1);`,
+			 const panelOf = (h) => h.parentElement.querySelector('[data-panel-id]')?.dataset.panelId;
+			 return headers.length === 3 && headers.every((h) => h.querySelectorAll('h2').length === 1 && (h.querySelector('[role=tablist]') !== null) === (panelOf(h) === 'script'));`,
 		),
 	);
 	const share = m.map ? Math.round(((m.map.w * m.map.h) / (m.window.w * m.window.h)) * 100) : 0;
