@@ -2379,9 +2379,10 @@ function surfaceFills(
 		 };
 		 const out = {};
 		 for (const [name, selector] of Object.entries(${JSON.stringify(selectors)})) {
-			 const e = document.querySelector(selector);
+			 const [base, pseudo] = selector.split('::');
+			 const e = document.querySelector(base);
 			 if (!e) { out[name] = null; continue; }
-			 const c = getComputedStyle(e);
+			 const c = getComputedStyle(e, pseudo ? '::' + pseudo : null);
 			 const stop = c.backgroundImage.match(/color\\([^)]*\\)|rgba?\\([^)]*\\)/);
 			 out[name] = { alpha: alphaOf(stop ? stop[0] : c.backgroundColor), filter: c.backdropFilter || c.webkitBackdropFilter || 'none' };
 		 }
@@ -2493,7 +2494,7 @@ async function glassSurfaceChecks(bridge: Bridge): Promise<void> {
 				await within(3000, () =>
 					bridge.js<boolean>(`return !!document.querySelector('[role=menu]');`),
 				);
-				const menus = await surfaceFills(bridge, { menu: '[role=menu]' });
+				const menus = await surfaceFills(bridge, { menu: '[role=menu]::before' });
 				const m = menus.menu;
 				check(
 					`${where}: an open menu ${on ? `draws ${menu}% with a blur` : 'is solid, with no blur'}`,
@@ -2534,11 +2535,14 @@ async function opacitySliderChecks(bridge: Bridge, profile: Profile): Promise<vo
 			`await window.__TAURI_INTERNALS__.invoke('open_window', { id: { kind: 'preferences' } }); return true;`,
 		);
 		await bridge.ready('preferences');
-		await bridge.js<boolean>(
-			`const b = [...document.querySelectorAll('button[data-section]')].find((x) => x.textContent.trim() === 'Transparency'); if (!b) return false; b.click(); return true;`,
-			'preferences',
-		);
-		await within(10_000, async () => (await slider('preferences')) !== null);
+		// A window that has only just opened may not have drawn its page list yet: press again until the slider is there.
+		await within(20_000, async () => {
+			await bridge.js<boolean>(
+				`const b = [...document.querySelectorAll('button[data-section]')].find((x) => x.textContent.trim() === 'Transparency'); if (!b) return false; b.click(); return true;`,
+				'preferences',
+			);
+			return (await slider('preferences')) !== null;
+		});
 	};
 	await setTransparency(bridge, { panel_opacity: 100 });
 	await openTransparencyPage();
@@ -2568,9 +2572,11 @@ async function opacitySliderChecks(bridge: Bridge, profile: Profile): Promise<vo
 		file?.settings?.transparency?.panel_opacity === 73,
 		JSON.stringify(file?.settings?.transparency),
 	);
-	const main = await bridge.js<string>(
-		`return document.documentElement.style.getPropertyValue('--fls-glass-alpha');`,
-	);
+	const main = (
+		await bridge.js<string>(
+			`return document.documentElement.style.getPropertyValue('--fls-glass-alpha');`,
+		)
+	).trim();
 	check('opacity: the main window draws 0.73', main === '0.73', main);
 	const prefs = await slider('preferences');
 	check(
@@ -2591,7 +2597,7 @@ async function opacitySliderChecks(bridge: Bridge, profile: Profile): Promise<vo
 	const again = await slider('preferences');
 	check(
 		'opacity: reopened, the slider reads 73 and the window draws 0.73',
-		again?.value === '73' && again.window === '0.73' && !/NaN/.test(again.preview),
+		again?.value === '73' && again.window.trim() === '0.73' && !/NaN/.test(again.preview),
 		JSON.stringify(again),
 	);
 	await setTransparency(bridge, { panel_opacity: 88 });
