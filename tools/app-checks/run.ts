@@ -486,6 +486,78 @@ async function transparentEditorChecks(bridge: Bridge): Promise<void> {
 	await sleep(300);
 }
 
+/**
+ * A rail entry dragged around inside the window is the page's own drag: no ghost window is shown,
+ * no panel window is opened, the webview's text selection and native drag are refused while it runs,
+ * and nothing is left behind when it ends. (A drag that leaves the window needs the real pointer
+ * and compositor, which only a person on that desktop can give.)
+ */
+async function inWindowDragChecks(bridge: Bridge): Promise<void> {
+	const windows = async () => {
+		const parsed = JSON.parse(await bridge.call('manage_window', { action: 'list' })) as {
+			windows: { label: string; visible: boolean }[];
+		};
+		return parsed.windows;
+	};
+	const shape = (list: { label: string; visible: boolean }[]) =>
+		list.map((w) => `${w.label}:${w.visible}`).sort();
+	const before = shape(await windows());
+	const during = await bridge.js<{
+		selectRefused: boolean;
+		dragRefused: boolean;
+		zones: number;
+	} | null>(
+		`const src = [...document.querySelectorAll('[data-rail-item]')].find((x) => x.textContent.trim() === 'Palette');
+		 if (!src) return null;
+		 const r = src.getBoundingClientRect();
+		 const p = { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+		 const wait = () => new Promise((res) => setTimeout(res, 80));
+		 const fire = (type, x, y) => src.dispatchEvent(new PointerEvent(type, { bubbles: true, cancelable: true, pointerId: 31, button: 0, buttons: type === 'pointerup' ? 0 : 1, clientX: x, clientY: y }));
+		 src.setPointerCapture = () => {};
+		 fire('pointerdown', p.x, p.y);
+		 await wait();
+		 for (const [dx, dy] of [[12, 40], [40, 90], [80, 130]]) { fire('pointermove', p.x + dx, p.y + dy); await wait(); }
+		 const refused = (type) => { const e = new Event(type, { bubbles: true, cancelable: true }); document.body.dispatchEvent(e); return e.defaultPrevented; };
+		 const result = {
+			 selectRefused: refused('selectstart'),
+			 dragRefused: refused('dragstart'),
+			 zones: [...document.querySelectorAll('[data-drop-zone]')].filter((e) => getComputedStyle(e).display !== 'none').length,
+		 };
+		 window.__fizzDragProbe = { x: p.x + 80, y: p.y + 130 };
+		 return result;`,
+	);
+	const midWindows = shape(await windows());
+	check(
+		'in-window drag: no ghost or panel window appears while a rail entry is dragged inside the window',
+		JSON.stringify(midWindows) === JSON.stringify(before),
+		JSON.stringify({ before, midWindows }),
+	);
+	check(
+		'in-window drag: the webview’s text selection and native drag are refused while it runs',
+		during?.selectRefused === true && during.dragRefused === true,
+		JSON.stringify(during),
+	);
+	check(
+		'in-window drag: the drop zones are shown during the drag',
+		(during?.zones ?? 0) >= 1,
+		JSON.stringify(during),
+	);
+	// Escape puts everything back, and the zones go away.
+	await bridge.js<boolean>(
+		`document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true })); return true;`,
+	);
+	await sleep(300);
+	const after = shape(await windows());
+	const left = await bridge.js<number>(
+		`return [...document.querySelectorAll('[data-drop-zone]')].filter((e) => getComputedStyle(e).display !== 'none').length;`,
+	);
+	check(
+		'in-window drag: Escape leaves no window and no drop zone behind',
+		JSON.stringify(after) === JSON.stringify(before) && left === 0,
+		JSON.stringify({ after, left }),
+	);
+}
+
 /** Clicks the button with this accessible name. */
 function clickLabelled(bridge: Bridge, label: string): Promise<boolean> {
 	return bridge.js<boolean>(
@@ -3313,6 +3385,7 @@ async function main(): Promise<void> {
 		await panelMenuStaysPutChecks(bridge);
 		await scriptPopupChecks(bridge);
 		await transparentEditorChecks(bridge);
+		await inWindowDragChecks(bridge);
 		await dragAndMaximiseChecks(bridge);
 		await toolPickerChecks(bridge);
 		await zoomPillChecks(bridge);

@@ -221,11 +221,20 @@ export function useDockDrag(options: DockDragOptions): DockDrag {
 				cancel();
 			};
 
+			// The drag is ours alone: the webview must not start a text selection or a native drag and
+			// drop of the page's text (its drag image is a window of its own, drawn over the desktop)
+			// while the pointer moves, whatever was under the press or already selected.
+			const refuse = (e: Event) => e.preventDefault();
+			window.getSelection?.()?.removeAllRanges();
+			document.addEventListener('dragstart', refuse, true);
+			document.addEventListener('selectstart', refuse, true);
 			document.addEventListener('pointermove', move);
 			document.addEventListener('pointerup', up);
 			document.addEventListener('pointercancel', aborted);
 			document.addEventListener('keydown', key, true);
 			stop.current = () => {
+				document.removeEventListener('dragstart', refuse, true);
+				document.removeEventListener('selectstart', refuse, true);
 				document.removeEventListener('pointermove', move);
 				document.removeEventListener('pointerup', up);
 				document.removeEventListener('pointercancel', aborted);

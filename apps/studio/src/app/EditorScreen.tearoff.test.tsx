@@ -240,6 +240,96 @@ describe('dragging a panel out of the window', () => {
 	});
 });
 
+/** The plugin calls a drag makes: any of these means a ghost or a window drag was asked for. */
+const dragCalls = (tearoff: FakeTearoff) =>
+	tearoff.calls.filter((call) => /^(begin|update|end|endToplevelDrag)/.test(call));
+
+describe('dragging a panel within the window', () => {
+	// A plain reorder or move between docks never asks the plugin for a ghost or a window drag, on
+	// any desktop, from a rail entry or a header, and whether it ends in a release, Escape or a cancel.
+	for (const [name, features] of [
+		['X11 or Windows (ghost)', ghostDesktop],
+		['Wayland (compositor window drag)', { toplevelDrag: true }],
+		['a desktop with neither', {}],
+	] as const) {
+		describe(`on ${name}`, () => {
+			it('never begins a ghost or a window drag for a rail entry moved inside the window', async () => {
+				const { tearoff, windows } = await mount(features);
+				down(railEntry('Palette', 'left'), 20, 100);
+				act(() => {
+					move(60, 140);
+					move(500, 300);
+					move(900, 200);
+				});
+				act(() => up(900, 200));
+				expect(dragCalls(tearoff)).toEqual([]);
+				expect(tearoff.toplevel).toEqual([]);
+				expect(windows.client.tearOff).not.toHaveBeenCalled();
+			});
+
+			it('never begins one for a header dragged inside the window, or ended with Escape', async () => {
+				const { tearoff, windows } = await mount(features);
+				down(headerOf('Left dock', 'Palette'), 100, 10);
+				act(() => {
+					move(120, 60);
+					move(700, 400);
+				});
+				act(() => {
+					fireEvent.keyDown(document, { key: 'Escape' });
+				});
+				down(headerOf('Left dock', 'Palette'), 100, 10);
+				act(() => {
+					move(130, 70);
+					fireEvent.pointerCancel(document, { pointerId: 1 });
+				});
+				expect(dragCalls(tearoff)).toEqual([]);
+				expect(windows.client.tearOff).not.toHaveBeenCalled();
+			});
+		});
+	}
+
+	it('ends the ghost on a release outside the window, and on Escape, a cancel and coming back in', async () => {
+		const { tearoff, windows } = await mount(ghostDesktop);
+		const header = () => headerOf('Left dock', 'Palette');
+		const leave = async (count: number) => {
+			down(header(), 100, 10);
+			act(() => {
+				move(60, 40);
+				move(-30, 40);
+			});
+			await waitFor(() => expect(tearoff.begun).toHaveLength(count));
+		};
+		// Escape outside: cancelled.
+		await leave(1);
+		act(() => {
+			fireEvent.keyDown(document, { key: 'Escape' });
+		});
+		await waitFor(() => expect(tearoff.ended).toEqual(['cancel']));
+		// A cancelled pointer outside: cancelled.
+		await leave(2);
+		act(() => {
+			fireEvent.pointerCancel(document, { pointerId: 1 });
+		});
+		await waitFor(() => expect(tearoff.ended).toEqual(['cancel', 'cancel']));
+		// Back inside the window: the page's own drag again, so the ghost is cancelled.
+		await leave(3);
+		act(() => move(300, 300));
+		await waitFor(() => expect(tearoff.ended).toHaveLength(3));
+		expect(tearoff.ended[2]).toBe('cancel');
+		act(() => up(300, 300));
+		expect(windows.client.tearOff).not.toHaveBeenCalled();
+		// Released outside: ended as a drop, and only then is a window opened.
+		await leave(4);
+		act(() => up(-60, 40));
+		await waitFor(() => expect(tearoff.ended).toHaveLength(4));
+		expect(tearoff.ended[3]).toBe('drop');
+		await waitFor(() => expect(windows.client.tearOff).toHaveBeenCalledTimes(1));
+		// Every begin was matched by exactly one end.
+		expect(tearoff.calls.filter((c) => c === 'begin')).toHaveLength(4);
+		expect(tearoff.calls.filter((c) => c.startsWith('end:'))).toHaveLength(4);
+	});
+});
+
 describe('the drop regions the main window registers', () => {
 	it('names each dock, group, rail and rail entry once the plugin can hit-test', async () => {
 		vi.spyOn(Element.prototype, 'getBoundingClientRect').mockImplementation(function (
