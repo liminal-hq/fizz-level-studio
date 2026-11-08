@@ -6,6 +6,7 @@
 import type { TabGroup } from '@liminal-hq/fizz-studio-protocol/generated/TabGroup';
 import type { ZoneId } from '@liminal-hq/fizz-studio-protocol/generated/ZoneId';
 import type { PointerEvent, ReactNode } from 'react';
+import { useSurfaceMenu } from '../../app/useSurfaceMenu';
 import { t, type MessageId } from '../../i18n/messages';
 import { PanelMenuButton, type PanelMenu } from './PanelMenuButton';
 import { PanelExpandButton } from './PanelExpandButton';
@@ -120,6 +121,12 @@ function Group({
 	const title = titleOf(active);
 	const menu = panelMenu?.(active);
 	const extra = headerExtra?.(active, zone === 'bottom' ? 'wide' : 'narrow');
+	// A right-click, the Menu key or Shift+F10 on the header opens the panel's menu.
+	const headerMenu = useSurfaceMenu<HTMLDivElement>(() => ({
+		kind: 'panel',
+		panel: active as PanelId,
+		where: 'header',
+	}));
 	return (
 		<div
 			className={styles.group}
@@ -133,6 +140,7 @@ function Group({
 				data-strip=""
 				data-dragging={active === dragging || undefined}
 				data-landed={active === landed || undefined}
+				{...headerMenu}
 				onPointerDown={(event) => {
 					if (filling || (event.target as HTMLElement).closest('button')) return;
 					onDragStart?.(event, active, 'header');

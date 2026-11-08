@@ -6,6 +6,7 @@
 import type { TabGroup } from '@liminal-hq/fizz-studio-protocol/generated/TabGroup';
 import type { ZoneId } from '@liminal-hq/fizz-studio-protocol/generated/ZoneId';
 import { useEffect, useLayoutEffect, useRef, type KeyboardEvent, type PointerEvent } from 'react';
+import { useSurfaceMenu } from '../../app/useSurfaceMenu';
 import { t, type MessageId } from '../../i18n/messages';
 import { APP_ICONS } from '../../icons/AppIcons';
 import { PANEL_ICONS } from './panelIcons';
@@ -83,6 +84,13 @@ export function DockRail({
 	placeholders = [],
 }: DockRailProps) {
 	const rail = useRef<HTMLDivElement>(null);
+	// A right-click, the Menu key or Shift+F10 on an entry opens its panel's menu; the gaps open none.
+	const entryMenu = useSurfaceMenu<HTMLDivElement>((event) => {
+		const entry = (event.target as Element).closest<HTMLElement>('[data-rail-item]');
+		return entry
+			? { kind: 'panel', panel: entry.dataset.railItem as PanelId, where: 'rail' }
+			: null;
+	});
 	const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const cancel = () => {
 		if (timer.current) clearTimeout(timer.current);
@@ -139,7 +147,11 @@ export function DockRail({
 			data-folded={collapsed || undefined}
 			role="group"
 			aria-label={t(RAIL_LABELS[zone])}
-			onKeyDown={onKeyDown}
+			onContextMenu={entryMenu.onContextMenu}
+			onKeyDown={(event) => {
+				entryMenu.onKeyDown(event);
+				if (!event.defaultPrevented) onKeyDown(event);
+			}}
 		>
 			{groups.flatMap((group, index) =>
 				group.tabs.map((id) => {

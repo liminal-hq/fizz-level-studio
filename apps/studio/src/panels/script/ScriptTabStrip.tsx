@@ -13,6 +13,7 @@ import {
 	type KeyboardEvent,
 	type PointerEvent,
 } from 'react';
+import { useSurfaceMenu } from '../../app/useSurfaceMenu';
 import { t } from '../../i18n/messages';
 import { MoreIcon } from '../../icons/AppIcons';
 import { Tooltip } from '../../ui/Tooltip';
@@ -75,6 +76,10 @@ export function ScriptTabStrip({
 	const overflowing = useOverflow(list, tabs) || forceOverflow;
 	const [menu, setMenu] = useState<{ position: MenuPosition; viaKeyboard: boolean } | null>(null);
 	const focusAfter = useRef<string | null>(null);
+	// The tab's own menu: show or close it, tear the panel off. Only a tab opens it, not the gap after.
+	const tabMenu = useSurfaceMenu<HTMLDivElement>((event) =>
+		(event.target as Element).closest('[data-tab]') ? { kind: 'scriptTab' } : null,
+	);
 
 	// After a key moves the choice the roving tab is drawn again; give it the focus.
 	useEffect(() => {
@@ -118,6 +123,8 @@ export function ScriptTabStrip({
 				role="tablist"
 				aria-label={t('scriptTabs.label')}
 				aria-orientation="horizontal"
+				onContextMenu={tabMenu.onContextMenu}
+				onKeyDown={tabMenu.onKeyDown}
 			>
 				{tabs.map((tab) => {
 					const selected = tab.id === active;
@@ -128,6 +135,7 @@ export function ScriptTabStrip({
 						<div
 							key={tab.id}
 							className={styles.tab}
+							data-tab=""
 							data-active={selected || undefined}
 							data-away={tab.away || undefined}
 						>

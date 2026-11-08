@@ -11,6 +11,7 @@ import {
 	type PointerEvent,
 	type ReactNode,
 } from 'react';
+import { useSurfaceMenu } from '../../app/useSurfaceMenu';
 import { t } from '../../i18n/messages';
 import { Tooltip } from '../../ui/Tooltip';
 import styles from './FloatingPanel.module.css';
@@ -24,6 +25,7 @@ import {
 	type ResizeHandle,
 	type Size,
 } from './panelGeometry';
+import type { PanelId } from './panelSpecs';
 import { snapMoveWithin, snapResize, type Guide } from './snap';
 
 export interface FloatingPanelProps {
@@ -112,6 +114,12 @@ export function FloatingPanel({
 	// Until the area has been laid out it has no edges to keep a panel inside.
 	const area = isMeasured(measured) ? measured : UNBOUNDED;
 	const gesture = useRef<Gesture | null>(null);
+	// A right-click, the Menu key or Shift+F10 on the header opens the panel's menu.
+	const headerMenu = useSurfaceMenu<HTMLElement>(() => ({
+		kind: 'panel',
+		panel: id as PanelId,
+		where: 'header',
+	}));
 	// Where the panel was when a key gesture began, so Escape can put it back.
 	const keyOrigin = useRef<Rect | null>(null);
 	const live = useRef(rect);
@@ -265,6 +273,7 @@ export function FloatingPanel({
 			<div className={styles.frame}>
 				<header
 					className={styles.header}
+					{...headerMenu}
 					onPointerDown={(event) => {
 						const button = (event.target as HTMLElement).closest('button');
 						if (button && !button.hasAttribute('data-grip')) return;

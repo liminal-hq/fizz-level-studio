@@ -3,8 +3,16 @@
 // (c) Copyright 2026 Liminal HQ, Scott Morris
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { AppWindow } from '../app/AppWindow';
+import { useSurfaceMenu } from '../app/useSurfaceMenu';
+import {
+	CommandBridgeContext,
+	createCommandBridge,
+	perPanel,
+	useCommandBridge,
+} from '../commands/commandBridge';
+import { dockBackCommandId } from '../commands/registry';
 import type { ThingEditApi, ThingEditResult } from '../inspector/thingEdit';
 import { panelContent } from '../app/panelContent';
 import { ownerOfPanel, panelFromLabel } from '../app/windowKind';
@@ -128,10 +136,34 @@ function PanelWindow({
 		dockBack: () => void client.dockBack(spec.id),
 	});
 	const Icon = PANEL_ICONS[spec.id];
-	return (
+	// This window's own commands for the context menu: the window has no editor to run the rest, so
+	// the menu offers what it can do, which is Dock back (and the script's own editor commands, which
+	// the Script panel publishes here).
+	const inherited = useCommandBridge();
+	const [own] = useState(() => (inherited ? null : createCommandBridge()));
+	const commands = inherited ?? own!;
+	useEffect(() => {
+		commands.setFacts({
+			editorOpen: true,
+			hasLevel: true,
+			panels: { ...perPanel(false), [spec.id]: true },
+			away: { ...perPanel(false), [spec.id]: true },
+		});
+		return commands.setHandlers({
+			[dockBackCommandId(spec.id)]: () => void client.dockBack(spec.id),
+			// The script's tab closes the window, which docks the panel back.
+			'script.tab.level.close': () => void client.dockBack(spec.id),
+		});
+	}, [commands, client, spec.id]);
+	const barMenu = useSurfaceMenu<HTMLDivElement>(() => ({
+		kind: 'panel',
+		panel: spec.id,
+		where: 'header',
+	}));
+	const screen = (
 		<AppWindow titleId={spec.title}>
 			<main className={styles.panel}>
-				<div className={styles.bar}>
+				<div className={styles.bar} {...barMenu}>
 					{spec.id === 'script' && snapshot && (
 						// The window holds one script: its one tab. Closing the tab docks the panel back.
 						<ScriptTabStrip
@@ -208,5 +240,10 @@ function PanelWindow({
 				</div>
 			</main>
 		</AppWindow>
+	);
+	return own ? (
+		<CommandBridgeContext.Provider value={own}>{screen}</CommandBridgeContext.Provider>
+	) : (
+		screen
 	);
 }
