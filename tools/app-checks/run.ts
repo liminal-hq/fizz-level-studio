@@ -29,6 +29,8 @@ import {
 	within,
 	type Profile,
 } from './driver';
+import { contextMenuChromeChecks } from './contextMenuChromeChecks';
+import { contextMenuLevelChecks } from './contextMenuLevelChecks';
 
 const failures: string[] = [];
 
@@ -5091,6 +5093,8 @@ async function main(): Promise<void> {
 		await inspectorChecks(bridge, path);
 		await objectsFilterChecks(bridge);
 		await tileInspectorChecks(bridge);
+		await contextMenuLevelChecks(bridge, check);
+		await contextMenuChromeChecks(bridge, check);
 
 		// 5b. The appearance and tear-off plugins answer, the theme follows the settings and the
 		// system, and the Script panel tears off into panel-script-1 and docks back.

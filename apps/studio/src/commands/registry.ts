@@ -13,7 +13,9 @@ import { TOOL_KEYS } from '../tools/shortcuts';
 import { TOOL_IDS, type ToolId } from '../tools/tool';
 import type { Brush } from '../tools/brush';
 import type { BridgeSnapshot, CommandFacts } from './commandBridge';
+import { canvasCommands } from './canvasCommands';
 import { layerCommands } from './layerCommands';
+import { scriptCommands } from './scriptCommands';
 import { selectionCommands } from './selectionCommands';
 import { formatChord, type KeyChord } from './keyChords';
 import type { ZoneId } from '@liminal-hq/fizz-studio-protocol/generated/ZoneId';
@@ -513,6 +515,15 @@ export const PALETTE_COMMANDS: readonly CommandDef[] = [
 		}),
 	),
 	{
+		// Opens the context menu of whatever has the keyboard focus; the window's menu host publishes the handler.
+		id: 'view.contextMenu',
+		icon: 'contextMenu',
+		group: 'view',
+		label: 'appMenu.contextMenu',
+		keys: [{ key: 'F10', shift: true }, { key: 'ContextMenu' }],
+		enabled: always,
+	},
+	{
 		id: 'view.toolbar.hidden',
 		icon: 'toolbar',
 		group: 'view',
@@ -621,8 +632,13 @@ export function panelWindowCommands(facts: CommandFacts): CommandDef[] {
  * The commands a feature registers beside the fixed lists: the Layers panel's Show all and
  * Unlock all, and the selection's Delete, Flip, Show in script and nudges. A feature adds its builder here and nothing else in the registry changes.
  */
-export function extraCommands(_facts: CommandFacts): CommandDef[] {
-	return [...layerCommands(), ...selectionCommands()];
+export function extraCommands(facts: CommandFacts): CommandDef[] {
+	return [
+		...layerCommands(facts),
+		...selectionCommands(),
+		...canvasCommands(),
+		...scriptCommands(),
+	];
 }
 
 /**

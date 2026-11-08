@@ -1179,6 +1179,100 @@ export const enMessages = {
 	'main.discardFailed': 'Could not discard the recovery copy of {path}.',
 	// translator: Accessible name of the box holding the text with conflict markers.
 	'main.conflictText': 'Text with conflict markers',
+
+	// ---- Context menus (the right-click menus of the level, the chrome, the text fields and the script) ----
+	// translator: Header row of the menu on a thing in the level. {name} is the thing’s name (such as “Gloop”), then its position on the grid, then the line of the script it is written on.
+	'context.header': '{name} · x {x}, y {y} · line {line}',
+	// translator: Header row of the menu on a cell whose script line is not known yet. {name} is the tile’s name (such as “Grass”), then its position on the grid.
+	'context.headerNoLine': '{name} · x {x}, y {y}',
+	// translator: Accessible name of the menu on an empty cell or a tile of the level.
+	'context.menu.cell': 'Cell menu',
+	// translator: Accessible name of the menu on a thing in the level or a row of the Objects list. {name} is the thing’s name, such as “Gloop”.
+	'context.menu.thing': '{name} menu',
+	// translator: Accessible name of the menu on a row of the Layers panel. {layer} is the layer’s name, such as “Treats”.
+	'context.menu.layer': '{layer} layer menu',
+	// translator: Accessible name of the menu on a brush of the Palette. {brush} is the brush’s word, such as “grass”.
+	'context.menu.brush': '{brush} brush menu',
+	// translator: Accessible name of the menu on a panel’s header, tab or rail button. {title} is the panel’s name, such as “Script”.
+	'context.menu.panel': '{title} menu',
+	// translator: Accessible name of the menu on the level script’s tab.
+	'context.menu.scriptTab': 'Script tab menu',
+	// translator: Accessible name of the menu in the script editor.
+	'context.menu.script': 'Script menu',
+	// translator: Accessible name of the menu on the commands row (the toolbar, the ribbon or the row of menus).
+	'context.menu.commands': 'Commands menu',
+	// translator: Accessible name of the menu on the workspace switcher.
+	'context.menu.workspace': 'Workspace menu',
+	// translator: Accessible name of the menu on the zoom control.
+	'context.menu.zoom': 'Zoom menu',
+	// translator: Accessible name of the menu on the tool picker.
+	'context.menu.tools': 'Tools menu',
+	// translator: Accessible name of the menu on the History panel.
+	'context.menu.history': 'History menu',
+	// translator: Accessible name of the menu in a text field.
+	'context.menu.textField': 'Text menu',
+	// translator: Row of a text field’s menu. Verb. Takes back the last change to the text.
+	'context.text.undo': 'Undo',
+	// translator: Row of a text field’s menu. Verb. Does a taken-back change to the text again.
+	'context.text.redo': 'Redo',
+	// translator: Row of a text field’s menu. Verb. Removes the selected text and keeps it on the clipboard.
+	'context.text.cut': 'Cut',
+	// translator: Row of a text field’s menu. Verb. Puts the selected text on the clipboard.
+	'context.text.copy': 'Copy',
+	// translator: Row of a text field’s menu. Verb. Inserts the clipboard’s text.
+	'context.text.paste': 'Paste',
+	// translator: Row of a text field’s menu. Verb. Selects all the text in the field.
+	'context.text.selectAll': 'Select all',
+	// translator: Why a row of a text field’s menu is dimmed: the field cannot be changed.
+	'context.text.readOnly': 'This field cannot be changed.',
+	// translator: Why Cut or Copy is dimmed in a text field’s menu: no text is selected.
+	'context.text.noSelection': 'Select some text first.',
+	// translator: Why Select all is dimmed in a text field’s menu: the field is empty.
+	'context.text.empty': 'The field is empty.',
+	// translator: Name of the command that opens the context menu (the right-click menu) of whatever has the keyboard focus. Appears in the command palette.
+	'appMenu.contextMenu': 'Open the context menu',
+	// translator: Row in the keyboard shortcuts window. Opens the right-click menu of the focused thing; the Menu key does the same.
+	'shortcuts.contextMenu': 'Open the context menu (the Menu key does too)',
+	// translator: Menu row and command name. Verb. Makes the tile under the cursor the brush, like the Pick tool.
+	'canvas.pickHere': 'Pick this tile',
+	// translator: Menu row and command name. Verb. Paints with the current brush on the cell under the cursor. {brush} is the brush’s word, such as “grass”.
+	'canvas.paintHere': 'Paint {brush} here',
+	// translator: Menu row and command name. Verb. Erases the cell under the cursor, like the Erase tool.
+	'canvas.eraseHere': 'Erase here',
+	// translator: Why Pick, Paint or Erase here is dimmed: the cursor is not on a cell of the level.
+	'canvas.cursorOutside': 'Move the cursor onto the level first.',
+	// translator: Menu row and command name. Verb. Scrolls the canvas so the selected thing is in view.
+	'selection.reveal': 'Show on the canvas',
+	// translator: Command name. Verb. Shows the Inspector panel and brings it forward.
+	'toolbar.showInspector': 'Show the Inspector',
+	// translator: Menu row and command name. Verb. Hides one layer on the canvas. {layer} is the layer’s name, such as “Treats”. Hiding is for the person’s own view only.
+	'layers.hideOne': 'Hide {layer}',
+	// translator: Menu row and command name. Verb. Shows a layer that was hidden on the canvas. {layer} is the layer’s name.
+	'layers.showOne': 'Show {layer}',
+	// translator: Menu row and command name. Hides every layer on the canvas except this one. {layer} is the layer’s name.
+	'layers.only': 'Show only {layer}',
+	// translator: Menu row and command name. Verb. Locks a layer so nothing can change it. {layer} is the layer’s name.
+	'layers.lockOne': 'Lock {layer}',
+	// translator: Menu row and command name. Verb. Unlocks a locked layer so it can change again. {layer} is the layer’s name.
+	'layers.unlockOne': 'Unlock {layer}',
+	// translator: Short menu row on a layer’s own menu. Verb. Shows the first line of that layer in the script. The layer is already named by the menu.
+	'layers.revealOne': 'Show its first line in the script',
+	// translator: Why Show only is dimmed: this layer is already the only one shown.
+	'layers.onlyHere': 'This is the only layer shown.',
+	// translator: Why Show its first line in the script is dimmed: the layer owns no line of the script.
+	'layers.noLine': 'This layer has no line in the script.',
+	// translator: Menu row and command name in the script editor. Verb. Copies the selected script text to the clipboard.
+	'script.copy': 'Copy',
+	// translator: Menu row and command name in the script editor. Verb. Selects all of the script’s text.
+	'script.selectAll': 'Select all',
+	// translator: Menu row and command name in the script editor. Verb. Opens the box that searches the script.
+	'script.find': 'Find',
+	// translator: Menu row and command name in the script editor. Verb. Folds every foldable block of the script out of sight.
+	'script.foldAll': 'Fold all',
+	// translator: Menu row and command name in the script editor. Verb. Opens every folded block of the script.
+	'script.unfoldAll': 'Unfold all',
+	// translator: Why Copy is dimmed in the script editor: no script text is selected.
+	'script.copyNeedsSelection': 'Select some of the script first.',
 } as const;
 
 export type MessageId = keyof typeof enMessages;

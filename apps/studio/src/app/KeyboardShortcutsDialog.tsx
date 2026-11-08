@@ -51,6 +51,7 @@ export const SHORTCUT_SOURCES: readonly { commands: readonly string[]; action: M
 	{ commands: ['view.zoomIn'], action: 'shortcuts.zoomIn' },
 	{ commands: ['view.zoomOut'], action: 'shortcuts.zoomOut' },
 	{ commands: ['view.zoomFit'], action: 'shortcuts.zoomFit' },
+	{ commands: ['view.contextMenu'], action: 'shortcuts.contextMenu' },
 	{ commands: ['help.help'], action: 'shortcuts.help' },
 	{ commands: ['help.shortcuts'], action: 'shortcuts.shortcuts' },
 ];

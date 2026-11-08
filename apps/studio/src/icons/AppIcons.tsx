@@ -422,6 +422,19 @@ export type IconId =
 	| 'selection.delete'
 	| 'selection.flip'
 	| 'selection.showInScript'
+	| 'selection.reveal'
+	| 'contextMenu'
+	| 'copy'
+	| 'cut'
+	| 'paste'
+	| 'selectAll'
+	| 'foldAll'
+	| 'unfoldAll'
+	| 'layers.hide'
+	| 'layers.show'
+	| 'layers.only'
+	| 'layers.lock'
+	| 'layers.unlock'
 	| `panel.${PanelId}`
 	| `tool.${ToolId}`
 	| 'menu.file'
@@ -455,6 +468,90 @@ export const FlipIcon: IconComponent = ({ size }) => (
 export const ShowInScriptIcon: IconComponent = ({ size }) => (
 	<Svg size={size}>
 		<path d="M5.5 4.5 2 8l3.5 3.5M10.5 4.5 14 8l-3.5 3.5M9 3.5 7 12.5" />
+	</Svg>
+);
+
+/** A target: bring the selected thing into view on the canvas. */
+export const RevealOnCanvasIcon: IconComponent = ({ size }) => (
+	<Svg size={size}>
+		<circle cx="8" cy="8" r="3" />
+		<path d="M8 1.5v3M8 11.5v3M1.5 8h3M11.5 8h3" />
+	</Svg>
+);
+
+/** A small menu with a pointer: open the context menu. */
+export const ContextMenuIcon: IconComponent = ({ size }) => (
+	<Svg size={size}>
+		<path d="M2.5 2.5h8v8h-8zM4.5 5h4M4.5 7.5h2.5M10 9.5l3.5 1.2-1.6.9 1.3 2.2" />
+	</Svg>
+);
+
+/** Two sheets, one over the other: copy. */
+export const CopyIcon: IconComponent = ({ size }) => (
+	<Svg size={size}>
+		<path d="M5.5 5.5h7v8h-7zM3.5 10.5v-8h7" />
+	</Svg>
+);
+
+/** Open scissors: cut. */
+export const CutIcon: IconComponent = ({ size }) => (
+	<Svg size={size}>
+		<circle cx="4.5" cy="12" r="1.6" />
+		<circle cx="11.5" cy="12" r="1.6" />
+		<path d="M5.5 10.6 11 2.5M10.5 10.6 5 2.5" />
+	</Svg>
+);
+
+/** A clipboard: paste. */
+export const PasteIcon: IconComponent = ({ size }) => (
+	<Svg size={size}>
+		<path d="M5.5 3H3.5v10.5h9V3h-2M5.5 2h5v2h-5z" />
+	</Svg>
+);
+
+/** A square with its corners marked and a smaller one inside: select all. */
+export const SelectAllIcon: IconComponent = ({ size }) => (
+	<Svg size={size}>
+		<path d="M2.5 5.5v-3h3M10.5 2.5h3v3M13.5 10.5v3h-3M5.5 13.5h-3v-3M6 6h4v4H6z" />
+	</Svg>
+);
+
+/** Chevrons closing in on the middle: fold all. */
+export const FoldAllIcon: IconComponent = ({ size }) => (
+	<Svg size={size}>
+		<path d="M4 2.5 8 6l4-3.5M4 13.5 8 10l4 3.5" />
+	</Svg>
+);
+
+/** Chevrons opening away from the middle: unfold all. */
+export const UnfoldAllIcon: IconComponent = ({ size }) => (
+	<Svg size={size}>
+		<path d="M4 6 8 2.5 12 6M4 10l4 3.5 4-3.5" />
+	</Svg>
+);
+
+/** An eye crossed out: hide a layer. */
+export const HideLayerIcon: IconComponent = ({ size }) => (
+	<Svg size={size}>
+		<path d="M1.5 8S4 3.5 8 3.5 14.5 8 14.5 8 12 12.5 8 12.5 1.5 8 1.5 8z" />
+		<circle cx="8" cy="8" r="2" />
+		<path d="M3 13 13 3" />
+	</Svg>
+);
+
+/** A ring round a dot: show only this layer. */
+export const OnlyLayerIcon: IconComponent = ({ size }) => (
+	<Svg size={size}>
+		<circle cx="8" cy="8" r="5.5" />
+		<circle cx="8" cy="8" r="1.8" />
+	</Svg>
+);
+
+/** A closed padlock: lock a layer. */
+export const LockLayerIcon: IconComponent = ({ size }) => (
+	<Svg size={size}>
+		<rect x="3.5" y="7" width="9" height="6.5" rx="1.4" />
+		<path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2" />
 	</Svg>
 );
 
@@ -497,6 +594,19 @@ export const APP_ICONS: Record<IconId, IconComponent> = {
 	'selection.delete': DeleteIcon,
 	'selection.flip': FlipIcon,
 	'selection.showInScript': ShowInScriptIcon,
+	'selection.reveal': RevealOnCanvasIcon,
+	contextMenu: ContextMenuIcon,
+	copy: CopyIcon,
+	cut: CutIcon,
+	paste: PasteIcon,
+	selectAll: SelectAllIcon,
+	foldAll: FoldAllIcon,
+	unfoldAll: UnfoldAllIcon,
+	'layers.hide': HideLayerIcon,
+	'layers.show': ShowAllLayersIcon,
+	'layers.only': OnlyLayerIcon,
+	'layers.lock': LockLayerIcon,
+	'layers.unlock': UnlockAllLayersIcon,
 	...(Object.fromEntries(PANEL_ICON_ENTRIES) as Record<`panel.${PanelId}`, IconComponent>),
 	...(Object.fromEntries(TOOL_ICON_ENTRIES) as Record<`tool.${ToolId}`, IconComponent>),
 	'menu.file': FileMenuIcon,
