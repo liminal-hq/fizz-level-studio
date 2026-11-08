@@ -247,6 +247,25 @@
 }
 
 /*
+ * The window chrome strips under the title bar (the menu row, the commands row, the ribbon) are the
+ * title bar's strip: `--fls-bg-chrome` mixed with `--fls-title-bar-opacity`, with the title bar's
+ * backdrop. Solid until the Title bar switch is on, then the panel opacity, so the stack of strips
+ * reads as one. The ribbon package reads the `--fls-ribbon-*` pair; its panel is clear because the
+ * ribbon itself carries the fill.
+ */
+:root {
+	--fls-chrome-strip-bg: color-mix(
+		in srgb,
+		var(--fls-bg-chrome) calc(var(--fls-title-bar-opacity) * 100%),
+		transparent
+	);
+	--fls-chrome-strip-filter: var(--fls-title-bar-backdrop);
+	--fls-ribbon-bg: var(--fls-chrome-strip-bg);
+	--fls-ribbon-backdrop: var(--fls-chrome-strip-filter);
+	--fls-ribbon-panel-bg: transparent;
+}
+
+/*
  * The script editor's fills. Where nothing says otherwise (a torn-off window, a maximised panel) they
  * are the solid content and window colours, which the see-through window already makes translucent.
  * A dock or floating panel that wears glass lets that glass show through the editor (the editor

@@ -11,7 +11,6 @@
 	box-sizing: border-box;
 	height: 40px;
 	min-height: 40px;
-	background: var(--fls-bg-chrome);
 }
 
 /* The brush chip: the brush now, opening the Palette where it is chosen. */

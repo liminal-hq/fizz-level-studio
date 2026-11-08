@@ -9,7 +9,7 @@ This package is a copy of `packages/ribbon` from [liminal-hq/folio](https://gith
 - `mode` is optional on `Ribbon` and `ClassicToolbar`. Without it there is no Easy and Expert switch and every control shows (the studio has no Easy mode). With it the components behave as Folio's do.
 - `RibbonItem` takes an optional `icon(px)` that draws an app icon in place of the SVG path `d` (now optional), so the studio's one icon set serves the menus, the toolbar and the ribbon.
 - `ClassicToolbar` takes an optional `after` node, drawn straight after its groups and before the end (the studio's brush chip).
-- Those three small additions (`mode`, `icon` and `after`) are the only changes to the sources beyond the rename.
+- Those three small additions (`mode`, `icon` and `after`) are the only changes to the sources beyond the rename, apart from the glass hooks: the ribbon, the classic toolbar and the ribbon's panel read `--fls-ribbon-bg`, `--fls-ribbon-backdrop` and `--fls-ribbon-panel-bg` (each with the old colour as its fallback), its overlay panel and tooltips wear the menu fill and backdrop, so the host can put them under glass.
 - The package's `README.md` is not copied; the model types in `src/types.ts` are the documentation.
 
 ## Why a copy

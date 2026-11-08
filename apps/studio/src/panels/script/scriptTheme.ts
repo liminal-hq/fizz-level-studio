@@ -80,7 +80,9 @@ export const scriptTheme = EditorView.theme({
 		// Above the docks, rails and floating panels, which the popup now sits over (see popupPlacement).
 		zIndex: 'var(--fls-z-menu)',
 		color: 'var(--fls-text-primary)',
-		backgroundColor: 'var(--fls-bg-raised)',
+		// A popup is a menu: the Menus switch and menu opacity decide how much of the level shows through.
+		backgroundColor: 'var(--fls-bg-menu)',
+		backdropFilter: 'var(--fls-menu-backdrop)',
 		border: '1px solid var(--fls-border-subtle)',
 		borderRadius: '6px',
 	},
@@ -94,7 +96,8 @@ export const scriptTheme = EditorView.theme({
 	'.cm-completionDetail': { color: 'var(--fls-text-muted)' },
 	'.cm-completionInfo': {
 		color: 'var(--fls-text-primary)',
-		backgroundColor: 'var(--fls-bg-raised)',
+		backgroundColor: 'var(--fls-bg-menu)',
+		backdropFilter: 'var(--fls-menu-backdrop)',
 		border: '1px solid var(--fls-border-subtle)',
 	},
 	'.fls-doc': { padding: '0.4rem 0.6rem', maxWidth: '26rem', lineHeight: '1.4' },
