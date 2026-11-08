@@ -14,6 +14,7 @@ import {
 	frameViewport,
 	moveCursor,
 	NO_INSETS,
+	panBy,
 	pixelToCell,
 	revealCell,
 	uncoveredRect,
@@ -63,6 +64,26 @@ describe('scroll', () => {
 		expect(moved.scrollX).toBe(15 * 32 + 32 - 200);
 		expect(moved.scrollY).toBe(0);
 		expect(revealCell(moved, { x: 15, y: 9 }, window, level)).toEqual(moved);
+	});
+});
+
+describe('panBy', () => {
+	// Zoom 8 is 32 px a cell: the 20 by 10 level is 640 by 320 px in a 200 by 100 window.
+	it('moves the map with the pointer, whatever the zoom', () => {
+		expect(panBy(at(8, 100, 50), 30, 10, window, level)).toEqual(at(8, 70, 40));
+		expect(panBy(at(8, 100, 50), -30, -10, window, level)).toEqual(at(8, 130, 60));
+		// At 4x the level is 320 by 160, so the same drag shows the same pixels of it.
+		expect(panBy(at(4, 100, 50), 30, 10, window, level)).toEqual(at(4, 70, 40));
+	});
+
+	it('stops at each edge of the level', () => {
+		expect(panBy(at(8, 10, 10), 500, 500, window, level)).toEqual(at(8, 0, 0));
+		expect(panBy(at(8, 430, 210), -500, -500, window, level)).toEqual(at(8, 440, 220));
+	});
+
+	it('leaves a level that fits centred', () => {
+		const fits = at(1, -60, -30);
+		expect(panBy(fits, 80, -80, window, level)).toEqual(fits);
 	});
 });
 

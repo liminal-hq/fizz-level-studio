@@ -71,3 +71,8 @@
 	-webkit-backdrop-filter: var(--fls-glass-docks-filter);
 	border-top: 1px solid var(--fls-glass-border);
 }
+
+/* The map is in hand while the middle button drags it. */
+.canvas.panning {
+	cursor: grabbing;
+}

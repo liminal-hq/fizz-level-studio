@@ -28,6 +28,7 @@ import {
 	MAX_ZOOM,
 	MIN_ZOOM,
 	clampScroll,
+	panBy,
 	fitCamera,
 	NO_INSETS,
 	clampZoom,
@@ -128,6 +129,9 @@ export function LevelCanvas({
 	const frameRef = useRef<HTMLDivElement>(null);
 	const barRef = useRef<HTMLDivElement>(null);
 	const pressed = useRef(false);
+	// A drag with the middle button pans the map: the pointer that holds it, and where it last was.
+	const pan = useRef<{ id: number; x: number; y: number } | null>(null);
+	const [panning, setPanning] = useState(false);
 	const [size, setSize] = useState<Size>(FALLBACK_SIZE);
 	const [barHigh, setBarHigh] = useState(0);
 	const [camera, setCamera] = useState<Viewport>({ zoom: DEFAULT_ZOOM, scrollX: 0, scrollY: 0 });
@@ -276,8 +280,35 @@ export function LevelCanvas({
 		setCamera((current) => revealCell(current, reveal.cell, seen, view));
 	}, [reveal, seen, view]);
 
+	const endPan = () => {
+		if (!pan.current) return;
+		pan.current = null;
+		setPanning(false);
+	};
+
+	// A window that loses focus or hides mid-drag never sees the button come up.
+	useEffect(() => {
+		window.addEventListener('blur', endPan);
+		return () => window.removeEventListener('blur', endPan);
+	}, []);
+
 	const onPointerDown = (event: PointerEvent<HTMLCanvasElement>) => {
-		if (event.button !== 0) return;
+		if (event.button === 1) {
+			// The platform's middle click (autoscroll, paste) is never wanted here.
+			event.preventDefault();
+			// With the left button down too, or a pan already going, the middle button does nothing.
+			if (pressed.current || pan.current || (event.buttons & 1) !== 0) return;
+			event.currentTarget.focus();
+			try {
+				event.currentTarget.setPointerCapture?.(event.pointerId);
+			} catch {
+				// A pointer the browser does not know (a synthetic event) cannot be captured; the pan still works.
+			}
+			pan.current = { id: event.pointerId, x: event.clientX, y: event.clientY };
+			setPanning(true);
+			return;
+		}
+		if (event.button !== 0 || pan.current) return;
 		event.currentTarget.focus();
 		event.currentTarget.setPointerCapture?.(event.pointerId);
 		pressed.current = true;
@@ -288,12 +319,32 @@ export function LevelCanvas({
 	};
 
 	const onPointerMove = (event: PointerEvent<HTMLCanvasElement>) => {
+		const dragging = pan.current;
+		if (dragging) {
+			if (event.pointerId !== dragging.id) return;
+			if ((event.buttons & 4) === 0) {
+				// The button came up where no event could say so.
+				endPan();
+				return;
+			}
+			const dx = event.clientX - dragging.x;
+			const dy = event.clientY - dragging.y;
+			dragging.x = event.clientX;
+			dragging.y = event.clientY;
+			setCamera((current) => panBy(current, dx, dy, seen, view));
+			return;
+		}
 		const cell = cellAt(event);
 		if (inside(cell) && (cell.x !== cursor.x || cell.y !== cursor.y)) onCursorChange(cell);
 		if (pressed.current) onToolEvent('move', cell);
 	};
 
 	const onPointerEnd = (event: PointerEvent<HTMLCanvasElement>) => {
+		if (pan.current) {
+			// Only the middle button's release (or a cancel) ends the pan; another button's does not.
+			if (event.type === 'pointercancel' || event.button === 1) endPan();
+			return;
+		}
 		if (!pressed.current) return;
 		pressed.current = false;
 		onToolEvent('up', cellAt(event));
@@ -373,7 +424,7 @@ export function LevelCanvas({
 				<div className={styles.frame} ref={frameRef}>
 					<canvas
 						ref={canvasRef}
-						className={styles.canvas}
+						className={panning ? `${styles.canvas} ${styles.panning}` : styles.canvas}
 						tabIndex={0}
 						role="application"
 						aria-label={t('canvas.label', {
@@ -387,6 +438,13 @@ export function LevelCanvas({
 						onPointerMove={onPointerMove}
 						onPointerUp={onPointerEnd}
 						onPointerCancel={onPointerEnd}
+						onLostPointerCapture={endPan}
+						onMouseDown={(event) => {
+							if (event.button === 1) event.preventDefault();
+						}}
+						onAuxClick={(event) => {
+							if (event.button === 1) event.preventDefault();
+						}}
 					/>
 					<div className={styles.map} data-map="">
 						{overlay?.({ w: visible.width, h: Math.max(0, visible.height - ZOOM_CONTROL_ROOM) })}

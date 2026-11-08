@@ -1233,6 +1233,81 @@ async function zoomPillChecks(bridge: Bridge): Promise<void> {
 }
 
 /**
+ * A drag with the middle button pans the map by as much as the pointer moved, paints nothing and
+ * does not leave the grabbing cursor behind. The canvas's own pixels are compared before and after:
+ * what was `dx` pixels to the right is now where it was dragged to. (The crater level is wider than
+ * the window and shorter, so only the sideways pan has room to show.)
+ */
+async function middleDragPanChecks(bridge: Bridge): Promise<void> {
+	const strips = `
+		const canvas = document.querySelector('canvas');
+		const ctx = canvas.getContext('2d');
+		const ratio = window.devicePixelRatio || 1;
+		const rows = [];
+		for (let y = 0; y < canvas.height; y += Math.round(16 * ratio)) rows.push(Array.from(ctx.getImageData(0, y, canvas.width, 1).data));
+		return rows;`;
+	const state = () =>
+		bridge.js<{ text: string; canUndo: boolean }>(
+			`const content = document.querySelector('.cm-content');
+			 const undo = document.querySelector('button[aria-label="Undo"]');
+			 return { text: content?.cmView?.view?.state.doc.toString() ?? '', canUndo: !!undo && !undo.disabled };`,
+		);
+	const before = await bridge.js<number[][]>(strips);
+	const stateBefore = await state();
+	const drag = -80;
+	const fired = await bridge.js<{ grabbing: boolean }>(
+		`const canvas = document.querySelector('canvas');
+		 const r = canvas.getBoundingClientRect();
+		 const x = r.left + r.width / 2, y = r.top + r.height / 2;
+		 const fire = (type, button, buttons, dx) => canvas.dispatchEvent(new PointerEvent(type, { bubbles: true, cancelable: true, pointerId: 7, pointerType: 'mouse', button, buttons, clientX: x + dx, clientY: y }));
+		 fire('pointerdown', 1, 4, 0);
+		 await new Promise((r) => setTimeout(r, 50));
+		 for (const dx of [-20, -45, ${drag}]) { fire('pointermove', -1, 4, dx); await new Promise((r) => setTimeout(r, 30)); }
+		 const grabbing = getComputedStyle(canvas).cursor === 'grabbing';
+		 fire('pointerup', 1, 0, ${drag});
+		 await new Promise((r) => setTimeout(r, 200));
+		 return { grabbing };`,
+	);
+	const after = await bridge.js<number[][]>(strips);
+	const stateAfter = await state();
+	const ratio = await bridge.js<number>('return window.devicePixelRatio || 1;');
+	const shift = Math.round(-drag * ratio);
+	// Share of the pixels in the middle of each row that match with the map moved by `by` pixels.
+	const matching = (by: number) => {
+		let same = 0;
+		let all = 0;
+		for (let r = 0; r < before.length; r++) {
+			const a = before[r]!;
+			const b = after[r]!;
+			for (let x = 400; x < 1000; x++) {
+				all++;
+				const i = (x + by) * 4;
+				const j = x * 4;
+				if (a[i] === b[j] && a[i + 1] === b[j + 1] && a[i + 2] === b[j + 2]) same++;
+			}
+		}
+		return same / Math.max(1, all);
+	};
+	const moved = matching(shift);
+	const stayed = matching(0);
+	check('middle drag: the cursor is a grabbing hand while panning', fired.grabbing);
+	check(
+		'middle drag: the map moves left by as much as the pointer did',
+		moved > 0.97 && stayed < moved,
+		JSON.stringify({ moved, stayed, shift }),
+	);
+	check(
+		'middle drag: nothing is painted, so the script and the undo history are as they were',
+		stateAfter.text === stateBefore.text && stateAfter.canUndo === stateBefore.canUndo,
+		JSON.stringify({ before: stateBefore.canUndo, after: stateAfter.canUndo }),
+	);
+	const cursor = await bridge.js<string>(
+		`return getComputedStyle(document.querySelector('canvas')).cursor;`,
+	);
+	check('middle drag: the crosshair is back once the button is up', cursor === 'crosshair', cursor);
+}
+
+/**
  * The tools float over the map in a glass pill: it starts at the map's top-left, its keys are
  * square, named and lit for the current tool, a click on one chooses that tool, a drag of its
  * grip moves it and is saved in the workspace, and it never leaves the uncovered map, slides under
@@ -2632,6 +2707,7 @@ async function main(): Promise<void> {
 		await dragAndMaximiseChecks(bridge);
 		await toolPickerChecks(bridge);
 		await zoomPillChecks(bridge);
+		await middleDragPanChecks(bridge);
 		await panelHeaderChecks(bridge);
 		// With the default settings there is no menu bar: the title bar's app menu button is the
 		// primary menu, and a real click on it opens File, Edit, View, Window and Help. Choosing

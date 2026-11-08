@@ -232,4 +232,104 @@ describe('LevelCanvas', () => {
 		setup();
 		expect(calls).toContain('fillRect');
 	});
+
+	describe('panning with the middle button', () => {
+		const big = levelView(200, 150, {});
+		const fire = (
+			canvas: HTMLElement,
+			type: string,
+			button: number,
+			buttons: number,
+			x: number,
+			y: number,
+		) =>
+			fireEvent(
+				canvas,
+				new PointerEvent(type, {
+					button,
+					buttons,
+					clientX: x,
+					clientY: y,
+					pointerId: 1,
+					bubbles: true,
+					cancelable: true,
+				}),
+			);
+		// The canvas has no layout here, so a pixel is its own offset from the canvas's corner: the cell
+		// under pixel 100 says how far the map has moved.
+		const cellUnder = (onToolEvent: ReturnType<typeof vi.fn>, canvas: HTMLElement) => {
+			onToolEvent.mockClear();
+			fire(canvas, 'pointerdown', 0, 1, 100, 100);
+			fire(canvas, 'pointerup', 0, 0, 100, 100);
+			return onToolEvent.mock.calls[0]![1] as { x: number; y: number };
+		};
+
+		it('moves the map with the pointer and paints nothing', () => {
+			const onToolEvent = vi.fn();
+			const { canvas } = setup({ view: big, onToolEvent });
+			const before = cellUnder(onToolEvent, canvas);
+			onToolEvent.mockClear();
+			fire(canvas, 'pointerdown', 1, 4, 300, 300);
+			expect(canvas.className).toContain('panning');
+			// The pointer goes 64 px left and 32 px up: the map follows, 4 cells at 16 px a cell, and 2 rows down in cell numbers (row 0 is the bottom).
+			fire(canvas, 'pointermove', -1, 4, 236, 268);
+			fire(canvas, 'pointerup', 1, 0, 236, 268);
+			expect(onToolEvent).not.toHaveBeenCalled();
+			expect(canvas.className).not.toContain('panning');
+			const after = cellUnder(onToolEvent, canvas);
+			expect(after.x).toBe(before.x + 4);
+			expect(after.y).toBe(before.y - 2);
+		});
+
+		it('leaves the left button painting as before', () => {
+			const onToolEvent = vi.fn();
+			const { canvas } = setup({ view: big, onToolEvent });
+			fire(canvas, 'pointerdown', 0, 1, 100, 100);
+			fire(canvas, 'pointermove', -1, 1, 120, 100);
+			fire(canvas, 'pointerup', 0, 0, 120, 100);
+			expect(onToolEvent.mock.calls.map((c) => c[0])).toEqual(['down', 'move', 'up']);
+			expect(canvas.className).not.toContain('panning');
+		});
+
+		it('ignores the middle button while the left is down, and the left while panning', () => {
+			const onToolEvent = vi.fn();
+			const { canvas } = setup({ view: big, onToolEvent });
+			fire(canvas, 'pointerdown', 0, 1, 100, 100);
+			fire(canvas, 'pointerdown', 1, 5, 100, 100);
+			expect(canvas.className).not.toContain('panning');
+			fire(canvas, 'pointerup', 0, 0, 100, 100);
+			onToolEvent.mockClear();
+			fire(canvas, 'pointerdown', 1, 4, 100, 100);
+			fire(canvas, 'pointerdown', 0, 5, 100, 100);
+			expect(onToolEvent).not.toHaveBeenCalled();
+		});
+
+		it('stops on a cancel, a lost button and a window blur, and swallows the middle click', () => {
+			const { canvas } = setup({ view: big });
+			fire(canvas, 'pointerdown', 1, 4, 100, 100);
+			fire(canvas, 'pointercancel', 0, 0, 100, 100);
+			expect(canvas.className).not.toContain('panning');
+			fire(canvas, 'pointerdown', 1, 4, 100, 100);
+			fire(canvas, 'pointermove', -1, 0, 90, 90);
+			expect(canvas.className).not.toContain('panning');
+			fire(canvas, 'pointerdown', 1, 4, 100, 100);
+			fireEvent.blur(window);
+			expect(canvas.className).not.toContain('panning');
+			const down = new MouseEvent('mousedown', { button: 1, bubbles: true, cancelable: true });
+			const aux = new MouseEvent('auxclick', { button: 1, bubbles: true, cancelable: true });
+			fireEvent(canvas, down);
+			fireEvent(canvas, aux);
+			expect(down.defaultPrevented).toBe(true);
+			expect(aux.defaultPrevented).toBe(true);
+		});
+
+		it('does nothing when it starts over the zoom pill', () => {
+			const onToolEvent = vi.fn();
+			const { canvas } = setup({ view: big, onToolEvent });
+			const pill = screen.getByRole('group', { name: 'Canvas zoom' });
+			fire(pill, 'pointerdown', 1, 4, 100, 100);
+			expect(canvas.className).not.toContain('panning');
+			expect(onToolEvent).not.toHaveBeenCalled();
+		});
+	});
 });

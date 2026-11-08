@@ -136,6 +136,21 @@ export function clampScroll(
 	};
 }
 
+/**
+ * Drags the map by `(dx, dy)` pixels as a hand does: the map follows the pointer, so a drag to the
+ * right shows more of the left. Clamped as the wheel's pan is (a level that fits stays centred).
+ */
+export function panBy(
+	viewport: Viewport,
+	dx: number,
+	dy: number,
+	window: Size,
+	level: Size,
+): Viewport {
+	const moved = { ...viewport, scrollX: viewport.scrollX - dx, scrollY: viewport.scrollY - dy };
+	return { ...moved, ...clampScroll(moved, window, level) };
+}
+
 /** The cell under a pixel of the canvas (row 0 is the bottom); it may lie outside the level. */
 export function pixelToCell(px: number, py: number, viewport: Viewport, level: Size): Cell {
 	const size = cellPx(viewport.zoom);

@@ -92,6 +92,8 @@ Tool behaviour:
 
 Zoom steps through 16, 24, 32 and 48 px from the Navigator's buttons or the keys; at 16 px the gap labels keep only the width.
 
+On the level canvas the wheel zooms about the pointer (sideways wheel motion, or Shift or Alt with the wheel, pans), and dragging with the middle mouse button pans the map by hand whatever tool is chosen: the map follows the pointer, nothing is painted, and a drag that starts over the zoom control or the tool picker does nothing.
+
 ## 4. Objects and the studio-owned-lines rule
 
 Tiles are painted. **Objects** are placed, selected and tuned, and each is a single line in the script:
