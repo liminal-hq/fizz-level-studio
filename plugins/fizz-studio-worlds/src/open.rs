@@ -16,8 +16,8 @@ use fizz_studio_level::{
 use fizz_studio_protocol::{LevelError, LevelSnapshot, RecoveryEntry};
 use fizz_studio_session::{Author, Session, SessionError, WriterToken};
 use fizz_studio_world::{
-    reconcile, Autosave, Change, ChangeKind, DiskState, FolderWatcher, RecoveryCopy, RecoveryFile,
-    RecoveryStore, Resolution, DEFAULT_DEBOUNCE,
+    Autosave, Change, ChangeKind, DiskState, FolderWatcher, RecoveryCopy, RecoveryFile,
+    RecoveryStore, DEFAULT_DEBOUNCE,
 };
 use tauri::{AppHandle, Emitter, Manager, Runtime};
 
@@ -54,7 +54,7 @@ pub(crate) struct OpenLevel {
     sidecar: PathBuf,
     pub(crate) session: Session<AnyLevelDocument>,
     pub(crate) writer: WriterToken,
-    /// What the studio last wrote to the file or read from it; the base of an outside-edit merge.
+    /// What the studio last wrote to the file or read from it; the file's last known text.
     disk_text: String,
     /// What the watcher thread compares against, shared with the thread's [`FolderWatcher`], which
     /// lives on that thread and stops when `stop` is set.
@@ -286,26 +286,17 @@ impl OpenLevel {
         if disk == self.disk_text {
             return Heard::Nothing;
         }
-        let resolution = reconcile(&self.disk_text, self.session.text(), &disk);
-        let brought_in = match resolution {
-            Resolution::Unchanged => {
-                // The session already holds the file's text, so there is nothing left unsaved.
-                self.disk_text = disk;
-                self.session.mark_saved();
-                self.settle();
-                return Heard::Changed(Box::new(self.snapshot()));
-            }
-            Resolution::Conflict { marked } => {
-                return Heard::Conflict(LevelConflict {
-                    id: self.id.clone(),
-                    marked,
-                    locked: Vec::new(),
-                });
-            }
-            Resolution::EditedOutside { text } => (text, true),
-            Resolution::Merged { text } => (text, false),
-        };
-        let (text, clean) = brought_in;
+        if disk == self.session.text() {
+            // The session already holds the file's text, so there is nothing left unsaved.
+            self.disk_text = disk;
+            self.session.mark_saved();
+            self.settle();
+            return Heard::Changed(Box::new(self.snapshot()));
+        }
+        // D68 (3): a change from outside always comes in whole, as one undoable step, over any
+        // unsaved changes. Undo returns to the text the studio held, so nothing is lost and there
+        // is no merge to resolve. Only a locked layer turns it into a conflict (D71).
+        let text = disk.clone();
         let revision = self.session.revision();
         match self
             .session
@@ -326,11 +317,9 @@ impl OpenLevel {
             }
         }
         self.disk_text = disk;
-        if clean {
-            // The session now holds exactly what is on disk.
-            self.session.mark_saved();
-            self.settle();
-        }
+        // The session now holds exactly what is on disk.
+        self.session.mark_saved();
+        self.settle();
         self.last_author = Author::Outside;
         Heard::Changed(Box::new(self.snapshot()))
     }

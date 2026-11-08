@@ -20,8 +20,8 @@ pub use recovery::{RecoveryConfig, AUTOSAVE_INTERVAL};
 /// ignores a snapshot at or below the revision it has already applied for that level.
 pub const CHANGED_EVENT: &str = "level://changed";
 
-/// Sent to every window when a file changed outside the studio in the same lines as unsaved changes.
-/// The session is left as it was; the payload is a [`LevelConflict`].
+/// Sent to every window when a file changed outside the studio in a locked layer, which the studio
+/// refuses to take in. The session is left as it was; the payload is a [`LevelConflict`].
 pub const CONFLICT_EVENT: &str = "level://conflict";
 
 /// Sent to every window when a level's locked layers change, whoever changed them; the payload is
@@ -35,12 +35,12 @@ pub struct LevelLayers {
     pub locked: Vec<String>,
 }
 
-/// What the person is shown to settle a conflicting outside edit.
+/// What the person is shown when an outside edit would change a locked layer.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct LevelConflict {
     /// The level whose file changed.
     pub id: String,
-    /// The text with conflict markers where both sides changed the same lines.
+    /// The text the file now holds, which the studio did not take in.
     pub marked: String,
     /// The locked layers the outside change would have altered, when the studio refused it for that
     /// reason (then `marked` is the outside text, and the studio kept its own). Empty for a

@@ -317,26 +317,34 @@ fn an_outside_write_becomes_a_revision_marked_edited_outside() {
 }
 
 #[test]
-fn an_outside_edit_beside_unsaved_changes_is_merged() {
+fn an_outside_edit_over_unsaved_changes_comes_in_whole_as_one_step_and_undo_returns_the_unsaved_text(
+) {
     let app = app();
     let (_dir, path) = project();
     let opened = open(&app, &path);
-    apply(&app, &opened.id, paint("grass", 5), 0).unwrap();
+    let unsaved = apply(&app, &opened.id, paint("grass", 5), 0).unwrap().text;
+    assert!(unsaved.contains("paint grass x=5 y=10"));
 
-    // The person's change is at the end of the file; the outside one is near the top.
+    // The outside change is far from the person's, so a merge would have kept both.
     let outside = CRATER.replace("start 3,4", "start 4,4");
     std::fs::write(&path, &outside).unwrap();
     assert!(within(Duration::from_secs(1), || {
         current(&app, &opened.id).revision == 2
     }));
     let level = current(&app, &opened.id);
-    assert!(level.text.contains("start 4,4"));
-    assert!(level.text.contains("paint grass x=5 y=10"));
-    assert_ne!(level.saved_revision, level.revision, "still unsaved");
+    assert_eq!(level.text, outside, "the disk text, whole: no merge");
+    assert_eq!(level.author, "outside");
+    assert!(level.edited_outside);
+    assert_eq!(level.undo_name.as_deref(), Some("Edit outside the studio"));
+
+    let undone = commands::level_undo(app.handle().clone(), worlds(&app), opened.id.clone(), 2)
+        .unwrap()
+        .text;
+    assert_eq!(undone, unsaved, "one undo returns the unsaved text");
 }
 
 #[test]
-fn an_outside_edit_over_the_same_lines_is_a_conflict_and_changes_nothing() {
+fn an_outside_edit_over_the_same_lines_as_unsaved_changes_also_comes_in_whole() {
     let app = app();
     let (_dir, path) = project();
     let opened = open(&app, &path);
@@ -348,16 +356,18 @@ fn an_outside_edit_over_the_same_lines_is_a_conflict_and_changes_nothing() {
         x: vec![[1, 1]],
         y: vec![[1, 1]],
     };
-    let session_text = apply(&app, &opened.id, mine, 0).unwrap().text;
-    std::fs::write(&path, format!("{CRATER}\nedits\n  paint rock x=2 y=2\n")).unwrap();
+    apply(&app, &opened.id, mine, 0).unwrap();
+    let outside = format!("{CRATER}\nedits\n  paint rock x=2 y=2\n");
+    std::fs::write(&path, &outside).unwrap();
 
     assert!(within(Duration::from_secs(1), || {
-        !conflicts.lock().unwrap().is_empty()
+        current(&app, &opened.id).revision == 2
     }));
-    let conflicts = conflicts.lock().unwrap();
-    assert_eq!(conflicts[0].id, opened.id);
-    assert!(conflicts[0].marked.contains("<<<<<<<"));
-    assert_eq!(current(&app, &opened.id).text, session_text);
+    assert_eq!(current(&app, &opened.id).text, outside);
+    assert!(
+        conflicts.lock().unwrap().is_empty(),
+        "no conflict without a lock"
+    );
 }
 
 #[test]
