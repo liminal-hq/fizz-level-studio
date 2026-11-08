@@ -338,7 +338,12 @@ pub struct WordDoc {
     pub kind: String,
     pub syntax: String,
     pub example: String,
+    /// The note, which for a tile starts with its group and a colon (`Ground and solids: Solid
+    /// ground.`), as the Palette's hover shows it.
     pub note: String,
+    /// The group the language files a tile under, such as `Ground and solids` or `Slopes`; empty
+    /// for every other kind of word.
+    pub group: String,
 }
 
 /// What a proposed line does to a cell.

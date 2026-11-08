@@ -9,4 +9,14 @@ export type WordDoc = { word: string,
 /**
  * One of `statement`, `section`, `segment`, `tile`, `item`, `enemy`.
  */
-kind: string, syntax: string, example: string, note: string, };
+kind: string, syntax: string, example: string, 
+/**
+ * The note, which for a tile starts with its group and a colon (`Ground and solids: Solid
+ * ground.`), as the Palette's hover shows it.
+ */
+note: string, 
+/**
+ * The group the language files a tile under, such as `Ground and solids` or `Slopes`; empty
+ * for every other kind of word.
+ */
+group: string, };

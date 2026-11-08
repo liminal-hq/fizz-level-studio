@@ -17,6 +17,7 @@ const doc = (word: string, kind: string, note = ''): WordDoc => ({
 	syntax: `${word} <args>`,
 	example: word,
 	note,
+	group: '',
 });
 
 const words = [

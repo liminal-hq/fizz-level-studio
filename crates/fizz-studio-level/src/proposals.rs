@@ -8,7 +8,7 @@
 // into cells, so the webview draws them and never reads a line of the language itself.
 
 use fizz_studio_language::ast::{Body, Range};
-use fizz_studio_language::docs::{docs_for, DocKind, Scope};
+use fizz_studio_language::docs::{data, docs_for, DocKind, Scope};
 use fizz_studio_language::parser::parse;
 use fizz_studio_protocol::{GhostCell, GhostOp, GhostProposal, WordDoc};
 
@@ -35,12 +35,22 @@ pub fn word_docs() -> Vec<WordDoc> {
                 DocKind::Enemy => "enemy",
                 DocKind::Field => return None,
             };
+            let group = match doc.kind {
+                DocKind::Tile => data()
+                    .tile_notes
+                    .iter()
+                    .find(|tile| tile.word == doc.word)
+                    .map(|tile| tile.group.clone())
+                    .unwrap_or_default(),
+                _ => String::new(),
+            };
             Some(WordDoc {
                 word: doc.word.clone(),
                 kind: kind.to_string(),
                 syntax: doc.syntax.clone(),
                 example: doc.example.clone(),
                 note: doc.note.clone(),
+                group,
             })
         })
         .collect()
@@ -222,6 +232,30 @@ mod tests {
             assert!(words.iter().any(|w| w.kind == kind), "no {kind} word");
         }
         assert!(words.iter().any(|w| w.word == "grass" && w.kind == "tile"));
+    }
+
+    #[test]
+    fn a_tile_word_carries_its_group_and_the_other_kinds_have_none() {
+        let words = word_docs();
+        let fill = words
+            .iter()
+            .find(|w| w.word == "fill" && w.kind == "tile")
+            .unwrap();
+        assert_eq!(fill.group, "Ground and solids");
+        assert!(fill.note.starts_with("Ground and solids: "));
+        let slope = words.iter().find(|w| w.word == "slope-r45").unwrap();
+        assert_eq!(slope.group, "Slopes");
+        for tile in words.iter().filter(|w| w.kind == "tile") {
+            assert!(!tile.group.is_empty(), "{} has no group", tile.word);
+            assert!(
+                tile.note.starts_with(&format!("{}: ", tile.group)),
+                "{} note does not start with its group",
+                tile.word
+            );
+        }
+        for other in words.iter().filter(|w| w.kind != "tile") {
+            assert!(other.group.is_empty(), "{} has a group", other.word);
+        }
     }
 
     #[test]

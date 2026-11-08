@@ -952,6 +952,7 @@ describe('EditorScreen panels', () => {
 		syntax: `${w} <args>`,
 		example: w,
 		note: '',
+		group: '',
 	});
 
 	async function mountWithWords() {
