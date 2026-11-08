@@ -21,8 +21,12 @@ export interface CoordFieldProps {
 	max: number;
 	/** True when only whole numbers make sense (an item sits on a cell). */
 	whole: boolean;
-	/** Called with the new value, always inside `min` to `max`, and never with the current one. */
-	onCommit: (value: number) => void;
+	/**
+	 * Called with the new value, always inside `min` to `max`, and never with the current one. It may
+	 * answer a promise that settles when the level has taken or refused the change, so the field knows
+	 * when what it asked for is no longer pending.
+	 */
+	onCommit: (value: number) => void | Promise<unknown>;
 	disabled?: boolean;
 }
 
@@ -38,8 +42,10 @@ export function CoordField({ label, value, min, max, whole, onCommit, disabled }
 	// The last value asked for and not yet seen in the level, so a quick run of presses counts on
 	// from the last press rather than from a value that has not come back yet.
 	const asked = useRef<number | null>(null);
+	const pending = useRef(0);
 	useEffect(() => {
-		asked.current = null;
+		// The level caught up with what was asked: nothing more is waited for.
+		if (pending.current === 0) asked.current = null;
 	}, [value]);
 
 	const clamp = (n: number) => Math.min(Math.max(whole ? Math.round(n) : n, min), max);
@@ -47,7 +53,16 @@ export function CoordField({ label, value, min, max, whole, onCommit, disabled }
 		const next = clamp(n);
 		if (!Number.isFinite(next) || next === (asked.current ?? value)) return;
 		asked.current = next;
-		onCommit(next);
+		const answer = onCommit(next);
+		if (answer && typeof answer.then === 'function') {
+			pending.current += 1;
+			const settled = () => {
+				pending.current -= 1;
+				// Once nothing is in flight the level's own value is the one to count on from.
+				if (pending.current === 0) asked.current = null;
+			};
+			answer.then(settled, settled);
+		}
 	};
 	const step = (by: number) => {
 		setDraft(null);

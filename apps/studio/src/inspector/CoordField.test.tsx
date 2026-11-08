@@ -48,6 +48,25 @@ describe('CoordField', () => {
 		expect(onCommit.mock.calls.map(([v]) => v)).toEqual([6, 7, 8]);
 	});
 
+	it('keeps counting on from the last press while earlier ones are still being answered', async () => {
+		const user = userEvent.setup();
+		const answers: Array<() => void> = [];
+		const onCommit = vi.fn(
+			(_value: number) => new Promise<void>((resolve) => answers.push(resolve)),
+		);
+		const { rerender } = render(
+			<CoordField label="x" value={5} min={0} max={11} whole onCommit={onCommit} />,
+		);
+		const more = screen.getByRole('button', { name: 'Increase x' });
+		await user.click(more);
+		await user.click(more);
+		// The level takes the first change and shows it before the others have been answered.
+		rerender(<CoordField label="x" value={6} min={0} max={11} whole onCommit={onCommit} />);
+		answers[0]!();
+		await user.click(more);
+		expect(onCommit.mock.calls.map(([v]) => v)).toEqual([6, 7, 8]);
+	});
+
 	it('steps with the arrows by one and Page Up and Page Down by ten, and goes to the ends with Home and End', async () => {
 		const user = userEvent.setup();
 		const { onCommit } = setup({ max: 40 });

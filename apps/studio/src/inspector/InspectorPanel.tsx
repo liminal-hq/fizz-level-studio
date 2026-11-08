@@ -124,11 +124,11 @@ export function InspectorPanel({
 		if (!event.currentTarget.contains(event.relatedTarget)) endRun();
 	};
 
-	const send = (spec: ThingEditSpec, then?: (result: ThingEditResult) => void) => {
-		if (!edit || !thing) return;
+	const send = (spec: ThingEditSpec, then?: (result: ThingEditResult) => void): Promise<void> => {
+		if (!edit || !thing) return Promise.resolve();
 		setProblem(null);
 		running.current = true;
-		void edit.apply(spec, moveKey(thing, burst.current)).then((result) => {
+		return edit.apply(spec, moveKey(thing, burst.current)).then((result) => {
 			if (!result.ok) setProblem(result.problem);
 			then?.(result);
 		});

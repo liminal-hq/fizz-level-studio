@@ -3568,6 +3568,478 @@ async function layerChecks(bridge: Bridge, path: string, original: string): Prom
 	);
 }
 
+/** The text of the Inspector's fields in a window, or null when the panel is not showing there. */
+async function inspectorText(bridge: Bridge, windowId = 'main-1'): Promise<string | null> {
+	const found = await bridge.js<{ v: string | null }>(
+		`return { v: document.querySelector('[role=group][aria-label="Selected thing"]')?.innerText ?? null };`,
+		windowId,
+	);
+	return found.v;
+}
+
+/** Presses a button in the Inspector by its accessible name; false when it is absent or disabled. */
+function pressInInspector(bridge: Bridge, name: string, windowId = 'main-1'): Promise<boolean> {
+	return bridge.js<boolean>(
+		`const b = [...document.querySelectorAll('[role=group][aria-label="Selected thing"] button')].find((x) => (x.getAttribute('aria-label') ?? x.textContent.trim()) === ${JSON.stringify(name)});
+		 if (!b || b.disabled) return false;
+		 b.click();
+		 return true;`,
+		windowId,
+	);
+}
+
+/** Whether a button of the Inspector is disabled, or null when it is absent. */
+function inspectorButtonDisabled(bridge: Bridge, name: string): Promise<boolean | null> {
+	return bridge.js<boolean | null>(
+		`const b = [...document.querySelectorAll('[role=group][aria-label="Selected thing"] button')].find((x) => (x.getAttribute('aria-label') ?? x.textContent.trim()) === ${JSON.stringify(name)});
+		 return b ? b.disabled : null;`,
+	);
+}
+
+/** The value of one of the Inspector's number fields, by its label, or null. */
+function inspectorField(
+	bridge: Bridge,
+	label: string,
+	windowId = 'main-1',
+): Promise<number | null> {
+	return bridge.js<number | null>(
+		`const f = document.querySelector('[role=group][aria-label="Selected thing"] input[type=number][id]');
+		 const all = [...document.querySelectorAll('[role=group][aria-label="Selected thing"] label')];
+		 const l = all.find((x) => x.textContent.trim() === ${JSON.stringify(label)});
+		 const input = l ? document.getElementById(l.htmlFor) : f;
+		 return input ? Number(input.value) : null;`,
+		windowId,
+	);
+}
+
+/** Chooses a thing in the Objects list by the start of its row's text, which selects it for the Inspector. */
+async function chooseInObjects(bridge: Bridge, row: string): Promise<boolean> {
+	await showFromRail(bridge, 'Objects');
+	const chosen = await within(3000, () =>
+		bridge.js<boolean>(
+			`const b = [...document.querySelectorAll('[role=list][aria-label=Objects] button')].find((x) => x.textContent.trim().startsWith(${JSON.stringify(row)}));
+			 if (!b) return false;
+			 b.click();
+			 return true;`,
+		),
+	);
+	await showFromRail(bridge, 'Inspector');
+	return chosen !== null;
+}
+
+/** The lines of a script that differ between two texts, as `[line, before, after]`. */
+function changedLines(before: string, after: string): Array<[number, string, string]> {
+	const a = before.split('\n');
+	const b = after.split('\n');
+	const out: Array<[number, string, string]> = [];
+	for (let i = 0; i < Math.max(a.length, b.length); i++) {
+		if (a[i] !== b[i]) out.push([i + 1, a[i] ?? '', b[i] ?? '']);
+	}
+	return out;
+}
+
+/** The Ctrl+Z key as the editor sees it, sent from inside the Inspector. */
+function pressUndoKey(bridge: Bridge): Promise<boolean> {
+	return bridge.js<boolean>(
+		`const e = document.querySelector('[role=group][aria-label="Selected thing"]');
+		 if (!e) return false;
+		 e.dispatchEvent(new KeyboardEvent('keydown', { key: 'z', ctrlKey: true, bubbles: true, cancelable: true }));
+		 return true;`,
+	);
+}
+
+/**
+ * The Inspector in the running app, on the real engine: it shows the thing Inspect selects, its
+ * steppers change only that thing's line and keep its spacing, a run of presses is one undo step,
+ * Ctrl+Z restores the bytes, a turn splits the statement and names the step, Delete is undoable,
+ * a locked layer refuses with a note and changes nothing, Ctrl+J shows the line, a generated item
+ * and the start are read-only in the ways they should be, the arrows move the thing and Escape
+ * gives them back to the cursor, Erase takes the things it touches in one step, and a torn-off
+ * Inspector edits through the main window. It leaves the level's text as it found it.
+ */
+async function inspectorChecks(bridge: Bridge, path: string): Promise<void> {
+	const canvas = 'canvas[role=application]';
+	const level = () => levelCall(bridge, 'level_snapshot', { id: 'level-1' });
+	const original = (await level()).text;
+	const lines = original.split('\n');
+	const sodaLine = lines.findIndex((l) => l.trim().startsWith('soda        x=36 y=5')) + 1;
+	const sidecar = path.replace(/\.fizz$/, '.studio.json');
+	const undo = async (to: string, what: string) => {
+		check(`${what}: Ctrl+Z restores the text byte for byte`, await pressUndoKey(bridge));
+		const back = await within(3000, async () => (await level()).text === to);
+		check(`${what}: the text is back as it was`, back !== null);
+	};
+	const walkTo = async (target: { x: number; y: number }) => {
+		const from = await cursorCell(bridge);
+		if (!from) return;
+		const steps = [
+			...Array(Math.abs(target.x - from.x)).fill(target.x > from.x ? 'ArrowRight' : 'ArrowLeft'),
+			...Array(Math.abs(target.y - from.y)).fill(target.y > from.y ? 'ArrowUp' : 'ArrowDown'),
+		] as string[];
+		for (const key of steps) await pressKey(bridge, canvas, key);
+	};
+
+	// The empty state, then the soda chosen with Inspect on the canvas.
+	await showFromRail(bridge, 'Inspector');
+	check(
+		'inspector: with nothing selected it says how to select something',
+		(await within(3000, async () =>
+			((await inspectorText(bridge)) ?? '').includes('Nothing selected'),
+		)) !== null,
+		String(await inspectorText(bridge)),
+	);
+	await pressKey(bridge, canvas, 'q');
+	await walkTo({ x: 36, y: 5 });
+	await pressKey(bridge, canvas, ' ');
+	const shown = await within(3000, async () => {
+		const text = (await inspectorText(bridge)) ?? '';
+		return text.includes('Soda · treat') && text.includes(`Line ${sodaLine}`);
+	});
+	check(
+		'inspector: Inspect on the soda shows its name, kind and line',
+		shown !== null,
+		String(await inspectorText(bridge)),
+	);
+	check(
+		'inspector: it shows the soda’s x and y',
+		(await inspectorField(bridge, 'x')) === 36 && (await inspectorField(bridge, 'y')) === 5,
+	);
+
+	// One press of x+ changes that line and nothing else, and keeps the aligned columns.
+	const base = await level();
+	check(
+		'inspector: x+ is pressed from the Inspector',
+		await pressInInspector(bridge, 'Increase x'),
+	);
+	const moved = await within(3000, async () => (await level()).revision > base.revision);
+	const afterOne = await level();
+	const diff = changedLines(base.text, afterOne.text);
+	check(
+		'inspector: x+ changes only the soda’s line and keeps its alignment',
+		moved !== null &&
+			diff.length === 1 &&
+			diff[0]![0] === sodaLine &&
+			diff[0]![2].trim() === 'soda        x=37 y=5',
+		JSON.stringify(diff),
+	);
+	check(
+		'inspector: the step is named for the move',
+		afterOne.undoName === 'Move soda to 37, 5',
+		String(afterOne.undoName),
+	);
+	await undo(base.text, 'inspector: one press');
+
+	// A run of presses without leaving the Inspector is one undo step, named for where it ended.
+	for (let n = 0; n < 4; n++) await pressInInspector(bridge, 'Increase x');
+	const ran = await within(3000, async () => (await level()).text.includes('soda        x=40 y=5'));
+	const afterRun = await level();
+	check(
+		'inspector: four presses are one step named for where the run ended',
+		ran !== null && afterRun.undoName === 'Move soda to 40, 5',
+		JSON.stringify([afterRun.revision, afterRun.undoName]),
+	);
+	await undo(base.text, 'inspector: a run of presses');
+	check(
+		'inspector: only the earlier outside edit is left to undo after the run’s one step',
+		(await level()).undoName === 'Edit outside the studio',
+		String((await level()).undoName),
+	);
+
+	// Show in script reveals the line (Ctrl+J and the button).
+	check('inspector: Show in script is pressed', await pressInInspector(bridge, 'Show in script'));
+	const revealed = await within(3000, () =>
+		bridge.js<boolean>(
+			`return [...document.querySelectorAll('.cm-revealedLine')].some((e) => e.textContent.includes('soda'));`,
+		),
+	);
+	check('inspector: Show in script reveals the soda’s line', revealed !== null);
+	await pressKey(bridge, canvas, 'j'); // a bare J does nothing: it is Ctrl+J that shows the line
+	await bridge.js<boolean>(
+		`document.querySelector('${canvas}').dispatchEvent(new KeyboardEvent('keydown', { key: 'j', ctrlKey: true, bubbles: true, cancelable: true })); return true;`,
+	);
+	check(
+		'inspector: Ctrl+J reveals the line too',
+		(await within(3000, () =>
+			bridge.js<boolean>(
+				`return [...document.querySelectorAll('.cm-revealedLine')].some((e) => e.textContent.includes('soda'));`,
+			),
+		)) !== null,
+	);
+
+	// A locked layer refuses, with a note under the fields, and the text does not change.
+	await showFromRail(bridge, 'Layers');
+	check(
+		'inspector: Treats is locked from the Layers panel',
+		await pressLayerToggle(bridge, 'Lock Treats'),
+	);
+	await within(
+		3000,
+		async () => (await levelCall(bridge, 'level_snapshot', { id: 'level-1' })).revision >= 0,
+	);
+	await showFromRail(bridge, 'Inspector');
+	const lockedBase = await level();
+	await pressInInspector(bridge, 'Increase x');
+	const refused = await within(3000, async () =>
+		((await inspectorText(bridge)) ?? '').includes(
+			'Treats is locked. Unlock it in Layers to change it.',
+		),
+	);
+	check(
+		'inspector: a locked layer refuses with the note under the fields',
+		refused !== null,
+		String(await inspectorText(bridge)),
+	);
+	const lockedAfter = await level();
+	check(
+		'inspector: the refused change left the text and the revision alone',
+		lockedAfter.text === lockedBase.text && lockedAfter.revision === lockedBase.revision,
+	);
+	check(
+		'inspector: the refusal is an alert',
+		await bridge.js<boolean>(
+			`return [...document.querySelectorAll('[role=alert]')].some((e) => e.textContent.includes('is locked'));`,
+		),
+	);
+	await showFromRail(bridge, 'Layers');
+	await pressLayerToggle(bridge, 'Lock Treats');
+	await within(5000, async () => {
+		try {
+			return JSON.parse(readFileSync(sidecar, 'utf8')).layers === undefined ? true : null;
+		} catch {
+			return true;
+		}
+	});
+	rmSync(sidecar, { force: true });
+	await showFromRail(bridge, 'Inspector');
+
+	// The arrows move the thing, not the cursor; one Undo puts it back; Escape gives the arrows back.
+	const cursorBefore = await cursorCell(bridge);
+	await pressKey(bridge, canvas, 'ArrowRight');
+	const nudged = await within(3000, async () =>
+		(await level()).text.includes('soda        x=37 y=5'),
+	);
+	check('inspector: an arrow moves the selected thing one tile', nudged !== null);
+	check(
+		'inspector: the arrow left the cursor where it was',
+		JSON.stringify(await cursorCell(bridge)) === JSON.stringify(cursorBefore),
+		JSON.stringify([cursorBefore, await cursorCell(bridge)]),
+	);
+	await pressKey(bridge, canvas, 'ArrowRight');
+	await pressKey(bridge, canvas, 'ArrowUp');
+	const run = await within(3000, async () => (await level()).text.includes('soda        x=38 y=6'));
+	check('inspector: a run of arrows keeps moving it', run !== null);
+	await undo(base.text, 'inspector: a run of arrow nudges');
+	await pressKey(bridge, canvas, 'Escape');
+	await pressKey(bridge, canvas, 'ArrowRight');
+	const walked = await within(3000, async () => {
+		const at = await cursorCell(bridge);
+		return at !== null && cursorBefore !== null && at.x === cursorBefore.x + 1;
+	});
+	check(
+		'inspector: after Escape the arrows walk the cursor again and edit nothing',
+		walked !== null && (await level()).text === base.text,
+	);
+
+	// Turn a gloop: the statement splits in place, the step says so, and Undo restores the bytes.
+	const gloops = await bridge.js<Array<{ x: number; y: number | null }>>(
+		`const s = await window.__TAURI_INTERNALS__.invoke('plugin:fizz-studio-worlds|level_snapshot', { id: 'level-1' });
+		 return s.view.spawns.filter((w) => w.kind === 'gloop').map((w) => ({ x: w.x, y: w.y }));`,
+	);
+	const middle = gloops.find((w) => w.x === 62);
+	check(
+		'inspector: the middle gloop is chosen in Objects',
+		middle !== undefined &&
+			(await chooseInObjects(
+				bridge,
+				middle.y === null ? 'Spawn gloop at column 62' : `Spawn gloop at 62, ${middle.y}`,
+			)),
+		JSON.stringify(gloops),
+	);
+	check(
+		'inspector: it shows the gloop with its facing',
+		(await within(3000, async () => {
+			const text = (await inspectorText(bridge)) ?? '';
+			return (
+				text.includes('Gloop · enemy') &&
+				text.includes('Stands on the ground') &&
+				text.includes('Facing')
+			);
+		})) !== null,
+		String(await inspectorText(bridge)),
+	);
+	await checkKeycaps(bridge, 'inspector with an enemy selected');
+	const gloopBase = await level();
+	check('inspector: Right is pressed', await pressInInspector(bridge, 'Right'));
+	const turned = await within(3000, async () => (await level()).revision > gloopBase.revision);
+	const turnedAfter = await level();
+	const gl = turnedAfter.text.split('\n');
+	const at = gl.findIndex((l) => /^\s+gloop\s+x=62 y=\d+ dir=1$/.test(l));
+	check(
+		'inspector: turning the middle gloop splits its statement in three, in place',
+		turned !== null &&
+			at > 0 &&
+			/^\s+gloop\s+x=35$/.test(gl[at - 1] ?? '') &&
+			/^\s+gloop\s+x=85$/.test(gl[at + 1] ?? '') &&
+			changedLines(gloopBase.text, turnedAfter.text).length >= 2,
+		JSON.stringify(gl.slice(Math.max(at - 1, 0), at + 2)),
+	);
+	check(
+		'inspector: the step says it turned and split',
+		/^Turn gloop to face right/.test(turnedAfter.undoName ?? '') &&
+			/split/.test(turnedAfter.undoName ?? ''),
+		String(turnedAfter.undoName),
+	);
+	await showFromRail(bridge, 'History');
+	check(
+		'inspector: History offers the named undo',
+		(await within(3000, () =>
+			bridge.js<boolean>(`return document.body.innerText.includes('Undo Turn gloop');`),
+		)) !== null,
+	);
+	await showFromRail(bridge, 'Inspector');
+	await undo(gloopBase.text, 'inspector: the turn');
+
+	// Delete a cheezie: the note says how to undo, and undo brings the whole row back.
+	check(
+		'inspector: a cheezie is chosen in Objects',
+		await chooseInObjects(bridge, 'Item cheezie at 29, 7'),
+	);
+	const delBase = await level();
+	check('inspector: Delete is pressed', await pressInInspector(bridge, 'Delete'));
+	const deleted = await within(3000, async () => (await level()).revision > delBase.revision);
+	const delAfter = await level();
+	check(
+		'inspector: Delete removes the cheezie and the step is named for it',
+		deleted !== null && delAfter.undoName === 'Delete cheezie' && delAfter.text !== delBase.text,
+		String(delAfter.undoName),
+	);
+	check(
+		'inspector: it says Ctrl+Z puts it back, and nothing is selected',
+		(await within(3000, async () => {
+			const text = (await inspectorText(bridge)) ?? '';
+			return (
+				text.includes('Deleted cheezie. Ctrl+Z puts it back.') && text.includes('Nothing selected')
+			);
+		})) !== null,
+		String(await inspectorText(bridge)),
+	);
+	await undo(delBase.text, 'inspector: the delete');
+
+	// The start moves with the steppers but cannot be deleted; a generated item shows its reason only.
+	check(
+		'inspector: Ben’s start is chosen in Objects',
+		await chooseInObjects(bridge, 'Ben’s start at 3, 4'),
+	);
+	check(
+		'inspector: Delete is disabled for the start, with the reason',
+		(await inspectorButtonDisabled(bridge, 'Delete')) === true &&
+			((await inspectorText(bridge)) ?? '').includes('A level needs a start.'),
+		String(await inspectorText(bridge)),
+	);
+	const cacheItems = await bridge.js<Array<{ kind: string; x: number; y: number }>>(
+		`const s = await window.__TAURI_INTERNALS__.invoke('plugin:fizz-studio-worlds|level_snapshot', { id: 'level-1' });
+		 return s.view.items.filter((i) => i.generator === 'pogo-cache').map((i) => ({ kind: i.kind, x: i.x, y: i.y }));`,
+	);
+	const cached = cacheItems[0];
+	check('inspector: the level has items made by the pogo-cache', cached !== undefined);
+	if (cached) {
+		await chooseInObjects(bridge, `Item ${cached.kind} at ${cached.x}, ${cached.y}`);
+		check(
+			'inspector: a generated item shows the reason and Show in script, with no fields to change',
+			(await within(3000, async () =>
+				((await inspectorText(bridge)) ?? '').includes('Made by the pogo-cache'),
+			)) !== null &&
+				(await inspectorField(bridge, 'x')) === null &&
+				(await inspectorButtonDisabled(bridge, 'Delete')) === true &&
+				(await inspectorButtonDisabled(bridge, 'Show in script')) === false,
+			String(await inspectorText(bridge)),
+		);
+	}
+
+	// Erase takes the thing it touches along with the tiles it clears, in one step.
+	await pressKey(bridge, canvas, 'Escape');
+	await pressKey(bridge, canvas, 'e');
+	await walkTo({ x: 36, y: 5 });
+	const eraseBase = await level();
+	await pressKey(bridge, canvas, ' ');
+	const erased = await within(3000, async () => (await level()).revision > eraseBase.revision);
+	const eraseAfter = await within(
+		3000,
+		async () => !(await level()).text.includes('soda        x=36 y=5'),
+	);
+	check(
+		'erase: the Erase tool also deletes the soda it touches',
+		erased !== null && eraseAfter !== null && (await level()).text.includes('clear x=36 y=5'),
+	);
+	await undo(eraseBase.text, 'erase: its stroke');
+	await pressKey(bridge, canvas, 'b');
+
+	// The Delete key on the canvas deletes the selected thing, and Ctrl+Z brings it back.
+	await pressKey(bridge, canvas, 'q');
+	await pressKey(bridge, canvas, ' ');
+	await within(3000, async () => ((await inspectorText(bridge)) ?? '').includes('Soda · treat'));
+	await pressKey(bridge, canvas, 'Delete');
+	const keyed = await within(
+		3000,
+		async () => !(await level()).text.includes('soda        x=36 y=5'),
+	);
+	check('inspector: the Delete key on the canvas deletes the selected thing', keyed !== null);
+	await undo(eraseBase.text, 'inspector: the Delete key');
+
+	// A torn-off Inspector edits through the main window.
+	await pressKey(bridge, canvas, ' ');
+	await within(3000, async () => ((await inspectorText(bridge)) ?? '').includes('Soda · treat'));
+	await showFromRail(bridge, 'Inspector');
+	check(
+		'inspector: the panel offers Tear off',
+		await choosePanelMenu(bridge, 'Inspector', 'Tear off'),
+	);
+	const opened = await within(10_000, async () =>
+		(await bridge.windows()).includes('panel-inspector-1'),
+	);
+	check('inspector: tearing it off opens its window', opened !== null);
+	await bridge.ready('panel-inspector-1');
+	const tornShows = await within(20_000, async () => {
+		try {
+			return ((await inspectorText(bridge, 'panel-inspector-1')) ?? '').includes('Soda · treat');
+		} catch {
+			return false;
+		}
+	});
+	check('inspector: the torn-off window shows the selected soda', tornShows !== null);
+	await checkKeycaps(bridge, 'the torn-off Inspector', 'panel-inspector-1');
+	const tornBase = await level();
+	check(
+		'inspector: x+ is pressed in the torn-off window',
+		await pressInInspector(bridge, 'Increase x', 'panel-inspector-1'),
+	);
+	const tornMoved = await within(5000, async () =>
+		(await level()).text.includes('soda        x=37 y=5'),
+	);
+	check('inspector: a change in the torn-off window reaches the level', tornMoved !== null);
+	check(
+		'inspector: the torn-off window shows the new place',
+		(await within(
+			5000,
+			async () => (await inspectorField(bridge, 'x', 'panel-inspector-1')) === 37,
+		)) !== null,
+	);
+	check('inspector: docking the Inspector back', await dockBackWindow(bridge, 'inspector'));
+	await showFromRail(bridge, 'Inspector');
+	await within(5000, async () => (await inspectorText(bridge)) !== null);
+	await undo(tornBase.text, 'inspector: the torn-off change');
+
+	// Leave the selection, the tool and the level as they were found.
+	await pressKey(bridge, canvas, 'Escape');
+	check('inspector: the level ends as it began', (await level()).text === original);
+	// Save the way a person does, so the window's title loses its unsaved mark as well.
+	await bridge.js<boolean>(
+		`document.dispatchEvent(new KeyboardEvent('keydown', { key: 's', ctrlKey: true, bubbles: true })); return true;`,
+	);
+	const clean = await within(5000, async () => !((await titleBarText(bridge)) ?? '').includes('•'));
+	check('inspector: after Save the title shows no unsaved changes', clean !== null);
+}
+
 async function main(): Promise<void> {
 	if (!existsSync(binary)) {
 		console.error(`No debug build at ${binary}. Run \`bun run app:build\` first.`);
@@ -4039,6 +4511,9 @@ async function main(): Promise<void> {
 			took === null ? 'not heard' : `${Math.round(took)} ms`,
 		);
 		await levelCall(bridge, 'level_save', { id: 'level-1' });
+
+		// 5a. The Inspector, on the real engine; it leaves the text as it found it.
+		await inspectorChecks(bridge, path);
 
 		// 5b. The appearance and tear-off plugins answer, the theme follows the settings and the
 		// system, and the Script panel tears off into panel-script-1 and docks back.
