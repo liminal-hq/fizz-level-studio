@@ -8,4 +8,9 @@ export type ViewItem = { kind: string, x: number, y: number,
  * The script line, counted from 1, of the statement that placed it; `None` where the view
  * cannot tell.
  */
-line: number | null, };
+line: number | null, 
+/**
+ * The word of the generator that made it (`Some("pogo-cache")`), or `None` for an item a
+ * statement placed on its own. A generated item cannot be edited on its own.
+ */
+generator: string | null, };

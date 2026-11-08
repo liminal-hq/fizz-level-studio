@@ -32,6 +32,12 @@ impl LevelDocument {
         Self { text: text.into() }
     }
 
+    /// The name an edit's undo step has, read against the current text. For the appended edits this
+    /// is [`step_name`]; the thing edits are named once the engine can say what they did.
+    pub fn describe(&self, edit: &LevelEdit) -> String {
+        step_name(edit)
+    }
+
     fn check(&self, start: usize, end: usize) -> Result<(), DocumentError> {
         if start > end || end > self.text.len() {
             return Err(DocumentError::OutOfRange { start, end });
@@ -56,6 +62,9 @@ pub fn step_name(edit: &LevelEdit) -> String {
             format!("Place {count} {item}")
         }
         LevelEdit::Spawn { enemy, .. } => format!("Place {enemy}"),
+        LevelEdit::MoveThing { .. }
+        | LevelEdit::FaceThing { .. }
+        | LevelEdit::DeleteThing { .. } => "Edit thing".to_string(),
     }
 }
 
@@ -132,6 +141,11 @@ impl Document for LevelDocument {
         let world = rasterise(&parsed.ast)
             .ok_or_else(|| refuse("the script has no readable level header, so it has no size"))?;
         let edit = match intent {
+            LevelEdit::MoveThing { .. }
+            | LevelEdit::FaceThing { .. }
+            | LevelEdit::DeleteThing { .. } => {
+                return Err(refuse("editing a thing in place is not built yet"));
+            }
             LevelEdit::Paint { tile, x, y } => {
                 if !has(TILES, tile) {
                     return Err(refuse(format!("`{tile}` is not a tile")));

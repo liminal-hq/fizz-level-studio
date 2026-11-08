@@ -139,6 +139,11 @@ impl Document for Fizz2LevelDocument {
 			LevelEdit::Place { .. } | LevelEdit::Row { .. } | LevelEdit::Spawn { .. } => Err(refuse(
 				"objects in Fizz 2 levels cannot be placed yet; they arrive with the next milestone",
 			)),
+			LevelEdit::MoveThing { .. }
+			| LevelEdit::FaceThing { .. }
+			| LevelEdit::DeleteThing { .. } => Err(refuse(
+				"things in Fizz 2 levels cannot be edited yet; they arrive with the next milestone",
+			)),
 		}
     }
 

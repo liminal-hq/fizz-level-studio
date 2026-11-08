@@ -281,7 +281,7 @@ describe('EditorScreen', () => {
 		const user = userEvent.setup();
 		const snapshot = levelSnapshot(
 			{},
-			levelView(12, 8, { items: [{ kind: 'soda', x: 4, y: 3, line: 7 }] }),
+			levelView(12, 8, { items: [{ kind: 'soda', x: 4, y: 3, generator: null, line: 7 }] }),
 		);
 		const bridge = createCommandBridge();
 		render(
@@ -309,7 +309,7 @@ describe('EditorScreen', () => {
 		const user = userEvent.setup();
 		const snapshot = levelSnapshot(
 			{},
-			levelView(12, 8, { items: [{ kind: 'soda', x: 4, y: 3, line: null }] }),
+			levelView(12, 8, { items: [{ kind: 'soda', x: 4, y: 3, generator: null, line: null }] }),
 		);
 		const client = new FakeLevelClient(snapshot);
 		const endStep = vi.spyOn(client, 'endStep');
@@ -452,7 +452,9 @@ describe('EditorScreen', () => {
 
 	it('reveals the script line that set an object when it is chosen in the list', async () => {
 		const text = 'line one\nline two\nline three\n';
-		const view = levelView(12, 8, { items: [{ kind: 'soda', x: 3, y: 2, line: 7 }] });
+		const view = levelView(12, 8, {
+			items: [{ kind: 'soda', x: 3, y: 2, generator: null, line: 7 }],
+		});
 		const snapshot = levelSnapshot({ text }, view);
 		const client = new FakeLevelClient(snapshot);
 		client.cellLines.set('3,2', 3);

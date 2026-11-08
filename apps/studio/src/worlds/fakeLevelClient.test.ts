@@ -39,7 +39,7 @@ describe('FakeLevelClient', () => {
 			s.revision,
 		);
 		// The fixture's script has two lines, so the clear is line 3 and the place line 4.
-		expect(s.view.items).toEqual([{ kind: 'cheezie', x: 5, y: 3, line: 4 }]);
+		expect(s.view.items).toEqual([{ kind: 'cheezie', x: 5, y: 3, generator: null, line: 4 }]);
 	});
 
 	it('refuses a stale revision and changes nothing', async () => {

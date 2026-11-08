@@ -5,6 +5,7 @@
 
 use std::collections::HashMap;
 
+use fizz_studio_language::ast::Body;
 use fizz_studio_language::messages::message;
 use fizz_studio_language::parser::parse;
 use fizz_studio_language::raster::{rasterise, rasterise_hiding, World};
@@ -99,6 +100,21 @@ impl LevelDocument {
             .enumerate()
             .map(|(i, word)| (word.clone(), i as u16))
             .collect();
+        // What the rasteriser does not say: which lines generate items, and which spawns the script
+        // gave no `y=`.
+        let mut generators: HashMap<usize, &str> = HashMap::new();
+        let mut on_ground: std::collections::HashSet<usize> = std::collections::HashSet::new();
+        for node in &parsed.ast.nodes {
+            match &node.body {
+                Body::PogoCache { .. } => {
+                    generators.insert(node.line, "pogo-cache");
+                }
+                Body::Spawn { y: None, .. } => {
+                    on_ground.insert(node.line);
+                }
+                _ => {}
+            }
+        }
         let cells = world
             .tiles
             .iter()
@@ -139,6 +155,7 @@ impl LevelDocument {
                     x: i.x,
                     y: i.y,
                     line: line(i.line),
+                    generator: generators.get(&i.line).map(|word| (*word).to_string()),
                 })
                 .collect(),
             spawns: world
@@ -150,6 +167,7 @@ impl LevelDocument {
                     y: s.y,
                     dir: s.dir,
                     ride: s.ride,
+                    on_ground: on_ground.contains(&s.line),
                     line: line(s.line),
                 })
                 .collect(),

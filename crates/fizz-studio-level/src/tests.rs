@@ -893,3 +893,63 @@ fn a_locked_layer_still_refuses_an_edit_over_a_ground_relative_thing() {
     assert!(session.apply(&token, asked).is_err());
     assert_eq!(session.document().text(), before);
 }
+
+#[test]
+fn the_view_says_which_spawns_stand_on_the_ground_and_which_items_are_generated() {
+    let view = LevelDocument::new(CRATER).view();
+    assert!(
+        view.spawns.iter().any(|s| s.on_ground),
+        "a spawn with no y="
+    );
+    assert!(
+        view.spawns.iter().all(|s| s.on_ground
+            == s.line
+                .is_some_and(|l| { !CRATER.lines().nth(l as usize - 1).unwrap().contains("y=") })),
+        "on_ground is true exactly where the line gave no y="
+    );
+    let generated: Vec<_> = view
+        .items
+        .iter()
+        .filter(|i| i.generator.is_some())
+        .collect();
+    assert_eq!(
+        generated.len(),
+        3,
+        "the pogo-cache writes a cookie and two cheezies"
+    );
+    assert!(generated
+        .iter()
+        .all(|i| i.generator.as_deref() == Some("pogo-cache")));
+    assert!(view.items.iter().any(|i| i.generator.is_none()));
+}
+
+#[test]
+fn the_thing_edits_are_refused_for_now_and_change_nothing() {
+    let (mut session, token) = open();
+    let thing = fizz_studio_protocol::ThingRef {
+        kind: fizz_studio_protocol::ThingKind::Item,
+        index: 0,
+        line: 1,
+        expect: String::new(),
+        x: 0.0,
+        y: Some(0.0),
+    };
+    for edit in [
+        LevelEdit::MoveThing {
+            thing: thing.clone(),
+            x: 1.0,
+            y: Some(1.0),
+        },
+        LevelEdit::FaceThing {
+            thing: thing.clone(),
+            facing: fizz_studio_protocol::Facing::Left,
+        },
+        LevelEdit::DeleteThing {
+            thing: thing.clone(),
+        },
+    ] {
+        let asked = request(&session, edit);
+        assert!(session.apply(&token, asked).is_err());
+        assert_eq!(session.text(), CRATER);
+    }
+}

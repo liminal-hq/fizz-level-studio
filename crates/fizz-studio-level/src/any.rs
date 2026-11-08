@@ -6,7 +6,7 @@
 use fizz_studio_protocol::{LevelEdit, LevelTarget, LevelView};
 use fizz_studio_session::{Document, DocumentError, Edit};
 
-use crate::{Fizz2LevelDocument, LevelDocument};
+use crate::{step_name, Fizz2LevelDocument, LevelDocument};
 
 /// The message key the canvas shows above a Fizz 2 level until the game's own drawing exists.
 pub const FLAT_FALLBACK_BANNER: &str = "level.flatFallback";
@@ -76,6 +76,16 @@ impl AnyLevelDocument {
         match self {
             Self::Fizz1(d) => d.cell_line(x, y),
             Self::Fizz2(_) => None,
+        }
+    }
+}
+
+impl AnyLevelDocument {
+    /// The name of the undo step an edit makes, read against the current text.
+    pub fn describe(&self, edit: &LevelEdit) -> String {
+        match self {
+            Self::Fizz1(d) => d.describe(edit),
+            Self::Fizz2(_) => step_name(edit),
         }
     }
 }

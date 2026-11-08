@@ -5,6 +5,10 @@
  */
 export type ViewSpawn = { kind: string, x: number, y: number | null, dir: number | null, ride: boolean, 
 /**
+ * Whether the script gave no `y=`, so the spawn stands on the ground and `y` was worked out.
+ */
+on_ground: boolean, 
+/**
  * The script line, counted from 1, of the `spawn` statement; `None` where the view cannot tell.
  */
 line: number | null, };

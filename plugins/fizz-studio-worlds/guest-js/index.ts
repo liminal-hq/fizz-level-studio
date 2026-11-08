@@ -5,6 +5,7 @@
 
 import { invoke } from '@tauri-apps/api/core';
 import { listen, type UnlistenFn } from '@tauri-apps/api/event';
+import type { Facing } from '@liminal-hq/fizz-studio-protocol/generated/Facing';
 import type { GhostProposal } from '@liminal-hq/fizz-studio-protocol/generated/GhostProposal';
 import type { LevelEdit } from '@liminal-hq/fizz-studio-protocol/generated/LevelEdit';
 import type { LevelError } from '@liminal-hq/fizz-studio-protocol/generated/LevelError';
@@ -13,6 +14,8 @@ import type { LevelView } from '@liminal-hq/fizz-studio-protocol/generated/Level
 import type { NewLevelRequest } from '@liminal-hq/fizz-studio-protocol/generated/NewLevelRequest';
 import type { ProjectInfo } from '@liminal-hq/fizz-studio-protocol/generated/ProjectInfo';
 import type { RecoveryEntry } from '@liminal-hq/fizz-studio-protocol/generated/RecoveryEntry';
+import type { ThingKind } from '@liminal-hq/fizz-studio-protocol/generated/ThingKind';
+import type { ThingRef } from '@liminal-hq/fizz-studio-protocol/generated/ThingRef';
 import type { WordDoc } from '@liminal-hq/fizz-studio-protocol/generated/WordDoc';
 
 const PREFIX = 'plugin:fizz-studio-worlds|';
@@ -223,6 +226,7 @@ export function onLevelLayers(listener: (layers: LevelLayers) => void): Promise<
 }
 
 export type {
+	Facing,
 	GhostProposal,
 	LevelEdit,
 	LevelError,
@@ -231,5 +235,7 @@ export type {
 	NewLevelRequest,
 	ProjectInfo,
 	RecoveryEntry,
+	ThingKind,
+	ThingRef,
 	WordDoc,
 };

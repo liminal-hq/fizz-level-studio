@@ -21,7 +21,10 @@ function rangeText(ranges: Array<[number, number]>): string {
 	return ranges.map(([from, to]) => (from === to ? `${from}` : `${from}..${to}`)).join(',');
 }
 
-function editLine(edit: LevelEdit): string {
+/** The edits that append a line; the thing edits are built on top of this fake by the Inspector. */
+type AppendEdit = Exclude<LevelEdit, { kind: 'move-thing' | 'face-thing' | 'delete-thing' }>;
+
+function editLine(edit: AppendEdit): string {
 	if (edit.kind === 'row') {
 		const by = edit.by > 1 ? ` by=${edit.by}` : '';
 		return `row ${edit.item} x=${edit.x[0]}..${edit.x[1]} y=${edit.y}${by}`;
@@ -33,7 +36,7 @@ function editLine(edit: LevelEdit): string {
 	return `place ${edit.item} ${where}`;
 }
 
-function editName(edit: LevelEdit): string {
+function editName(edit: AppendEdit): string {
 	if (edit.kind === 'row') {
 		return `Place ${Math.floor((edit.x[1] - edit.x[0]) / Math.max(edit.by, 1)) + 1} ${edit.item}`;
 	}
@@ -112,6 +115,11 @@ export class FakeLevelClient implements LevelClient {
 		this.check(id, basedOn);
 		if (this.refuseEdits) throw this.refuseEdits;
 		this.applied.push({ edit, basedOn, mergeKey });
+		if (edit.kind === 'move-thing' || edit.kind === 'face-thing' || edit.kind === 'delete-thing') {
+			// The real document refuses these until the structured edit engine lands; the fake never
+			// writes script text for them.
+			throw { kind: 'invalid', message: 'editing a thing in place is not built yet' } as LevelError;
+		}
 		const joins = mergeKey !== undefined && this.openKey === mergeKey && this.undoStack.length > 0;
 		const before = this.current;
 		const next = cloneSnapshot(before);
@@ -231,12 +239,12 @@ export class FakeLevelClient implements LevelClient {
 		return this.snapshot();
 	}
 
-	private apply(snapshot: LevelSnapshot, edit: LevelEdit, line: number): void {
+	private apply(snapshot: LevelSnapshot, edit: AppendEdit, line: number): void {
 		const { view } = snapshot;
 		if (edit.kind === 'row') {
 			for (let x = edit.x[0]; x <= edit.x[1]; x += Math.max(edit.by, 1)) {
 				if (x >= 0 && x < view.width && edit.y < view.height) {
-					view.items.push({ kind: edit.item, x, y: edit.y, line });
+					view.items.push({ kind: edit.item, x, y: edit.y, generator: null, line });
 				}
 			}
 			return;
@@ -248,6 +256,7 @@ export class FakeLevelClient implements LevelClient {
 				y: edit.y,
 				dir: null,
 				ride: false,
+				on_ground: false,
 				line,
 			});
 			return;
@@ -258,7 +267,7 @@ export class FakeLevelClient implements LevelClient {
 		if (edit.kind === 'place') {
 			for (const y of rows) {
 				for (const x of columns) {
-					if (inside(x, y)) view.items.push({ kind: edit.item, x, y, line });
+					if (inside(x, y)) view.items.push({ kind: edit.item, x, y, generator: null, line });
 				}
 			}
 			return;

@@ -8,8 +8,8 @@ import { levelSections, levelView } from '../../test/levelFixtures';
 import { cellLayers, layersView, stillHidden } from './layersView';
 
 const view = levelView(12, 8, {
-	items: [{ kind: 'cheezie', x: 4, y: 3, line: 9 }],
-	spawns: [{ kind: 'gloop', x: 6, y: 1, dir: null, ride: false, line: 12 }],
+	items: [{ kind: 'cheezie', x: 4, y: 3, generator: null, line: 9 }],
+	spawns: [{ kind: 'gloop', x: 6, y: 1, dir: null, ride: false, on_ground: false, line: 12 }],
 	markers: [{ kind: 'exit', x: 10, y: 1, height: 2, line: 7 }],
 	sections: levelSections(),
 });

@@ -3,7 +3,7 @@
 // (c) Copyright 2026 Liminal HQ, Scott Morris
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
-use fizz_studio_level::{new_level_text, new_world_text, step_name};
+use fizz_studio_level::{new_level_text, new_world_text};
 use fizz_studio_protocol::{
     GhostProposal, LevelEdit, LevelError, LevelSnapshot, LevelTarget, LevelView, NewLevelRequest,
     ProjectInfo, ProjectKind, RecoveryEntry, WordDoc,
@@ -58,7 +58,8 @@ pub fn level_apply<R: Runtime>(
     merge_key: Option<String>,
 ) -> Result<LevelSnapshot, LevelError> {
     let snapshot = worlds.with(&id, |level| {
-        let mut request = Request::new(based_on, step_name(&edit), edit);
+        let name = level.session.document().describe(&edit);
+        let mut request = Request::new(based_on, name, edit);
         if let Some(key) = merge_key {
             request = request.merging(key);
         }

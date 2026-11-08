@@ -3,4 +3,4 @@
 /**
  * Why a level command was refused. Nothing changed.
  */
-export type LevelError = { "kind": "stale", based_on: bigint, current: bigint, } | { "kind": "not_open", id: string, } | { "kind": "invalid", message: string, } | { "kind": "io", message: string, } | { "kind": "locked", layers: Array<string>, };
+export type LevelError = { "kind": "stale", based_on: bigint, current: bigint, } | { "kind": "not_open", id: string, } | { "kind": "invalid", message: string, } | { "kind": "io", message: string, } | { "kind": "locked", layers: Array<string>, } | { "kind": "gone", line: number, };

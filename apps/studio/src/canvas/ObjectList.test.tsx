@@ -11,10 +11,10 @@ import type { LevelView } from '@liminal-hq/fizz-studio-protocol/generated/Level
 import { ObjectList } from './ObjectList';
 
 const view = levelView(12, 8, {
-	items: [{ kind: 'cheezie', x: 4, y: 3, line: 9 }],
+	items: [{ kind: 'cheezie', x: 4, y: 3, generator: null, line: 9 }],
 	spawns: [
-		{ kind: 'gloop', x: 6, y: 1, dir: null, ride: false, line: 12 },
-		{ kind: 'bat', x: 9, y: null, dir: null, ride: false, line: 13 },
+		{ kind: 'gloop', x: 6, y: 1, dir: null, ride: false, on_ground: false, line: 12 },
+		{ kind: 'bat', x: 9, y: null, dir: null, ride: false, on_ground: true, line: 13 },
 	],
 	diagnostics: [{ line: 3, code: 'E004', message: 'unknown tile' }],
 });
