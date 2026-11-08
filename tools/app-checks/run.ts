@@ -2533,6 +2533,29 @@ async function glassSurfaceChecks(bridge: Bridge): Promise<void> {
 			} else {
 				check(`${where}: the Script menu opens`, false);
 			}
+			// A right-click menu is the same menu: it follows the Menus switch and the menu opacity too.
+			const rightClicked = await bridge.js<boolean>(
+				`const el = document.querySelector('[data-zoom-control]'); if (!el) return false; const r = el.getBoundingClientRect(); el.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true, button: 2, buttons: 2, clientX: r.left + r.width / 2, clientY: r.top + r.height / 2 })); return true;`,
+			);
+			const contextMenuShown =
+				rightClicked &&
+				(await within(3000, () =>
+					bridge.js<boolean>(`return !!document.querySelector('[role=menu]');`),
+				)) !== null;
+			if (contextMenuShown) {
+				const m = (await surfaceFills(bridge, { menu: '[role=menu]::before' })).menu;
+				check(
+					`${where}: a right-click menu ${on ? `draws ${menu}% with a blur` : 'is solid, with no blur'}`,
+					m !== null &&
+						(on
+							? Math.abs(m.alpha - menu / 100) < 0.015 && m.filter.includes('blur(')
+							: m.alpha >= 0.99 && !m.filter.includes('blur(')),
+					JSON.stringify(m),
+				);
+				await closeMenu();
+			} else {
+				check(`${where}: the zoom pill's right-click menu opens`, false);
+			}
 		}
 	}
 	await setTransparency(bridge, defaultTransparency);
