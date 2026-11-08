@@ -1925,16 +1925,20 @@ async function dragAndMaximiseChecks(bridge: Bridge): Promise<void> {
 		JSON.stringify([saved, efull]),
 	);
 
-	// Docking it back puts it at the end; Alt+ArrowUp on its rail entry reorders it, with an announcement.
+	// Dock right, the zone it left, returns it between Inspector and History (it no longer goes to
+	// the end: dock back to where it left, spec/EDITOR.md); the entry is shown again and Alt+ArrowUp
+	// on its rail entry reorders it, with an announcement.
 	check(
 		'drag: the floating panel docks back',
 		await choosePanelMenu(bridge, 'Objects', 'Dock right'),
 	);
 	await sleep(300);
 	check(
-		'drag: it sits after History until moved',
-		(await tabsIn(bridge, 'Right dock')).join() === 'Inspector,History,Objects',
+		'drag: it sits where it left, between Inspector and History',
+		(await tabsIn(bridge, 'Right dock')).join() === 'Inspector,Objects,History',
 	);
+	await showFromRail(bridge, 'Objects');
+	await sleep(200);
 	const moved = await bridge.js<{ tabs: string[]; note: string }>(
 		`const tab = [...document.querySelectorAll('[data-rail="right"] [data-rail-item]')].find((t) => t.textContent.trim() === 'Objects');
 		 tab.focus();
@@ -1947,9 +1951,17 @@ async function dragAndMaximiseChecks(bridge: Bridge): Promise<void> {
 	);
 	check(
 		'drag: Alt+ArrowUp moves a rail entry and announces its new place',
-		moved.tabs.join() === 'Inspector,Objects,History' &&
-			moved.note.includes('Objects moved to position 2 of 3'),
+		moved.tabs.join() === 'Objects,Inspector,History' &&
+			moved.note.includes('Objects moved to position 1 of 3'),
 		JSON.stringify(moved),
+	);
+	// Put it back between them for what follows.
+	await bridge.js<boolean>(
+		`const tab = [...document.querySelectorAll('[data-rail="right"] [data-rail-item]')].find((t) => t.textContent.trim() === 'Objects');
+		 tab.focus();
+		 tab.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', altKey: true, bubbles: true, cancelable: true }));
+		 await new Promise((res) => setTimeout(res, 300));
+		 return true;`,
 	);
 
 	// Maximise: Script fills the area under the tool bar, hides the level, and keeps its editor.
@@ -3007,12 +3019,14 @@ async function checkDockBackHome(
 	const objectsBefore = await railState(bridge);
 	await choosePanelMenu(bridge, 'Objects', 'Float');
 	await gone('Objects');
-	await clickRailItem(bridge, 'History');
+	await showFromRail(bridge, 'History');
 	await sleep(200);
-	await choosePanelMenu(bridge, 'Objects', 'Dock right');
+	const dockedWhileHistoryShows = await choosePanelMenu(bridge, 'Objects', 'Dock right');
+	const objectsAfter = await settled('Objects');
 	check(
 		'dock back: Objects returns as the showing tab although History showed meanwhile',
-		(await settled('Objects')) === objectsBefore,
+		objectsAfter === objectsBefore,
+		JSON.stringify({ dockedWhileHistoryShows, objectsBefore, objectsAfter }),
 	);
 
 	// It survives a restart: Objects floats, the app quits and starts again, and Dock right still
@@ -3032,9 +3046,15 @@ async function checkDockBackHome(
 	replaceApp(new App(profile, [levelPath]));
 	await bridge.start();
 	check('dock back: the app restarts', await bridge.ready());
+	const editorBack = await within(20_000, () => railHas('History'));
+	check('dock back: the editor is drawn again after the restart', editorBack !== null);
 	const floatingAgain = await within(10_000, async () => !(await railHas('Objects')));
 	check('dock back: Objects is still floating after the restart', floatingAgain !== null);
-	const saved = await bridge.js<{ after: string | null; before: string | null } | null>(
+	const saved = await bridge.js<{
+		zone: string;
+		after: string | null;
+		before: string | null;
+	} | null>(
 		`const s = await window.__TAURI_INTERNALS__.invoke('plugin:fizz-studio-settings|settings_get');
 		 const ws = s.settings.dock.workspaces[s.settings.dock.active];
 		 return ws.panels.objects.home_spot;`,
