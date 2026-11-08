@@ -17,6 +17,7 @@ import {
 	writeFileSync,
 } from 'node:fs';
 import { join } from 'node:path';
+import defaultTransparency from '../../packages/protocol/fixtures/default-transparency.json';
 import {
 	App,
 	Bridge,
@@ -2340,6 +2341,262 @@ async function transparencyChecks(bridge: Bridge): Promise<void> {
 	check('reset puts the default blur back on the main window', restored !== null);
 }
 
+/** Sets some of the Transparency settings through the settings command, trying again when the revision has moved on. */
+function setTransparency(
+	bridge: Bridge,
+	patch: Record<string, unknown>,
+): Promise<boolean | string> {
+	return bridge.js<boolean | string>(
+		`let last = null;
+		 for (let attempt = 0; attempt < 8; attempt++) {
+			 try {
+				 const cur = await window.__TAURI_INTERNALS__.invoke('plugin:fizz-studio-settings|settings_get');
+				 await window.__TAURI_INTERNALS__.invoke('plugin:fizz-studio-settings|settings_update', { patch: { transparency: { ...cur.settings.transparency, ...${JSON.stringify(patch)} } }, basedOn: cur.revision });
+				 return true;
+			 } catch (e) { last = e; await new Promise((r) => setTimeout(r, 150)); }
+		 }
+		 return JSON.stringify(last);`,
+	);
+}
+
+/** What a surface paints: the alpha of its glass fill (the first stop of its gradient, else its colour) and its backdrop filter. */
+interface Fill {
+	alpha: number;
+	filter: string;
+}
+
+/** The fills of the main window's surfaces by name (`null` where one is not on screen). */
+function surfaceFills(
+	bridge: Bridge,
+	selectors: Record<string, string>,
+): Promise<Record<string, Fill | null>> {
+	return bridge.js<Record<string, Fill | null>>(
+		`const alphaOf = (colour) => {
+			 const slash = colour.match(/\\/\\s*([\\d.]+%?)\\s*\\)/);
+			 if (slash) return slash[1].endsWith('%') ? parseFloat(slash[1]) / 100 : parseFloat(slash[1]);
+			 const rgba = colour.match(/^rgba\\(([^)]*)\\)$/);
+			 return rgba ? parseFloat(rgba[1].split(',')[3]) : 1;
+		 };
+		 const out = {};
+		 for (const [name, selector] of Object.entries(${JSON.stringify(selectors)})) {
+			 const e = document.querySelector(selector);
+			 if (!e) { out[name] = null; continue; }
+			 const c = getComputedStyle(e);
+			 const stop = c.backgroundImage.match(/color\\([^)]*\\)|rgba?\\([^)]*\\)/);
+			 out[name] = { alpha: alphaOf(stop ? stop[0] : c.backgroundColor), filter: c.backdropFilter || c.webkitBackdropFilter || 'none' };
+		 }
+		 return out;`,
+	);
+}
+
+/** The settings file the store wrote in this run's profile, as JSON. */
+function savedFile(profile: Profile): Record<string, unknown> | null {
+	for (const path of new Bun.Glob('**/settings.json').scanSync({
+		cwd: profile.dir,
+		absolute: true,
+	})) {
+		try {
+			return JSON.parse(readFileSync(path, 'utf8')) as Record<string, unknown>;
+		} catch {
+			return null;
+		}
+	}
+	return null;
+}
+
+/**
+ * Every glass surface of the main window follows its own switch and the opacity (one table, in
+ * `theme/glassSurfaces.ts` and `spec/DESKTOP.md`): with the switches on, each surface's fill has the
+ * opacity the setting names (panel opacity for the title bar, the commands row, the docks, the rails,
+ * the status line, the tool picker and the zoom pill; menu opacity for an open menu) and a blur; with
+ * them off it is solid and has none; at 40, 73 and 100, applied live. (Dialogs need a level with
+ * unsaved changes, so their tokens are covered by the unit tests alone.)
+ */
+async function glassSurfaceChecks(bridge: Bridge): Promise<void> {
+	const root = await rootGlass(bridge, 'main-1');
+	if (root.reduced) {
+		console.log('SKIP glass surfaces: the system asks for reduced transparency');
+		return;
+	}
+	const surfaces = {
+		'title bar': '[data-title-align]',
+		'commands row': '[data-app-toolbar] > [data-ribbon]',
+		dock: 'section[data-zone]',
+		rail: '[data-rail]',
+		'status line': '[data-canvas-bar]',
+		'tool picker': '[data-tool-picker]',
+		'zoom pill': '[data-zoom-control]',
+	};
+	const menuOpened = () =>
+		bridge.js<boolean>(
+			`const b = document.querySelector('button[aria-label="Script menu"]'); if (!b) return false; b.click(); return true;`,
+		);
+	const closeMenu = async () => {
+		await bridge.js(
+			`document.querySelector('[role=menu]')?.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true })); return true;`,
+		);
+		await sleep(150);
+	};
+	await setUi(bridge, { toolbar: 'classic' });
+	await showFromRail(bridge, 'Script');
+	for (const on of [true, false]) {
+		for (const panel of [40, 73, 100]) {
+			const menu = Math.max(60, panel);
+			await setTransparency(bridge, {
+				blur: 12,
+				saturation: 120,
+				panel_opacity: panel,
+				menu_opacity: menu,
+				docks: on,
+				floating: on,
+				menus: on,
+				dialogs: on,
+				title_bar: on,
+			});
+			const where = `glass ${on ? 'on' : 'off'} at ${panel}%`;
+			const applied = await within(5000, async () => {
+				const s = await bridge.js<{ alpha: string; docks: string | undefined }>(
+					`const r = document.documentElement; return { alpha: r.style.getPropertyValue('--fls-glass-alpha'), docks: r.dataset.flsGlassDocks };`,
+				);
+				return s.alpha === String(panel / 100) && s.docks === (on ? 'on' : 'off');
+			});
+			check(`${where}: the main window's root has the setting`, applied !== null);
+			await sleep(200);
+			const fills = await surfaceFills(bridge, surfaces);
+			for (const [name, fill] of Object.entries(fills)) {
+				if (fill === null) {
+					check(`${where}: the ${name} is on screen`, false);
+					continue;
+				}
+				const detail = JSON.stringify(fill);
+				if (on) {
+					check(
+						`${where}: the ${name} draws ${panel}% with a blur`,
+						Math.abs(fill.alpha - panel / 100) < 0.015 && fill.filter.includes('blur('),
+						detail,
+					);
+				} else {
+					check(
+						`${where}: the ${name} is solid, with no blur`,
+						fill.alpha >= 0.99 && !fill.filter.includes('blur('),
+						detail,
+					);
+				}
+			}
+			const editor = (await backgroundAlphas(bridge, ['.cm-editor']))[0] ?? null;
+			check(
+				`${where}: the Script editor ${on ? 'is clear over the glass' : 'is solid'}`,
+				editor !== null && (on ? editor < 0.5 : editor >= 0.99),
+				String(editor),
+			);
+			if (await menuOpened()) {
+				await within(3000, () =>
+					bridge.js<boolean>(`return !!document.querySelector('[role=menu]');`),
+				);
+				const menus = await surfaceFills(bridge, { menu: '[role=menu]' });
+				const m = menus.menu;
+				check(
+					`${where}: an open menu ${on ? `draws ${menu}% with a blur` : 'is solid, with no blur'}`,
+					m !== null &&
+						(on
+							? Math.abs(m.alpha - menu / 100) < 0.015 && m.filter.includes('blur(')
+							: m.alpha >= 0.99 && !m.filter.includes('blur(')),
+					JSON.stringify(m),
+				);
+				await closeMenu();
+			} else {
+				check(`${where}: the Script menu opens`, false);
+			}
+		}
+	}
+	await setTransparency(bridge, defaultTransparency);
+	await within(5000, async () => (await rootGlass(bridge, 'main-1')).inline === '16px');
+}
+
+/**
+ * The Panel opacity slider in the Preferences window: moved as a person moves it (a run of input
+ * events, then the release), it stays where it was left, the settings file, the store, the main
+ * window's `--fls-glass-alpha` and the slider all name the same number, the preview draws it (never
+ * NaN), and it is the same after the window is closed and opened again.
+ */
+async function opacitySliderChecks(bridge: Bridge, profile: Profile): Promise<void> {
+	const slider = (windowId: string) =>
+		bridge.js<{ value: string; preview: string; window: string } | null>(
+			`const name = (el) => document.getElementById(el.getAttribute('aria-labelledby') ?? '')?.textContent?.trim();
+			 const el = [...document.querySelectorAll('input[type=range]')].find((x) => name(x) === 'Panel opacity');
+			 if (!el) return null;
+			 const p = document.querySelector('[data-testid=transparency-preview]');
+			 return { value: el.value, preview: p ? p.style.getPropertyValue('--fls-preview-alpha') + '|' + p.style.getPropertyValue('--fls-preview-window-alpha') : '', window: document.documentElement.style.getPropertyValue('--fls-glass-alpha') };`,
+			windowId,
+		);
+	const openTransparencyPage = async () => {
+		await bridge.js(
+			`await window.__TAURI_INTERNALS__.invoke('open_window', { id: { kind: 'preferences' } }); return true;`,
+		);
+		await bridge.ready('preferences');
+		await bridge.js<boolean>(
+			`const b = [...document.querySelectorAll('button[data-section]')].find((x) => x.textContent.trim() === 'Transparency'); if (!b) return false; b.click(); return true;`,
+			'preferences',
+		);
+		await within(10_000, async () => (await slider('preferences')) !== null);
+	};
+	await setTransparency(bridge, { panel_opacity: 100 });
+	await openTransparencyPage();
+	const moved = await bridge.js<boolean>(
+		`const name = (el) => document.getElementById(el.getAttribute('aria-labelledby') ?? '')?.textContent?.trim();
+		 const el = [...document.querySelectorAll('input[type=range]')].find((x) => name(x) === 'Panel opacity');
+		 if (!el) return false;
+		 const set = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set;
+		 for (const v of ['95', '88', '80', '73']) { set.call(el, v); el.dispatchEvent(new Event('input', { bubbles: true })); await new Promise((r) => setTimeout(r, 30)); }
+		 el.dispatchEvent(new Event('change', { bubbles: true }));
+		 return true;`,
+		'preferences',
+	);
+	check('opacity: the Panel opacity slider can be dragged and released', moved);
+	const stored = await within(
+		5000,
+		async () => (await savedTransparency(bridge)).panel_opacity === 73,
+	);
+	check('opacity: the store holds 73 once the slider is released', stored !== null);
+	// Give any late write-back time to land before reading everything.
+	await sleep(1500);
+	const file = savedFile(profile) as {
+		settings?: { transparency?: { panel_opacity?: number } };
+	} | null;
+	check(
+		'opacity: the settings file holds 73',
+		file?.settings?.transparency?.panel_opacity === 73,
+		JSON.stringify(file?.settings?.transparency),
+	);
+	const main = await bridge.js<string>(
+		`return document.documentElement.style.getPropertyValue('--fls-glass-alpha');`,
+	);
+	check('opacity: the main window draws 0.73', main === '0.73', main);
+	const prefs = await slider('preferences');
+	check(
+		'opacity: the slider still reads 73 after the release',
+		prefs?.value === '73',
+		JSON.stringify(prefs),
+	);
+	check(
+		'opacity: the preview draws 0.73 (a number, never NaN)',
+		prefs !== null && prefs.preview.startsWith('0.73|') && !/NaN/.test(prefs.preview),
+		JSON.stringify(prefs),
+	);
+	await bridge.js(
+		`await window.__TAURI_INTERNALS__.invoke('plugin:window|close', { label: 'preferences' }); return true;`,
+	);
+	await within(10_000, async () => !(await bridge.windows()).includes('preferences'));
+	await openTransparencyPage();
+	const again = await slider('preferences');
+	check(
+		'opacity: reopened, the slider reads 73 and the window draws 0.73',
+		again?.value === '73' && again.window === '0.73' && !/NaN/.test(again.preview),
+		JSON.stringify(again),
+	);
+	await setTransparency(bridge, { panel_opacity: 88 });
+}
+
 /** Changes the menu bar setting through the settings command, as the Preferences switch does. */
 function setMenuBar(bridge: Bridge, on: boolean): Promise<unknown> {
 	return bridge.js(
@@ -3892,6 +4149,8 @@ async function main(): Promise<void> {
 			`const cur = await window.__TAURI_INTERNALS__.invoke('plugin:fizz-studio-settings|settings_get'); await window.__TAURI_INTERNALS__.invoke('plugin:fizz-studio-settings|settings_update', { patch: { accent: { kind: 'system' }, glass: 'system' }, basedOn: cur.revision });`,
 		);
 		await transparencyChecks(bridge);
+		await glassSurfaceChecks(bridge);
+		await opacitySliderChecks(bridge, profile);
 
 		const clickByText = (text: string, windowId = 'main-1') =>
 			bridge.js<boolean>(
