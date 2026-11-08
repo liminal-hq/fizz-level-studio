@@ -1302,7 +1302,7 @@ async function middleDragPanChecks(bridge: Bridge): Promise<void> {
 		JSON.stringify({ before: stateBefore.canUndo, after: stateAfter.canUndo }),
 	);
 	const cursor = await bridge.js<string>(
-		`return getComputedStyle(document.querySelector('canvas')).cursor;`,
+		`return JSON.stringify(getComputedStyle(document.querySelector('canvas')).cursor);`,
 	);
 	check('middle drag: the crosshair is back once the button is up', cursor === 'crosshair', cursor);
 }
