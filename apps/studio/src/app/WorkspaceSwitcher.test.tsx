@@ -82,7 +82,10 @@ describe('CommandSearchButton', () => {
 		const { handlers } = setup();
 		const button = screen.getByRole('button', { name: /Search commands/ });
 		expect(button).toHaveTextContent('Ctrl+Shift+P');
-		expect(button).toHaveAttribute('title', 'Search commands (Ctrl+Shift+P)');
+		expect(button).not.toHaveAttribute('title');
+		act(() => button.focus());
+		expect(screen.getByRole('tooltip')).toHaveTextContent('Search commandsCtrlShiftP');
+		expect(button).toHaveAttribute('aria-describedby', screen.getByRole('tooltip').id);
 		await user.click(button);
 		expect(handlers['view.commandPalette']).toHaveBeenCalledOnce();
 	});

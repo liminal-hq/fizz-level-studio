@@ -3,7 +3,7 @@
 // (c) Copyright 2026 Liminal HQ, Scott Morris
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
-import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useState } from 'react';
 import { describe, expect, it, vi } from 'vitest';
@@ -51,7 +51,9 @@ describe('ScriptTabStrip', () => {
 		expect(tab).toHaveAttribute('aria-selected', 'true');
 		expect(tab).toHaveAttribute('aria-controls', 'panel-body-script');
 		expect(tab).toHaveAttribute('tabindex', '0');
-		expect(tab).toHaveAttribute('title', 'crater.fizz');
+		expect(tab).not.toHaveAttribute('title');
+		act(() => tab.focus());
+		expect(screen.getByRole('tooltip')).toHaveTextContent('crater.fizz');
 	});
 
 	it('names the close button for what it does, saying so when there are unsaved changes', () => {
@@ -118,8 +120,9 @@ describe('ScriptTabStrip', () => {
 		const dots = document.querySelectorAll('[data-kind]');
 		expect([...dots].map((dot) => dot.getAttribute('data-kind'))).toEqual(['level', 'behaviour']);
 		const away = screen.getByRole('tab', { name: 'gloop.fizz' });
-		expect(away).toHaveAttribute(
-			'title',
+		expect(away).not.toHaveAttribute('title');
+		act(() => away.focus());
+		expect(screen.getByRole('tooltip')).toHaveTextContent(
 			'gloop.fizz, open in its own window; choose to bring it forward',
 		);
 		expect(away.closest('[data-away]')).not.toBeNull();

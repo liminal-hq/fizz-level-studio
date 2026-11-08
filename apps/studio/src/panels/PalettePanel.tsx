@@ -10,6 +10,7 @@ import { sameBrush, type Brush } from '../tools/brush';
 import { paletteSections, sectionOf, type SectionId } from '../tools/paletteSections';
 import { SpacingStepper } from '../tools/SpacingStepper';
 import { brushSwatch } from '../tools/swatch';
+import { Tooltip } from '../ui/Tooltip';
 import styles from './PalettePanel.module.css';
 
 export interface PalettePanelProps {
@@ -138,26 +139,30 @@ export function PalettePanel({
 								onKeyDown={(event) => onKeyDown(event, id)}
 							>
 								{brushes.map((entry) => (
-									<button
+									<Tooltip
 										key={`${entry.group}:${entry.kind}`}
-										type="button"
-										role="option"
-										className={styles.entry}
-										aria-selected={sameBrush(brush, entry)}
-										tabIndex={stop && sameBrush(stop, entry) ? 0 : -1}
-										data-group={entry.group}
-										data-kind={entry.kind}
-										title={noteOf(entry)}
-										onClick={() => {
-											setRoving({ ...roving, [id]: entry.kind });
-											onBrush(entry);
-										}}
+										label={entry.kind}
+										reason={noteOf(entry)}
 									>
-										<span className={styles.swatch} style={brushSwatch(entry)} aria-hidden="true">
-											{entry.kind.charAt(0).toUpperCase()}
-										</span>
-										<span className={styles.name}>{entry.kind}</span>
-									</button>
+										<button
+											type="button"
+											role="option"
+											className={styles.entry}
+											aria-selected={sameBrush(brush, entry)}
+											tabIndex={stop && sameBrush(stop, entry) ? 0 : -1}
+											data-group={entry.group}
+											data-kind={entry.kind}
+											onClick={() => {
+												setRoving({ ...roving, [id]: entry.kind });
+												onBrush(entry);
+											}}
+										>
+											<span className={styles.swatch} style={brushSwatch(entry)} aria-hidden="true">
+												{entry.kind.charAt(0).toUpperCase()}
+											</span>
+											<span className={styles.name}>{entry.kind}</span>
+										</button>
+									</Tooltip>
 								))}
 							</div>
 						</div>

@@ -11,10 +11,12 @@ import {
 	allCommands,
 	commandLabel,
 	runCommand,
+	shortcutOf,
 	viewOf,
 } from '../commands/registry';
 import { t } from '../i18n/messages';
 import { SearchIcon } from '../icons/AppIcons';
+import { Tooltip } from '../ui/Tooltip';
 import styles from './WorkspaceSwitcher.module.css';
 
 /**
@@ -31,7 +33,14 @@ export function WorkspaceSwitcher() {
 			if (!def) return [];
 			const view = viewOf(def, snapshot);
 			return view.visible
-				? [{ id: entry.id, label: commandLabel(def), pressed: view.checked === true }]
+				? [
+						{
+							id: entry.id,
+							label: commandLabel(def),
+							keys: shortcutOf(def),
+							pressed: view.checked === true,
+						},
+					]
 				: [];
 		});
 	}, [snapshot]);
@@ -39,16 +48,17 @@ export function WorkspaceSwitcher() {
 	return (
 		<div className={styles.group} role="group" aria-label={t('workspace.label')}>
 			{choices.map((choice) => (
-				<button
-					key={choice.id}
-					type="button"
-					className={styles.option}
-					data-keycap-exempt=""
-					aria-pressed={choice.pressed}
-					onClick={() => void runCommand(choice.id, snapshot)}
-				>
-					{choice.label}
-				</button>
+				<Tooltip key={choice.id} label={choice.label} keys={choice.keys}>
+					<button
+						type="button"
+						className={styles.option}
+						data-keycap-exempt=""
+						aria-pressed={choice.pressed}
+						onClick={() => void runCommand(choice.id, snapshot)}
+					>
+						{choice.label}
+					</button>
+				</Tooltip>
 			))}
 		</div>
 	);
@@ -58,17 +68,18 @@ export function WorkspaceSwitcher() {
 export function CommandSearchButton() {
 	const snapshot = useBridgeSnapshot();
 	return (
-		<button
-			type="button"
-			className={styles.search}
-			data-keycap-exempt=""
-			aria-keyshortcuts="Control+Shift+P"
-			title={t('workspace.searchTip', { keys: COMMAND_PALETTE_SHORTCUT })}
-			onClick={() => void runCommand('view.commandPalette', snapshot)}
-		>
-			<SearchIcon size={14} />
-			<span className={styles.searchLabel}>{t('workspace.search')}</span>
-			<kbd className={styles.keys}>{COMMAND_PALETTE_SHORTCUT}</kbd>
-		</button>
+		<Tooltip label={t('workspace.search')} keys={COMMAND_PALETTE_SHORTCUT}>
+			<button
+				type="button"
+				className={styles.search}
+				data-keycap-exempt=""
+				aria-keyshortcuts="Control+Shift+P"
+				onClick={() => void runCommand('view.commandPalette', snapshot)}
+			>
+				<SearchIcon size={14} />
+				<span className={styles.searchLabel}>{t('workspace.search')}</span>
+				<kbd className={styles.keys}>{COMMAND_PALETTE_SHORTCUT}</kbd>
+			</button>
+		</Tooltip>
 	);
 }

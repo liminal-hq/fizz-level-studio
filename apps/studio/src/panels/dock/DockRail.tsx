@@ -12,6 +12,7 @@ import { PANEL_ICONS } from './panelIcons';
 import type { PanelId } from '../float/panelSpecs';
 import type { RailPlaceholder } from './railPlaceholders';
 import type { DragSource } from './useDockDrag';
+import { Tooltip } from '../../ui/Tooltip';
 import styles from './DockRail.module.css';
 
 /** How long the pointer rests on an entry of a folded rail before its panel peeks. */
@@ -146,55 +147,55 @@ export function DockRail({
 					const active = group.active === id;
 					const title = titleOf(id);
 					return (
-						<button
-							key={id}
-							type="button"
-							className={styles.item}
-							data-rail-item={id}
-							data-rail-group={index}
-							data-active={active || undefined}
-							data-peeking={peeking === id || undefined}
-							data-dragging={dragging === id || undefined}
-							data-landed={landed === id || undefined}
-							aria-pressed={active && !collapsed}
-							title={hintOf(title, active, collapsed)}
-							disabled={disabled}
-							onPointerEnter={(event) => {
-								if (!canPeek || event.pointerType === 'touch' || peeking === id) return;
-								cancel();
-								timer.current = setTimeout(() => onPeek(id, 'hover'), PEEK_DELAY_MS);
-							}}
-							onPointerLeave={cancel}
-							onPointerDown={(event) => {
-								cancel();
-								onDragStart?.(event, id, 'tab');
-							}}
-							onClick={() => {
-								cancel();
-								onChoose(id);
-							}}
-						>
-							{Icon && <Icon size={16} />}
-							<span className={styles.title}>{title}</span>
-						</button>
+						<Tooltip key={id} label={hintOf(title, active, collapsed)}>
+							<button
+								type="button"
+								className={styles.item}
+								data-rail-item={id}
+								data-rail-group={index}
+								data-active={active || undefined}
+								data-peeking={peeking === id || undefined}
+								data-dragging={dragging === id || undefined}
+								data-landed={landed === id || undefined}
+								aria-pressed={active && !collapsed}
+								disabled={disabled}
+								onPointerEnter={(event) => {
+									if (!canPeek || event.pointerType === 'touch' || peeking === id) return;
+									cancel();
+									timer.current = setTimeout(() => onPeek(id, 'hover'), PEEK_DELAY_MS);
+								}}
+								onPointerLeave={cancel}
+								onPointerDown={(event) => {
+									cancel();
+									onDragStart?.(event, id, 'tab');
+								}}
+								onClick={() => {
+									cancel();
+									onChoose(id);
+								}}
+							>
+								{Icon && <Icon size={16} />}
+								<span className={styles.title}>{title}</span>
+							</button>
+						</Tooltip>
 					);
 				}),
 			)}
 			{placeholders.map((entry) => {
 				const Icon = APP_ICONS[entry.icon];
 				return (
-					<button
-						key={entry.id}
-						type="button"
-						className={styles.item}
-						data-rail-placeholder={entry.id}
-						data-keycap-exempt=""
-						title={entry.reason}
-						disabled
-					>
-						<Icon size={16} />
-						<span className={styles.title}>{entry.title}</span>
-					</button>
+					<Tooltip key={entry.id} label={entry.title} reason={entry.reason}>
+						<button
+							type="button"
+							className={styles.item}
+							data-rail-placeholder={entry.id}
+							data-keycap-exempt=""
+							disabled
+						>
+							<Icon size={16} />
+							<span className={styles.title}>{entry.title}</span>
+						</button>
+					</Tooltip>
 				);
 			})}
 		</div>

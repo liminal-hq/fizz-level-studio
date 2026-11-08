@@ -11,7 +11,7 @@ import type {
 import { useState, type ReactNode } from 'react';
 import type { RibbonLabels } from './labels';
 import { Glyph, RibbonControl } from './RibbonControls';
-import type { RibbonCommand, RibbonItem, RibbonValue } from './types';
+import type { RibbonCommand, RibbonControlWrap, RibbonItem, RibbonValue } from './types';
 import { useRibbonTooltip } from './useRibbonTooltip';
 
 interface OpenMenu {
@@ -48,6 +48,7 @@ export function useRibbonControls(
 	peers: readonly RibbonPeer[],
 	labels: RibbonLabels,
 	emit: (command: RibbonCommand) => void,
+	wrap?: RibbonControlWrap,
 ): RibbonControls {
 	const tooltip = useRibbonTooltip();
 	const [toggles, setToggles] = useState<Record<string, boolean>>({});
@@ -109,6 +110,7 @@ export function useRibbonControls(
 				item={item}
 				showLabel={showLabel}
 				tooltip={tooltip}
+				wrap={wrap}
 				pressed={toggleOn(scope, item)}
 				value={valueOf(scope, item)}
 				labels={labels}

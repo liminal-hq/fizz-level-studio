@@ -70,6 +70,12 @@ export const GLASS_SURFACES_TABLE: readonly GlassSurfaceRule[] = [
 		token: '--fls-bg-menu',
 	},
 	{
+		surface: "Tooltips (the app's own, and the ribbon's fallback)",
+		governor: 'menus',
+		files: ['src/ui/Tooltip.module.css', '../../packages/ribbon/src/Ribbon.module.css'],
+		token: '--fls-bg-menu',
+	},
+	{
 		surface: 'The drag ghost',
 		governor: 'menus',
 		files: ['src/app/TearGhostScreen.module.css'],

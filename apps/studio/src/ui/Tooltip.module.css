@@ -1,0 +1,49 @@
+/* The in-app tooltip: the menus' surface (Menus switch and menu opacity), never in the way of the pointer. */
+.tooltip {
+	position: fixed;
+	left: 0;
+	top: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	box-sizing: border-box;
+	max-width: min(280px, calc(100vw - 8px));
+	padding: 5px 8px;
+	border-radius: 6px;
+	background: var(--fls-bg-menu);
+	-webkit-backdrop-filter: var(--fls-menu-backdrop, none);
+	backdrop-filter: var(--fls-menu-backdrop, none);
+	color: var(--fls-text-primary);
+	box-shadow: var(--fls-shadow-menu);
+	font-size: 12px;
+	line-height: 1.35;
+	pointer-events: none;
+	user-select: none;
+	white-space: normal;
+}
+.name {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	font-weight: 600;
+}
+.keys {
+	display: inline-flex;
+	gap: 3px;
+}
+.key {
+	display: inline-block;
+	padding: 0 5px;
+	border-radius: 4px;
+	border: 1px solid var(--fls-key-border);
+	border-bottom-width: 2px;
+	border-bottom-color: var(--fls-key-border-bottom);
+	background: linear-gradient(180deg, var(--fls-key-top) 0%, var(--fls-key-bottom) 100%);
+	color: var(--fls-key-ink);
+	font: inherit;
+	font-weight: 500;
+	font-size: 11px;
+}
+.reason {
+	color: var(--fls-text-secondary);
+}

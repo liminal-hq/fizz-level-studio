@@ -88,6 +88,8 @@ export interface PanelToggle {
 	command: string;
 	panel: PanelId;
 	label: string;
+	/** The command's shortcut as text, when it has one. */
+	keys: string | undefined;
 	pressed: boolean;
 	enabled: boolean;
 	reason: string | undefined;
@@ -106,6 +108,7 @@ export function panelToggles(snapshot: BridgeSnapshot): PanelToggle[] {
 				command: def.id,
 				panel: spec.id,
 				label: commandLabel(def),
+				keys: shortcutOf(def),
 				pressed: view.checked === true,
 				enabled: view.enabled,
 				reason: view.reason,

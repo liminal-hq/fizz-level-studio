@@ -3,11 +3,11 @@
 // (c) Copyright 2026 Liminal HQ, Scott Morris
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
-import type { CSSProperties, MouseEvent, ReactNode } from 'react';
+import type { CSSProperties, MouseEvent, ReactElement, ReactNode } from 'react';
 import type { RibbonLabels } from './labels';
 import styles from './Ribbon.module.css';
 import type { RibbonTooltip } from './useRibbonTooltip';
-import type { RibbonItem, RibbonValue } from './types';
+import type { RibbonControlWrap, RibbonItem, RibbonValue } from './types';
 
 export function Glyph({
 	d = '',
@@ -50,6 +50,8 @@ export interface ControlProps {
 	item: RibbonItem;
 	showLabel: boolean;
 	tooltip: RibbonTooltip;
+	/** The host's own tooltip around a control; the ribbon's is then switched off. */
+	wrap?: RibbonControlWrap | undefined;
 	/** The pressed state of a toggle, resolved by the ribbon. */
 	pressed: boolean;
 	/** The value of a select or stepper, resolved by the ribbon. */
@@ -65,40 +67,45 @@ function keepFocus(event: MouseEvent) {
 }
 
 export function RibbonControl(props: ControlProps) {
-	const { item, showLabel, tooltip, pressed, value, labels, onPress, onValue } = props;
+	const { item, showLabel, tooltip, wrap, pressed, value, labels, onPress, onValue } = props;
+	const wrapped = (node: ReactElement, of: RibbonItem = item) => (wrap ? wrap(of, node) : node);
 	const kind = item.kind ?? 'button';
-	const tipHandlers = {
-		onPointerEnter: (e: React.PointerEvent<HTMLElement>) => tooltip.show(item, e.currentTarget),
-		onPointerLeave: tooltip.hide,
-		onFocus: (e: React.FocusEvent<HTMLElement>) => tooltip.show(item, e.currentTarget),
-		onBlur: tooltip.hide,
-	};
+	const tipHandlers = wrap
+		? {}
+		: {
+				onPointerEnter: (e: React.PointerEvent<HTMLElement>) => tooltip.show(item, e.currentTarget),
+				onPointerLeave: tooltip.hide,
+				onFocus: (e: React.FocusEvent<HTMLElement>) => tooltip.show(item, e.currentTarget),
+				onBlur: tooltip.hide,
+			};
 
 	if (kind === 'select') {
 		return (
 			<span className={styles.selectWrap}>
-				<select
-					className={styles.select}
-					style={
-						item.width
-							? ({ '--fls-ribbon-select-width': `${item.width}px` } as CSSProperties)
-							: undefined
-					}
-					aria-label={item.label}
-					disabled={item.disabled}
-					value={value === undefined ? '' : String(value)}
-					onChange={(e) => {
-						tooltip.hide();
-						onValue(item, e.target.value);
-					}}
-					{...tipHandlers}
-				>
-					{(item.options ?? []).map(([v, l]) => (
-						<option key={v} value={v}>
-							{l}
-						</option>
-					))}
-				</select>
+				{wrapped(
+					<select
+						className={styles.select}
+						style={
+							item.width
+								? ({ '--fls-ribbon-select-width': `${item.width}px` } as CSSProperties)
+								: undefined
+						}
+						aria-label={item.label}
+						disabled={item.disabled}
+						value={value === undefined ? '' : String(value)}
+						onChange={(e) => {
+							tooltip.hide();
+							onValue(item, e.target.value);
+						}}
+						{...tipHandlers}
+					>
+						{(item.options ?? []).map(([v, l]) => (
+							<option key={v} value={v}>
+								{l}
+							</option>
+						))}
+					</select>,
+				)}
 				<span className={styles.selectCaret} aria-hidden="true">
 					▾
 				</span>
@@ -112,35 +119,41 @@ export function RibbonControl(props: ControlProps) {
 		const clamp = (n: number) => Math.min(item.max ?? Infinity, Math.max(item.min ?? -Infinity, n));
 		return (
 			<span className={styles.stepper} role="group" aria-label={item.label}>
-				<button
-					type="button"
-					className={styles.stepperButton}
-					aria-label={`${labels.decrease} ${item.label}`}
-					disabled={item.disabled || current <= (item.min ?? -Infinity)}
-					onMouseDown={keepFocus}
-					onClick={() => onValue(item, clamp(current - step))}
-				>
-					−
-				</button>
+				{wrapped(
+					<button
+						type="button"
+						className={styles.stepperButton}
+						aria-label={`${labels.decrease} ${item.label}`}
+						disabled={item.disabled || current <= (item.min ?? -Infinity)}
+						onMouseDown={keepFocus}
+						onClick={() => onValue(item, clamp(current - step))}
+					>
+						−
+					</button>,
+					{ ...item, label: `${labels.decrease} ${item.label}` },
+				)}
 				<output className={styles.stepperValue} aria-label={item.label}>
 					{current}
 				</output>
-				<button
-					type="button"
-					className={styles.stepperButton}
-					aria-label={`${labels.increase} ${item.label}`}
-					disabled={item.disabled || current >= (item.max ?? Infinity)}
-					onMouseDown={keepFocus}
-					onClick={() => onValue(item, clamp(current + step))}
-				>
-					+
-				</button>
+				{wrapped(
+					<button
+						type="button"
+						className={styles.stepperButton}
+						aria-label={`${labels.increase} ${item.label}`}
+						disabled={item.disabled || current >= (item.max ?? Infinity)}
+						onMouseDown={keepFocus}
+						onClick={() => onValue(item, clamp(current + step))}
+					>
+						+
+					</button>,
+					{ ...item, label: `${labels.increase} ${item.label}` },
+				)}
 			</span>
 		);
 	}
 
 	const large = item.size === 'large';
-	return (
+	return wrapped(
 		<button
 			type="button"
 			className={`${styles.button} ${large ? styles.large : styles.small}`}
@@ -166,6 +179,6 @@ export function RibbonControl(props: ControlProps) {
 					▾
 				</span>
 			)}
-		</button>
+		</button>,
 	);
 }

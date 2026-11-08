@@ -3,7 +3,7 @@
 // (c) Copyright 2026 Liminal HQ, Scott Morris
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
-import type { ReactNode } from 'react';
+import type { ReactElement, ReactNode } from 'react';
 
 export type RibbonValue = string | number | boolean;
 
@@ -74,6 +74,13 @@ export interface RibbonCommand {
 	value?: RibbonValue;
 	item?: RibbonItem;
 }
+
+/**
+ * Lets the host draw a control's tooltip in place of the ribbon's own: it gets the item and the
+ * control's element and returns the element to render (the control wrapped in the host's tooltip).
+ * While it is given the ribbon shows no tooltip of its own.
+ */
+export type RibbonControlWrap = (item: RibbonItem, control: ReactElement) => ReactElement;
 
 export type RibbonMode = 'easy' | 'expert';
 export type RibbonVariant = 'full' | 'simplified' | 'collapsed';

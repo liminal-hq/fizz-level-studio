@@ -1412,10 +1412,10 @@ async function toolPickerChecks(bridge: Bridge): Promise<void> {
 		JSON.stringify({ offset: at0, saved0 }),
 	);
 	check(
-		'picker: it has the six square tool keys, named, with the shortcut in the tooltip',
+		'picker: it has the six square tool keys, named, with no native title (the in-app tooltip shows the shortcut)',
 		m.keys.map((k) => k.name).join() === 'Paint,Erase,Pick,Select,Stamp,Inspect' &&
 			m.keys.every((k) => Math.abs(k.w - k.h) <= 1 && k.w >= 28) &&
-			m.keys[0]!.title === 'Paint (B)',
+			m.keys.every((k) => k.title === null),
 		JSON.stringify(m.keys),
 	);
 	const pressed = async () =>
@@ -4279,6 +4279,174 @@ async function objectsFilterChecks(bridge: Bridge): Promise<void> {
 	await showFromRail(bridge, 'Inspector');
 }
 
+// ---- Tooltips: the in-app tooltip on every icon button ----
+
+interface TipProbe {
+	count: number;
+	text: string;
+	keys: string[];
+	box: { l: number; t: number; r: number; b: number } | null;
+	pointerEvents: string;
+	describedBy: boolean;
+	scrollOk: boolean;
+	scrollTop: number;
+	layerInBody: boolean;
+}
+
+/** Fires the pointer events a mouse makes entering a control, waits past the delay and reads the tooltip. */
+function hoverAndRead(
+	bridge: Bridge,
+	selector: string,
+	index: number,
+	wait = 800,
+): Promise<TipProbe | null> {
+	return bridge.js<TipProbe | null>(
+		`const el = document.querySelectorAll(${JSON.stringify(selector)})[${index}];
+		 if (!el) return null;
+		 const fire = (type) => el.dispatchEvent(new PointerEvent(type, { bubbles: type === 'pointerover', pointerType: 'mouse', pointerId: 1 }));
+		 fire('pointerover'); fire('pointerenter');
+		 await new Promise((r) => setTimeout(r, ${wait}));
+		 const tips = [...document.querySelectorAll('[role=tooltip]')];
+		 const tip = tips[0];
+		 const r = tip ? tip.getBoundingClientRect() : null;
+		 const layer = document.getElementById('fls-tooltip-layer');
+		 const se = document.scrollingElement;
+		 return {
+		   count: tips.length,
+		   text: tip ? tip.textContent : '',
+		   keys: tip ? [...tip.querySelectorAll('kbd')].map((k) => k.textContent) : [],
+		   box: r ? { l: r.left, t: r.top, r: r.right, b: r.bottom } : null,
+		   pointerEvents: tip ? getComputedStyle(tip).pointerEvents : '',
+		   describedBy: !!tip && el.getAttribute('aria-describedby') === tip.id,
+		   scrollOk: se.scrollHeight === window.innerHeight && se.scrollWidth <= window.innerWidth,
+		   scrollTop: se.scrollTop,
+		   layerInBody: !!layer && layer.parentElement === document.body,
+		 };`,
+	);
+}
+
+/** Leaves the control the way a mouse does and reports how many tooltips are left. */
+function leaveAndCount(bridge: Bridge, selector: string, index: number): Promise<number> {
+	return bridge.js<number>(
+		`const el = document.querySelectorAll(${JSON.stringify(selector)})[${index}];
+		 if (el) { el.dispatchEvent(new PointerEvent('pointerout', { bubbles: true, pointerType: 'mouse', pointerId: 1 })); el.dispatchEvent(new PointerEvent('pointerleave', { pointerType: 'mouse', pointerId: 1 })); }
+		 await new Promise((r) => setTimeout(r, 100));
+		 return document.querySelectorAll('[role=tooltip]').length;`,
+	);
+}
+
+/**
+ * Every icon-only button shows exactly one in-app tooltip (its label, and its shortcut as keycaps) after
+ * a hover, keeps no native `title`, stays inside the window, and never makes the shell scroll.
+ */
+async function tooltipChecks(bridge: Bridge): Promise<void> {
+	await setUi(bridge, { toolbar: 'toolbar' });
+	const buttons = '[data-app-toolbar] button';
+	const rows = await bridge.js<{ label: string; title: string | null }[]>(
+		`return [...document.querySelectorAll(${JSON.stringify(buttons)})].map((b) => ({ label: b.getAttribute('aria-label') ?? b.textContent.trim(), title: b.getAttribute('title') }));`,
+	);
+	check(
+		'tooltips: the toolbar has its buttons',
+		rows.length >= 12,
+		JSON.stringify(rows.map((r) => r.label)),
+	);
+	check(
+		'tooltips: no toolbar button keeps a native title (two tooltips would show)',
+		rows.every((r) => r.title === null),
+		JSON.stringify(rows.filter((r) => r.title !== null)),
+	);
+	const SHORTCUTS: Record<string, string[]> = {
+		'New level…': ['Ctrl', 'N'],
+		'Open level…': ['Ctrl', 'O'],
+		Save: ['Ctrl', 'S'],
+		'Close level': ['Ctrl', 'W'],
+		Undo: ['Ctrl', 'Z'],
+		Redo: ['Ctrl', 'Shift', 'Z'],
+	};
+	for (const [i, row] of rows.entries()) {
+		const tip = await hoverAndRead(bridge, buttons, i);
+		const where = `tooltips: hovering "${row.label}"`;
+		check(
+			`${where} shows exactly one tooltip with its label`,
+			tip !== null && tip.count === 1 && tip.text.startsWith(row.label),
+			JSON.stringify(tip),
+		);
+		const keys = SHORTCUTS[row.label];
+		if (keys)
+			check(
+				`${where} shows its shortcut as keycaps`,
+				JSON.stringify(tip?.keys) === JSON.stringify(keys),
+				JSON.stringify(tip?.keys),
+			);
+		check(
+			`${where} stays inside the window, does not take the pointer and wires aria-describedby`,
+			tip?.box != null &&
+				tip.box.l >= 0 &&
+				tip.box.t >= 0 &&
+				tip.box.r <= 1e5 &&
+				tip.pointerEvents === 'none' &&
+				tip.describedBy,
+			JSON.stringify(tip),
+		);
+		check(
+			`${where} leaves no layout shift or scroll`,
+			tip?.scrollOk === true && tip.scrollTop === 0 && tip.layerInBody,
+			JSON.stringify(tip),
+		);
+		check(`${where} hides again on leaving`, (await leaveAndCount(bridge, buttons, i)) === 0);
+	}
+	const size = await bridge.js<{ w: number; h: number }>(
+		`return { w: window.innerWidth, h: window.innerHeight };`,
+	);
+	const edge = await hoverAndRead(bridge, buttons, rows.length - 1);
+	check(
+		'tooltips: the last toolbar button’s tooltip is shifted to stay inside the window',
+		edge?.box != null && edge.box.r <= size.w && edge.box.b <= size.h,
+		JSON.stringify({ edge, size }),
+	);
+	await leaveAndCount(bridge, buttons, rows.length - 1);
+	// A disabled button explains itself; Escape hides a shown tooltip.
+	const undo = rows.findIndex((r) => r.label === 'Undo');
+	const reason = await hoverAndRead(bridge, buttons, undo);
+	check(
+		'tooltips: a disabled button’s tooltip carries the reason under its label',
+		reason !== null && reason.count === 1 && reason.text.length > 'UndoCtrlZ'.length,
+		JSON.stringify(reason),
+	);
+	check(
+		'tooltips: Escape hides a shown tooltip',
+		await bridge.js<boolean>(
+			`document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); await new Promise((r) => setTimeout(r, 100)); return document.querySelectorAll('[role=tooltip]').length === 0;`,
+		),
+	);
+	await leaveAndCount(bridge, buttons, undo);
+	// The other icon-only controls: no native title, one in-app tooltip.
+	const others: [string, string][] = [
+		['the tool picker', '[data-tool-picker] button'],
+		['the zoom pill', '[data-zoom-control] button'],
+		['the rails', '[data-rail-item]'],
+		['a panel menu', 'button[data-panel-menu]'],
+		['a Maximise button', 'button[data-expand]'],
+	];
+	for (const [name, selector] of others) {
+		const n = await bridge.js<{ total: number; titled: number }>(
+			`const all = [...document.querySelectorAll(${JSON.stringify(selector)})]; return { total: all.length, titled: all.filter((e) => e.hasAttribute('title')).length };`,
+		);
+		check(
+			`tooltips: ${name} has buttons and none keeps a native title`,
+			n.total > 0 && n.titled === 0,
+			JSON.stringify(n),
+		);
+		const tip = await hoverAndRead(bridge, selector, 0);
+		check(
+			`tooltips: hovering the first of ${name} shows one tooltip`,
+			tip !== null && tip.count === 1 && tip.text.length > 0 && tip.scrollOk,
+			JSON.stringify(tip),
+		);
+		await leaveAndCount(bridge, selector, 0);
+	}
+}
+
 async function main(): Promise<void> {
 	if (!existsSync(binary)) {
 		console.error(`No debug build at ${binary}. Run \`bun run app:build\` first.`);
@@ -4581,6 +4749,7 @@ async function main(): Promise<void> {
 		);
 		check('turning the menu bar off puts the app menu button back live', barGone !== null);
 		await commandsRowChecks(bridge);
+		await tooltipChecks(bridge);
 
 		// The title bar shows the document's name and nothing else; the native title is the same text.
 		const barTitle = await titleBarText(bridge);

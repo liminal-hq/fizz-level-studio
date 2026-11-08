@@ -5,7 +5,7 @@
 
 import type { GhostProposal } from '@liminal-hq/fizz-studio-protocol/generated/GhostProposal';
 import type { WordDoc } from '@liminal-hq/fizz-studio-protocol/generated/WordDoc';
-import { render, screen, within } from '@testing-library/react';
+import { act, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { GhostsPanel } from './GhostsPanel';
@@ -46,10 +46,10 @@ describe('PalettePanel', () => {
 		const headings = screen.getAllByRole('heading').map((h) => h.textContent);
 		expect(headings).toEqual(['Terrain', 'Hazards', 'Treats', 'Enemies', 'Markers'].slice(0, 4));
 		const terrain = within(section('Terrain')).getByRole('listbox', { name: 'Terrain' });
-		expect(within(terrain).getByRole('option', { name: 'grass' })).toHaveAttribute(
-			'title',
-			'Grassy ground',
-		);
+		const grass = within(terrain).getByRole('option', { name: 'grass' });
+		expect(grass).not.toHaveAttribute('title');
+		act(() => grass.focus());
+		expect(screen.getByRole('tooltip')).toHaveTextContent('grassGrassy ground');
 		expect(within(terrain).queryByRole('option', { name: 'empty' })).toBeNull();
 		expect(within(terrain).queryByRole('option', { name: 'spike' })).toBeNull();
 		expect(within(section('Hazards')).getByRole('option', { name: 'spike' })).toBeInTheDocument();

@@ -4,7 +4,7 @@
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
 import type { LevelSnapshot } from '@liminal-hq/fizz-studio-protocol/generated/LevelSnapshot';
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 import { CommandBridgeContext, createCommandBridge } from '../commands/commandBridge';
@@ -102,8 +102,9 @@ describe('the Script panel’s tabs', () => {
 		const tab = await screen.findByRole('tab', {
 			name: 'test.fizz',
 		});
-		expect(tab).toHaveAttribute(
-			'title',
+		expect(tab).not.toHaveAttribute('title');
+		act(() => tab.focus());
+		expect(screen.getByRole('tooltip')).toHaveTextContent(
 			'test.fizz, open in its own window; choose to bring it forward',
 		);
 		await user.click(tab);

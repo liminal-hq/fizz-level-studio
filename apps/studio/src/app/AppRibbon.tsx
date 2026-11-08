@@ -11,6 +11,8 @@ import { runCommand } from '../commands/registry';
 import { buildRibbon, contextualTabs } from '../commands/ribbonModel';
 import { t } from '../i18n/messages';
 import { ChevronDownIcon, ChevronUpIcon } from '../icons/AppIcons';
+import { Tooltip } from '../ui/Tooltip';
+import { wrapControlInTooltip } from '../ui/ribbonTooltip';
 import styles from './AppRibbon.module.css';
 
 export interface AppRibbonProps {
@@ -45,6 +47,7 @@ export function AppRibbon({ end }: AppRibbonProps) {
 				contextual={contextual}
 				variant={folded ? 'collapsed' : 'full'}
 				onCommand={onCommand}
+				wrapControl={wrapControlInTooltip}
 				labels={{
 					ribbon: t('ribbon.label'),
 					toolbar: t('ribbon.toolbar'),
@@ -57,16 +60,17 @@ export function AppRibbon({ end }: AppRibbonProps) {
 				end={
 					<>
 						{end}
-						<button
-							type="button"
-							className={styles.fold}
-							aria-pressed={folded}
-							aria-label={t(folded ? 'ribbon.unfold' : 'ribbon.fold')}
-							title={t(folded ? 'ribbon.unfold' : 'ribbon.fold')}
-							onClick={() => void runCommand('view.ribbon.fold', snapshot)}
-						>
-							<Chevron size={14} />
-						</button>
+						<Tooltip label={t(folded ? 'ribbon.unfold' : 'ribbon.fold')}>
+							<button
+								type="button"
+								className={styles.fold}
+								aria-pressed={folded}
+								aria-label={t(folded ? 'ribbon.unfold' : 'ribbon.fold')}
+								onClick={() => void runCommand('view.ribbon.fold', snapshot)}
+							>
+								<Chevron size={14} />
+							</button>
+						</Tooltip>
 					</>
 				}
 			/>

@@ -13,6 +13,8 @@ import { t } from '../i18n/messages';
 import { APP_ICONS } from '../icons/AppIcons';
 import { spacingText } from '../tools/spacingText';
 import { brushSwatch } from '../tools/swatch';
+import { Tooltip } from '../ui/Tooltip';
+import { wrapControlInTooltip } from '../ui/ribbonTooltip';
 import styles from './AppToolbar.module.css';
 
 export interface AppToolbarProps {
@@ -40,22 +42,24 @@ export function AppToolbar({ end }: AppToolbarProps) {
 				model={model}
 				label={t('toolbar.label')}
 				onCommand={onCommand}
+				wrapControl={wrapControlInTooltip}
 				after={
 					brush && (
-						<button
-							type="button"
-							className={styles.chip}
-							data-group={brush.group}
-							title={t('toolbar.brushTip')}
-							onClick={() => void runCommand('panel.palette.show', snapshot)}
-						>
-							<span className={styles.swatch} style={brushSwatch(brush)} aria-hidden="true">
-								{brush.kind.charAt(0).toUpperCase()}
-							</span>
-							{brush.group === 'item'
-								? t('brush.chipSpaced', { kind: brush.kind, spacing: spacingText(spacing) })
-								: t('brush.chip', { kind: brush.kind })}
-						</button>
+						<Tooltip label={t('toolbar.brushTip')}>
+							<button
+								type="button"
+								className={styles.chip}
+								data-group={brush.group}
+								onClick={() => void runCommand('panel.palette.show', snapshot)}
+							>
+								<span className={styles.swatch} style={brushSwatch(brush)} aria-hidden="true">
+									{brush.kind.charAt(0).toUpperCase()}
+								</span>
+								{brush.group === 'item'
+									? t('brush.chipSpaced', { kind: brush.kind, spacing: spacingText(spacing) })
+									: t('brush.chip', { kind: brush.kind })}
+							</button>
+						</Tooltip>
 					)
 				}
 				end={
@@ -65,18 +69,23 @@ export function AppToolbar({ end }: AppToolbarProps) {
 								{toggles.map((toggle) => {
 									const Icon = APP_ICONS[`panel.${toggle.panel}`];
 									return (
-										<button
+										<Tooltip
 											key={toggle.command}
-											type="button"
-											className={styles.toggle}
-											aria-pressed={toggle.pressed}
-											aria-label={toggle.label}
-											title={toggle.enabled ? toggle.label : (toggle.reason ?? toggle.label)}
-											disabled={!toggle.enabled}
-											onClick={() => void runCommand(toggle.command, snapshot)}
+											label={toggle.label}
+											keys={toggle.keys}
+											reason={toggle.enabled ? undefined : toggle.reason}
 										>
-											<Icon size={14} />
-										</button>
+											<button
+												type="button"
+												className={styles.toggle}
+												aria-pressed={toggle.pressed}
+												aria-label={toggle.label}
+												disabled={!toggle.enabled}
+												onClick={() => void runCommand(toggle.command, snapshot)}
+											>
+												<Icon size={14} />
+											</button>
+										</Tooltip>
 									);
 								})}
 							</div>

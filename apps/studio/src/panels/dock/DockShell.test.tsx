@@ -200,6 +200,14 @@ describe('DockShell', () => {
 	});
 });
 
+/** The text of the tooltip a rail entry shows on keyboard focus (and hides again on blur). */
+function tipOf(button: HTMLElement): string | undefined {
+	act(() => button.focus());
+	const text = screen.getByRole('tooltip').textContent ?? undefined;
+	act(() => button.blur());
+	return text;
+}
+
 describe('the rails', () => {
 	const rail = (name: string) => screen.getByRole('group', { name });
 
@@ -218,7 +226,8 @@ describe('the rails', () => {
 		mount();
 		const right = within(rail('Right rail')).getAllByRole('button');
 		expect(right.map((b) => b.textContent)).toEqual(['Inspector', 'Objects', 'History']);
-		expect(right.map((b) => b.getAttribute('title'))).toEqual([
+		expect(right.map((b) => b.getAttribute('title'))).toEqual([null, null, null]);
+		expect(right.map(tipOf)).toEqual([
 			'Inspector, open; choose again to fold',
 			'Objects',
 			'History',
@@ -290,14 +299,12 @@ describe('the rails', () => {
 
 	it('hints that the showing entry folds the dock, and that a folded dock’s entry opens it', () => {
 		mount();
-		expect(within(rail('Left rail')).getByRole('button', { name: 'Palette' })).toHaveAttribute(
-			'title',
+		expect(tipOf(within(rail('Left rail')).getByRole('button', { name: 'Palette' }))).toBe(
 			'Palette, open; choose again to fold',
 		);
 		cleanup();
 		mount(visibleWorkspace(setZoneCollapsed(defaultWorkspace(), 'left', true)));
-		expect(within(rail('Left rail')).getByRole('button', { name: 'Palette' })).toHaveAttribute(
-			'title',
+		expect(tipOf(within(rail('Left rail')).getByRole('button', { name: 'Palette' }))).toBe(
 			'Palette, folded; choose to open',
 		);
 	});
@@ -323,7 +330,7 @@ describe('the rails', () => {
 		const left = rail('Left rail');
 		const entry = within(left).getByRole('button', { name: 'Assets' });
 		expect(entry).toBeDisabled();
-		expect(entry).toHaveAttribute('title', 'Coming later');
+		expect(entry).not.toHaveAttribute('title');
 		expect(left.lastElementChild).toBe(entry);
 		expect(within(rail('Right rail')).queryByRole('button', { name: 'Assets' })).toBeNull();
 		await user.click(entry);

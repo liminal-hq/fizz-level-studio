@@ -8,6 +8,7 @@
 
 import { t } from '../i18n/messages';
 import { ZoomFitIcon, ZoomInIcon, ZoomOutIcon } from '../icons/AppIcons';
+import { Tooltip } from '../ui/Tooltip';
 import styles from './ZoomControl.module.css';
 
 export type ZoomKind = 'in' | 'out' | 'fit';
@@ -32,43 +33,46 @@ export function ZoomControl({ zoom, canIn, canOut, onZoom }: ZoomControlProps) {
 			aria-label={t('canvas.zoomGroup')}
 			data-zoom-control=""
 		>
-			<button
-				type="button"
-				className={styles.button}
-				data-keycap-exempt=""
-				aria-label={t('canvas.zoomOut')}
-				title={t('canvas.zoomOut')}
-				disabled={!canOut}
-				onClick={() => onZoom('out')}
-			>
-				<ZoomOutIcon size={14} />
-			</button>
+			<Tooltip label={t('canvas.zoomOut')} reason={canOut ? undefined : t('canvas.zoomMin')}>
+				<button
+					type="button"
+					className={styles.button}
+					data-keycap-exempt=""
+					aria-label={t('canvas.zoomOut')}
+					disabled={!canOut}
+					onClick={() => onZoom('out')}
+				>
+					<ZoomOutIcon size={14} />
+				</button>
+			</Tooltip>
 			<span className={styles.factor} role="status" aria-live="polite">
 				<span className={styles.hidden}>{t('canvas.zoomLevel', { zoom })}</span>
 				<span aria-hidden="true">{t('canvas.zoomFactor', { zoom })}</span>
 			</span>
-			<button
-				type="button"
-				className={styles.button}
-				data-keycap-exempt=""
-				aria-label={t('canvas.zoomIn')}
-				title={t('canvas.zoomIn')}
-				disabled={!canIn}
-				onClick={() => onZoom('in')}
-			>
-				<ZoomInIcon size={14} />
-			</button>
-			<button
-				type="button"
-				className={`${styles.button} ${styles.fit}`}
-				data-keycap-exempt=""
-				aria-label={t('canvas.zoomFit')}
-				title={t('canvas.zoomFit')}
-				onClick={() => onZoom('fit')}
-			>
-				<ZoomFitIcon size={14} />
-				<span>{t('canvas.zoomFitShort')}</span>
-			</button>
+			<Tooltip label={t('canvas.zoomIn')} reason={canIn ? undefined : t('canvas.zoomMax')}>
+				<button
+					type="button"
+					className={styles.button}
+					data-keycap-exempt=""
+					aria-label={t('canvas.zoomIn')}
+					disabled={!canIn}
+					onClick={() => onZoom('in')}
+				>
+					<ZoomInIcon size={14} />
+				</button>
+			</Tooltip>
+			<Tooltip label={t('canvas.zoomFit')}>
+				<button
+					type="button"
+					className={`${styles.button} ${styles.fit}`}
+					data-keycap-exempt=""
+					aria-label={t('canvas.zoomFit')}
+					onClick={() => onZoom('fit')}
+				>
+					<ZoomFitIcon size={14} />
+					<span>{t('canvas.zoomFitShort')}</span>
+				</button>
+			</Tooltip>
 		</div>
 	);
 }

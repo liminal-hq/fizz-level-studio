@@ -10,6 +10,7 @@ import { t } from '../../i18n/messages';
 import { PanelExpandButton } from './PanelExpandButton';
 import { PANEL_ICONS } from './panelIcons';
 import type { PanelId } from '../float/panelSpecs';
+import { Tooltip } from '../../ui/Tooltip';
 import styles from './PeekPanel.module.css';
 
 export interface PeekPanelProps {
@@ -64,15 +65,16 @@ export function PeekPanel({
 				<h2 className={styles.title}>{title}</h2>
 				<span className={styles.spacer} />
 				{onMaximise && <PanelExpandButton title={title} expanded={false} onToggle={onMaximise} />}
-				<button
-					type="button"
-					className={styles.pin}
-					aria-label={t('dock.pin', { title })}
-					title={t('dock.pin', { title })}
-					onClick={onPin}
-				>
-					<PinIcon size={14} />
-				</button>
+				<Tooltip label={t('dock.pin', { title })}>
+					<button
+						type="button"
+						className={styles.pin}
+						aria-label={t('dock.pin', { title })}
+						onClick={onPin}
+					>
+						<PinIcon size={14} />
+					</button>
+				</Tooltip>
 			</header>
 			<div className={styles.body}>{children}</div>
 		</section>

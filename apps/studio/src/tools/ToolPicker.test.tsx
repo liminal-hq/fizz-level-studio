@@ -4,7 +4,7 @@
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
 import type { ToolPickerPlacement } from '@liminal-hq/fizz-studio-protocol/generated/ToolPickerPlacement';
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import type { Size } from '../panels/float/panelGeometry';
@@ -83,7 +83,11 @@ describe('ToolPicker', () => {
 		for (const [name, key] of expected) {
 			const button = screen.getByRole('button', { name });
 			expect(picker).toContainElement(button);
-			expect(button).toHaveAttribute('title', `${name} (${key})`);
+			expect(button).not.toHaveAttribute('title');
+			act(() => button.focus());
+			expect(screen.getByRole('tooltip')).toHaveTextContent(`${name}${key}`);
+			act(() => button.blur());
+			expect(screen.queryByRole('tooltip')).toBeNull();
 			expect(button).toHaveAttribute('aria-keyshortcuts', key);
 			expect(button.textContent).toBe('');
 			const icon = button.querySelector('svg');

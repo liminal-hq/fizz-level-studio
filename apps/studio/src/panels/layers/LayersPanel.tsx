@@ -11,6 +11,7 @@ import type { ViewSection } from '@liminal-hq/fizz-studio-protocol/generated/Vie
 import { t } from '../../i18n/messages';
 import { EyeClosedIcon, EyeOpenIcon, LockClosedIcon, LockOpenIcon } from './layerIcons';
 import { layerName, layerNote } from './layerNames';
+import { Tooltip } from '../../ui/Tooltip';
 import styles from './LayersPanel.module.css';
 
 export interface LayersPanelProps {
@@ -61,37 +62,42 @@ export function LayersPanel({
 							data-hidden={isHidden || undefined}
 							data-locked={isLocked || undefined}
 						>
-							<button
-								type="button"
-								className={styles.toggle}
-								data-keycap-exempt=""
-								aria-pressed={isHidden}
-								aria-label={t('layers.hide', { layer: name })}
-								onClick={() => onToggleHidden(section.id)}
-							>
-								{isHidden ? <EyeClosedIcon /> : <EyeOpenIcon />}
-							</button>
-							<button
-								type="button"
-								className={styles.lock}
-								data-keycap-exempt=""
-								aria-pressed={isLocked}
-								aria-label={t('layers.lock', { layer: name })}
-								onClick={() => onToggleLocked(section.id)}
-							>
-								{isLocked ? <LockClosedIcon /> : <LockOpenIcon />}
-							</button>
-							<button
-								type="button"
-								className={styles.name}
-								data-keycap-exempt=""
-								title={t('layers.reveal', { layer: name })}
-								disabled={first === undefined}
-								onClick={() => first !== undefined && onReveal(first)}
-							>
-								<span className={styles.label}>{name}</span>
-								{note && <span className={styles.note}>{note}</span>}
-							</button>
+							<Tooltip label={t('layers.hide', { layer: name })}>
+								<button
+									type="button"
+									className={styles.toggle}
+									data-keycap-exempt=""
+									aria-pressed={isHidden}
+									aria-label={t('layers.hide', { layer: name })}
+									onClick={() => onToggleHidden(section.id)}
+								>
+									{isHidden ? <EyeClosedIcon /> : <EyeOpenIcon />}
+								</button>
+							</Tooltip>
+							<Tooltip label={t('layers.lock', { layer: name })}>
+								<button
+									type="button"
+									className={styles.lock}
+									data-keycap-exempt=""
+									aria-pressed={isLocked}
+									aria-label={t('layers.lock', { layer: name })}
+									onClick={() => onToggleLocked(section.id)}
+								>
+									{isLocked ? <LockClosedIcon /> : <LockOpenIcon />}
+								</button>
+							</Tooltip>
+							<Tooltip label={t('layers.reveal', { layer: name })}>
+								<button
+									type="button"
+									className={styles.name}
+									data-keycap-exempt=""
+									disabled={first === undefined}
+									onClick={() => first !== undefined && onReveal(first)}
+								>
+									<span className={styles.label}>{name}</span>
+									{note && <span className={styles.note}>{note}</span>}
+								</button>
+							</Tooltip>
 							<span className={styles.count}>{section.count}</span>
 						</li>
 					);

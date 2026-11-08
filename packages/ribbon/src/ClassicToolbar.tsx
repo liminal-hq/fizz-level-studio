@@ -7,7 +7,7 @@ import { useMemo, type ReactNode } from 'react';
 import { defaultRibbonLabels, type RibbonLabels } from './labels';
 import styles from './Ribbon.module.css';
 import { RibbonModeSwitch } from './RibbonModeSwitch';
-import type { RibbonCommand, RibbonMode, ToolbarModel } from './types';
+import type { RibbonCommand, RibbonControlWrap, RibbonMode, ToolbarModel } from './types';
 import { useRibbonControls } from './useRibbonControls';
 
 export interface ClassicToolbarProps {
@@ -22,6 +22,8 @@ export interface ClassicToolbarProps {
 	/** Accessible name of the toolbar. */
 	label?: string;
 	labels?: Partial<RibbonLabels>;
+	/** The host's tooltip around each control, in place of the toolbar's own. */
+	wrapControl?: RibbonControlWrap;
 }
 
 export function ClassicToolbar({
@@ -31,6 +33,7 @@ export function ClassicToolbar({
 	after,
 	end,
 	label,
+	wrapControl,
 	...props
 }: ClassicToolbarProps) {
 	const labels = { ...defaultRibbonLabels, ...props.labels };
@@ -39,7 +42,7 @@ export function ClassicToolbar({
 			model.groups.flatMap((group, index) => group.map((item) => ({ scope: `${index}`, item }))),
 		[model],
 	);
-	const controls = useRibbonControls(peers, labels, onCommand);
+	const controls = useRibbonControls(peers, labels, onCommand, wrapControl);
 	return (
 		<div
 			role="toolbar"

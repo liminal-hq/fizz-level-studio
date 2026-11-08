@@ -12,6 +12,7 @@ import type {
 import { useRef, useState, type KeyboardEvent } from 'react';
 import { t } from '../../i18n/messages';
 import { MoreIcon } from '../../icons/AppIcons';
+import { Tooltip } from '../../ui/Tooltip';
 import styles from './PanelMenuButton.module.css';
 
 /** The rows of a panel's menu and what choosing one does, as the dock asks for them by panel. */
@@ -56,29 +57,30 @@ export function PanelMenuButton({ title, items, onSelect }: PanelMenuButtonProps
 	const name = t('dock.menu.button', { title });
 	return (
 		<>
-			<button
-				ref={button}
-				type="button"
-				className={styles.key}
-				aria-label={name}
-				title={name}
-				aria-haspopup="menu"
-				aria-expanded={open !== null}
-				data-panel-menu=""
-				onPointerDown={() => {
-					wasOpen.current = open !== null;
-				}}
-				onKeyDown={onKeyDown}
-				onClick={(event) => {
-					const closing = wasOpen.current || open !== null;
-					wasOpen.current = false;
-					if (closing) setOpen(null);
-					// A click with no pointer behind it (Enter or Space) is the keyboard's.
-					else show(event.detail === 0);
-				}}
-			>
-				<MoreIcon size={14} />
-			</button>
+			<Tooltip label={name}>
+				<button
+					ref={button}
+					type="button"
+					className={styles.key}
+					aria-label={name}
+					aria-haspopup="menu"
+					aria-expanded={open !== null}
+					data-panel-menu=""
+					onPointerDown={() => {
+						wasOpen.current = open !== null;
+					}}
+					onKeyDown={onKeyDown}
+					onClick={(event) => {
+						const closing = wasOpen.current || open !== null;
+						wasOpen.current = false;
+						if (closing) setOpen(null);
+						// A click with no pointer behind it (Enter or Space) is the keyboard's.
+						else show(event.detail === 0);
+					}}
+				>
+					<MoreIcon size={14} />
+				</button>
+			</Tooltip>
 			{open && (
 				// The menu is drawn in a portal, but React bubbles its pointer events through the
 				// header, which would take a press on a row for the start of a drag. The span has no box

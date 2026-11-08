@@ -58,8 +58,6 @@ export const enMessages = {
 	'tools.stampEmpty': 'Outline an area with Select, then choose Stamp to paste it.',
 	// translator: Label of the grip a person drags, or moves with the arrow keys, to move the floating group of tools over the level.
 	'tools.move': 'Move the tools',
-	// translator: Tooltip of a tool's key. {tool} is the tool’s name, such as “Paint”; {key} is the letter that chooses it, such as “B”.
-	'tools.keyTitle': '{tool} ({key})',
 	// translator: The brush chip in the toolbar. {kind} is the name of the tile, item or enemy that Paint lays down, such as “cheezie”.
 	'brush.chip': 'Brush: {kind}',
 	// translator: The brush chip when the brush is an item that is spaced out. {kind} is the item; {spacing} says how far apart, such as “Every 3 cells”.
@@ -651,8 +649,6 @@ export const enMessages = {
 	'workspace.label': 'Workspace',
 	// translator: Label of the button that opens the command palette, like a search field. Keep it short.
 	'workspace.search': 'Search commands',
-	// translator: Tooltip on the Search commands button. {keys} is the keyboard shortcut that does the same.
-	'workspace.searchTip': 'Search commands ({keys})',
 	// translator: Accessible name of the classic toolbar, the row of buttons under the menus.
 	'toolbar.label': 'Commands',
 	// translator: Accessible name of the group of buttons on the toolbar that show and hide the panels.
@@ -717,14 +713,10 @@ export const enMessages = {
 	'tearoff.drag.cancelled': 'Tear off cancelled. {title} stays where it was.',
 	// translator: Announced to screen readers when a panel in a window of its own was dragged back into the main window. {title} is the panel’s name.
 	'tearoff.drag.dockedBack': '{title} is back in the main window.',
-	// translator: Name and tooltip of a button in a panel’s header. Makes the panel fill the editor’s whole workspace, with the level and the other panels hidden behind it. This is not the window’s own maximise button. {title} is the panel’s name.
+	// translator: Name and tooltip of a button in a panel’s header (the tooltip adds the shortcut keys as keycaps). Makes the panel fill the editor’s whole workspace, with the level and the other panels hidden behind it. This is not the window’s own maximise button. {title} is the panel’s name.
 	'panel.maximise': 'Maximise {title}',
-	// translator: Tooltip of the button that maximises a panel. {title} is the panel’s name and {keys} the keys that do the same, such as “Ctrl+Shift+M”.
-	'panel.maximise.tip': 'Maximise {title} ({keys})',
 	// translator: Name and tooltip of a button in a maximised panel’s header. Puts the panel back where it was in the layout. {title} is the panel’s name.
 	'panel.restore': 'Restore {title}',
-	// translator: Tooltip of the button that restores a maximised panel. {title} is the panel’s name and {keys} the keys that do the same, such as “Ctrl+Shift+M”.
-	'panel.restore.tip': 'Restore {title} ({keys})',
 	// translator: Menu item and command in the View menu. Makes a panel fill the editor’s workspace. {panel} is the panel’s name.
 	'view.maximise': 'Maximise {panel}',
 	// translator: Menu item and command in the View menu, shown while a panel is maximised. Puts the panel back in the layout. {panel} is the panel’s name.

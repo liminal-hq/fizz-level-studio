@@ -10,6 +10,7 @@
 
 import { useEffect, useId, useRef, useState, type KeyboardEvent } from 'react';
 import { t } from '../i18n/messages';
+import { Tooltip } from '../ui/Tooltip';
 import styles from './CoordField.module.css';
 
 export interface CoordFieldProps {
@@ -100,16 +101,18 @@ export function CoordField({ label, value, min, max, whole, onCommit, disabled }
 				{label}
 			</label>
 			<div className={styles.control} role="group" aria-label={label}>
-				<button
-					type="button"
-					className={styles.step}
-					aria-controls={id}
-					aria-label={t('inspector.decrease', { axis: label })}
-					disabled={disabled || current <= min}
-					onClick={() => step(-1)}
-				>
-					{t('spacing.lessGlyph')}
-				</button>
+				<Tooltip label={t('inspector.decrease', { axis: label })}>
+					<button
+						type="button"
+						className={styles.step}
+						aria-controls={id}
+						aria-label={t('inspector.decrease', { axis: label })}
+						disabled={disabled || current <= min}
+						onClick={() => step(-1)}
+					>
+						{t('spacing.lessGlyph')}
+					</button>
+				</Tooltip>
 				<input
 					id={id}
 					className={styles.input}
@@ -124,16 +127,18 @@ export function CoordField({ label, value, min, max, whole, onCommit, disabled }
 					onBlur={finishDraft}
 					onKeyDown={onKeyDown}
 				/>
-				<button
-					type="button"
-					className={styles.step}
-					aria-controls={id}
-					aria-label={t('inspector.increase', { axis: label })}
-					disabled={disabled || current >= max}
-					onClick={() => step(1)}
-				>
-					{t('spacing.moreGlyph')}
-				</button>
+				<Tooltip label={t('inspector.increase', { axis: label })}>
+					<button
+						type="button"
+						className={styles.step}
+						aria-controls={id}
+						aria-label={t('inspector.increase', { axis: label })}
+						disabled={disabled || current >= max}
+						onClick={() => step(1)}
+					>
+						{t('spacing.moreGlyph')}
+					</button>
+				</Tooltip>
 			</div>
 		</div>
 	);

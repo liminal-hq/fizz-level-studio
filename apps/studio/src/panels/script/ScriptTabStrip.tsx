@@ -15,6 +15,7 @@ import {
 } from 'react';
 import { t } from '../../i18n/messages';
 import { MoreIcon } from '../../icons/AppIcons';
+import { Tooltip } from '../../ui/Tooltip';
 import styles from './ScriptTabStrip.module.css';
 import { tabAfterKey, type ScriptTab } from './scriptTabs';
 
@@ -130,68 +131,71 @@ export function ScriptTabStrip({
 							data-active={selected || undefined}
 							data-away={tab.away || undefined}
 						>
-							<button
-								type="button"
-								role="tab"
-								className={styles.label}
-								data-script-tab={tab.id}
-								aria-selected={selected}
-								aria-controls={controls}
-								tabIndex={selected ? 0 : -1}
-								title={tab.away ? t('scriptTabs.away', { name: tab.title }) : tab.title}
-								onClick={() => onActivate(tab.id)}
-								onKeyDown={(event) => onKeyDown(event, tab)}
-								onPointerDown={(event) => onTabDragStart?.(event, tab.id)}
-							>
-								<span className={styles.dot} data-kind={tab.kind} aria-hidden="true" />
-								<span className={styles.name}>{tab.title}</span>
-							</button>
-							<button
-								type="button"
-								className={styles.close}
-								data-keycap-exempt=""
-								data-dirty={tab.dirty || undefined}
-								tabIndex={-1}
-								aria-label={closeName}
-								title={closeName}
-								onClick={() => onClose(tab.id)}
-							>
-								<svg
-									aria-hidden="true"
-									width="12"
-									height="12"
-									viewBox="0 0 16 16"
-									fill="none"
-									stroke="currentColor"
-									strokeWidth="1.6"
-									strokeLinecap="round"
+							<Tooltip label={tab.away ? t('scriptTabs.away', { name: tab.title }) : tab.title}>
+								<button
+									type="button"
+									role="tab"
+									className={styles.label}
+									data-script-tab={tab.id}
+									aria-selected={selected}
+									aria-controls={controls}
+									tabIndex={selected ? 0 : -1}
+									onClick={() => onActivate(tab.id)}
+									onKeyDown={(event) => onKeyDown(event, tab)}
+									onPointerDown={(event) => onTabDragStart?.(event, tab.id)}
 								>
-									{tab.dirty ? (
-										<circle cx="8" cy="8" r="3.2" fill="currentColor" />
-									) : (
-										<path d="M4 4l8 8M12 4l-8 8" />
-									)}
-								</svg>
-							</button>
+									<span className={styles.dot} data-kind={tab.kind} aria-hidden="true" />
+									<span className={styles.name}>{tab.title}</span>
+								</button>
+							</Tooltip>
+							<Tooltip label={closeName}>
+								<button
+									type="button"
+									className={styles.close}
+									data-keycap-exempt=""
+									data-dirty={tab.dirty || undefined}
+									tabIndex={-1}
+									aria-label={closeName}
+									onClick={() => onClose(tab.id)}
+								>
+									<svg
+										aria-hidden="true"
+										width="12"
+										height="12"
+										viewBox="0 0 16 16"
+										fill="none"
+										stroke="currentColor"
+										strokeWidth="1.6"
+										strokeLinecap="round"
+									>
+										{tab.dirty ? (
+											<circle cx="8" cy="8" r="3.2" fill="currentColor" />
+										) : (
+											<path d="M4 4l8 8M12 4l-8 8" />
+										)}
+									</svg>
+								</button>
+							</Tooltip>
 						</div>
 					);
 				})}
 			</div>
 			{narrow && overflowing && (
 				<>
-					<button
-						ref={more}
-						type="button"
-						className={styles.more}
-						data-keycap-exempt=""
-						aria-haspopup="menu"
-						aria-expanded={menu !== null}
-						aria-label={t('scriptTabs.more')}
-						title={t('scriptTabs.more')}
-						onClick={(event) => (menu ? setMenu(null) : showMore(event.detail === 0))}
-					>
-						<MoreIcon size={14} />
-					</button>
+					<Tooltip label={t('scriptTabs.more')}>
+						<button
+							ref={more}
+							type="button"
+							className={styles.more}
+							data-keycap-exempt=""
+							aria-haspopup="menu"
+							aria-expanded={menu !== null}
+							aria-label={t('scriptTabs.more')}
+							onClick={(event) => (menu ? setMenu(null) : showMore(event.detail === 0))}
+						>
+							<MoreIcon size={14} />
+						</button>
+					</Tooltip>
 					{menu && (
 						// The menu is drawn in a portal, but React bubbles its pointer events through the header.
 						<span

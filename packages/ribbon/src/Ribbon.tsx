@@ -18,6 +18,7 @@ import styles from './Ribbon.module.css';
 import { RibbonModeSwitch } from './RibbonModeSwitch';
 import type {
 	RibbonCommand,
+	RibbonControlWrap,
 	RibbonDensity,
 	RibbonGroup,
 	RibbonItem,
@@ -41,6 +42,8 @@ export interface RibbonProps {
 	density?: RibbonDensity;
 	showLabels?: boolean;
 	labels?: Partial<RibbonLabels>;
+	/** The host's tooltip around each control, in place of the ribbon's own. */
+	wrapControl?: RibbonControlWrap;
 	/** Shown at the right end, before the Easy and Expert switch. */
 	end?: ReactNode;
 }
@@ -119,7 +122,7 @@ export function Ribbon(props: RibbonProps) {
 		[model],
 	);
 	const emit = (command: RibbonCommand) => onCommand(command);
-	const controls = useRibbonControls(peers, labels, emit);
+	const controls = useRibbonControls(peers, labels, emit, props.wrapControl);
 
 	/** Moving across tabs with the arrows only selects; activating a tab also drops the panel down or closes it. */
 	const pickTab = (id: string, activate: boolean) => {

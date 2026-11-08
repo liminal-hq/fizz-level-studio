@@ -3,7 +3,7 @@
 // (c) Copyright 2026 Liminal HQ, Scott Morris
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
-import { act, render, screen, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import {
@@ -109,5 +109,31 @@ describe('AppToolbar', () => {
 	it('draws no panel toggles while no editor is open', () => {
 		const { row } = setup((bridge) => bridge.setFacts({ editorOpen: false }));
 		expect(within(row).queryByRole('group', { name: 'Panels' })).toBeNull();
+	});
+
+	it('tells each button’s label and keys from the registry in an in-app tooltip, with no native title', () => {
+		const { row } = setup();
+		const buttons = within(row).getAllByRole('button');
+		for (const b of buttons) expect(b).not.toHaveAttribute('title');
+		const save = within(row).getByRole('button', { name: 'Save' });
+		act(() => save.focus());
+		expect(screen.getByRole('tooltip')).toHaveTextContent('SaveCtrlS');
+		const undo = within(row).getByRole('button', { name: 'Undo' });
+		fireEvent.pointerLeave(save);
+		fireEvent.pointerEnter(undo, { pointerType: 'mouse' });
+		expect(screen.getAllByRole('tooltip')).toHaveLength(1);
+		expect(screen.getByRole('tooltip').textContent).toMatch(/^Undo/);
+	});
+
+	it('tells why a disabled button cannot be used', () => {
+		const { row } = setup((bridge) => bridge.setFacts({ hasLevel: false, editorOpen: false }));
+		const save = within(row).getByRole('button', { name: 'Save' });
+		expect(save).toBeDisabled();
+		vi.useFakeTimers();
+		fireEvent.pointerEnter(save, { pointerType: 'mouse' });
+		act(() => void vi.advanceTimersByTime(600));
+		vi.useRealTimers();
+		expect(screen.getByRole('tooltip').textContent).toMatch(/^Save/);
+		expect(screen.getByRole('tooltip').textContent!.length).toBeGreaterThan('SaveCtrlS'.length);
 	});
 });

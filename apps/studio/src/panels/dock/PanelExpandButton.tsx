@@ -10,6 +10,7 @@
 
 import { t } from '../../i18n/messages';
 import { MAXIMISE_KEYS } from '../../commands/registry';
+import { Tooltip } from '../../ui/Tooltip';
 import styles from './PanelMenuButton.module.css';
 
 export interface PanelExpandButtonProps {
@@ -52,21 +53,18 @@ export function RestoreIcon() {
 
 export function PanelExpandButton({ title, expanded, onToggle }: PanelExpandButtonProps) {
 	const name = t(expanded ? 'panel.restore' : 'panel.maximise', { title });
-	const tip = t(expanded ? 'panel.restore.tip' : 'panel.maximise.tip', {
-		title,
-		keys: MAXIMISE_KEYS,
-	});
 	return (
-		<button
-			type="button"
-			className={styles.key}
-			aria-label={name}
-			title={tip}
-			aria-keyshortcuts="Control+Shift+M"
-			data-expand=""
-			onClick={onToggle}
-		>
-			{expanded ? <RestoreIcon /> : <MaximiseIcon />}
-		</button>
+		<Tooltip label={name} keys={MAXIMISE_KEYS}>
+			<button
+				type="button"
+				className={styles.key}
+				aria-label={name}
+				aria-keyshortcuts="Control+Shift+M"
+				data-expand=""
+				onClick={onToggle}
+			>
+				{expanded ? <RestoreIcon /> : <MaximiseIcon />}
+			</button>
+		</Tooltip>
 	);
 }

@@ -3,7 +3,7 @@
 // (c) Copyright 2026 Liminal HQ, Scott Morris
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
-import { render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { ClassicToolbar } from './ClassicToolbar';
 import { Ribbon } from './Ribbon';
@@ -81,5 +81,19 @@ describe('the studio’s additions', () => {
 			screen.getByRole('button', { name: 'Save' }).compareDocumentPosition(after) &
 				Node.DOCUMENT_POSITION_FOLLOWING,
 		).toBeTruthy();
+	});
+
+	it('lets the host wrap each control in its own tooltip, and then shows none of its own', () => {
+		const wrap = vi.fn((_item, control) => <span data-testid="wrapped">{control}</span>);
+		render(<ClassicToolbar model={toolbar} onCommand={vi.fn()} wrapControl={wrap} />);
+		const save = screen.getByRole('button', { name: 'Save' });
+		expect(wrap).toHaveBeenCalledWith(expect.objectContaining({ id: 'save' }), expect.anything());
+		expect(save.parentElement).toBe(screen.getByTestId('wrapped'));
+		vi.useFakeTimers();
+		fireEvent.pointerEnter(save);
+		fireEvent.focus(save);
+		act(() => void vi.advanceTimersByTime(1000));
+		vi.useRealTimers();
+		expect(screen.queryByRole('tooltip')).toBeNull();
 	});
 });
