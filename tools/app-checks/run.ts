@@ -357,9 +357,17 @@ function backgroundAlphas(bridge: Bridge, selectors: string[]): Promise<(number 
 async function transparentEditorChecks(bridge: Bridge): Promise<void> {
 	const setSwitch = (key: 'docks' | 'floating', on: boolean) =>
 		bridge.js<boolean>(
-			`const cur = await window.__TAURI_INTERNALS__.invoke('plugin:fizz-studio-settings|settings_get');
-			 await window.__TAURI_INTERNALS__.invoke('plugin:fizz-studio-settings|settings_update', { patch: { transparency: { ...cur.settings.transparency, ${key}: ${on} } }, basedOn: cur.revision });
-			 return true;`,
+			// The app writes its settings too (the window effects, the layout), so a write built on a
+			// revision that has moved on is refused: read again and retry.
+			`let last = null;
+			 for (let attempt = 0; attempt < 8; attempt++) {
+				 try {
+					 const cur = await window.__TAURI_INTERNALS__.invoke('plugin:fizz-studio-settings|settings_get');
+					 await window.__TAURI_INTERNALS__.invoke('plugin:fizz-studio-settings|settings_update', { patch: { transparency: { ...cur.settings.transparency, ${key}: ${on} } }, basedOn: cur.revision });
+					 return true;
+				 } catch (e) { last = e; await new Promise((r) => setTimeout(r, 150)); }
+			 }
+			 return JSON.stringify(last);`,
 		);
 	const selectors = ['.cm-editor', '.cm-gutters'];
 	const run = async (where: string, key: 'docks' | 'floating') => {
