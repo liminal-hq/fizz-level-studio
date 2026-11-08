@@ -77,6 +77,7 @@ fn workspace(zones: Zones) -> Workspace {
                 float: floats[id],
                 window: None::<WindowPlacement>,
                 window_from: PlaceKind::Docked,
+                home_spot: None,
             },
         );
     }

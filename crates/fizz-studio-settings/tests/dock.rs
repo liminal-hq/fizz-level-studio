@@ -4,8 +4,8 @@
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
 use fizz_studio_protocol::{
-    DockSettings, PlaceKind, Settings, SettingsError, SettingsField, SettingsPatch, TabGroup,
-    ToolPickerPlacement, WindowPlacement, Workspace, ZoneId,
+    DockSettings, HomeSpot, PlaceKind, Settings, SettingsError, SettingsField, SettingsPatch,
+    TabGroup, ToolPickerPlacement, WindowPlacement, Workspace, ZoneId,
 };
 use fizz_studio_settings::{
     apply_patch, default_dock, default_layout, default_workspace, default_workspace_for,
@@ -578,4 +578,122 @@ fn a_saved_workspace_without_the_inspector_gains_it_in_the_right_dock_and_loads_
         );
         assert_eq!(ws.panels.len(), PANEL_IDS.len(), "{name}");
     }
+}
+
+// The remembered home of a panel that is away
+
+fn spot() -> HomeSpot {
+    HomeSpot {
+        zone: ZoneId::Right,
+        group: 0,
+        after: Some("inspector".to_owned()),
+        before: Some("history".to_owned()),
+        active: true,
+        folded: false,
+        size: None,
+    }
+}
+
+#[test]
+fn a_remembered_home_round_trips_through_the_file() {
+    let file = SettingsFile::new(MemoryStorage::default());
+    let mut settings = Settings {
+        dock: default_dock(),
+        ..Settings::default()
+    };
+    for (name, id, zone) in [
+        ("Paint", "objects", ZoneId::Right),
+        ("Script", "layers", ZoneId::Left),
+    ] {
+        let ws = settings.dock.workspaces.get_mut(name).unwrap();
+        // The panel is away from its tab group: floating, with its place remembered.
+        for z in [&mut ws.zones.left, &mut ws.zones.right] {
+            for group in &mut z.groups {
+                group.tabs.retain(|t| t != id);
+                if !group.tabs.contains(&group.active) {
+                    group.active = group.tabs[0].clone();
+                }
+            }
+        }
+        let entry = ws.panels.get_mut(id).unwrap();
+        entry.place = PlaceKind::Floating;
+        entry.home_spot = Some(HomeSpot { zone, ..spot() });
+    }
+    file.save(&settings).unwrap();
+    let report = file.load();
+    assert!(report.problem.is_none(), "{:?}", report.problem);
+    assert_eq!(report.settings, settings);
+    assert_eq!(
+        report.settings.dock.workspaces["Paint"].panels["objects"].home_spot,
+        Some(spot())
+    );
+}
+
+#[test]
+fn a_file_from_before_the_home_was_kept_loads_unchanged_with_no_version_bump() {
+    let mut dock = serde_json::to_value(default_dock()).unwrap();
+    for workspace in dock["workspaces"].as_object_mut().unwrap().values_mut() {
+        for entry in workspace["panels"].as_object_mut().unwrap().values_mut() {
+            entry.as_object_mut().unwrap().remove("home_spot");
+        }
+    }
+    let text = json!({ "version": SETTINGS_VERSION, "settings": { "dock": dock } }).to_string();
+    let report = memory_file(&text).load();
+    assert!(report.problem.is_none(), "{:?}", report.problem);
+    assert!(report.set_aside.is_none());
+    assert_eq!(report.settings.dock, default_dock());
+    for ws in report.settings.dock.workspaces.values() {
+        assert!(ws.panels.values().all(|e| e.home_spot.is_none()));
+    }
+}
+
+#[test]
+fn a_remembered_home_with_missing_optional_fields_loads_with_their_defaults() {
+    let mut dock = serde_json::to_value(default_dock()).unwrap();
+    dock["workspaces"]["Paint"]["panels"]["objects"]["home_spot"] =
+        json!({ "zone": "right", "group": 0 });
+    let text = json!({ "version": SETTINGS_VERSION, "settings": { "dock": dock } }).to_string();
+    let report = memory_file(&text).load();
+    assert!(report.problem.is_none(), "{:?}", report.problem);
+    let loaded = report.settings.dock.workspaces["Paint"].panels["objects"]
+        .home_spot
+        .clone()
+        .unwrap();
+    assert_eq!(
+        loaded,
+        HomeSpot {
+            zone: ZoneId::Right,
+            group: 0,
+            after: None,
+            before: None,
+            active: false,
+            folded: false,
+            size: None,
+        }
+    );
+}
+
+#[test]
+fn an_unsound_remembered_home_is_refused() {
+    let unknown = with_workspace(|ws| {
+        ws.panels.get_mut("objects").unwrap().home_spot = Some(HomeSpot {
+            after: Some("ghost".to_owned()),
+            ..spot()
+        });
+    });
+    assert_eq!(field_of(validate(&unknown)), SettingsField::WorkspacePanel);
+    let size = with_workspace(|ws| {
+        ws.panels.get_mut("objects").unwrap().home_spot = Some(HomeSpot {
+            size: Some(5),
+            ..spot()
+        });
+    });
+    assert_eq!(field_of(validate(&size)), SettingsField::WorkspacePanel);
+    let sound = with_workspace(|ws| {
+        ws.panels.get_mut("objects").unwrap().home_spot = Some(HomeSpot {
+            size: Some(SIDE_MIN),
+            ..spot()
+        });
+    });
+    assert!(validate(&sound).is_ok());
 }

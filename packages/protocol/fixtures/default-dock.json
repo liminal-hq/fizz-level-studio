@@ -23,7 +23,8 @@
 					"z": 1
 				},
 				"window": null,
-				"window_from": "docked"
+				"window_from": "docked",
+				"home_spot": null
 			},
 			"layers": {
 				"place": "docked",
@@ -38,7 +39,8 @@
 					"z": 6
 				},
 				"window": null,
-				"window_from": "docked"
+				"window_from": "docked",
+				"home_spot": null
 			},
 			"inspector": {
 				"place": "docked",
@@ -53,7 +55,8 @@
 					"z": 7
 				},
 				"window": null,
-				"window_from": "docked"
+				"window_from": "docked",
+				"home_spot": null
 			},
 			"objects": {
 				"place": "docked",
@@ -68,7 +71,8 @@
 					"z": 2
 				},
 				"window": null,
-				"window_from": "docked"
+				"window_from": "docked",
+				"home_spot": null
 			},
 			"history": {
 				"place": "docked",
@@ -83,7 +87,8 @@
 					"z": 3
 				},
 				"window": null,
-				"window_from": "docked"
+				"window_from": "docked",
+				"home_spot": null
 			},
 			"proposals": {
 				"place": "docked",
@@ -98,7 +103,8 @@
 					"z": 4
 				},
 				"window": null,
-				"window_from": "docked"
+				"window_from": "docked",
+				"home_spot": null
 			},
 			"script": {
 				"place": "docked",
@@ -113,7 +119,8 @@
 					"z": 5
 				},
 				"window": null,
-				"window_from": "docked"
+				"window_from": "docked",
+				"home_spot": null
 			}
 		},
 		"zones": {
@@ -176,7 +183,8 @@
 						"z": 1
 					},
 					"window": null,
-					"window_from": "docked"
+					"window_from": "docked",
+					"home_spot": null
 				},
 				"layers": {
 					"place": "docked",
@@ -191,7 +199,8 @@
 						"z": 6
 					},
 					"window": null,
-					"window_from": "docked"
+					"window_from": "docked",
+					"home_spot": null
 				},
 				"inspector": {
 					"place": "docked",
@@ -206,7 +215,8 @@
 						"z": 7
 					},
 					"window": null,
-					"window_from": "docked"
+					"window_from": "docked",
+					"home_spot": null
 				},
 				"objects": {
 					"place": "docked",
@@ -221,7 +231,8 @@
 						"z": 2
 					},
 					"window": null,
-					"window_from": "docked"
+					"window_from": "docked",
+					"home_spot": null
 				},
 				"history": {
 					"place": "docked",
@@ -236,7 +247,8 @@
 						"z": 3
 					},
 					"window": null,
-					"window_from": "docked"
+					"window_from": "docked",
+					"home_spot": null
 				},
 				"proposals": {
 					"place": "docked",
@@ -251,7 +263,8 @@
 						"z": 4
 					},
 					"window": null,
-					"window_from": "docked"
+					"window_from": "docked",
+					"home_spot": null
 				},
 				"script": {
 					"place": "docked",
@@ -266,7 +279,8 @@
 						"z": 5
 					},
 					"window": null,
-					"window_from": "docked"
+					"window_from": "docked",
+					"home_spot": null
 				}
 			},
 			"zones": {
@@ -328,7 +342,8 @@
 						"z": 1
 					},
 					"window": null,
-					"window_from": "docked"
+					"window_from": "docked",
+					"home_spot": null
 				},
 				"layers": {
 					"place": "docked",
@@ -343,7 +358,8 @@
 						"z": 6
 					},
 					"window": null,
-					"window_from": "docked"
+					"window_from": "docked",
+					"home_spot": null
 				},
 				"inspector": {
 					"place": "docked",
@@ -358,7 +374,8 @@
 						"z": 7
 					},
 					"window": null,
-					"window_from": "docked"
+					"window_from": "docked",
+					"home_spot": null
 				},
 				"objects": {
 					"place": "docked",
@@ -373,7 +390,8 @@
 						"z": 2
 					},
 					"window": null,
-					"window_from": "docked"
+					"window_from": "docked",
+					"home_spot": null
 				},
 				"history": {
 					"place": "docked",
@@ -388,7 +406,8 @@
 						"z": 3
 					},
 					"window": null,
-					"window_from": "docked"
+					"window_from": "docked",
+					"home_spot": null
 				},
 				"proposals": {
 					"place": "docked",
@@ -403,7 +422,8 @@
 						"z": 4
 					},
 					"window": null,
-					"window_from": "docked"
+					"window_from": "docked",
+					"home_spot": null
 				},
 				"script": {
 					"place": "docked",
@@ -418,7 +438,8 @@
 						"z": 5
 					},
 					"window": null,
-					"window_from": "docked"
+					"window_from": "docked",
+					"home_spot": null
 				}
 			},
 			"zones": {
@@ -480,7 +501,8 @@
 						"z": 1
 					},
 					"window": null,
-					"window_from": "docked"
+					"window_from": "docked",
+					"home_spot": null
 				},
 				"layers": {
 					"place": "docked",
@@ -495,7 +517,8 @@
 						"z": 6
 					},
 					"window": null,
-					"window_from": "docked"
+					"window_from": "docked",
+					"home_spot": null
 				},
 				"inspector": {
 					"place": "docked",
@@ -510,7 +533,8 @@
 						"z": 7
 					},
 					"window": null,
-					"window_from": "docked"
+					"window_from": "docked",
+					"home_spot": null
 				},
 				"objects": {
 					"place": "docked",
@@ -525,7 +549,8 @@
 						"z": 2
 					},
 					"window": null,
-					"window_from": "docked"
+					"window_from": "docked",
+					"home_spot": null
 				},
 				"history": {
 					"place": "docked",
@@ -540,7 +565,8 @@
 						"z": 3
 					},
 					"window": null,
-					"window_from": "docked"
+					"window_from": "docked",
+					"home_spot": null
 				},
 				"proposals": {
 					"place": "docked",
@@ -555,7 +581,8 @@
 						"z": 4
 					},
 					"window": null,
-					"window_from": "docked"
+					"window_from": "docked",
+					"home_spot": null
 				},
 				"script": {
 					"place": "docked",
@@ -570,7 +597,8 @@
 						"z": 5
 					},
 					"window": null,
-					"window_from": "docked"
+					"window_from": "docked",
+					"home_spot": null
 				}
 			},
 			"zones": {

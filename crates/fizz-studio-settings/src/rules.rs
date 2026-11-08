@@ -87,6 +87,21 @@ fn validate_workspace(name: &str, workspace: &Workspace) -> Result<(), SettingsE
                 format!("the {id} panel in the {name} workspace returns from a window to a window"),
             ));
         }
+        if let Some(spot) = &entry.home_spot {
+            let known =
+                |id: &Option<String>| id.as_ref().is_none_or(|p| PANEL_IDS.contains(&p.as_str()));
+            let size_ok = spot
+                .size
+                .is_none_or(|s| s >= zone_min(spot.zone) && s <= ZONE_MAX);
+            if !known(&spot.after) || !known(&spot.before) || !size_ok || spot.group > 64 {
+                return Err(field(
+                    SettingsField::WorkspacePanel,
+                    format!(
+                        "the {id} panel's remembered place in the {name} workspace is not sound"
+                    ),
+                ));
+            }
+        }
     }
     let mut seen: BTreeSet<&str> = BTreeSet::new();
     for (zone, z) in workspace.zones.all() {
