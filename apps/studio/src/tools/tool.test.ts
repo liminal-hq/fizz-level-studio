@@ -252,14 +252,14 @@ describe('pick', () => {
 describe('thingAt', () => {
 	const view = levelView(12, 8, {
 		items: [
-			{ kind: 'soda', x: 3, y: 1, generator: null, line: null },
-			{ kind: 'cheezie', x: 5, y: 1, generator: null, line: null },
+			{ kind: 'soda', x: 3, y: 1, generator: null, line: 6 },
+			{ kind: 'cheezie', x: 5, y: 1, generator: null, line: 7 },
 		],
 		spawns: [
-			{ kind: 'gloop', x: 5, y: 1, dir: null, ride: false, on_ground: false, line: null },
-			{ kind: 'bat', x: 7, y: null, dir: null, ride: false, on_ground: true, line: null },
+			{ kind: 'gloop', x: 5, y: 1, dir: null, ride: false, on_ground: false, line: 9 },
+			{ kind: 'bat', x: 7, y: null, dir: null, ride: false, on_ground: true, line: 10 },
 		],
-		start: { x: 2, y: 1, line: null },
+		start: { x: 2, y: 1, line: 3 },
 	});
 
 	it('finds an item on the objects layer', () => {
@@ -269,6 +269,8 @@ describe('thingAt', () => {
 			x: 3,
 			y: 1,
 			layer: 'objects',
+			index: 0,
+			line: 6,
 		});
 	});
 
@@ -294,6 +296,8 @@ describe('thingAt', () => {
 			x: 2,
 			y: 1,
 			layer: 'objects',
+			index: 0,
+			line: 3,
 		});
 	});
 
@@ -304,8 +308,28 @@ describe('thingAt', () => {
 			x: 9,
 			y: 0,
 			layer: 'tiles',
+			index: 0,
+			line: null,
 		});
 		expect(thingAt(view, { x: 9, y: 5 })).toMatchObject({ kind: 'cell', name: 'empty' });
+	});
+
+	it('counts an enemy at its place in the level’s own list', () => {
+		expect(thingAt(view, { x: 5, y: 1 })).toMatchObject({ kind: 'item', index: 1, line: 7 });
+		expect(thingAt(view, { x: 7, y: 1 })).toMatchObject({ kind: 'enemy', index: 1, line: 10 });
+	});
+
+	it('keeps the level’s own index when the view has things left out', () => {
+		// A view with the first item and first spawn hidden: the cheezie and the bat keep their indices.
+		const shown = {
+			...view,
+			items: view.items.slice(1),
+			spawns: view.spawns.slice(1),
+		};
+		expect(thingAt(shown, { x: 5, y: 1 }, view)).toMatchObject({ kind: 'item', index: 1 });
+		expect(thingAt(shown, { x: 7, y: 1 }, view)).toMatchObject({ kind: 'enemy', index: 1 });
+		// Without the whole view the index is the shown list's own.
+		expect(thingAt(shown, { x: 5, y: 1 })).toMatchObject({ kind: 'item', index: 0 });
 	});
 
 	it('finds nothing outside the level', () => {

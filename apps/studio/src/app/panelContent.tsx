@@ -18,7 +18,7 @@ import { LayersPanel } from '../panels/layers/LayersPanel';
 import { PalettePanel } from '../panels/PalettePanel';
 import { ScriptPanel } from '../panels/ScriptPanel';
 import type { Brush } from '../tools/brush';
-import type { Cell } from '../tools/tool';
+import type { Cell, Thing } from '../tools/tool';
 
 export interface PanelContentContext {
 	snapshot: LevelSnapshot;
@@ -28,6 +28,8 @@ export interface PanelContentContext {
 	spacing: number;
 	onSpacing: (spacing: number) => void;
 	onObjectChosen: (cell: Cell) => void;
+	/** The thing chosen in the Objects list, to select it. */
+	onThingChosen: (thing: Thing) => void;
 	showLine: (line: number) => void;
 	undo: () => void;
 	redo: () => void;
@@ -87,6 +89,7 @@ export function panelContent(id: PanelId, ctx: PanelContentContext): ReactNode {
 				<ObjectList
 					view={snapshot.view}
 					onSelectCell={ctx.onObjectChosen}
+					onSelectThing={ctx.onThingChosen}
 					onSelectLine={ctx.showLine}
 				/>
 			);

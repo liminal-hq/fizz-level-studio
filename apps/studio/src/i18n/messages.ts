@@ -285,6 +285,9 @@ export const enMessages = {
 	// translator: A short note beside a layer's name: changes made in the studio.
 	'layers.note.edits': 'Made in the studio',
 
+	// translator: Shown when the item, enemy, or start the person had selected is no longer in the level, usually because the script was changed outside the studio.
+	'selection.lost': 'The thing you selected is no longer in the level.',
+
 	// translator: Heading of the panel that shows the one thing selected on the level (an item, an enemy, or the start) with its position, facing and script line, and lets the person change it.
 	'inspector.title': 'Inspector',
 

@@ -13,7 +13,7 @@ import type { ZoneId } from '@liminal-hq/fizz-studio-protocol/generated/ZoneId';
 import { BRUSH_GROUPS, type Brush } from '../../tools/brush';
 import { ZONE_IDS } from '../dock/dockModel';
 import { PANEL_SPECS, type PanelId } from '../float/panelSpecs';
-import { TOOL_IDS, type Cell } from '../../tools/tool';
+import { TOOL_IDS, type Cell, type Thing } from '../../tools/tool';
 import { EVERY_PANEL, type EditorShare, type PaletteChoice, type PanelBridge } from './panelBridge';
 
 /** The editor's own setters, which the panels' choices go through. */
@@ -22,6 +22,7 @@ export interface EditorBridgeHandlers {
 	setBrush(brush: Brush): void;
 	setSpacing(spacing: number): void;
 	chooseObject(cell: Cell): void;
+	selectThing(thing: Thing): void;
 	showLine(line: number): void;
 	setGhostsShown(shown: boolean): void;
 	setHiddenLayers(hidden: string[]): void;
@@ -44,6 +45,23 @@ const isZoneId = (value: unknown): value is ZoneId => ZONE_IDS.includes(value as
 
 const isPlace = (value: unknown): value is number | null =>
 	value === null || (typeof value === 'number' && Number.isInteger(value) && value >= 0);
+
+const THING_KINDS = ['item', 'enemy', 'start', 'cell'];
+
+function isThing(value: unknown): value is Thing {
+	if (typeof value !== 'object' || value === null) return false;
+	const v = value as Record<string, unknown>;
+	return (
+		THING_KINDS.includes(v.kind as string) &&
+		typeof v.name === 'string' &&
+		isCoordinate(v.x) &&
+		isCoordinate(v.y) &&
+		(v.layer === 'objects' || v.layer === 'tiles') &&
+		Number.isInteger(v.index) &&
+		(v.index as number) >= 0 &&
+		(v.line === null || (Number.isInteger(v.line) && (v.line as number) >= 1))
+	);
+}
 
 const isCoordinate = (value: unknown): value is number =>
 	typeof value === 'number' && Number.isFinite(value);
@@ -77,6 +95,9 @@ export function useEditorBridgeHost(
 			}),
 			bridge.on('objects/choose', (cell) => {
 				if (cell && isCoordinate(cell.x) && isCoordinate(cell.y)) live.current.chooseObject(cell);
+			}),
+			bridge.on('objects/select', (thing) => {
+				if (isThing(thing)) live.current.selectThing(thing);
 			}),
 			bridge.on('script/show', (message) => {
 				if (message && Number.isInteger(message.line) && message.line >= 1) {

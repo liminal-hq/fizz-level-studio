@@ -149,6 +149,7 @@ function PanelWindow({
 							spacing: share.spacing,
 							onSpacing: (spacing) => bridge.send(owner, 'palette/set', { spacing }),
 							onObjectChosen: (cell) => bridge.send(owner, 'objects/choose', cell),
+							onThingChosen: (thing) => bridge.send(owner, 'objects/select', thing),
 							showLine: (line) => bridge.send(owner, 'script/show', { line }),
 							undo: session.undo,
 							redo: session.redo,

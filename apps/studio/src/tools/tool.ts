@@ -188,24 +188,83 @@ export interface Thing {
 	y: number;
 	/** The layer it lives on: the placed objects, or the tile map. */
 	layer: 'objects' | 'tiles';
+	/**
+	 * Where it is in the level's own list: an index into the unmasked `view.items` (an item) or
+	 * `view.spawns` (an enemy), 0 for the start and for a cell. Never an index into a view with
+	 * hidden layers left out.
+	 */
+	index: number;
+	/** The script line of its statement, from 1, or null where the view cannot tell (a cell). */
+	line: number | null;
+}
+
+/** What identifies a placed thing among its twins when two share a line and a cell. */
+interface Placed {
+	kind: string;
+	x: number;
+	y: number | null;
+	line: number | null;
+}
+
+/**
+ * The index in `whole` of the entry at `at` in `shown`, a filtered copy of it: the n-th entry of
+ * `shown` with a given kind, cell and line is the n-th such entry of `whole`. Falls back to `at`
+ * when nothing matches, which only happens if the two lists were never the same level.
+ */
+function wholeIndex<T extends Placed>(
+	whole: readonly T[],
+	shown: readonly T[],
+	at: number,
+): number {
+	if (shown === whole) return at;
+	const entry = shown[at]!;
+	const same = (other: T) =>
+		other.kind === entry.kind &&
+		other.x === entry.x &&
+		other.y === entry.y &&
+		other.line === entry.line;
+	let before = shown.slice(0, at).filter(same).length;
+	const found = whole.findIndex((other) => same(other) && before-- === 0);
+	return found === -1 ? at : found;
 }
 
 /**
  * The topmost thing on a cell: an item, then an enemy, then Ben's start, then the cell with its
- * tile. Null outside the level. It only reads the view.
+ * tile. Null outside the level. It only reads the view. `view` may have the things of hidden layers
+ * left out; `whole` is the level's own view, which the thing's index and line are counted in.
  */
-export function thingAt(view: LevelView, cell: Cell): Thing | null {
+export function thingAt(view: LevelView, cell: Cell, whole: LevelView = view): Thing | null {
 	if (!inBounds(view, cell)) return null;
 	const { x, y } = cell;
 	const item = itemOn(view, cell);
-	if (item) return { kind: 'item', name: item.kind, x, y, layer: 'objects' };
+	if (item) {
+		const index = wholeIndex(whole.items, view.items, view.items.indexOf(item));
+		return { kind: 'item', name: item.kind, x, y, layer: 'objects', index, line: item.line };
+	}
 	const spawn = spawnOn(view, cell);
-	if (spawn) return { kind: 'enemy', name: spawn.kind, x, y, layer: 'objects' };
+	if (spawn) {
+		const index = wholeIndex(whole.spawns, view.spawns, view.spawns.indexOf(spawn));
+		return { kind: 'enemy', name: spawn.kind, x, y, layer: 'objects', index, line: spawn.line };
+	}
 	const start = view.start;
 	if (start && Math.floor(start.x) === x && Math.floor(start.y) === y) {
-		return { kind: 'start', name: 'start', x, y, layer: 'objects' };
+		return { kind: 'start', name: 'start', x, y, layer: 'objects', index: 0, line: start.line };
 	}
-	return { kind: 'cell', name: tileOn(view, cell) ?? 'empty', x, y, layer: 'tiles' };
+	return {
+		kind: 'cell',
+		name: tileOn(view, cell) ?? 'empty',
+		x,
+		y,
+		layer: 'tiles',
+		index: 0,
+		line: null,
+	};
+}
+
+/** The cell a spawn stands on: its own row, or the resting row of its column when it has none. */
+export function spawnCell(view: LevelView, spawn: { x: number; y: number | null }): Cell {
+	const x = Math.floor(spawn.x);
+	return { x, y: Math.floor(spawn.y ?? restingRow(view, x)) };
 }
 
 function pick(state: ToolState, phase: PointerPhase, cell: Cell, context: ToolContext): ToolResult {

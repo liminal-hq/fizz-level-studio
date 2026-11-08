@@ -5,14 +5,15 @@
 
 import type { LevelView } from '@liminal-hq/fizz-studio-protocol/generated/LevelView';
 import { t } from '../i18n/messages';
-import type { Cell } from '../tools/tool';
+import { spawnCell, type Cell, type Thing } from '../tools/tool';
 import styles from './ObjectList.module.css';
-import { restingRow } from './drawLevel';
 
 export interface ObjectListProps {
 	view: LevelView;
 	/** Called with the cell of an item, spawn or start the person chose. */
 	onSelectCell: (cell: Cell) => void;
+	/** Called with the thing the person chose, counted in this view's own lists. */
+	onSelectThing?: (thing: Thing) => void;
 	/** Called with the line of a problem the person chose. */
 	onSelectLine?: (line: number) => void;
 }
@@ -21,7 +22,11 @@ export interface ObjectListProps {
  * Every object in the level as a button in a list, so a level can be explored and its objects
  * reached from the keyboard alone. Choosing one moves the canvas cursor to it.
  */
-export function ObjectList({ view, onSelectCell, onSelectLine }: ObjectListProps) {
+export function ObjectList({ view, onSelectCell, onSelectThing, onSelectLine }: ObjectListProps) {
+	const choose = (cell: Cell, thing: Thing) => {
+		onSelectCell(cell);
+		onSelectThing?.(thing);
+	};
 	const empty =
 		view.items.length === 0 &&
 		view.spawns.length === 0 &&
@@ -34,7 +39,19 @@ export function ObjectList({ view, onSelectCell, onSelectLine }: ObjectListProps
 					<button
 						type="button"
 						className={styles.entry}
-						onClick={() => view.start && onSelectCell({ x: view.start.x, y: view.start.y })}
+						onClick={() => {
+							const start = view.start;
+							if (!start) return;
+							const cell = { x: start.x, y: start.y };
+							choose(cell, {
+								kind: 'start',
+								name: 'start',
+								...cell,
+								layer: 'objects',
+								index: 0,
+								line: start.line,
+							});
+						}}
 					>
 						{t('objects.start', { x: view.start.x, y: view.start.y })}
 					</button>
@@ -45,7 +62,20 @@ export function ObjectList({ view, onSelectCell, onSelectLine }: ObjectListProps
 					<button
 						type="button"
 						className={styles.entry}
-						onClick={() => onSelectCell({ x: item.x, y: item.y })}
+						onClick={() =>
+							choose(
+								{ x: item.x, y: item.y },
+								{
+									kind: 'item',
+									name: item.kind,
+									x: item.x,
+									y: item.y,
+									layer: 'objects',
+									index,
+									line: item.line,
+								},
+							)
+						}
 					>
 						{t('objects.item', { kind: item.kind, x: item.x, y: item.y })}
 					</button>
@@ -56,7 +86,17 @@ export function ObjectList({ view, onSelectCell, onSelectLine }: ObjectListProps
 					<button
 						type="button"
 						className={styles.entry}
-						onClick={() => onSelectCell({ x: spawn.x, y: spawn.y ?? restingRow(view, spawn.x) })}
+						onClick={() => {
+							const cell = spawnCell(view, spawn);
+							choose(cell, {
+								kind: 'enemy',
+								name: spawn.kind,
+								...cell,
+								layer: 'objects',
+								index,
+								line: spawn.line,
+							});
+						}}
 					>
 						{spawn.y === null
 							? t('objects.spawnGround', { kind: spawn.kind, x: spawn.x })

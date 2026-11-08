@@ -21,9 +21,17 @@ const view = levelView(12, 8, {
 
 function setup(shown: LevelView = view) {
 	const onSelectCell = vi.fn();
+	const onSelectThing = vi.fn();
 	const onSelectLine = vi.fn();
-	render(<ObjectList view={shown} onSelectCell={onSelectCell} onSelectLine={onSelectLine} />);
-	return { onSelectCell, onSelectLine };
+	render(
+		<ObjectList
+			view={shown}
+			onSelectCell={onSelectCell}
+			onSelectThing={onSelectThing}
+			onSelectLine={onSelectLine}
+		/>,
+	);
+	return { onSelectCell, onSelectThing, onSelectLine };
 }
 
 describe('the objects list', () => {
@@ -52,6 +60,41 @@ describe('the objects list', () => {
 		// A spawn with no row rests on the ground in its column (the floor is row 0).
 		await user.click(screen.getByRole('button', { name: 'Spawn bat at column 9' }));
 		expect(onSelectCell).toHaveBeenLastCalledWith({ x: 9, y: 1 });
+	});
+
+	it('selects the thing chosen, with its place in the level’s lists and its line', async () => {
+		const user = userEvent.setup();
+		const { onSelectThing } = setup();
+		await user.click(screen.getByRole('button', { name: 'Item cheezie at 4, 3' }));
+		expect(onSelectThing).toHaveBeenLastCalledWith({
+			kind: 'item',
+			name: 'cheezie',
+			x: 4,
+			y: 3,
+			layer: 'objects',
+			index: 0,
+			line: 9,
+		});
+		await user.click(screen.getByRole('button', { name: 'Spawn bat at column 9' }));
+		expect(onSelectThing).toHaveBeenLastCalledWith({
+			kind: 'enemy',
+			name: 'bat',
+			x: 9,
+			y: 1,
+			layer: 'objects',
+			index: 1,
+			line: 13,
+		});
+		await user.click(screen.getByRole('button', { name: 'Ben’s start at 1, 1' }));
+		expect(onSelectThing).toHaveBeenLastCalledWith({
+			kind: 'start',
+			name: 'start',
+			x: 1,
+			y: 1,
+			layer: 'objects',
+			index: 0,
+			line: 2,
+		});
 	});
 
 	it('hands a chosen problem to the caller as its line', async () => {

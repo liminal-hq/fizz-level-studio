@@ -15,7 +15,7 @@
 import { emit, listen } from '@tauri-apps/api/event';
 import type { ZoneId } from '@liminal-hq/fizz-studio-protocol/generated/ZoneId';
 import type { Brush } from '../../tools/brush';
-import type { Cell, ToolId } from '../../tools/tool';
+import type { Cell, Thing, ToolId } from '../../tools/tool';
 
 /** The one event every message travels on. */
 export const PANEL_BRIDGE_EVENT = 'panel://bridge';
@@ -55,6 +55,8 @@ export interface BridgeTopics {
 	'palette/set': PaletteChoice;
 	/** A panel window to the main window: the person chose an object, so reveal its cell. */
 	'objects/choose': Cell;
+	/** A panel window to the main window: the person chose this thing in the Objects list, so select it. */
+	'objects/select': Thing;
 	/** A panel window to the main window: show this script line (from 1). */
 	'script/show': { line: number };
 	/** A panel window to the main window: show or hide Claude's proposals over the level. */

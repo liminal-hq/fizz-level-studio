@@ -64,6 +64,7 @@ import type { PanelWindowClient } from '../services/panelWindowClient';
 import { pasteRect } from '../tools/clip';
 import { SPACING_KEYS, toolForKey } from '../tools/shortcuts';
 import { ToolPicker } from '../tools/ToolPicker';
+import { resolveThing } from '../inspector/resolveThing';
 import { thingAt, type Cell, type PointerPhase, type Thing } from '../tools/tool';
 import { useTool } from '../tools/useTool';
 import { isLevelError, type LevelClient } from '../worlds/levelClient';
@@ -152,6 +153,8 @@ export function EditorScreen({
 	// What Inspect selected. It lives here, above the tool, so it outlasts a change of tool, never
 	// touches Select's rectangle, and the canvas, the objects list and the inspector read one value.
 	const [selectedThing, setSelectedThing] = useState<Thing | null>(null);
+	// Set when the selected thing went away under the person (an outside edit), until they choose again.
+	const [selectionLost, setSelectionLost] = useState(false);
 	const [words, setWords] = useState<WordDoc[]>([]);
 	const [proposals, setProposals] = useState<GhostProposal[]>([]);
 	const [showGhosts, setShowGhosts] = useState(true);
@@ -347,19 +350,41 @@ export function EditorScreen({
 	const onToolEvent = useCallback(
 		(phase: PointerPhase, cell: Cell) => {
 			if (tool.tool === 'inspect') {
-				if (phase === 'down') setSelectedThing(thingAt(shownView, cell));
+				if (phase === 'down') {
+					setSelectionLost(false);
+					setSelectedThing(thingAt(shownView, cell, levelView));
+				}
 				return;
 			}
 			const edits = tool.pointer(phase, cell);
 			if (edits.length > 0) sendStroke(edits);
 		},
-		[tool, sendStroke, shownView],
+		[tool, sendStroke, shownView, levelView],
 	);
 	const inspected = useMemo(
 		() => (selectedThing ? { x: selectedThing.x, y: selectedThing.y } : null),
 		[selectedThing],
 	);
-	const clearInspected = useCallback(() => setSelectedThing(null), []);
+	const clearInspected = useCallback(() => {
+		setSelectionLost(false);
+		setSelectedThing(null);
+	}, []);
+	const chooseThing = useCallback((thing: Thing) => {
+		setSelectionLost(false);
+		setSelectedThing(thing);
+	}, []);
+	// The level changed (an edit of the person's, or one from outside): the selected thing follows
+	// its entry, or is let go with a note when it is no longer in the level.
+	const selectedNow = useRef(selectedThing);
+	selectedNow.current = selectedThing;
+	useEffect(() => {
+		const prev = selectedNow.current;
+		if (!prev) return;
+		const next = resolveThing(prev, levelView);
+		if (next === prev) return;
+		setSelectedThing(next);
+		if (next === null) setSelectionLost(true);
+	}, [levelView]);
 
 	const undo = useCallback(
 		() =>
@@ -564,6 +589,7 @@ export function EditorScreen({
 		setBrush: tool.setBrush,
 		setSpacing: tool.setSpacing,
 		chooseObject: onObjectChosen,
+		selectThing: chooseThing,
 		showLine,
 		setGhostsShown: setShowGhosts,
 		setHiddenLayers,
@@ -614,6 +640,7 @@ export function EditorScreen({
 				spacing: tool.spacing,
 				onSpacing: tool.setSpacing,
 				onObjectChosen,
+				onThingChosen: chooseThing,
 				showLine,
 				undo,
 				redo,
@@ -650,6 +677,11 @@ export function EditorScreen({
 			{noteText && (
 				<p className={styles.banner} role="note">
 					{noteText}
+				</p>
+			)}
+			{selectionLost && (
+				<p className={styles.banner} role="status">
+					{t('selection.lost')}
 				</p>
 			)}
 			{problem && (
