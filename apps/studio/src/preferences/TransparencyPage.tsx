@@ -143,6 +143,7 @@ export function TransparencyPage({ editor, system, effects }: TransparencyPagePr
 	const [drag, setDrag] = useState<Partial<Record<SliderKey, number>>>({});
 	if (!values) return null;
 	const saved = values.transparency;
+	// Only the sliders held now: a key left in `drag` with no value would overwrite the saved one.
 	const shown: TransparencySettings = { ...saved, ...drag };
 	const solid = resolveGlass(values.glass, system.reducedTransparency) === 'solid';
 	const seeThrough = effects?.seeThrough === true;
@@ -166,7 +167,7 @@ export function TransparencyPage({ editor, system, effects }: TransparencyPagePr
 			disabled={disabled}
 			onInput={(value) => setDrag((current) => ({ ...current, [row.key]: value }))}
 			onChange={(value) => {
-				setDrag((current) => ({ ...current, [row.key]: undefined }));
+				setDrag(({ [row.key]: _released, ...held }) => held);
 				save(row.field, { [row.key]: value });
 			}}
 		/>

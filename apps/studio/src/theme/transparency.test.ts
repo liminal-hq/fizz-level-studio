@@ -59,6 +59,35 @@ describe('glassValues', () => {
 	});
 });
 
+describe('the panel opacity mapping', () => {
+	const at = (panel_opacity: number) => glassValues({ ...TRANSPARENCY_DEFAULTS, panel_opacity });
+
+	it('is the opacity itself: 100 is solid and lower lets more through, at 40, 73 and 100', () => {
+		expect([40, 73, 100].map((v) => Number(at(v).alpha))).toEqual([0.4, 0.73, 1]);
+	});
+
+	it('never writes a value that is not a number, so no rule is left invalid', () => {
+		const stray = glassValues({
+			blur: Number.NaN,
+			saturation: Number.NaN,
+			panel_opacity: undefined as unknown as number,
+			menu_opacity: Number.NaN,
+		});
+		expect(stray).toEqual(glassValues(TRANSPARENCY_DEFAULTS));
+	});
+
+	it('gives a window that never gets more see-through as the opacity rises, and solid at 100', () => {
+		for (const [text, surface] of [
+			['#ffffff', '#14151e'],
+			['#1c1b20', '#f2eff4'],
+		] as const) {
+			const alphas = [40, 55, 73, 88, 100].map((v) => windowAlpha(v, text, surface));
+			expect(alphas).toEqual([...alphas].sort((a, b) => a - b));
+			expect(alphas[alphas.length - 1]).toBe(1);
+		}
+	});
+});
+
 describe('alphaFloor', () => {
 	it('finds the least opacity that keeps the text at 4.5:1 over the worst backdrop', () => {
 		const floor = alphaFloor('#1c1b20', '#f2eff4')!;
