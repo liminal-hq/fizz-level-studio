@@ -17,6 +17,10 @@ pub enum DocumentError {
     /// The document could not make sense of the intent.
     #[error("the intent was refused: {0}")]
     Refused(String),
+    /// The intent names something at a line that is no longer there: the text changed since the
+    /// caller read it.
+    #[error("what the intent names is no longer at line {line}")]
+    Gone { line: u32 },
 }
 
 /// Why a session refused a request. A refusal changes nothing, not even the revision.

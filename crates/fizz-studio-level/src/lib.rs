@@ -13,6 +13,7 @@ mod layers;
 mod locks;
 mod new;
 mod proposals;
+mod things;
 mod view;
 mod words;
 
@@ -22,6 +23,8 @@ mod fizz2_tests;
 mod new_tests;
 #[cfg(test)]
 mod tests;
+#[cfg(test)]
+mod things_tests;
 
 pub use any::{open_level_text, AnyLevelDocument};
 pub use document::{step_name, LevelDocument};
@@ -33,3 +36,4 @@ pub use new::{
     HEIGHT_RANGE, WIDTH_RANGE,
 };
 pub use proposals::{pending_ghosts, sidecar_path, word_docs};
+pub use things::{apply_thing_edit, ThingOutcome};

@@ -16,5 +16,6 @@ fizz-studio-language = { path = "../fizz-studio-language" }
 fizz-studio-protocol = { path = "../fizz-studio-protocol" }
 fizz-studio-session = { path = "../fizz-studio-session" }
 indexmap = { version = "2", features = ["serde"] }
+log = { workspace = true }
 serde_json = { workspace = true }
 

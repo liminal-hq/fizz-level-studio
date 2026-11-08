@@ -233,6 +233,27 @@ impl Line {
         Some(self.splice(field.value.0, field.value.1, text))
     }
 
+    /// Replaces one comma item of a positional field, such as the `4` of `start 3,4`.
+    pub fn set_positional_item(&self, index: usize, item: usize, text: &str) -> Option<String> {
+        let field = self.positionals().nth(index)?;
+        let (s, e) = *field.items.get(item)?;
+        Some(self.splice(s, e, text))
+    }
+
+    /// The text of one comma item of a positional field.
+    pub fn positional_item(&self, index: usize, item: usize) -> Option<&str> {
+        let field = self.positionals().nth(index)?;
+        let (s, e) = *field.items.get(item)?;
+        Some(&self.raw[s..e])
+    }
+
+    /// This line's indent and trailing whitespace and comment around `code` in place of the words and
+    /// fields: how one statement becomes another (`row cheezie x=17..20 y=7` becomes
+    /// `cheezie x=17,19..20 y=7`) without losing the comment.
+    pub fn replace_code(&self, code: &str) -> String {
+        format!("{}{}{}", self.indent(), code, &self.raw[self.code_end..])
+    }
+
     /// Replaces one positional field (counted among the positionals) with `text`.
     pub fn set_positional(&self, index: usize, text: &str) -> Option<String> {
         let field = self.positionals().nth(index)?;
@@ -454,15 +475,7 @@ mod tests {
             start.set_positional(0, "5,6").unwrap(),
             "start 5,6   // here"
         );
-        assert_eq!(start.item_of_positional(0, 1), Some("4"));
-    }
-
-    impl Line {
-        fn item_of_positional(&self, index: usize, item: usize) -> Option<&str> {
-            let field = self.positionals().nth(index)?;
-            let (s, e) = *field.items.get(item)?;
-            Some(&self.raw[s..e])
-        }
+        assert_eq!(start.positional_item(0, 1), Some("4"));
     }
 
     #[test]

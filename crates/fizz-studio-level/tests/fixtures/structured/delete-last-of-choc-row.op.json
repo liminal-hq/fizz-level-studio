@@ -1,0 +1,11 @@
+{
+  "kind": "delete-thing",
+  "thing": {
+    "kind": "item",
+    "index": 11,
+    "line": 29,
+    "expect": "  row choc    x=46..52 y=8 by=3",
+    "x": 52.0,
+    "y": 8.0
+  }
+}
