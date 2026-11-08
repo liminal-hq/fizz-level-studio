@@ -17,6 +17,7 @@ pub mod overworld;
 pub mod parser;
 pub mod printer;
 pub mod raster;
+pub mod rewrite;
 pub mod tables;
 
 /// The name reports use for this crate.
