@@ -255,9 +255,15 @@ async function measureScriptPopup(
 			 }
 			 return null;
 		 };
+		 // The editor draws lines beyond the ones in view; the word must be one the person can see.
+		 const view = scroller.getBoundingClientRect();
 		 let rect = find();
-		 for (let top = 0; !rect && scroller && top < scroller.scrollHeight; top += 200) { scroller.scrollTop = top; await new Promise((r) => setTimeout(r, 60)); rect = find(); }
-		 if (!rect) return false;
+		 for (let tries = 0; tries < 12 && rect && (rect.top < view.top || rect.bottom > view.bottom); tries++) {
+			 scroller.scrollTop += rect.top - (view.top + view.height / 2);
+			 await new Promise((r) => setTimeout(r, 120));
+			 rect = find();
+		 }
+		 if (!rect || rect.top < view.top || rect.bottom > view.bottom) return false;
 		 const x = rect.left + rect.width / 2, y = rect.top + rect.height / 2;
 		 for (const type of ['mousemove', 'mouseover']) content.dispatchEvent(new MouseEvent(type, { bubbles: true, clientX: x, clientY: y }));
 		 return true;`,
@@ -268,6 +274,13 @@ async function measureScriptPopup(
 		bridge.js<boolean>(`return !!document.querySelector('.cm-tooltip .fls-doc');`, windowId),
 	);
 	if (shown === null) return null;
+	// The library measures a popup before it places it; until then it is parked far off screen.
+	await within(3000, () =>
+		bridge.js<boolean>(
+			`const tip = document.querySelector('.cm-tooltip .fls-doc')?.closest('.cm-tooltip'); return !!tip && tip.getBoundingClientRect().top > -1000;`,
+			windowId,
+		),
+	);
 	return bridge.js(
 		`const tip = document.querySelector('.cm-tooltip .fls-doc').closest('.cm-tooltip');
 		 const r = tip.getBoundingClientRect();
@@ -317,8 +330,8 @@ async function scriptPopupChecks(bridge: Bridge): Promise<void> {
 	);
 	await run('floating Script');
 	check(
-		'floating: Script docks at the bottom again',
-		await choosePanelMenu(bridge, 'Script', 'Dock bottom'),
+		'floating: the layout is reset, so Script is back in the bottom dock',
+		await choosePanelMenu(bridge, 'Script', 'Reset layout'),
 	);
 	await sleep(300);
 }
@@ -382,8 +395,8 @@ async function transparentEditorChecks(bridge: Bridge): Promise<void> {
 	);
 	await run('floating Script', 'floating');
 	check(
-		'transparency: Script docks at the bottom again',
-		await choosePanelMenu(bridge, 'Script', 'Dock bottom'),
+		'transparency: the layout is reset, so Script is back in the bottom dock',
+		await choosePanelMenu(bridge, 'Script', 'Reset layout'),
 	);
 	await sleep(300);
 }
