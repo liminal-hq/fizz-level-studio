@@ -10,6 +10,7 @@ import { useBridgeSnapshot } from '../commands/commandBridge';
 import { runCommand } from '../commands/registry';
 import { buildRibbon, contextualTabs } from '../commands/ribbonModel';
 import { t } from '../i18n/messages';
+import { useSurfaceMenu } from './useSurfaceMenu';
 import { ChevronDownIcon, ChevronUpIcon } from '../icons/AppIcons';
 import { Tooltip } from '../ui/Tooltip';
 import { wrapControlInTooltip } from '../ui/ribbonTooltip';
@@ -40,8 +41,9 @@ export function AppRibbon({ end }: AppRibbonProps) {
 		[snapshot],
 	);
 	const Chevron = folded ? ChevronDownIcon : ChevronUpIcon;
+	const rowMenu = useSurfaceMenu<HTMLDivElement>(() => ({ kind: 'commandsRow', row: 'ribbon' }));
 	return (
-		<div className={styles.host} data-app-ribbon="" data-folded={folded || undefined}>
+		<div className={styles.host} data-app-ribbon="" data-folded={folded || undefined} {...rowMenu}>
 			<Ribbon
 				model={model}
 				contextual={contextual}

@@ -10,6 +10,7 @@ import { useBridgeSnapshot } from '../commands/commandBridge';
 import { runCommand } from '../commands/registry';
 import { buildToolbar, panelToggles } from '../commands/toolbarModel';
 import { t } from '../i18n/messages';
+import { useSurfaceMenu } from './useSurfaceMenu';
 import { APP_ICONS } from '../icons/AppIcons';
 import { spacingText } from '../tools/spacingText';
 import { brushSwatch } from '../tools/swatch';
@@ -36,8 +37,10 @@ export function AppToolbar({ end }: AppToolbarProps) {
 		[snapshot],
 	);
 	const { brush, spacing } = snapshot.facts;
+	// A right-click on the row (not on the workspace switcher, which has its own menu) picks the toolbar.
+	const rowMenu = useSurfaceMenu<HTMLDivElement>(() => ({ kind: 'commandsRow', row: 'toolbar' }));
 	return (
-		<div className={styles.host} data-app-toolbar="">
+		<div className={styles.host} data-app-toolbar="" {...rowMenu}>
 			<ClassicToolbar
 				model={model}
 				label={t('toolbar.label')}

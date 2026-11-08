@@ -124,7 +124,8 @@ export function chromeMenuItems(target: ChromeContextTarget, snapshot: BridgeSna
 		case 'zoom':
 			return menuSections(rows('view.zoomIn', 'view.zoomOut', 'view.zoomFit'));
 		case 'history':
-			return historyItems(snapshot);
+			// A window that cannot undo (a History panel torn off) has no step to list.
+			return 'edit.undo' in snapshot.handlers ? historyItems(snapshot) : [];
 		// The tool picker and the Palette wait for a later change.
 		case 'tools':
 		case 'brush':

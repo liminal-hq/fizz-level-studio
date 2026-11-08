@@ -15,6 +15,7 @@ import {
 	viewOf,
 } from '../commands/registry';
 import { t } from '../i18n/messages';
+import { useSurfaceMenu } from './useSurfaceMenu';
 import { SearchIcon } from '../icons/AppIcons';
 import { Tooltip } from '../ui/Tooltip';
 import styles from './WorkspaceSwitcher.module.css';
@@ -26,6 +27,7 @@ import styles from './WorkspaceSwitcher.module.css';
  */
 export function WorkspaceSwitcher() {
 	const snapshot = useBridgeSnapshot();
+	const switcherMenu = useSurfaceMenu<HTMLDivElement>(() => ({ kind: 'workspace' }));
 	const choices = useMemo(() => {
 		const defs = allCommands(snapshot.facts);
 		return WORKSPACE_COMMANDS.flatMap((entry) => {
@@ -46,7 +48,7 @@ export function WorkspaceSwitcher() {
 	}, [snapshot]);
 	if (choices.length === 0) return null;
 	return (
-		<div className={styles.group} role="group" aria-label={t('workspace.label')}>
+		<div className={styles.group} role="group" aria-label={t('workspace.label')} {...switcherMenu}>
 			{choices.map((choice) => (
 				<Tooltip key={choice.id} label={choice.label} keys={choice.keys}>
 					<button

@@ -36,3 +36,8 @@
 	align-items: center;
 	gap: 0.5rem;
 }
+
+/* The menu bar with nothing beside it: the wrapper that carries the row's menu takes no box. */
+.bare {
+	display: contents;
+}
