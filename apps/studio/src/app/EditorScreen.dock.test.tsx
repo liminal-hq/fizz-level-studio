@@ -50,7 +50,7 @@ describe('the editor’s docks', () => {
 		expect(railItem('Left rail', 'Palette')).toHaveAttribute('aria-pressed', 'true');
 		expect(
 			within(screen.getByRole('group', { name: 'Right rail' })).getAllByRole('button'),
-		).toHaveLength(2);
+		).toHaveLength(3);
 		const bottom = screen.getByRole('region', { name: 'Bottom dock' });
 		expect(await within(bottom).findByRole('textbox', { name: 'Script text' })).toBeInTheDocument();
 		expect(screen.getByRole('application')).toBeInTheDocument();
@@ -121,15 +121,17 @@ describe('the editor’s docks', () => {
 		const { bridge } = await mount();
 		await waitFor(() => expect(bridge.getSnapshot().facts.editorOpen).toBe(true));
 		const right = screen.getByRole('region', { name: 'Right dock' });
-		runCommand('view.panel.objects', bridge.getSnapshot());
+		runCommand('view.panel.inspector', bridge.getSnapshot());
 		const rail = screen.getByRole('group', { name: 'Right rail' });
-		await waitFor(() => expect(within(rail).queryByRole('button', { name: 'Objects' })).toBeNull());
-		expect(railItem('Right rail', 'History')).toHaveAttribute('aria-pressed', 'true');
-		expect(within(right).getByRole('heading', { name: 'History' })).toBeInTheDocument();
-		await waitFor(() => expect(bridge.getSnapshot().facts.panels.objects).toBe(false));
-		runCommand('view.panel.objects', bridge.getSnapshot());
 		await waitFor(() =>
-			expect(railItem('Right rail', 'Objects')).toHaveAttribute('aria-pressed', 'true'),
+			expect(within(rail).queryByRole('button', { name: 'Inspector' })).toBeNull(),
+		);
+		expect(railItem('Right rail', 'Objects')).toHaveAttribute('aria-pressed', 'true');
+		expect(within(right).getByRole('heading', { name: 'Objects' })).toBeInTheDocument();
+		await waitFor(() => expect(bridge.getSnapshot().facts.panels.inspector).toBe(false));
+		runCommand('view.panel.inspector', bridge.getSnapshot());
+		await waitFor(() =>
+			expect(railItem('Right rail', 'Inspector')).toHaveAttribute('aria-pressed', 'true'),
 		);
 	});
 
@@ -166,7 +168,7 @@ describe('the editor’s docks', () => {
 	it('folds a dock to a rail, peeks a panel over the level and pins it back', async () => {
 		const user = userEvent.setup();
 		await mount();
-		await user.click(railItem('Right rail', 'Objects'));
+		await user.click(railItem('Right rail', 'Inspector'));
 		expect(screen.queryByRole('region', { name: 'Right dock' })).toBeNull();
 		railItem('Right rail', 'History').focus();
 		await user.keyboard('{ArrowLeft}');

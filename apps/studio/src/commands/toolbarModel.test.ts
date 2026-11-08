@@ -106,6 +106,7 @@ describe('panelToggles', () => {
 		expect(toggles.map((toggle) => toggle.label)).toEqual([
 			'Palette',
 			'Layers',
+			'Inspector',
 			'Objects',
 			'History',
 			'Proposals',

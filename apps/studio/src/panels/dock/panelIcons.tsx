@@ -44,6 +44,13 @@ export const LayersIcon: IconComponent = ({ size }) => (
 	</Svg>
 );
 
+/** The Inspector: a circled "i". */
+export const InspectorIcon: IconComponent = ({ size }) => (
+	<Svg size={size}>
+		<path d="M2 8a6 6 0 1012 0a6 6 0 10-12 0M8 7v4M8 5v.01" />
+	</Svg>
+);
+
 /** The Objects list: three rows with markers. */
 export const ObjectsIcon: IconComponent = ({ size }) => (
 	<Svg size={size}>
@@ -81,6 +88,7 @@ export const ScriptIcon: IconComponent = ({ size }) => (
 export const PANEL_ICONS: Record<PanelId, IconComponent> = {
 	palette: PaletteIcon,
 	layers: LayersIcon,
+	inspector: InspectorIcon,
 	objects: ObjectsIcon,
 	history: HistoryIcon,
 	proposals: ProposalsIcon,

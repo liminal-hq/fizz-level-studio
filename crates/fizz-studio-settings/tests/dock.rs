@@ -103,7 +103,7 @@ fn every_panel_is_in_exactly_one_place_in_every_default_workspace() {
 }
 
 #[test]
-fn the_default_arrangement_is_palette_and_layers_left_objects_and_history_right_script_and_proposals_below(
+fn the_default_arrangement_is_palette_and_layers_left_inspector_objects_and_history_right_script_and_proposals_below(
 ) {
     let ws = default_workspace();
     let tabs = |zone: ZoneId| -> Vec<String> {
@@ -115,7 +115,7 @@ fn the_default_arrangement_is_palette_and_layers_left_objects_and_history_right_
             .collect()
     };
     assert_eq!(tabs(ZoneId::Left), ["palette", "layers"]);
-    assert_eq!(tabs(ZoneId::Right), ["objects", "history"]);
+    assert_eq!(tabs(ZoneId::Right), ["inspector", "objects", "history"]);
     assert_eq!(tabs(ZoneId::Bottom), ["script", "proposals"]);
     assert_eq!(
         [
@@ -530,4 +530,52 @@ fn a_saved_workspace_without_layers_gains_it_beside_the_palette_and_loads_unchan
         expected.active = report.settings.dock.active.clone();
         expected
     });
+}
+
+#[test]
+fn a_saved_workspace_without_the_inspector_gains_it_in_the_right_dock_and_loads_unchanged() {
+    // A dock saved before the Inspector existed: every panel but `inspector`.
+    let mut dock = default_dock();
+    for ws in dock.workspaces.values_mut() {
+        ws.panels.remove("inspector");
+        for zone in [
+            &mut ws.zones.left,
+            &mut ws.zones.right,
+            &mut ws.zones.bottom,
+        ] {
+            for group in &mut zone.groups {
+                group.tabs.retain(|t| t != "inspector");
+            }
+        }
+        for zone in [&mut ws.zones.right] {
+            for group in &mut zone.groups {
+                if !group.tabs.contains(&group.active) {
+                    group.active = group.tabs[0].clone();
+                }
+            }
+        }
+    }
+    let settings = Settings {
+        dock,
+        ..Settings::default()
+    };
+    let text = serde_json::to_string(&json!({
+        "version": SETTINGS_VERSION,
+        "settings": serde_json::to_value(&settings).unwrap(),
+    }))
+    .unwrap();
+    let report = memory_file(&text).load();
+    assert!(report.problem.is_none(), "{:?}", report.problem);
+    assert!(report.set_aside.is_none());
+    for (name, ws) in &report.settings.dock.workspaces {
+        assert!(ws.panels.contains_key("inspector"), "{name}");
+        assert!(
+            ws.zones.right.groups[0]
+                .tabs
+                .iter()
+                .any(|t| t == "inspector"),
+            "{name}"
+        );
+        assert_eq!(ws.panels.len(), PANEL_IDS.len(), "{name}");
+    }
 }

@@ -718,8 +718,13 @@ async function dockChecks(bridge: Bridge): Promise<void> {
 	check(
 		'the rails mark the showing panels and not the others',
 		(await railItemPressed(bridge, 'Palette')) === true &&
-			(await railItemPressed(bridge, 'Objects')) === true &&
+			(await railItemPressed(bridge, 'Inspector')) === true &&
 			(await railItemPressed(bridge, 'History')) === false,
+		JSON.stringify(
+			await bridge.js<string[]>(
+				`return [...document.querySelectorAll('[data-rail-item]')].map((x) => x.textContent.trim() + ':' + x.getAttribute('aria-pressed'));`,
+			),
+		),
 	);
 	check(
 		'an open dock names its panel once, and only the Script header has tabs (the rail is the switch)',
@@ -885,7 +890,7 @@ async function dockChecks(bridge: Bridge): Promise<void> {
 
 	// Choosing the showing panel on its rail folds the dock; choosing it again opens it.
 	const beforeFold = m.map!.w;
-	check('the right rail offers Objects', await clickRailItem(bridge, 'Objects'));
+	check('the right rail offers the Inspector', await clickRailItem(bridge, 'Inspector'));
 	await sleep(300);
 	m = await measureLayout(bridge);
 	check(
@@ -893,7 +898,7 @@ async function dockChecks(bridge: Bridge): Promise<void> {
 		!m.right && !!m.rightRail && m.map!.w > beforeFold && overlaid(m),
 		JSON.stringify([m.right, m.rightRail, m.map?.w]),
 	);
-	check('the folded rail offers Objects', await clickRailItem(bridge, 'Objects'));
+	check('the folded rail offers the Inspector', await clickRailItem(bridge, 'Inspector'));
 	await sleep(300);
 	m = await measureLayout(bridge);
 	check(
@@ -901,7 +906,7 @@ async function dockChecks(bridge: Bridge): Promise<void> {
 		!!m.right &&
 			!!m.rightRail &&
 			Math.abs(m.map!.w - beforeFold) < 1.5 &&
-			(await railItemPressed(bridge, 'Objects')) === true,
+			(await railItemPressed(bridge, 'Inspector')) === true,
 		JSON.stringify([m.right, m.map?.w]),
 	);
 
@@ -1624,8 +1629,8 @@ async function dragAndMaximiseChecks(bridge: Bridge): Promise<void> {
 	check(
 		'drag: a synthetic drag starts on the Palette rail entry',
 		await syntheticDrag(bridge, '[data-rail="left"] [data-rail-item="palette"]', {
-			// The top of the right rail's first entry: the place before Objects.
-			selector: '[data-rail="right"] [data-rail-item="objects"]',
+			// The top of the right rail's first entry: the place before the Inspector.
+			selector: '[data-rail="right"] [data-rail-item="inspector"]',
 			fx: 0.5,
 			fy: 0.1,
 		}),
@@ -1634,7 +1639,7 @@ async function dragAndMaximiseChecks(bridge: Bridge): Promise<void> {
 	m = await measureLayout(bridge);
 	check(
 		'drag: the Palette moves to the right rail where it was let go and Layers stays on the left',
-		(await tabsIn(bridge, 'Right dock')).join() === 'Palette,Objects,History' &&
+		(await tabsIn(bridge, 'Right dock')).join() === 'Palette,Inspector,Objects,History' &&
 			(await tabsIn(bridge, 'Left dock')).join() === 'Layers',
 		JSON.stringify([await tabsIn(bridge, 'Right dock'), await tabsIn(bridge, 'Left dock')]),
 	);
@@ -1642,7 +1647,7 @@ async function dragAndMaximiseChecks(bridge: Bridge): Promise<void> {
 	check(
 		'drag: a synthetic drag starts on the Layers rail entry',
 		await syntheticDrag(bridge, '[data-rail="left"] [data-rail-item="layers"]', {
-			selector: '[data-rail="right"] [data-rail-item="objects"]',
+			selector: '[data-rail="right"] [data-rail-item="inspector"]',
 			fx: 0.5,
 			fy: 0.1,
 		}),
@@ -1651,7 +1656,7 @@ async function dragAndMaximiseChecks(bridge: Bridge): Promise<void> {
 	m = await measureLayout(bridge);
 	check(
 		'drag: with both panels gone the left dock and rail go',
-		(await tabsIn(bridge, 'Right dock')).join() === 'Palette,Layers,Objects,History' &&
+		(await tabsIn(bridge, 'Right dock')).join() === 'Palette,Layers,Inspector,Objects,History' &&
 			!m.left &&
 			!m.leftRail,
 		JSON.stringify(await tabsIn(bridge, 'Right dock')),
@@ -1676,7 +1681,7 @@ async function dragAndMaximiseChecks(bridge: Bridge): Promise<void> {
 	check(
 		'drag: an empty dock takes the panel back and the sizes are sane',
 		(await tabsIn(bridge, 'Left dock')).join() === 'Palette' &&
-			(await tabsIn(bridge, 'Right dock')).join() === 'Layers,Objects,History' &&
+			(await tabsIn(bridge, 'Right dock')).join() === 'Layers,Inspector,Objects,History' &&
 			sane(m),
 		JSON.stringify([m.left, m.right, m.bottom, m.canvas, m.map]),
 	);
@@ -1690,7 +1695,7 @@ async function dragAndMaximiseChecks(bridge: Bridge): Promise<void> {
 	check(
 		'drag: Layers goes back beside the Palette',
 		(await tabsIn(bridge, 'Left dock')).join() === 'Palette,Layers' &&
-			(await tabsIn(bridge, 'Right dock')).join() === 'Objects,History',
+			(await tabsIn(bridge, 'Right dock')).join() === 'Inspector,Objects,History',
 		JSON.stringify([await tabsIn(bridge, 'Left dock'), await tabsIn(bridge, 'Right dock')]),
 	);
 
@@ -1705,7 +1710,7 @@ async function dragAndMaximiseChecks(bridge: Bridge): Promise<void> {
 	check(
 		'drag: Escape during a drag cancels it',
 		(await tabsIn(bridge, 'Left dock')).join() === 'Palette,Layers' &&
-			(await tabsIn(bridge, 'Right dock')).join() === 'Objects,History',
+			(await tabsIn(bridge, 'Right dock')).join() === 'Inspector,Objects,History',
 	);
 
 	// A panel dragged onto the level floats where it was let go.
@@ -1727,7 +1732,7 @@ async function dragAndMaximiseChecks(bridge: Bridge): Promise<void> {
 		'drag: a panel dragged onto the level floats where it was let go',
 		floated !== null &&
 			Math.abs(floated.x - target.x) < 40 &&
-			(await tabsIn(bridge, 'Right dock')).join() === 'History' &&
+			(await tabsIn(bridge, 'Right dock')).join() === 'Inspector,History' &&
 			sane(m),
 		JSON.stringify([floated, target]),
 	);
@@ -1928,7 +1933,7 @@ async function dragAndMaximiseChecks(bridge: Bridge): Promise<void> {
 	await sleep(300);
 	check(
 		'drag: it sits after History until moved',
-		(await tabsIn(bridge, 'Right dock')).join() === 'History,Objects',
+		(await tabsIn(bridge, 'Right dock')).join() === 'Inspector,History,Objects',
 	);
 	const moved = await bridge.js<{ tabs: string[]; note: string }>(
 		`const tab = [...document.querySelectorAll('[data-rail="right"] [data-rail-item]')].find((t) => t.textContent.trim() === 'Objects');
@@ -1942,8 +1947,8 @@ async function dragAndMaximiseChecks(bridge: Bridge): Promise<void> {
 	);
 	check(
 		'drag: Alt+ArrowUp moves a rail entry and announces its new place',
-		moved.tabs.join() === 'Objects,History' &&
-			moved.note.includes('Objects moved to position 1 of 2'),
+		moved.tabs.join() === 'Inspector,Objects,History' &&
+			moved.note.includes('Objects moved to position 2 of 3'),
 		JSON.stringify(moved),
 	);
 
@@ -3641,10 +3646,10 @@ async function main(): Promise<void> {
 				rowBox.names.slice(0, 6).join('|') ===
 					'New level…|Open level…|Save|Close level|Undo|Redo' &&
 					rowBox.names[6]?.includes('Brush:') === true &&
-					rowBox.names.slice(7, 13).join('|') ===
-						'Palette|Layers|Objects|History|Proposals|Script' &&
-					rowBox.names[13]?.startsWith('Search commands') === true &&
-					rowBox.names.slice(14).join('|') === 'Paint|Script|Review',
+					rowBox.names.slice(7, 14).join('|') ===
+						'Palette|Layers|Inspector|Objects|History|Proposals|Script' &&
+					rowBox.names[14]?.startsWith('Search commands') === true &&
+					rowBox.names.slice(15).join('|') === 'Paint|Script|Review',
 				JSON.stringify(rowBox.names),
 			);
 			check(
@@ -3676,7 +3681,7 @@ async function main(): Promise<void> {
 		);
 		check(
 			'the panel toggles show every panel pressed, and Undo is dim with nothing to undo',
-			toolbarState.pressed.length === 6 && toolbarState.undoDisabled,
+			toolbarState.pressed.length === 7 && toolbarState.undoDisabled,
 			JSON.stringify(toolbarState),
 		);
 		check(
@@ -3694,8 +3699,8 @@ async function main(): Promise<void> {
 				const hidden = await within(3000, async () => !(await pressed()));
 				await click();
 				const shown = await within(3000, async () => await pressed());
-				// Showing a panel again makes it the showing tab of its dock; put Objects back.
-				await showFromRail(bridge, 'Objects');
+				// Showing a panel again makes it the showing tab of its dock; put the Inspector back.
+				await showFromRail(bridge, 'Inspector');
 				await sleep(300);
 				return hidden !== null && shown !== null;
 			})(),

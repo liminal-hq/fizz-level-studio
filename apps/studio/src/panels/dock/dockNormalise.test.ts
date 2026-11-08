@@ -139,7 +139,7 @@ describe('normaliseWorkspace', () => {
 		const fixed = normaliseWorkspace(ws, big);
 		expect(kinds(fixed)).toEqual([]);
 		expect(dockedIn(fixed, 'left')).toEqual(['palette', 'layers', 'objects']);
-		expect(dockedIn(fixed, 'right')).toEqual(['history']);
+		expect(dockedIn(fixed, 'right')).toEqual(['inspector', 'history']);
 		exactlyOnce(fixed);
 	});
 
@@ -156,14 +156,14 @@ describe('normaliseWorkspace', () => {
 	it('repairs an active tab that does not exist', () => {
 		const ws = defaultWorkspace();
 		ws.zones.right.groups[0]!.active = 'gone';
-		expect(normaliseWorkspace(ws, big).zones.right.groups[0]!.active).toBe('objects');
+		expect(normaliseWorkspace(ws, big).zones.right.groups[0]!.active).toBe('inspector');
 	});
 
 	it('docks a panel that says docked but is in no group, in its home zone', () => {
 		const ws = defaultWorkspace();
 		ws.zones.right.groups = [];
 		const fixed = normaliseWorkspace(ws, big);
-		expect(dockedIn(fixed, 'right').sort()).toEqual(['history', 'objects']);
+		expect(dockedIn(fixed, 'right').sort()).toEqual(['history', 'inspector', 'objects']);
 		exactlyOnce(fixed);
 		const emptied = defaultWorkspace();
 		emptied.zones.left.groups = [];

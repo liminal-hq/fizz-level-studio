@@ -285,6 +285,9 @@ export const enMessages = {
 	// translator: A short note beside a layer's name: changes made in the studio.
 	'layers.note.edits': 'Made in the studio',
 
+	// translator: Heading of the panel that shows the one thing selected on the level (an item, an enemy, or the start) with its position, facing and script line, and lets the person change it.
+	'inspector.title': 'Inspector',
+
 	// translator: Heading of the panel that shows what Claude has proposed and the person has not yet answered.
 	'ghosts.title': 'Proposals',
 	// translator: Label of the switch that shows or hides Claude’s proposed changes as faint cells on the canvas.

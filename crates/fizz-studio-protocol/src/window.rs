@@ -11,9 +11,10 @@ use ts_rs::TS;
 
 /// Every panel the editor has, in the order the Panels menu lists them. A panel window may be made
 /// for any of these and for nothing else; the settings crate keeps a dock entry for each.
-pub const PANEL_IDS: [&str; 6] = [
+pub const PANEL_IDS: [&str; 7] = [
     "palette",
     "layers",
+    "inspector",
     "objects",
     "history",
     "proposals",

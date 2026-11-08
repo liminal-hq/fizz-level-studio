@@ -25,7 +25,11 @@ afterEach(() => {
 describe('useDockLayout', () => {
 	it('starts from the default arrangement', () => {
 		const { result } = renderHook(() => useDockLayout(fakeDockClient(), windowSize, area));
-		expect(dockedIn(result.current.workspace, 'right')).toEqual(['objects', 'history']);
+		expect(dockedIn(result.current.workspace, 'right')).toEqual([
+			'inspector',
+			'objects',
+			'history',
+		]);
 		expect(result.current.shown.script).toBe(true);
 	});
 

@@ -3,8 +3,8 @@
 // (c) Copyright 2026 Liminal HQ, Scott Morris
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 //
-// The default arrangement puts every panel in exactly one place: Palette and Layers docked left; Objects and
-// History as tabs on the right; Script and Proposals as tabs at the bottom. Each workspace varies
+// The default arrangement puts every panel in exactly one place: Palette and Layers docked left; Inspector, Objects
+// and History as tabs on the right; Script and Proposals as tabs at the bottom. Each workspace varies
 // it. `packages/protocol/fixtures/default-dock.json` holds the same data for the frontend, and
 // the tests here check these against it, so the two cannot drift apart.
 
@@ -90,7 +90,11 @@ fn workspace(zones: Zones) -> Workspace {
 fn base_zones() -> Zones {
     Zones {
         left: zone(196, false, &[(&["palette", "layers"], "palette")]),
-        right: zone(264, false, &[(&["objects", "history"], "objects")]),
+        right: zone(
+            264,
+            false,
+            &[(&["inspector", "objects", "history"], "inspector")],
+        ),
         bottom: zone(180, false, &[(&["script", "proposals"], "script")]),
     }
 }
@@ -124,7 +128,10 @@ pub fn default_workspace_for(name: &str) -> Workspace {
             right: zone(
                 340,
                 false,
-                &[(&["proposals", "objects", "history"], "proposals")],
+                &[(
+                    &["proposals", "inspector", "objects", "history"],
+                    "proposals",
+                )],
             ),
             bottom: zone(180, true, &[(&["script"], "script")]),
         }),

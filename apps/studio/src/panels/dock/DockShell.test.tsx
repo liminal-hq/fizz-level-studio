@@ -17,6 +17,7 @@ import { visibleWorkspace } from './dockView';
 const titles: Record<string, string> = {
 	palette: 'Palette',
 	layers: 'Layers',
+	inspector: 'Inspector',
 	objects: 'Objects',
 	history: 'History',
 	proposals: 'Proposals',
@@ -87,19 +88,19 @@ describe('DockShell', () => {
 	it('names the showing panel once in its header, with no tab strip', () => {
 		mount();
 		const right = screen.getByRole('region', { name: 'Right dock' });
-		expect(within(right).getByText('content of objects')).toBeInTheDocument();
+		expect(within(right).getByText('content of inspector')).toBeInTheDocument();
 		expect(within(right).queryByText('content of history')).toBeNull();
 		expect(screen.queryAllByRole('tab')).toEqual([]);
-		expect(within(right).getByRole('heading', { name: 'Objects' })).toBeInTheDocument();
+		expect(within(right).getByRole('heading', { name: 'Inspector' })).toBeInTheDocument();
 		expect(within(right).queryByText('History')).toBeNull();
-		expect(within(right).queryByRole('region', { name: 'Objects' })).toBeNull();
+		expect(within(right).queryByRole('region', { name: 'Inspector' })).toBeNull();
 	});
 
 	it('gives each header a ⋮ menu button and no dock, float, tear-off or fold buttons', () => {
 		mount();
 		for (const [zone, title] of [
 			['Left dock', 'Palette'],
-			['Right dock', 'Objects'],
+			['Right dock', 'Inspector'],
 			['Bottom dock', 'Script'],
 		]) {
 			const region = screen.getByRole('region', { name: zone });
@@ -137,7 +138,7 @@ describe('DockShell', () => {
 		const user = userEvent.setup();
 		mount();
 		const button = within(screen.getByRole('region', { name: 'Right dock' })).getByRole('button', {
-			name: 'Objects menu',
+			name: 'Inspector menu',
 		});
 		for (const key of ['{Enter}', ' ', '{ArrowDown}']) {
 			button.focus();
@@ -216,21 +217,22 @@ describe('the rails', () => {
 	it('lists every panel of the zone by its title, with its icon', () => {
 		mount();
 		const right = within(rail('Right rail')).getAllByRole('button');
-		expect(right.map((b) => b.textContent)).toEqual(['Objects', 'History']);
+		expect(right.map((b) => b.textContent)).toEqual(['Inspector', 'Objects', 'History']);
 		expect(right.map((b) => b.getAttribute('title'))).toEqual([
-			'Objects, open; choose again to fold',
+			'Inspector, open; choose again to fold',
+			'Objects',
 			'History',
 		]);
 		expect(within(rail('Left rail')).getByRole('button', { name: 'Palette' })).toBeInTheDocument();
 		const bottom = within(rail('Bottom rail')).getAllByRole('button');
 		expect(bottom.map((b) => b.textContent)).toEqual(['Script', 'Proposals']);
-		expect(rail('Right rail').querySelectorAll('svg').length).toBe(2);
+		expect(rail('Right rail').querySelectorAll('svg').length).toBe(3);
 	});
 
 	it('marks the showing panel of an open dock pressed, and the others not', () => {
 		mount();
 		const right = rail('Right rail');
-		expect(within(right).getByRole('button', { name: 'Objects' })).toHaveAttribute(
+		expect(within(right).getByRole('button', { name: 'Inspector' })).toHaveAttribute(
 			'aria-pressed',
 			'true',
 		);
@@ -272,11 +274,13 @@ describe('the rails', () => {
 	it('moves along a side rail with the up and down keys, and the bottom one with left and right', async () => {
 		const user = userEvent.setup();
 		mount();
-		within(rail('Right rail')).getByRole('button', { name: 'Objects' }).focus();
+		within(rail('Right rail')).getByRole('button', { name: 'Inspector' }).focus();
+		await user.keyboard('{ArrowDown}');
+		expect(screen.getByRole('button', { name: 'Objects' })).toHaveFocus();
 		await user.keyboard('{ArrowDown}');
 		expect(screen.getByRole('button', { name: 'History' })).toHaveFocus();
 		await user.keyboard('{ArrowDown}');
-		expect(screen.getByRole('button', { name: 'Objects' })).toHaveFocus();
+		expect(screen.getByRole('button', { name: 'Inspector' })).toHaveFocus();
 		within(rail('Bottom rail')).getByRole('button', { name: 'Script' }).focus();
 		await user.keyboard('{ArrowRight}');
 		expect(screen.getByRole('button', { name: 'Proposals' })).toHaveFocus();
@@ -361,10 +365,10 @@ describe('folded docks', () => {
 		mount(folded());
 		const rail = screen.getByRole('group', { name: 'Right rail' });
 		const items = within(rail).getAllByRole('button');
-		expect(items.map((b) => b.textContent)).toEqual(['Objects', 'History']);
+		expect(items.map((b) => b.textContent)).toEqual(['Inspector', 'Objects', 'History']);
 		expect(screen.queryByRole('region', { name: 'Right dock' })).toBeNull();
 		expect(rail.querySelectorAll('svg').length).toBeGreaterThanOrEqual(2);
-		expect(within(rail).getByRole('button', { name: 'Objects' })).toHaveAttribute(
+		expect(within(rail).getByRole('button', { name: 'Inspector' })).toHaveAttribute(
 			'aria-pressed',
 			'false',
 		);

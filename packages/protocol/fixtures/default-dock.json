@@ -40,6 +40,21 @@
 				"window": null,
 				"window_from": "docked"
 			},
+			"inspector": {
+				"place": "docked",
+				"home": "right",
+				"float": {
+					"x": 812,
+					"y": 436,
+					"w": 300,
+					"h": 256,
+					"collapsed": false,
+					"visible": true,
+					"z": 7
+				},
+				"window": null,
+				"window_from": "docked"
+			},
 			"objects": {
 				"place": "docked",
 				"home": "right",
@@ -121,10 +136,11 @@
 				"groups": [
 					{
 						"tabs": [
+							"inspector",
 							"objects",
 							"history"
 						],
-						"active": "objects"
+						"active": "inspector"
 					}
 				]
 			},
@@ -173,6 +189,21 @@
 						"collapsed": false,
 						"visible": true,
 						"z": 6
+					},
+					"window": null,
+					"window_from": "docked"
+				},
+				"inspector": {
+					"place": "docked",
+					"home": "right",
+					"float": {
+						"x": 812,
+						"y": 436,
+						"w": 300,
+						"h": 256,
+						"collapsed": false,
+						"visible": true,
+						"z": 7
 					},
 					"window": null,
 					"window_from": "docked"
@@ -258,10 +289,11 @@
 					"groups": [
 						{
 							"tabs": [
+								"inspector",
 								"objects",
 								"history"
 							],
-							"active": "objects"
+							"active": "inspector"
 						}
 					]
 				},
@@ -309,6 +341,21 @@
 						"collapsed": false,
 						"visible": true,
 						"z": 6
+					},
+					"window": null,
+					"window_from": "docked"
+				},
+				"inspector": {
+					"place": "docked",
+					"home": "right",
+					"float": {
+						"x": 812,
+						"y": 436,
+						"w": 300,
+						"h": 256,
+						"collapsed": false,
+						"visible": true,
+						"z": 7
 					},
 					"window": null,
 					"window_from": "docked"
@@ -395,6 +442,7 @@
 						{
 							"tabs": [
 								"proposals",
+								"inspector",
 								"objects",
 								"history"
 							],
@@ -445,6 +493,21 @@
 						"collapsed": false,
 						"visible": true,
 						"z": 6
+					},
+					"window": null,
+					"window_from": "docked"
+				},
+				"inspector": {
+					"place": "docked",
+					"home": "right",
+					"float": {
+						"x": 812,
+						"y": 436,
+						"w": 300,
+						"h": 256,
+						"collapsed": false,
+						"visible": true,
+						"z": 7
 					},
 					"window": null,
 					"window_from": "docked"
@@ -530,10 +593,11 @@
 					"groups": [
 						{
 							"tabs": [
+								"inspector",
 								"objects",
 								"history"
 							],
-							"active": "objects"
+							"active": "inspector"
 						}
 					]
 				},

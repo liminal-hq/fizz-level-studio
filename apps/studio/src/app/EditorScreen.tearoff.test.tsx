@@ -375,7 +375,7 @@ describe('dragging a panel back from its own window', () => {
 		await waitFor(() => expect(live()).toMatch(/Layers moved to the Right dock/));
 		const right = within(screen.getByRole('group', { name: 'Right rail' }));
 		const names = right.getAllByRole('button').map((b) => b.getAttribute('title') ?? b.textContent);
-		expect(names.slice(0, 2).join(' ')).toMatch(/Objects[\s\S]*Layers/);
+		expect(names.slice(0, 3).join(' ')).toMatch(/Inspector[\s\S]*Layers[\s\S]*Objects/);
 		// The entry is marked as landed for a moment.
 		expect(railEntry('Layers', 'right')).toHaveAttribute('data-landed');
 	});

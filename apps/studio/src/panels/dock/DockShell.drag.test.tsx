@@ -27,6 +27,7 @@ import { railEntry } from '../../test/dockFixtures';
 
 const titles: Record<string, string> = {
 	palette: 'Palette',
+	inspector: 'Inspector',
 	objects: 'Objects',
 	history: 'History',
 	proposals: 'Proposals',
@@ -207,7 +208,7 @@ describe('dragging a docked panel', () => {
 		expect(line).toBeInTheDocument();
 		expect(line).toHaveAttribute('data-across');
 		up(entry, 985, 20);
-		expect(zonesOf().right.groups[0]!.tabs).toEqual(['palette', 'objects', 'history']);
+		expect(zonesOf().right.groups[0]!.tabs).toEqual(['palette', 'inspector', 'objects', 'history']);
 		expect(zonesOf().left.groups[0]!.tabs).toEqual(['layers']);
 		expect(document.querySelector('[data-drag-ghost]')).toBeNull();
 	});
@@ -231,7 +232,7 @@ describe('dragging a docked panel', () => {
 		expect(document.querySelector('[data-insertion-line]')).toBeNull();
 		up(entry, 850, 20);
 		expect(zonesOf().right.groups[0]).toEqual({
-			tabs: ['objects', 'history', 'palette'],
+			tabs: ['inspector', 'objects', 'history', 'palette'],
 			active: 'palette',
 		});
 	});
@@ -294,12 +295,12 @@ describe('dragging a docked panel', () => {
 
 	it('reorders the panels along a side rail', () => {
 		render(<Harness />);
-		const entry = railEntry('Objects', 'right');
+		const entry = railEntry('Inspector', 'right');
 		down(entry, 985, 45);
-		move(entry, 985, 200); // below History
+		move(entry, 985, 300); // below History
 		expect(document.querySelector('[data-insertion-line]')).toHaveAttribute('data-across');
-		up(entry, 985, 200);
-		expect(zonesOf().right.groups[0]!.tabs).toEqual(['history', 'objects']);
+		up(entry, 985, 300);
+		expect(zonesOf().right.groups[0]!.tabs).toEqual(['objects', 'history', 'inspector']);
 	});
 
 	it('reorders the panels along the bottom rail', () => {
@@ -349,12 +350,12 @@ describe('reordering by keyboard', () => {
 		render(<Harness />);
 		railEntry('Objects', 'right').focus();
 		await user.keyboard('{Alt>}{ArrowDown}{/Alt}');
-		expect(zonesOf().right.groups[0]!.tabs).toEqual(['history', 'objects']);
+		expect(zonesOf().right.groups[0]!.tabs).toEqual(['inspector', 'history', 'objects']);
 		expect(railEntry('Objects', 'right')).toHaveFocus();
-		expect(screen.getByText('Objects moved to position 2 of 2.')).toBeInTheDocument();
+		expect(screen.getByText('Objects moved to position 3 of 3.')).toBeInTheDocument();
 		await user.keyboard('{Alt>}{ArrowUp}{/Alt}');
-		expect(zonesOf().right.groups[0]!.tabs).toEqual(['objects', 'history']);
-		expect(screen.getByText('Objects moved to position 1 of 2.')).toBeInTheDocument();
+		expect(zonesOf().right.groups[0]!.tabs).toEqual(['inspector', 'objects', 'history']);
+		expect(screen.getByText('Objects moved to position 2 of 3.')).toBeInTheDocument();
 	});
 
 	it('moves along the bottom rail with Alt and left and right', async () => {
@@ -369,9 +370,9 @@ describe('reordering by keyboard', () => {
 	it('stops at the ends', async () => {
 		const user = userEvent.setup();
 		render(<Harness />);
-		railEntry('Objects', 'right').focus();
+		railEntry('Inspector', 'right').focus();
 		await user.keyboard('{Alt>}{ArrowUp}{/Alt}');
-		expect(zonesOf().right.groups[0]!.tabs).toEqual(['objects', 'history']);
+		expect(zonesOf().right.groups[0]!.tabs).toEqual(['inspector', 'objects', 'history']);
 	});
 });
 

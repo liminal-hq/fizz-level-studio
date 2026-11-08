@@ -33,7 +33,12 @@ describe('insertionX', () => {
 describe('dropOnZone', () => {
 	it('docks a panel as a tab at the place given', () => {
 		const next = dropOnZone(defaultWorkspace(), 'palette', 'right', 0, 1);
-		expect(next.zones.right.groups[0]!.tabs).toEqual(['objects', 'palette', 'history']);
+		expect(next.zones.right.groups[0]!.tabs).toEqual([
+			'inspector',
+			'palette',
+			'objects',
+			'history',
+		]);
 		expect(dockedIn(next, 'left')).toEqual(['layers']);
 	});
 
@@ -44,7 +49,7 @@ describe('dropOnZone', () => {
 
 	it('reorders within a group', () => {
 		const next = dropOnZone(defaultWorkspace(), 'history', 'right', 0, 0);
-		expect(next.zones.right.groups[0]!.tabs).toEqual(['history', 'objects']);
+		expect(next.zones.right.groups[0]!.tabs).toEqual(['history', 'inspector', 'objects']);
 	});
 
 	it('changes nothing when a lone panel is dropped on its own group', () => {

@@ -22,6 +22,7 @@ import type { PanelId } from '../float/panelSpecs';
 export const PANEL_IDS: readonly PanelId[] = [
 	'palette',
 	'layers',
+	'inspector',
 	'objects',
 	'history',
 	'proposals',

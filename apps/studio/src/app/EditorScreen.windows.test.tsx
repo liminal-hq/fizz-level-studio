@@ -63,6 +63,7 @@ describe('tearing a panel off', () => {
 			const title = {
 				palette: 'Palette',
 				layers: 'Layers',
+				inspector: 'Inspector',
 				objects: 'Objects',
 				history: 'History',
 				proposals: 'Proposals',
@@ -132,8 +133,8 @@ describe('tearing a panel off', () => {
 			throw new Error('refused');
 		};
 		const right = screen.getByRole('region', { name: 'Right dock' });
-		await choosePanelMenu(user, right, 'Objects', 'Tear off');
-		expect(railEntry('Objects', 'right')).toBeVisible();
+		await choosePanelMenu(user, right, 'Inspector', 'Tear off');
+		expect(railEntry('Inspector', 'right')).toBeVisible();
 	});
 });
 
@@ -272,34 +273,34 @@ describe('remembering where a torn-off window is', () => {
 		const user = userEvent.setup();
 		const { docks } = await mount();
 		const right = screen.getByRole('region', { name: 'Right dock' });
-		await choosePanelMenu(user, right, 'Objects', 'Tear off');
+		await choosePanelMenu(user, right, 'Inspector', 'Tear off');
 		await waitFor(() => expect(docks.save).toHaveBeenCalled(), { timeout: 2000 });
-		expect(savedWindow(docks, 'objects')).toEqual({ x: 100, y: 120, w: 520, h: 720 });
+		expect(savedWindow(docks, 'inspector')).toEqual({ x: 100, y: 120, w: 520, h: 720 });
 	});
 
 	it('records a window that moves or resizes, and asks for it again where it was left', async () => {
 		const user = userEvent.setup();
 		const { docks, windows } = await mount();
 		const right = screen.getByRole('region', { name: 'Right dock' });
-		await choosePanelMenu(user, right, 'Objects', 'Tear off');
-		await findRailEntry('Objects (own window)', 'right');
+		await choosePanelMenu(user, right, 'Inspector', 'Tear off');
+		await findRailEntry('Inspector (own window)', 'right');
 		act(() => {
-			windows.place('panel-objects-1', { x: 5, y: 6, w: 640, h: 480 });
-			windows.place('panel-objects-1', { x: 50, y: 60, w: 700, h: 500 });
+			windows.place('panel-inspector-1', { x: 5, y: 6, w: 640, h: 480 });
+			windows.place('panel-inspector-1', { x: 50, y: 60, w: 700, h: 500 });
 		});
 		await waitFor(
-			() => expect(savedWindow(docks, 'objects')).toEqual({ x: 50, y: 60, w: 700, h: 500 }),
+			() => expect(savedWindow(docks, 'inspector')).toEqual({ x: 50, y: 60, w: 700, h: 500 }),
 			{
 				timeout: 3000,
 			},
 		);
 		// Dock it back and tear it off again: the record is passed to Rust, not forgotten.
 		await user.click(within(right).getByRole('button', { name: 'Dock back' }));
-		await findRailEntry('Objects', 'right');
-		await choosePanelMenu(user, right, 'Objects', 'Tear off');
+		await findRailEntry('Inspector', 'right');
+		await choosePanelMenu(user, right, 'Inspector', 'Tear off');
 		await waitFor(() =>
 			expect(windows.opened.at(-1)).toEqual({
-				panel: 'objects',
+				panel: 'inspector',
 				asked: { x: 50, y: 60, w: 700, h: 500 },
 			}),
 		);
@@ -309,11 +310,11 @@ describe('remembering where a torn-off window is', () => {
 		const user = userEvent.setup();
 		const { docks, windows } = await mount();
 		const right = screen.getByRole('region', { name: 'Right dock' });
-		await choosePanelMenu(user, right, 'Objects', 'Tear off');
-		await findRailEntry('Objects (own window)', 'right');
-		act(() => windows.place('panel-objects-1', { x: 0, y: 0, w: 333, h: 444 }, false));
+		await choosePanelMenu(user, right, 'Inspector', 'Tear off');
+		await findRailEntry('Inspector (own window)', 'right');
+		act(() => windows.place('panel-inspector-1', { x: 0, y: 0, w: 333, h: 444 }, false));
 		await waitFor(
-			() => expect(savedWindow(docks, 'objects')).toEqual({ x: 100, y: 120, w: 333, h: 444 }),
+			() => expect(savedWindow(docks, 'inspector')).toEqual({ x: 100, y: 120, w: 333, h: 444 }),
 			{
 				timeout: 3000,
 			},

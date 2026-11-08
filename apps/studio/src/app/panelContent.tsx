@@ -79,6 +79,9 @@ export function panelContent(id: PanelId, ctx: PanelContentContext): ReactNode {
 					onReveal={ctx.showLine}
 				/>
 			);
+		case 'inspector':
+			// The Inspector arrives with its own component.
+			return null;
 		case 'objects':
 			return (
 				<ObjectList

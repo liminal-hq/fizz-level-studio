@@ -154,7 +154,7 @@ fn settings_saved_by_an_earlier_run_load_at_revision_zero() {
 fn the_layout_commands_give_defaults_then_the_saved_places_and_back() {
     let app = app_with(Arc::new(MemoryStorage::default()));
     let defaults = commands::layout_get(store(&app), "main".to_owned());
-    assert_eq!(defaults.panels.len(), 6);
+    assert_eq!(defaults.panels.len(), 7);
     let mut moved = defaults.clone();
     moved.panels.get_mut("script").unwrap().x = 100;
     let saved = commands::layout_set(store(&app), "main".to_owned(), moved).unwrap();

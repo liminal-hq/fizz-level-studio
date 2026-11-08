@@ -42,7 +42,7 @@ describe('the default layout', () => {
 		const ws = defaultWorkspace();
 		sound(ws);
 		expect(dockedIn(ws, 'left')).toEqual(['palette', 'layers']);
-		expect(dockedIn(ws, 'right')).toEqual(['objects', 'history']);
+		expect(dockedIn(ws, 'right')).toEqual(['inspector', 'objects', 'history']);
 		expect(dockedIn(ws, 'bottom')).toEqual(['script', 'proposals']);
 		expect(PANEL_IDS.every((id) => zoneOf(ws, id) !== null)).toBe(true);
 	});
@@ -51,7 +51,7 @@ describe('the default layout', () => {
 describe('dockPanel', () => {
 	it('docks as a new tab and makes it the showing one', () => {
 		const ws = dockPanel(defaultWorkspace(), 'palette', 'right');
-		expect(dockedIn(ws, 'right')).toEqual(['objects', 'history', 'palette']);
+		expect(dockedIn(ws, 'right')).toEqual(['inspector', 'objects', 'history', 'palette']);
 		expect(ws.zones.right.groups[0]!.active).toBe('palette');
 		expect(dockedIn(ws, 'left')).toEqual(['layers']);
 		expect(ws.panels.palette!.home).toBe('right');
@@ -60,7 +60,10 @@ describe('dockPanel', () => {
 
 	it('docks alone in a group of its own', () => {
 		const ws = dockPanel(defaultWorkspace(), 'palette', 'right', { alone: true });
-		expect(ws.zones.right.groups.map((g) => g.tabs)).toEqual([['objects', 'history'], ['palette']]);
+		expect(ws.zones.right.groups.map((g) => g.tabs)).toEqual([
+			['inspector', 'objects', 'history'],
+			['palette'],
+		]);
 		sound(ws);
 	});
 
@@ -68,7 +71,7 @@ describe('dockPanel', () => {
 		const first = dockPanel(defaultWorkspace(), 'palette', 'right', { alone: true, group: 0 });
 		expect(first.zones.right.groups[0]!.tabs).toEqual(['palette']);
 		const second = dockPanel(defaultWorkspace(), 'palette', 'right', { index: 0 });
-		expect(dockedIn(second, 'right')).toEqual(['palette', 'objects', 'history']);
+		expect(dockedIn(second, 'right')).toEqual(['palette', 'inspector', 'objects', 'history']);
 	});
 
 	it('starts a group in an empty zone', () => {
@@ -95,7 +98,10 @@ describe('dockPanel', () => {
 
 	it('hands the showing tab to a neighbour when it leaves', () => {
 		const ws = dockPanel(defaultWorkspace(), 'objects', 'left');
-		expect(ws.zones.right.groups[0]).toEqual({ tabs: ['history'], active: 'history' });
+		expect(ws.zones.right.groups[0]).toEqual({
+			tabs: ['inspector', 'history'],
+			active: 'inspector',
+		});
 	});
 
 	it('ignores an unknown panel and never changes its input', () => {
@@ -121,9 +127,17 @@ describe('tabs', () => {
 
 	it('reorders within the group and clamps the position', () => {
 		const ws = reorderTab(defaultWorkspace(), 'history', 0);
-		expect(dockedIn(ws, 'right')).toEqual(['history', 'objects']);
-		expect(dockedIn(reorderTab(ws, 'history', 99), 'right')).toEqual(['objects', 'history']);
-		expect(dockedIn(reorderTab(ws, 'history', -4), 'right')).toEqual(['history', 'objects']);
+		expect(dockedIn(ws, 'right')).toEqual(['history', 'inspector', 'objects']);
+		expect(dockedIn(reorderTab(ws, 'history', 99), 'right')).toEqual([
+			'inspector',
+			'objects',
+			'history',
+		]);
+		expect(dockedIn(reorderTab(ws, 'history', -4), 'right')).toEqual([
+			'history',
+			'inspector',
+			'objects',
+		]);
 		sound(ws);
 	});
 
@@ -141,7 +155,7 @@ describe('floating', () => {
 			home: 'right',
 			float: { x: 300, y: 200, w: 280, h: 320, visible: true },
 		});
-		expect(dockedIn(ws, 'right')).toEqual(['history']);
+		expect(dockedIn(ws, 'right')).toEqual(['inspector', 'history']);
 		sound(ws);
 	});
 
@@ -158,7 +172,7 @@ describe('floating', () => {
 	it('docks back to the previous zone as a tab', () => {
 		const floated = floatPanel(defaultWorkspace(), 'history', { x: 10, y: 10 });
 		const back = dockBack(floated, 'history');
-		expect(dockedIn(back, 'right')).toEqual(['objects', 'history']);
+		expect(dockedIn(back, 'right')).toEqual(['inspector', 'objects', 'history']);
 		expect(back.panels.history!.place).toBe('docked');
 		expect(back.panels.history!.float).toMatchObject({ x: 10, y: 10 });
 		sound(back);
@@ -187,10 +201,10 @@ describe('its own window', () => {
 			window: { x: -1200, y: 80, w: 400, h: 500 },
 			window_from: 'docked',
 		});
-		expect(dockedIn(out, 'right')).toEqual(['objects']);
+		expect(dockedIn(out, 'right')).toEqual(['inspector', 'objects']);
 		sound(out);
 		const back = bringBack(out, 'history');
-		expect(dockedIn(back, 'right')).toEqual(['objects', 'history']);
+		expect(dockedIn(back, 'right')).toEqual(['inspector', 'objects', 'history']);
 		expect(back.panels.history!.window).toEqual({ x: -1200, y: 80, w: 400, h: 500 });
 		sound(back);
 	});
@@ -400,7 +414,7 @@ describe('setPanelVisible', () => {
 	it('hides a docked panel without taking it out of its tab group', () => {
 		const ws = setPanelVisible(defaultWorkspace(), 'objects', false);
 		expect(ws.panels.objects!.float.visible).toBe(false);
-		expect(dockedIn(ws, 'right')).toEqual(['objects', 'history']);
+		expect(dockedIn(ws, 'right')).toEqual(['inspector', 'objects', 'history']);
 		sound(ws);
 	});
 

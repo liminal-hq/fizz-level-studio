@@ -478,7 +478,7 @@ mod tests {
                 .expect("opens");
             assert!(app.get_webview_window(&id.label()).is_some(), "{panel}");
         }
-        assert_eq!(open_panels(app.handle().clone()).len(), 6);
+        assert_eq!(open_panels(app.handle().clone()).len(), 7);
         let unknown = WindowId::Panel {
             panel: "game-view".into(),
             n: 1,
@@ -497,7 +497,7 @@ mod tests {
             assert_eq!(window.label(), format!("panel-{panel}-1"));
         }
         open_panel_window(app.handle(), "script".into(), None, &[], false).expect("focuses");
-        assert_eq!(open_panels(app.handle().clone()).len(), 6);
+        assert_eq!(open_panels(app.handle().clone()).len(), 7);
     }
 
     #[test]
