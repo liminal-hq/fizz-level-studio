@@ -2462,7 +2462,8 @@ async function glassSurfaceChecks(bridge: Bridge): Promise<void> {
 				return s.alpha === String(panel / 100) && s.docks === (on ? 'on' : 'off');
 			});
 			check(`${where}: the main window's root has the setting`, applied !== null);
-			await sleep(200);
+			// The title bar fades its background, so let a change finish before reading it.
+			await sleep(800);
 			const fills = await surfaceFills(bridge, surfaces);
 			for (const [name, fill] of Object.entries(fills)) {
 				if (fill === null) {
