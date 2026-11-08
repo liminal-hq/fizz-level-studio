@@ -121,7 +121,7 @@ A `.fizz` file is one level or one overworld as plain text, read and written by 
 
 ## The Fizz 2 Dialect
 
-Planned, not built, and the more important target. Lieutenant Fizz 2 is a separate game that will bake its levels from `.fizz` sources. Its dialect is a **superset of the Fizz 1 script in text, not in meaning**: the two games are diverging. The design is the owner's (2026-11-04, `docs/DECISIONS.md` D42 to D53); what Fizz 2 lacks for it is a numbered change request (F1 to F23 in `docs/ENGINE-CHANGES.md`). Do not edit the Fizz 2 repository from here.
+Planned, not built, and the more important target. Lieutenant Fizz 2 is a separate game that will bake its levels from `.fizz` sources. Its dialect is a **superset of the Fizz 1 script in text, not in meaning**: the two games are diverging. The design is the owner's (2026-11-04, `docs/DECISIONS.md` D42 to D53); what Fizz 2 lacks for it is a numbered change request (F1 to F28 in `docs/ENGINE-CHANGES.md`). Do not edit the Fizz 2 repository from here.
 
 - The first line is `script fizz2 0` (dialect and version), written when the level is created: **a level's target is fixed for life**. Fizz 1 levels convert up to Fizz 2 with a conversion report; Fizz 2 levels export down to Fizz 1 with the lossy check, never a conversion.
 - A Fizz 2 level belongs to a **world project** (`spec/WORLD.md`): levels, overworld, shared definitions, sprites (and the retro Fizz 1 art set, art only), parallax panels, sounds and strings, built by `fizz-bake` into one world pack.
