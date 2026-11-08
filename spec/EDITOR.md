@@ -312,6 +312,7 @@ A **Budget window** shows meters for what a level and its world cost, each sayin
 | Panels                 | Panel bytes and the DOS cost of drawing them at Full and Light Sky detail                                                                             | `fizz-bake`; the game's bench (F22)                                                 |
 
 - A meter never claims a number it did not get: an estimate says so, and a meter whose source is not available reads "not run" (G-TRUST-4).
+- **Proposed (D73):** the `LEVL` section size meter becomes the level's size limit, shown in New level and Resize too, in place of fixed width and height caps, with the tiles, each plane, and the tables as parts of the bar; the Reach lens and the Checks window take their answers from the game's solvability check (F25). See [LEVEL-MODEL.md](../docs/LEVEL-MODEL.md#3-size).
 - The DOS floor (a 486DX with 4 MB, #143) and the 60 Hz frame are the reference for the cost meters; today Full night averages 17.1 ms on the 486DX2-66 model against the 16.7 ms step (#146), which is the kind of figure the lights and panels meters show.
 
 ### Dump view

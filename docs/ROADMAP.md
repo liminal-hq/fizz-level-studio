@@ -66,6 +66,7 @@ Nothing here is started, and much of it waits on the Fizz 2 repository: its gram
 - **In the editor:** map painting, the Objects window with ids and indices, snap to floor, the Exit and Head room lenses, the dump view, the Sprites window and objects drawn with their sprites (R-F2-06, R-F2-07, R-F2-14, R-F2-18, R-SPR-01 to R-SPR-04), and the Game view as the canvas once F5 exists, drawn natively by the game host and streamed over a `Channel`, with the flat fallback until then (R-F2-20).
 - **The Fizz 1 export** with its lossy check (R-F2-05, R-F2-16).
 - **MCP:** `get_target`, the Fizz 2 object tools, `check_export`, `get_budget`, `get_dump`, the read-only sprite tools (R-F2-23).
+- **Proposed, awaiting the owner** (D73, [LEVEL-MODEL.md](LEVEL-MODEL.md)): a level's size as a byte budget in New level, Resize, and the Budget window in place of the 1024 × 128 caps (Q46); a lens for depth bands and named regions; and, as the owner decides, the front plane and fade rooms as layers to paint (F28, Q45) and planes (F26, F27, Q44).
 
 **Exit criteria:**
 
@@ -87,6 +88,8 @@ Nothing here is started, and much of it waits on the Fizz 2 repository: its gram
 - A level whose states the Fizz 1 export cannot say reports E120 or E121 for each, and a standard-lock level exports exactly.
 
 **Depends on:** M2, and F6, F11 and F18 from the Fizz 2 repository. Until F11 is built, the inputs and actions beyond today's locks are "accepted" (W106).
+
+**Proposed, awaiting the owner** (D73): the Checks window and the Reach lens report the game's own solvability check (F25, Q47) through the game host.
 
 ## M4 — Claude in the studio
 
@@ -111,6 +114,8 @@ Nothing here is started, and much of it waits on the Fizz 2 repository: its gram
 - The light and panel meters show the game's own cost figures, or say "not run".
 
 **Depends on:** M2, and F3, F5, F12, F13, F19 and F22.
+
+**Proposed, awaiting the owner** (D73): the Game view draws the front plane and fades a room while Ben is inside (F28, Q48).
 
 ## M6 — Pixel editor
 
