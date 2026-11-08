@@ -987,3 +987,138 @@ fn the_ghosts_are_the_pending_proposals_in_the_sidecar() {
     let missing = commands::level_ghosts(worlds(&app), "nope".into());
     assert!(matches!(missing, Err(LevelError::NotOpen { .. })));
 }
+
+fn first_of(level: &LevelSnapshot, word: &str) -> fizz_studio_protocol::ThingRef {
+    let (index, item) = level
+        .view
+        .items
+        .iter()
+        .enumerate()
+        .find(|(_, i)| i.kind == word && i.generator.is_none())
+        .expect("an item of that kind");
+    let line = item.line.unwrap();
+    fizz_studio_protocol::ThingRef {
+        kind: fizz_studio_protocol::ThingKind::Item,
+        index: index as u32,
+        line,
+        expect: level
+            .text
+            .split('\n')
+            .nth(line as usize - 1)
+            .unwrap()
+            .to_string(),
+        x: item.x,
+        y: Some(item.y),
+    }
+}
+
+#[test]
+fn a_thing_edit_with_a_stale_revision_lands_when_its_statement_is_still_there() {
+    let app = app();
+    let (_dir, path) = project();
+    let opened = open(&app, &path);
+    let soda = first_of(&opened, "soda");
+    // Someone else's edit lands first, so the revision the webview drew from is stale.
+    apply(&app, &opened.id, paint("grass", 5), 0).unwrap();
+    let moved = apply(
+        &app,
+        &opened.id,
+        LevelEdit::MoveThing {
+            thing: soda,
+            x: 37.0,
+            y: Some(5.0),
+        },
+        0,
+    )
+    .expect("the thing is found again, so the edit is retried on the current revision");
+    assert!(moved.text.contains("soda        x=37 y=5"));
+    assert!(moved.text.contains("paint grass x=5 y=10"));
+    assert_eq!(moved.undo_name.as_deref(), Some("Move soda to 37, 5"));
+    // The appended edits keep the plain refusal.
+    assert!(matches!(
+        apply(&app, &opened.id, paint("grass", 6), 0),
+        Err(LevelError::Stale { .. })
+    ));
+}
+
+#[test]
+fn a_thing_edit_whose_line_changed_is_gone_and_changes_nothing() {
+    let app = app();
+    let (_dir, path) = project();
+    let opened = open(&app, &path);
+    let mut soda = first_of(&opened, "soda");
+    soda.expect = "  soda        x=99 y=5".into();
+    let line = soda.line;
+    let refused = apply(
+        &app,
+        &opened.id,
+        LevelEdit::DeleteThing { thing: soda },
+        opened.revision,
+    );
+    assert!(matches!(refused, Err(LevelError::Gone { line: l }) if l == line));
+    assert_eq!(current(&app, &opened.id).text, CRATER);
+}
+
+#[test]
+fn a_burst_of_moves_under_one_merge_key_is_one_step_with_the_latest_name() {
+    let app = app();
+    let (_dir, path) = project();
+    let opened = open(&app, &path);
+    let mut level = opened.clone();
+    for x in [37.0, 38.0, 39.0] {
+        let thing = first_of(&level, "soda");
+        level = commands::level_apply(
+            app.handle().clone(),
+            worlds(&app),
+            opened.id.clone(),
+            LevelEdit::MoveThing {
+                thing,
+                x,
+                y: Some(5.0),
+            },
+            level.revision,
+            Some("thing:item:4:move".into()),
+        )
+        .unwrap();
+    }
+    commands::level_end_step(worlds(&app), opened.id.clone()).unwrap();
+    let level = current(&app, &opened.id);
+    assert_eq!(level.undo_name.as_deref(), Some("Move soda to 39, 5"));
+    let undone = commands::level_undo(
+        app.handle().clone(),
+        worlds(&app),
+        opened.id,
+        level.revision,
+    )
+    .unwrap();
+    assert_eq!(undone.text, CRATER, "one undo puts the first position back");
+}
+
+#[test]
+fn a_locked_layer_refuses_a_thing_edit_and_the_text_stays() {
+    let app = app();
+    let (_dir, path) = project();
+    let opened = open(&app, &path);
+    let soda = first_of(&opened, "soda");
+    worlds(&app)
+        .with(&opened.id, |level| {
+            level.session.set_locks(["treats".to_string()]);
+            Ok(())
+        })
+        .unwrap();
+    let refused = apply(
+        &app,
+        &opened.id,
+        LevelEdit::MoveThing {
+            thing: soda,
+            x: 37.0,
+            y: Some(5.0),
+        },
+        opened.revision,
+    );
+    assert!(matches!(
+        refused,
+        Err(LevelError::Locked { ref layers }) if layers == &["treats".to_string()]
+    ));
+    assert_eq!(current(&app, &opened.id).text, CRATER);
+}

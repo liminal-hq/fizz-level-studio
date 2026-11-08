@@ -327,6 +327,8 @@ impl<D: Document> Session<D> {
         if merges {
             if let Some(last) = self.undo.last_mut() {
                 last.edits.extend(edits.iter().cloned());
+                // The step says what the run did so far, not what its first request did.
+                last.name = request.name;
             }
         } else {
             self.push_step(Step {
@@ -760,6 +762,30 @@ mod tests {
         s.apply(&w, r).unwrap();
         // Not merged into the step before the undo.
         assert_eq!(s.undo_depth(), 2);
+    }
+
+    #[test]
+    fn a_merged_step_takes_the_name_of_the_latest_request() {
+        let (mut s, w) = open("");
+        let r = Request::new(
+            s.revision(),
+            "Move a to 1",
+            PlainTextIntent::replace(0, 0, "a"),
+        )
+        .merging("k");
+        s.apply(&w, r).unwrap();
+        let r = Request::new(
+            s.revision(),
+            "Move a to 2",
+            PlainTextIntent::replace(0, 1, "b"),
+        )
+        .merging("k");
+        s.apply(&w, r).unwrap();
+        assert_eq!(s.undo_depth(), 1);
+        assert_eq!(s.undo_step().unwrap().name, "Move a to 2");
+        s.undo(&w, 2).unwrap();
+        assert_eq!(s.text(), "");
+        assert_eq!(s.redo_step().unwrap().name, "Move a to 2");
     }
 
     #[test]

@@ -924,7 +924,7 @@ fn the_view_says_which_spawns_stand_on_the_ground_and_which_items_are_generated(
 }
 
 #[test]
-fn the_thing_edits_are_refused_for_now_and_change_nothing() {
+fn a_thing_edit_that_names_nothing_real_is_refused_and_changes_nothing() {
     let (mut session, token) = open();
     let thing = fizz_studio_protocol::ThingRef {
         kind: fizz_studio_protocol::ThingKind::Item,
@@ -952,4 +952,83 @@ fn the_thing_edits_are_refused_for_now_and_change_nothing() {
         assert!(session.apply(&token, asked).is_err());
         assert_eq!(session.text(), CRATER);
     }
+}
+
+fn view_thing(
+    text: &str,
+    kind: fizz_studio_protocol::ThingKind,
+    index: usize,
+) -> fizz_studio_protocol::ThingRef {
+    use fizz_studio_protocol::ThingKind;
+    let view = LevelDocument::new(text).view();
+    let (line, x, y) = match kind {
+        ThingKind::Item => (
+            view.items[index].line,
+            view.items[index].x,
+            Some(view.items[index].y),
+        ),
+        ThingKind::Spawn => (
+            view.spawns[index].line,
+            view.spawns[index].x,
+            view.spawns[index].y,
+        ),
+        ThingKind::Start => {
+            let s = view.start.unwrap();
+            (s.line, s.x, Some(s.y))
+        }
+    };
+    let line = line.unwrap();
+    fizz_studio_protocol::ThingRef {
+        kind,
+        index: index as u32,
+        line,
+        expect: text.split('\n').nth(line as usize - 1).unwrap().to_string(),
+        x,
+        y,
+    }
+}
+
+#[test]
+fn a_thing_edit_through_the_session_is_one_named_step_and_undo_restores_the_bytes() {
+    use fizz_studio_protocol::{Facing, ThingKind};
+    let (mut session, token) = open();
+    let flip = LevelEdit::FaceThing {
+        thing: view_thing(CRATER, ThingKind::Spawn, 1),
+        facing: Facing::Right,
+    };
+    let name = LevelDocument::new(CRATER).describe(&flip);
+    assert!(
+        name.starts_with("Turn gloop to face right (pinned to y="),
+        "{name}"
+    );
+    let asked = Request::new(session.revision(), name.clone(), flip);
+    let patch = session.apply(&token, asked).unwrap();
+    assert_eq!(patch.edits.len(), 1, "one minimal text edit");
+    assert_ne!(session.text(), CRATER);
+    assert_eq!(session.undo_step().unwrap().name, name);
+    session.undo(&token, session.revision()).unwrap();
+    assert_eq!(session.text(), CRATER);
+}
+
+#[test]
+fn a_stale_looking_thing_is_gone_and_a_no_op_makes_no_step() {
+    use fizz_studio_protocol::ThingKind;
+    let (mut session, token) = open();
+    let mut thing = view_thing(CRATER, ThingKind::Item, 4);
+    thing.expect.push('!');
+    let asked = request(&session, LevelEdit::DeleteThing { thing });
+    assert!(matches!(
+        session.apply(&token, asked),
+        Err(fizz_studio_session::SessionError::Document(
+            fizz_studio_session::DocumentError::Gone { .. }
+        ))
+    ));
+
+    let thing = view_thing(CRATER, ThingKind::Start, 0);
+    let (x, y) = (thing.x, thing.y);
+    let asked = request(&session, LevelEdit::MoveThing { thing, x, y });
+    let patch = session.apply(&token, asked).unwrap();
+    assert!(patch.edits.is_empty());
+    assert_eq!(session.revision(), 0);
+    assert_eq!(session.text(), CRATER);
 }

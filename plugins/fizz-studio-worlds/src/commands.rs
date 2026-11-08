@@ -8,11 +8,11 @@ use fizz_studio_protocol::{
     GhostProposal, LevelEdit, LevelError, LevelSnapshot, LevelTarget, LevelView, NewLevelRequest,
     ProjectInfo, ProjectKind, RecoveryEntry, WordDoc,
 };
-use fizz_studio_session::{Author, Request};
+use fizz_studio_session::{Author, Request, SessionError};
 use fizz_studio_world::{write_atomic, Project, ProjectKind as FoundKind, WORLD_FILE};
 use tauri::{AppHandle, Runtime, State};
 
-use crate::open::{announce, announce_layers, io_error, session_error, Worlds};
+use crate::open::{announce, announce_layers, io_error, session_error, OpenLevel, Worlds};
 use crate::LevelLayers;
 
 fn text(path: &std::path::Path) -> String {
@@ -58,20 +58,38 @@ pub fn level_apply<R: Runtime>(
     merge_key: Option<String>,
 ) -> Result<LevelSnapshot, LevelError> {
     let snapshot = worlds.with(&id, |level| {
-        let name = level.session.document().describe(&edit);
-        let mut request = Request::new(based_on, name, edit);
-        if let Some(key) = merge_key {
-            request = request.merging(key);
+        let make = |level: &OpenLevel, based_on: u64| {
+            let name = level.session.document().describe(&edit);
+            let mut request = Request::new(based_on, name, edit.clone());
+            if let Some(key) = &merge_key {
+                request = request.merging(key.clone());
+            }
+            request
+        };
+        let mut result = level.session.apply(&level.writer, make(level, based_on));
+        // A change to a thing names its statement by text, so it can still land on a newer revision
+        // when that statement is still there; the engine says `gone` when it is not. The appended
+        // edits keep the plain refusal.
+        if let (Err(SessionError::StaleRevision { current, .. }), true) =
+            (&result, is_thing_edit(&edit))
+        {
+            let current = *current;
+            result = level.session.apply(&level.writer, make(level, current));
         }
-        level
-            .session
-            .apply(&level.writer, request)
-            .map_err(session_error)?;
+        result.map_err(session_error)?;
         level.last_author = Author::Person;
         Ok(level.snapshot())
     })?;
     announce(&app, &snapshot);
     Ok(snapshot)
+}
+
+/// Whether an edit changes a hand-written thing in place, which is found again by its text.
+fn is_thing_edit(edit: &LevelEdit) -> bool {
+    matches!(
+        edit,
+        LevelEdit::MoveThing { .. } | LevelEdit::FaceThing { .. } | LevelEdit::DeleteThing { .. }
+    )
 }
 
 /// Ends the stroke in progress, so the next edit starts a new step.

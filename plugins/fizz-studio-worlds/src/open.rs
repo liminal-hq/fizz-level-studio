@@ -14,7 +14,7 @@ use fizz_studio_level::{
     locked_layers, open_level_text, sidecar_path, sidecar_with_locks, AnyLevelDocument, LAYER_ORDER,
 };
 use fizz_studio_protocol::{LevelError, LevelSnapshot, RecoveryEntry};
-use fizz_studio_session::{Author, Session, SessionError, WriterToken};
+use fizz_studio_session::{Author, DocumentError, Session, SessionError, WriterToken};
 use fizz_studio_world::{
     Autosave, Change, ChangeKind, DiskState, FolderWatcher, RecoveryCopy, RecoveryFile,
     RecoveryStore, DEFAULT_DEBOUNCE,
@@ -89,6 +89,7 @@ pub(crate) fn session_error(error: SessionError) -> LevelError {
             current,
         },
         SessionError::Locked { layers } => LevelError::Locked { layers },
+        SessionError::Document(DocumentError::Gone { line }) => LevelError::Gone { line },
         other => LevelError::Invalid {
             message: other.to_string(),
         },

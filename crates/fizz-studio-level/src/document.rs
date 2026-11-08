@@ -12,6 +12,8 @@ use fizz_studio_language::tables::{has, ITEMS, KINDS, TILES};
 use fizz_studio_protocol::{CellRange, LevelEdit};
 use fizz_studio_session::{Document, DocumentError, Edit};
 
+use crate::things::apply_thing_edit;
+
 /// A Fizz 1 level as text.
 #[derive(Clone, PartialEq, Eq, Default)]
 pub struct LevelDocument {
@@ -33,9 +35,18 @@ impl LevelDocument {
     }
 
     /// The name an edit's undo step has, read against the current text. For the appended edits this
-    /// is [`step_name`]; the thing edits are named once the engine can say what they did.
+    /// is [`step_name`]. A thing edit is named for what it does to the thing it finds (`Move gloop to
+    /// 36, 4`, `Turn gloop to face right (pinned to y=4)`, `Delete soda (kept its comment)`, with
+    /// `(split line N)` when it adds lines); one that cannot be made gets the plain name.
     pub fn describe(&self, edit: &LevelEdit) -> String {
-        step_name(edit)
+        match edit {
+            LevelEdit::MoveThing { .. }
+            | LevelEdit::FaceThing { .. }
+            | LevelEdit::DeleteThing { .. } => apply_thing_edit(&self.text, edit)
+                .map(|outcome| outcome.name)
+                .unwrap_or_else(|_| step_name(edit)),
+            _ => step_name(edit),
+        }
     }
 
     fn check(&self, start: usize, end: usize) -> Result<(), DocumentError> {
@@ -62,9 +73,9 @@ pub fn step_name(edit: &LevelEdit) -> String {
             format!("Place {count} {item}")
         }
         LevelEdit::Spawn { enemy, .. } => format!("Place {enemy}"),
-        LevelEdit::MoveThing { .. }
-        | LevelEdit::FaceThing { .. }
-        | LevelEdit::DeleteThing { .. } => "Edit thing".to_string(),
+        LevelEdit::MoveThing { .. } => "Move thing".to_string(),
+        LevelEdit::FaceThing { .. } => "Turn thing".to_string(),
+        LevelEdit::DeleteThing { .. } => "Delete thing".to_string(),
     }
 }
 
@@ -144,7 +155,11 @@ impl Document for LevelDocument {
             LevelEdit::MoveThing { .. }
             | LevelEdit::FaceThing { .. }
             | LevelEdit::DeleteThing { .. } => {
-                return Err(refuse("editing a thing in place is not built yet"));
+                // The engine rewrites the thing's own statement and checks its own result.
+                let outcome = apply_thing_edit(&self.text, intent)?;
+                let change = minimal_edit(&self.text, &outcome.text);
+                self.text = outcome.text;
+                return Ok(change.into_iter().collect());
             }
             LevelEdit::Paint { tile, x, y } => {
                 if !has(TILES, tile) {
