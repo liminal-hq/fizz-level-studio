@@ -24,6 +24,10 @@ allow = [
   # MPL-2.0 is file-level copyleft: fine when a crate is used unmodified. Tauri's web stack brings
   # `cssparser`, `selectors`, `dtoa-short` and `option-ext`. Each is listed in the third-party notices.
   "MPL-2.0",
+  # The Boost licence is permissive (no copyleft, no attribution in binaries). `clipboard-win` and
+  # `error-code` (Windows only) arrive with `tauri-plugin-clipboard-manager`, which the text-field
+  # menu's Paste reads the clipboard with.
+  "BSL-1.0",
 ]
 
 # Git dependencies are the two games' crates, pinned by revision (D58). Any other git source, and any

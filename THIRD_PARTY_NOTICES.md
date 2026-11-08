@@ -6,6 +6,10 @@ Fizz Level Studio is `Apache-2.0 OR MIT`. The parts of what it ships that carry 
 
 MPL-2.0 is a file-level licence. Tauri's web stack brings `cssparser`, `cssparser-macros`, `selectors`, `dtoa-short` and `option-ext`, each used unmodified as a dependency, with its source available from its crate page. The licence text is at <https://www.mozilla.org/MPL/2.0/>. They arrive with the app shell; nothing in the workspace depends on them yet.
 
+## Boost Software License 1.0 crates
+
+BSL-1.0 is a permissive licence. `tauri-plugin-clipboard-manager` (the text-field menu's Paste) brings `clipboard-win` and `error-code` on Windows, each used unmodified as a dependency. The licence text is at <https://www.boost.org/LICENSE_1_0.txt>.
+
 ## CodeMirror
 
 The script panel is a CodeMirror 6 editor (`@codemirror/state`, `view`, `commands`, `language`, `search`, `autocomplete` and `lint`), with the packages it needs: `@lezer/common`, `@lezer/highlight`, `@lezer/lr`, `@marijn/find-cluster-break`, `crelt`, `style-mod` and `w3c-keyname`. All are MIT licensed, copyright Marijn Haverbeke and others, used unmodified and bundled into the webview. The licence text is at <https://github.com/codemirror/view/blob/main/LICENSE>. They are pinned to exact versions in `apps/studio/package.json`.
