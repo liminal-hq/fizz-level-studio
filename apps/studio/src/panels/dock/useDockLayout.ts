@@ -29,7 +29,7 @@ import {
 	closePeek,
 	maximiseDocked,
 	restorePanel,
-	dockPanel,
+	dockToZone,
 	floatPanel,
 	peekPanel,
 	placeWindow,
@@ -204,7 +204,7 @@ export function useDockLayout(client: DockClient, windowSize: Size, area: Size):
 
 	const activate = useCallback((id: string) => edit((ws) => activateTab(ws, id)), [edit]);
 	const dockTo = useCallback(
-		(id: string, zone: ZoneId) => edit((ws) => dockPanel(ws, id, zone)),
+		(id: string, zone: ZoneId) => edit((ws) => dockToZone(ws, id, zone)),
 		[edit],
 	);
 	const toWindow = useCallback(

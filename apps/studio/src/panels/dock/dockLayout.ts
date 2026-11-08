@@ -14,6 +14,7 @@ import type { ZoneId } from '@liminal-hq/fizz-studio-protocol/generated/ZoneId';
 import type { PanelPlacement } from '@liminal-hq/fizz-studio-protocol/generated/PanelPlacement';
 import type { Size } from '../float/panelGeometry';
 import { clampZoneSize } from './dockGeometry';
+import { dockAtHome, rememberHome } from './dockHome';
 import { ZONE_IDS, zoneOf } from './dockModel';
 
 /** The moves that are about the session, not the arrangement: none of them is saved. */
@@ -88,7 +89,22 @@ export function dockPanel(
 	const entry = next.panels[id]!;
 	entry.place = 'docked';
 	entry.home = zone;
+	// An explicit place replaces whatever was remembered about the last one.
+	entry.home_spot = null;
 	return next;
+}
+
+/**
+ * Docks a panel in a zone the person chose from its menu. A panel that is away (floating or in a
+ * window) and that chooses the zone it left goes back to its place there; any other choice is
+ * explicit and uses `dockPanel`'s default place.
+ */
+export function dockToZone(workspace: Workspace, id: string, zone: ZoneId): Workspace {
+	const entry = entryOf(workspace, id);
+	if (entry && entry.place !== 'docked' && entry.home === zone && entry.home_spot?.zone === zone) {
+		return dockAtHome(detach(workspace, id), id);
+	}
+	return dockPanel(workspace, id, zone);
 }
 
 function clamp(n: number, lo: number, hi: number): number {
@@ -150,19 +166,26 @@ export function floatPanel(
 	const entry = entryOf(workspace, id);
 	if (!entry) return workspace;
 	const from = zoneOf(workspace, id);
+	const spot = rememberHome(workspace, id);
 	const next = detach(workspace, id);
 	const target = next.panels[id]!;
-	if (from) target.home = from;
+	if (from) {
+		target.home = from;
+		target.home_spot = spot;
+	}
 	target.place = 'floating';
 	target.float = { ...target.float, ...rect, visible: true, z: topZ(next) + 1 };
 	return next;
 }
 
-/** Docks a floating panel, or one in its own window, back in the zone it last had. */
+/**
+ * Docks a floating panel, or one in its own window, back exactly where it left: its zone, its tab
+ * group, its place among the group's tabs, whether it was the showing tab (`dockHome.ts`).
+ */
 export function dockBack(workspace: Workspace, id: string): Workspace {
 	const entry = entryOf(workspace, id);
 	if (!entry || entry.place === 'docked') return workspace;
-	return dockPanel(workspace, id, entry.home);
+	return dockAtHome(detach(workspace, id), id);
 }
 
 /** Sends a panel to a window of its own, at `at` when given (else where its window last was). */
@@ -176,9 +199,13 @@ export function sendToWindow(workspace: Workspace, id: string, at?: WindowPlacem
 		return next;
 	}
 	const from = zoneOf(workspace, id);
+	const spot = rememberHome(workspace, id);
 	const next = detach(workspace, id);
 	const target = next.panels[id]!;
-	if (from) target.home = from;
+	if (from) {
+		target.home = from;
+		target.home_spot = spot;
+	}
 	target.window_from = entry.place;
 	target.window = at
 		? { ...at }
@@ -209,12 +236,12 @@ export function placeWindow(workspace: Workspace, id: string, at: WindowPlacemen
 	return next;
 }
 
-/** Brings a panel in its own window back to where it was before: its zone, or floating. */
+/** Brings a panel in its own window back to where it was before: exactly where it left its zone, or floating. */
 export function bringBack(workspace: Workspace, id: string): Workspace {
 	const entry = entryOf(workspace, id);
 	if (!entry || entry.place !== 'window') return workspace;
 	if (entry.window_from === 'floating') return floatPanel(workspace, id);
-	return dockPanel(workspace, id, entry.home);
+	return dockAtHome(detach(workspace, id), id);
 }
 
 export function setZoneCollapsed(

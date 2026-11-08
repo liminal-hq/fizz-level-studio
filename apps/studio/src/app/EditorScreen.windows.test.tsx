@@ -83,12 +83,11 @@ describe('tearing a panel off', () => {
 
 	it('docks a panel back from the notice and from its window closing', async () => {
 		const user = userEvent.setup();
-		const { windows, docks } = await mount({
-			dock: dockWithWindow('history'),
-			open: ['panel-history-1'],
-		});
+		const { windows, docks } = await mount();
 		const right = screen.getByRole('region', { name: 'Right dock' });
-		await user.click(railEntry('History (own window)', 'right'));
+		await showFromRail(user, 'History');
+		await choosePanelMenu(user, right, 'History', 'Tear off');
+		await findRailEntry('History (own window)', 'right');
 		await user.click(within(right).getByRole('button', { name: 'Dock back' }));
 		expect(windows.client.dockBack).toHaveBeenCalledWith('history');
 		await waitFor(() => expect(railEntry('History', 'right')).toBeVisible());
@@ -97,6 +96,25 @@ describe('tearing a panel off', () => {
 		await findRailEntry('History (own window)', 'right');
 		act(() => windows.close('panel-history-1'));
 		await waitFor(() => expect(railEntry('History', 'right')).toBeVisible());
+		expect(docks.save).toBeDefined();
+	});
+
+	it('docks a panel back to its place when its rail entry is chosen', async () => {
+		const user = userEvent.setup();
+		const { windows, docks } = await mount();
+		await showFromRail(user, 'Objects');
+		await choosePanelMenu(user, document.body, 'Objects', 'Tear off');
+		const away = await findRailEntry('Objects (own window)', 'right');
+		// The away entry sits where Objects left: between Inspector and History.
+		const order = () =>
+			[...document.querySelectorAll('[data-rail="right"] [data-rail-item]')].map((e) =>
+				(e.textContent ?? '').trim(),
+			);
+		expect(order()).toEqual(['Inspector', 'Objects (own window)', 'History']);
+		await user.click(away);
+		await waitFor(() => expect(windows.client.dockBack).toHaveBeenCalledWith('objects'));
+		await waitFor(() => expect(railEntry('Objects', 'right')).toBeVisible());
+		expect(order()).toEqual(['Inspector', 'Objects', 'History']);
 		expect(docks.save).toBeDefined();
 	});
 
@@ -117,9 +135,11 @@ describe('tearing a panel off', () => {
 
 	it('closes a panel’s window when the panel is docked elsewhere from its tab', async () => {
 		const user = userEvent.setup();
-		const { windows } = await mount({ dock: dockWithWindow('history'), open: ['panel-history-1'] });
+		const { windows } = await mount();
 		const right = screen.getByRole('region', { name: 'Right dock' });
-		await user.click(railEntry('History (own window)', 'right'));
+		await showFromRail(user, 'History');
+		await choosePanelMenu(user, right, 'History', 'Tear off');
+		await findRailEntry('History (own window)', 'right');
 		await choosePanelMenu(user, right, 'History (own window)', 'Dock bottom');
 		await waitFor(() => expect(windows.client.dockBack).toHaveBeenCalledWith('history'));
 		expect(screen.getByRole('region', { name: 'Bottom dock' })).toBeInTheDocument();

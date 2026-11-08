@@ -896,7 +896,15 @@ export function EditorScreen({
 					renderPanel={(id) => content(id as PanelId)}
 					expandable={(id) => isExpandable(id) && !windows.away[id as PanelId]}
 					maximised={maximised}
-					actions={{ ...dock, activate: activateTab }}
+					actions={{
+						...dock,
+						activate: activateTab,
+						chooseAway: (id) => {
+							if (!windows.away[id as PanelId]) return false;
+							windows.dockBack(id as PanelId);
+							return true;
+						},
+					}}
 					panelMenu={panelMenu}
 					headerExtra={headerExtra}
 					railPlaceholders={railPlaceholders()}

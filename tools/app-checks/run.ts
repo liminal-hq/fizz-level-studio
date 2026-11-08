@@ -2909,6 +2909,153 @@ async function dockBackWindow(bridge: Bridge, panel: string): Promise<boolean> {
 	return gone !== null;
 }
 
+// Dock back to where it left (docs/DECISIONS.md D63 and D65; spec/EDITOR.md, "Docking back")
+
+/** The rails as drawn: each zone's folded flag and its entries as `Title:group`, `*` marking the showing tab. */
+function railState(bridge: Bridge): Promise<string> {
+	return bridge
+		.js<unknown>(
+			`const out = {};
+			 for (const zone of ['left', 'right', 'bottom']) {
+			   const rail = document.querySelector('[data-rail="' + zone + '"]');
+			   out[zone] = rail ? { folded: rail.hasAttribute('data-folded'), items: [...rail.querySelectorAll('[data-rail-item]')].map((i) => i.textContent.trim() + ':' + i.dataset.railGroup + (i.dataset.active !== undefined ? '*' : '')) } : null;
+			 }
+			 return out;`,
+		)
+		.then((state) => JSON.stringify(state));
+}
+
+async function checkDockBackHome(
+	bridge: Bridge,
+	profile: Profile,
+	levelPath: string,
+	currentApp: () => App,
+	replaceApp: (app: App) => void,
+): Promise<void> {
+	const railHas = (title: string) =>
+		bridge.js<boolean>(
+			`return [...document.querySelectorAll('[data-rail-item]')].some((x) => x.textContent.trim() === ${JSON.stringify(title)});`,
+		);
+	const gone = async (title: string) =>
+		(await within(5000, async () => !(await railHas(title)))) !== null;
+	const back = async (title: string) => (await within(5000, () => railHas(title))) !== null;
+	/** A tab sits in its dock, then the state is read once the rails have settled. */
+	const settled = async (title: string) => {
+		await back(title);
+		await sleep(250);
+		return railState(bridge);
+	};
+	const leaveAndReturn = async (
+		label: string,
+		title: string,
+		leave: 'Float' | 'Tear off',
+		zoneRow: 'Dock left' | 'Dock right',
+		via: 'menu' | 'window' | 'rail',
+	) => {
+		await showFromRail(bridge, title);
+		await sleep(200);
+		const before = await railState(bridge);
+		check(`${label}: ${title} offers ${leave}`, await choosePanelMenu(bridge, title, leave));
+		if (leave === 'Float') {
+			check(`${label}: ${title} has left its dock`, await gone(title));
+		} else {
+			const id = title.toLowerCase();
+			await within(10_000, async () => (await bridge.windows()).includes(`panel-${id}-1`));
+			await bridge.ready(`panel-${id}-1`);
+		}
+		if (via === 'menu') {
+			check(
+				`${label}: ${title} docks back from its menu`,
+				leave === 'Float'
+					? await choosePanelMenu(bridge, title, zoneRow)
+					: await choosePanelMenu(bridge, `${title} (own window)`, zoneRow),
+			);
+		} else if (via === 'window') {
+			check(
+				`${label}: ${title}'s window Dock back`,
+				await dockBackWindow(bridge, title.toLowerCase()),
+			);
+		} else {
+			check(
+				`${label}: ${title}'s away rail entry returns it`,
+				await clickRailItem(bridge, `${title} (own window)`),
+			);
+		}
+		const after = await settled(title);
+		check(
+			`${label}: ${title} is back in the same dock, group, place and showing tab`,
+			after === before,
+			JSON.stringify({ before, after }),
+		);
+	};
+
+	// The Paint workspace's left dock holds Palette beside Layers: Palette first and showing.
+	await leaveAndReturn('dock back', 'Palette', 'Float', 'Dock left', 'menu');
+	await leaveAndReturn('dock back', 'Palette', 'Tear off', 'Dock left', 'window');
+	await leaveAndReturn('dock back', 'Palette', 'Tear off', 'Dock left', 'rail');
+	await leaveAndReturn('dock back', 'Layers', 'Float', 'Dock left', 'menu');
+	// The right dock: Inspector, Objects and History, each as the showing tab in turn.
+	for (const title of ['Inspector', 'Objects', 'History']) {
+		await leaveAndReturn('dock back', title, 'Float', 'Dock right', 'menu');
+		await leaveAndReturn('dock back', title, 'Tear off', 'Dock right', 'window');
+		await leaveAndReturn('dock back', title, 'Tear off', 'Dock right', 'rail');
+	}
+
+	// Floated, then another tab shows while it is away: it still returns as the showing tab.
+	await showFromRail(bridge, 'Objects');
+	await sleep(200);
+	const objectsBefore = await railState(bridge);
+	await choosePanelMenu(bridge, 'Objects', 'Float');
+	await gone('Objects');
+	await clickRailItem(bridge, 'History');
+	await sleep(200);
+	await choosePanelMenu(bridge, 'Objects', 'Dock right');
+	check(
+		'dock back: Objects returns as the showing tab although History showed meanwhile',
+		(await settled('Objects')) === objectsBefore,
+	);
+
+	// It survives a restart: Objects floats, the app quits and starts again, and Dock right still
+	// returns it between Inspector and History.
+	await showFromRail(bridge, 'Objects');
+	await sleep(200);
+	const beforeRestart = await railState(bridge);
+	await choosePanelMenu(bridge, 'Objects', 'Float');
+	await gone('Objects');
+	await sleep(600);
+	await bridge.js<boolean>(
+		`document.dispatchEvent(new KeyboardEvent('keydown', { key: 'q', ctrlKey: true, bubbles: true })); return true;`,
+	);
+	const exited = await within(10_000, () => !currentApp().alive);
+	check('dock back: the app quits with Objects floating', exited !== null);
+	await bridge.stop();
+	replaceApp(new App(profile, [levelPath]));
+	await bridge.start();
+	check('dock back: the app restarts', await bridge.ready());
+	const floatingAgain = await within(10_000, async () => !(await railHas('Objects')));
+	check('dock back: Objects is still floating after the restart', floatingAgain !== null);
+	const saved = await bridge.js<{ after: string | null; before: string | null } | null>(
+		`const s = await window.__TAURI_INTERNALS__.invoke('plugin:fizz-studio-settings|settings_get');
+		 const ws = s.settings.dock.workspaces[s.settings.dock.active];
+		 return ws.panels.objects.home_spot;`,
+	);
+	check(
+		'dock back: the remembered place is saved with the workspace',
+		saved?.after === 'inspector' && saved?.before === 'history',
+		JSON.stringify(saved),
+	);
+	check(
+		'dock back: the floating Objects offers Dock right',
+		await choosePanelMenu(bridge, 'Objects', 'Dock right'),
+	);
+	const afterRestart = await settled('Objects');
+	check(
+		'dock back: after the restart Objects returns to the same place and showing tab',
+		afterRestart === beforeRestart,
+		JSON.stringify({ beforeRestart, afterRestart }),
+	);
+}
+
 async function checkPanelWindows(
 	bridge: Bridge,
 	profile: Profile,
@@ -5130,6 +5277,13 @@ async function main(): Promise<void> {
 		// window reaches the main window, closing the window docks the panel back, and the window's
 		// place is remembered per workspace.
 		await checkPanelWindows(
+			bridge,
+			profile,
+			path,
+			() => app!,
+			(next) => (app = next),
+		);
+		await checkDockBackHome(
 			bridge,
 			profile,
 			path,

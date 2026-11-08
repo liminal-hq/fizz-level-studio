@@ -41,6 +41,11 @@ export interface DockActions {
 	resetZoneSize(zone: ZoneId): void;
 	/** Moves a docked panel to a place among its group's tabs. */
 	reorder(id: string, index: number): void;
+	/**
+	 * Choosing a panel's entry on a rail when the panel is away (in a window of its own): returns
+	 * true when it took the choice, as docking the panel back where it left does.
+	 */
+	chooseAway?(id: string): boolean;
 	/** Makes an expandable panel fill the workspace. */
 	maximise(id: string): void;
 	/** Puts the maximised panel back. */
@@ -140,6 +145,7 @@ export function DockShell({
 
 	// A rail entry shows its panel, opening a folded dock on it, or folds the dock it is showing in.
 	const choose = (id: string) => {
+		if (actions.chooseAway?.(id)) return;
 		const zone = zoneOf(view, id);
 		const choice = railChoice(view, id);
 		if (zone === null || choice === null) return;

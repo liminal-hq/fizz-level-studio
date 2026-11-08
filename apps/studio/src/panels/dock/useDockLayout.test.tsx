@@ -188,4 +188,53 @@ describe('useDockLayout', () => {
 		act(() => again.result.current.reset());
 		expect(again.result.current.toolPicker).toBeNull();
 	});
+
+	it('docks a panel back where it left through a save and a restart, per workspace', async () => {
+		const first = fakeDockClient(defaultDock());
+		const one = renderHook(() => useDockLayout(first, windowSize, area));
+		await waitFor(() => expect(one.result.current.loaded).toBe(true));
+		// Paint: Objects (between Inspector and History) and Layers (after Palette) leave.
+		act(() => one.result.current.activate('objects'));
+		act(() => one.result.current.floatPanel('objects'));
+		act(() => one.result.current.floatPanel('layers'));
+		act(() => one.result.current.switchWorkspace('Script'));
+		// Script: History goes to its own window, away, with the right dock as it is there.
+		act(() => one.result.current.sendToWindow('history'));
+		await act(async () => {
+			await flushPendingWrites();
+		});
+		const written = vi.mocked(first.save).mock.calls.at(-1)![0];
+		one.unmount();
+
+		const again = renderHook(() => useDockLayout(fakeDockClient(written), windowSize, area));
+		await waitFor(() => expect(again.result.current.active).toBe('Script'));
+		expect(again.result.current.workspace.panels.history!.home_spot).toMatchObject({
+			zone: 'right',
+			after: 'objects',
+			before: null,
+		});
+		act(() => again.result.current.bringBack('history'));
+		expect(dockedIn(again.result.current.workspace, 'right')).toEqual([
+			'inspector',
+			'objects',
+			'history',
+		]);
+		act(() => again.result.current.switchWorkspace('Paint'));
+		const paint = again.result.current.workspace;
+		expect(dockedIn(paint, 'left')).toEqual(['palette']);
+		expect(paint.panels.objects!.home_spot).toMatchObject({
+			after: 'inspector',
+			before: 'history',
+			active: true,
+		});
+		act(() => again.result.current.dockTo('objects', 'right'));
+		act(() => again.result.current.dockTo('layers', 'left'));
+		expect(dockedIn(again.result.current.workspace, 'right')).toEqual([
+			'inspector',
+			'objects',
+			'history',
+		]);
+		expect(dockedIn(again.result.current.workspace, 'left')).toEqual(['palette', 'layers']);
+		expect(again.result.current.workspace.zones.right.groups[0]!.active).toBe('objects');
+	});
 });
