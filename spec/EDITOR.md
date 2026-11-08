@@ -14,7 +14,7 @@ The **Ultimate** layout is home: the level is the canvas and fills the window; e
 | History                        | Who changed what, with Claude's pending ideas after a Now marker                                                                      | 336, 8, 560, 120            | 380 × 96     |
 | Checks                         | Start, exit and the playtest bot                                                                                                      | 904, 8, 220, 120            | 190 × 96     |
 | Lens bar                       | The lens toggles, the gap rule, and Run playtest bot                                                                                  | 336, 136, 788, 52           | —            |
-| Inspector                      | The selected thing: name, position, facing and patrol for enemies, its script line, Show in script, Delete                            | 1132, 8, 300, 328           | 270 × 220    |
+| Inspector                      | The selected thing: name, position, facing for enemies (patrol for Fizz 2 objects, planned), its script line, Show in script, Delete  | 812, 436, 300, 256          | 270 × 220    |
 | Review changes / Claude (tabs) | Pending hunks; the mode switch and Ask                                                                                                | 1132, 344, 300, 474         | 270 × 260    |
 | Script / Playtest (tabs)       | The script, the typed-line box                                                                                                        | 76, 570, 600, 248           | 320 × 140    |
 | Navigator                      | The whole level, a frame for what is visible, zoom buttons                                                                            | 684, 570, 440, 248          | 380 × 200    |
@@ -78,30 +78,30 @@ Not built in the prototype: New level, Save as, Export, Preferences, Quit, Level
 
 Keys work while the studio has focus (click the level first) and pause while typing in a box. The prototype's root element owns the handler; nothing listens on the document.
 
-| Key                              | Action                                                                                     |
-| -------------------------------- | ------------------------------------------------------------------------------------------ |
-| B, E, I, S, T, Q                 | Paint, Erase, Pick, Select, Stamp, Inspect                                                 |
-| L, R, A                          | Lift, Room, Arena (in a level)                                                             |
-| P                                | Point (on an overworld)                                                                    |
-| Ctrl+Z, Ctrl+Shift+Z (or Ctrl+Y) | Undo, redo                                                                                 |
-| Ctrl+C, Ctrl+X                   | Copy, cut the selection (filled cells only)                                                |
-| Ctrl+D                           | Duplicate                                                                                  |
-| Del or Backspace                 | Delete the selection, or the selected object                                               |
-| Arrows                           | Move the selected thing one tile; with an empty cell selected, move the cursor             |
-| F                                | Flip the selected enemy's facing                                                           |
-| Ctrl+K                           | Ask Claude (about the selection when there is one)                                         |
-| Ctrl+J                           | Show the selection's line in the script                                                    |
-| Alt+1 to Alt+5                   | Toggle lenses one to five (the lenses on offer, in order)                                  |
-| Ctrl+Shift+L                     | Hide all lenses                                                                            |
-| = and -                          | Zoom in and out through 16, 24, 32 and 48 px                                               |
-| Ctrl+Shift+0                     | Reset window layout                                                                        |
-| Ctrl+S                           | Save (writes nothing in the prototype)                                                     |
-| Ctrl+N                           | New level (opens the New level window)                                                     |
-| Ctrl+O                           | Open level (asks for a level file)                                                         |
-| Ctrl+W                           | Close the open level, asking first when it has unsaved changes (never the window)          |
-| F1                               | Help (opens the About window until the studio has help of its own)                         |
-| Esc                              | Close menus, cards and the ring; then clear the object selection; then clear the selection |
-| ?                                | Show or hide the shortcuts card (the Keyboard shortcuts window in the app)                 |
+| Key                              | Action                                                                                                                                                      |
+| -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| B, E, I, S, T, Q                 | Paint, Erase, Pick, Select, Stamp, Inspect                                                                                                                  |
+| L, R, A                          | Lift, Room, Arena (in a level)                                                                                                                              |
+| P                                | Point (on an overworld)                                                                                                                                     |
+| Ctrl+Z, Ctrl+Shift+Z (or Ctrl+Y) | Undo, redo                                                                                                                                                  |
+| Ctrl+C, Ctrl+X                   | Copy, cut the selection (filled cells only)                                                                                                                 |
+| Ctrl+D                           | Duplicate                                                                                                                                                   |
+| Del or Backspace                 | Delete the selection, or the selected object                                                                                                                |
+| Arrows                           | Move the selected thing one tile (a run is one undo step); Escape deselects, and the arrows then move the cursor. With a cell selected they move the cursor |
+| F                                | Flip the selected enemy's facing                                                                                                                            |
+| Ctrl+K                           | Ask Claude (about the selection when there is one)                                                                                                          |
+| Ctrl+J                           | Show the selection's line in the script                                                                                                                     |
+| Alt+1 to Alt+5                   | Toggle lenses one to five (the lenses on offer, in order)                                                                                                   |
+| Ctrl+Shift+L                     | Hide all lenses                                                                                                                                             |
+| = and -                          | Zoom in and out through 16, 24, 32 and 48 px                                                                                                                |
+| Ctrl+Shift+0                     | Reset window layout                                                                                                                                         |
+| Ctrl+S                           | Save (writes nothing in the prototype)                                                                                                                      |
+| Ctrl+N                           | New level (opens the New level window)                                                                                                                      |
+| Ctrl+O                           | Open level (asks for a level file)                                                                                                                          |
+| Ctrl+W                           | Close the open level, asking first when it has unsaved changes (never the window)                                                                           |
+| F1                               | Help (opens the About window until the studio has help of its own)                                                                                          |
+| Esc                              | Close menus, cards and the ring; then clear the object selection; then clear the selection                                                                  |
+| ?                                | Show or hide the shortcuts card (the Keyboard shortcuts window in the app)                                                                                  |
 
 Tool behaviour:
 
@@ -150,6 +150,7 @@ Moving a room moves its facade: the old facade cells go back to empty and the em
 
 - The rewrite must go through the language package (an API beside `appendEdits` that replaces one owned node and prints it with `formatNode`), so it is tested with the rest of the language. The language package has no such API yet.
 - A new `arena` goes under `edits`, which the parser accepts for this one top-level word (a level still has at most one, and a second is E006).
+- **Built for Fizz 1 items, enemies and the start (D72):** the Inspector's x and y steppers and facing keycaps, Delete, the arrows, F and the Erase tool send a `ThingRef` (kind, index, line, the exact line text and where the thing was seen) with the edit. The engine finds the statement by index and line, or by that text and place if the script moved, and answers `gone` rather than write over a line that changed. A pogo-cache item, exits, doors and anything in a Fizz 2 level are shown with the reason and not edited. The Objects list (with a filter and each thing's line) and the Inspector show the one selection, which follows the thing across its own edits and an outside change.
 - Objects are matched to lines by line number and original text; if the text changed outside the studio, the studio refuses to rewrite and asks.
 - Every handle drags: a lift's whole path, a room's corners and edges, the arena's ends and floor.
 
@@ -236,7 +237,7 @@ In the prototype there is no AI: Ask cycles through three canned ideas per level
 | ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Level canvas        | Tiles, items and enemies as glyphs on coloured cells, objects as shapes (lift ends A and B with a dashed path, rooms as dashed rectangles labelled room or secret room, the arena as a dashed box nine tiles high), the selection, the dragged area, the stamp preview, ghosts and lenses |
 | Overworld canvas    | The map tiles, points as circles (level initials, ⇄ for teleporters, S for the saucer, sign numbers in squares; hidden points dashed; big level points larger), names under level points and teleporters from 24 px zoom, and the Links and Areas lenses                                  |
-| Inspector           | The selected thing's name and kind, x and y with steppers, facing (Left, Right) and patrol for enemies, its script line with Show in script, Delete, and the last change's author                                                                                                         |
+| Inspector           | The selected thing's name and kind, x and y with steppers, facing (Left, Right) for enemies, its script line with Show in script, Delete (patrol is Fizz 2 only, planned; the last change's author is planned: the snapshot has only the level's last author)                             |
 | Checks              | Has a start, has an exit, the playtest bot (stand-in)                                                                                                                                                                                                                                     |
 | Navigator           | The whole level with an orange frame for what the canvas shows, shading under windows, the selection in white, and the zoom                                                                                                                                                               |
 | History             | Steps by You and Claude, Now, then proposed steps                                                                                                                                                                                                                                         |
