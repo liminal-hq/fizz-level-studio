@@ -413,6 +413,126 @@ describe('EditorScreen', () => {
 		expect(within(inspector).getByText(/Nothing selected/)).toBeInTheDocument();
 	});
 
+	describe('changing the selected thing in the Inspector', () => {
+		const text = [
+			'script fizz1 0',
+			'start 1,1',
+			'treats',
+			'soda x=4 y=3',
+			'enemies',
+			'gloop x=8',
+		].join('\n');
+		async function inspectSoda() {
+			const user = userEvent.setup();
+			const snapshot = levelSnapshot(
+				{ text },
+				levelView(12, 8, {
+					items: [{ kind: 'soda', x: 4, y: 3, generator: null, line: 4 }],
+					spawns: [
+						{ kind: 'gloop', x: 8, y: null, dir: null, ride: false, on_ground: true, line: 6 },
+					],
+				}),
+			);
+			const client = new FakeLevelClient(snapshot);
+			render(<EditorScreen snapshot={snapshot} client={client} docks={floating()} />);
+			const inspector = await screen.findByRole('region', { name: 'Inspector' });
+			const canvas = screen.getByRole('application');
+			canvas.focus();
+			await user.keyboard('q');
+			stroke(canvas, [[4, 3]]);
+			await within(inspector).findByRole('heading', { name: 'Soda · treat' });
+			return { user, client, inspector, canvas };
+		}
+
+		it('names the thing by its place and line text, and shows it where it moved to', async () => {
+			const { user, client, inspector } = await inspectSoda();
+			await user.click(within(inspector).getByRole('button', { name: 'Increase x' }));
+			await waitFor(() => expect(client.applied).toHaveLength(1));
+			expect(client.applied[0]!.edit).toEqual({
+				kind: 'move-thing',
+				thing: { kind: 'item', index: 0, line: 4, expect: 'soda x=4 y=3', x: 4, y: 3 },
+				x: 5,
+				y: 3,
+			});
+			await waitFor(() =>
+				expect(within(inspector).getByRole('spinbutton', { name: 'x' })).toHaveValue(5),
+			);
+			// Still the same selected thing, now where it moved to.
+			expect(screen.getByRole('application')).toHaveAttribute('data-inspected', '5,3');
+		});
+
+		it('makes a run of presses one undo step named for where it ended, and ends it on leaving', async () => {
+			const { user, client, inspector } = await inspectSoda();
+			const more = within(inspector).getByRole('button', { name: 'Increase x' });
+			await user.click(more);
+			await user.click(more);
+			await user.click(more);
+			await waitFor(() => expect(client.applied).toHaveLength(3));
+			const keys = new Set(client.applied.map((a) => a.mergeKey));
+			expect(keys.size).toBe(1);
+			await waitFor(() =>
+				expect(screen.getByRole('button', { name: /Undo Move soda to 7, 3/ })).toBeInTheDocument(),
+			);
+			await user.click(screen.getByRole('button', { name: /Undo Move soda to 7, 3/ }));
+			await waitFor(() =>
+				expect(within(inspector).getByRole('spinbutton', { name: 'x' })).toHaveValue(4),
+			);
+		});
+
+		it('turns an enemy and puts it back on the ground', async () => {
+			const { user, client, inspector, canvas } = await inspectSoda();
+			stroke(canvas, [[8, 1]]);
+			await within(inspector).findByRole('heading', { name: 'Gloop · enemy' });
+			await user.click(within(inspector).getByRole('button', { name: 'Right' }));
+			await waitFor(() =>
+				expect(client.applied.at(-1)!.edit).toMatchObject({ kind: 'face-thing', facing: 'right' }),
+			);
+			await waitFor(() =>
+				expect(within(inspector).getByRole('button', { name: 'Right' })).toHaveAttribute(
+					'aria-pressed',
+					'true',
+				),
+			);
+			await user.click(within(inspector).getByRole('button', { name: 'Increase y' }));
+			await user.click(await within(inspector).findByRole('button', { name: 'On the ground' }));
+			await waitFor(() =>
+				expect(client.applied.at(-1)!.edit).toMatchObject({ kind: 'move-thing', y: null }),
+			);
+		});
+
+		it('deletes the thing, clears the selection, says how to get it back, and undo restores it', async () => {
+			const { user, client, inspector } = await inspectSoda();
+			await user.click(within(inspector).getByRole('button', { name: 'Delete' }));
+			expect(
+				await within(inspector).findByText('Deleted soda. Ctrl+Z puts it back.'),
+			).toBeVisible();
+			expect(within(inspector).getByText(/Nothing selected/)).toBeInTheDocument();
+			expect(screen.getByRole('application')).not.toHaveAttribute('data-inspected');
+			expect(client.snapshot().view.items).toHaveLength(0);
+			await user.click(screen.getByRole('button', { name: /Undo Delete soda/ }));
+			await waitFor(() => expect(client.snapshot().view.items).toHaveLength(1));
+		});
+
+		it('shows a locked layer’s refusal under the fields and changes nothing', async () => {
+			const { user, client, inspector } = await inspectSoda();
+			client.refuseEdits = { kind: 'locked', layers: ['treats'] };
+			await user.click(within(inspector).getByRole('button', { name: 'Increase x' }));
+			expect(await within(inspector).findByRole('alert')).toHaveTextContent(
+				'Treats is locked. Unlock it in Layers to change it.',
+			);
+			expect(within(inspector).getByRole('spinbutton', { name: 'x' })).toHaveValue(4);
+		});
+
+		it('says when the line it meant to change is no longer there', async () => {
+			const { user, client, inspector } = await inspectSoda();
+			client.refuseEdits = { kind: 'gone', line: 4 };
+			await user.click(within(inspector).getByRole('button', { name: 'Increase x' }));
+			expect(await within(inspector).findByRole('alert')).toHaveTextContent(
+				'That line changed. Select the thing again.',
+			);
+		});
+	});
+
 	it('copies the outlined area with Stamp and pastes it as one undo step', async () => {
 		const user = userEvent.setup();
 		const { client, canvas } = await mount();

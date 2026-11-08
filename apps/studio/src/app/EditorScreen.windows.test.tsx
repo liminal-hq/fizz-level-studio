@@ -260,6 +260,39 @@ describe('the bridge to the panel windows', () => {
 		expect(shared).toEqual(thing);
 	});
 
+	it('applies a change the torn-off Inspector asks for, answers it, and ends its step on request', async () => {
+		const { hub, client } = await mount({
+			dock: dockWithWindow('inspector'),
+			open: ['panel-inspector-1'],
+		});
+		const panel = hub.bridgeFor('panel-inspector-1');
+		const results: Array<{ serial: number; result: { ok: boolean } }> = [];
+		panel.on('inspector/result', (message) => results.push(message));
+		const endStep = vi.spyOn(client, 'endStep');
+		// Nothing is selected yet, so there is no thing for the request to name.
+		act(() =>
+			panel.send('main-1', 'inspector/edit', {
+				serial: 1,
+				spec: { op: 'move', x: 4, y: 1 },
+				mergeKey: 'thing:item:0:move:0',
+			}),
+		);
+		await waitFor(() => expect(results).toHaveLength(1));
+		expect(results[0]).toMatchObject({ serial: 1, result: { ok: false } });
+		expect(client.applied).toHaveLength(0);
+		// A request of the wrong shape is not answered at all.
+		act(() =>
+			panel.send('main-1', 'inspector/edit', {
+				serial: 2,
+				spec: { op: 'teleport' },
+				mergeKey: 'k',
+			} as never),
+		);
+		act(() => panel.send('main-1', 'inspector/endStep', null));
+		await waitFor(() => expect(endStep).toHaveBeenCalled());
+		expect(results).toHaveLength(1);
+	});
+
 	it('shares the proposals toggle both ways', async () => {
 		const { hub } = await mount({ dock: dockWithWindow('proposals'), open: ['panel-proposals-1'] });
 		const panel = hub.bridgeFor('panel-proposals-1');

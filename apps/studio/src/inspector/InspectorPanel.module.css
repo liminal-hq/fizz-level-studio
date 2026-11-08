@@ -35,18 +35,52 @@
 .fields {
 	display: grid;
 	grid-template-columns: auto 1fr;
-	align-items: baseline;
-	gap: 0.3rem 0.75rem;
+	align-items: center;
+	gap: 0.4rem 0.75rem;
 	margin: 0;
 }
 
-.fields dt {
+.label {
 	color: var(--fls-text-secondary);
 }
 
-.fields dd {
-	margin: 0;
+.value {
 	font-variant-numeric: tabular-nums;
+}
+
+.ground {
+	grid-column: 1 / -1;
+	display: flex;
+	align-items: center;
+}
+
+.ground:empty {
+	display: none;
+}
+
+.facing {
+	display: flex;
+	gap: 0.3rem;
+}
+
+.warning {
+	margin: 0;
+	color: var(--fls-warning);
+	font-size: 0.85rem;
+}
+
+.error {
+	margin: 0;
+	color: var(--fls-danger);
+	font-size: 0.85rem;
+}
+
+.keys {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: flex-end;
+	gap: 0.4rem;
 }
 
 .hint {
@@ -56,6 +90,7 @@
 
 .lineRow {
 	display: flex;
+	flex-wrap: wrap;
 	align-items: center;
 	justify-content: space-between;
 	gap: 0.5rem;

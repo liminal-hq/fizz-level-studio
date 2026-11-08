@@ -65,6 +65,14 @@ import { pasteRect } from '../tools/clip';
 import { SPACING_KEYS, toolForKey } from '../tools/shortcuts';
 import { ToolPicker } from '../tools/ToolPicker';
 import { resolveThing } from '../inspector/resolveThing';
+import { thingRef } from '../inspector/thingRef';
+import {
+	buildEdit,
+	editProblem,
+	type ThingEditApi,
+	type ThingEditResult,
+	type ThingEditSpec,
+} from '../inspector/thingEdit';
 import { thingAt, type Cell, type PointerPhase, type Thing } from '../tools/tool';
 import { useTool } from '../tools/useTool';
 import { isLevelError, type LevelClient } from '../worlds/levelClient';
@@ -365,6 +373,45 @@ export function EditorScreen({
 		() => (selectedThing ? { x: selectedThing.x, y: selectedThing.y } : null),
 		[selectedThing],
 	);
+	// The Inspector's changes go through the same queue as every other edit, tied to the revision
+	// and the thing as they are when the turn comes, and a refusal goes back to the Inspector to show.
+	const applyThingEdit = useCallback(
+		(spec: ThingEditSpec, mergeKey: string) =>
+			new Promise<ThingEditResult>((resolve) => {
+				queue.current = queue.current.then(async () => {
+					const snap = held.current;
+					const prev = selectedNow.current;
+					const thing = prev ? resolveThing(prev, snap.view) : null;
+					const ref = thing ? thingRef(snap.view, snap.text, thing) : null;
+					if (!ref) {
+						resolve({ ok: false, problem: { id: 'inspector.gone' } });
+						return;
+					}
+					try {
+						accept(await client.applyEdit(snap.id, buildEdit(spec, ref), snap.revision, mergeKey));
+						if (spec.op === 'delete') {
+							selectedNow.current = null;
+							setSelectedThing(null);
+						}
+						resolve({ ok: true });
+					} catch (error) {
+						resolve({ ok: false, problem: editProblem(error, held.current.view.sections) });
+					}
+				});
+			}),
+		[client, accept],
+	);
+	const endThingStep = useCallback(
+		() =>
+			enqueue(async () => {
+				accept(await client.endStep(held.current.id));
+			}),
+		[client, accept, enqueue],
+	);
+	const thingEdits = useMemo<ThingEditApi>(
+		() => ({ apply: applyThingEdit, endStep: endThingStep }),
+		[applyThingEdit, endThingStep],
+	);
 	const lookupCellLine = useCallback(
 		(x: number, y: number) => client.cellLine(held.current.id, x, y),
 		[client],
@@ -596,6 +643,8 @@ export function EditorScreen({
 		setSpacing: tool.setSpacing,
 		chooseObject: onObjectChosen,
 		selectThing: chooseThing,
+		editThing: applyThingEdit,
+		endThingStep,
 		showLine,
 		setGhostsShown: setShowGhosts,
 		setHiddenLayers,
@@ -649,6 +698,7 @@ export function EditorScreen({
 				onThingChosen: chooseThing,
 				selectedThing,
 				lookupCellLine,
+				thingEdits,
 				showLine,
 				undo,
 				redo,

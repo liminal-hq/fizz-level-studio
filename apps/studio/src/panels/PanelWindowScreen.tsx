@@ -3,8 +3,9 @@
 // (c) Copyright 2026 Liminal HQ, Scott Morris
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
-import { useMemo } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { AppWindow } from '../app/AppWindow';
+import type { ThingEditApi, ThingEditResult } from '../inspector/thingEdit';
 import { panelContent } from '../app/panelContent';
 import { ownerOfPanel, panelFromLabel } from '../app/windowKind';
 import { t } from '../i18n/messages';
@@ -91,6 +92,31 @@ function PanelWindow({
 	const session = usePanelSession(windowLabel, bridge, levels);
 	const { share, snapshot } = session;
 	const layerLocks = useLayerLocks(levels, share?.levelId ?? null);
+	// The Inspector here asks the main window to change the thing, which keeps every edit in its one
+	// queue, and hears what became of each request.
+	const requests = useRef(new Map<number, (result: ThingEditResult) => void>());
+	const serial = useRef(0);
+	useEffect(
+		() =>
+			bridge.on('inspector/result', (message) => {
+				if (!message || !Number.isInteger(message.serial)) return;
+				requests.current.get(message.serial)?.(message.result);
+				requests.current.delete(message.serial);
+			}),
+		[bridge],
+	);
+	const thingEdits = useMemo<ThingEditApi>(
+		() => ({
+			apply: (spec, mergeKey) =>
+				new Promise((resolve) => {
+					const id = (serial.current += 1);
+					requests.current.set(id, resolve);
+					bridge.send(owner, 'inspector/edit', { serial: id, spec, mergeKey });
+				}),
+			endStep: () => bridge.send(owner, 'inspector/endStep', null),
+		}),
+		[bridge, owner],
+	);
 	// Dragging the tab or the title back over the main window docks the panel where it is let go.
 	const drag = usePanelWindowDrag({
 		client: tearoff,
@@ -151,6 +177,7 @@ function PanelWindow({
 							onObjectChosen: (cell) => bridge.send(owner, 'objects/choose', cell),
 							onThingChosen: (thing) => bridge.send(owner, 'objects/select', thing),
 							selectedThing: share.selectedThing ?? null,
+							thingEdits,
 							lookupCellLine: (x, y) =>
 								share.levelId ? levels.cellLine(share.levelId, x, y) : Promise.resolve(null),
 							showLine: (line) => bridge.send(owner, 'script/show', { line }),

@@ -24,7 +24,7 @@ vi.mock('@tauri-apps/api/window', () => {
 	return { getCurrentWindow: () => win };
 });
 
-import { levelSnapshot } from '../test/levelFixtures';
+import { levelSnapshot, levelView } from '../test/levelFixtures';
 import { fakePanelWindows } from '../test/panelWindowFixtures';
 import { FakeLevelClient } from '../worlds/fakeLevelClient';
 import { PanelWindowScreen } from './PanelWindowScreen';
@@ -49,6 +49,7 @@ function mount(
 	label: string,
 	state: EditorShare | null = share(),
 	tearoff: FakeTearoff = createFakeTearoff(),
+	snapshot = levelSnapshot(),
 ) {
 	const hub = createBridgeHub();
 	const main = hub.bridgeFor('main-1');
@@ -58,6 +59,8 @@ function mount(
 		'palette/set',
 		'objects/choose',
 		'objects/select',
+		'inspector/edit',
+		'inspector/endStep',
 		'script/show',
 		'proposals/shown',
 		'dockBackTo',
@@ -65,7 +68,6 @@ function mount(
 	] as const) {
 		main.on(topic, (payload) => heard.push({ topic, payload }));
 	}
-	const snapshot = levelSnapshot();
 	const levels = new FakeLevelClient(snapshot);
 	const windows = fakePanelWindows([label]);
 	render(
@@ -101,6 +103,64 @@ describe('a panel window', () => {
 		expect(await screen.findByRole('heading', { name: 'Start' })).toBeVisible();
 		await user.click(screen.getByRole('button', { name: 'Show in script' }));
 		expect(heard).toContainEqual({ topic: 'script/show', payload: { line: 2 } });
+	});
+
+	describe('changing the thing from the Inspector’s window', () => {
+		const soda = {
+			kind: 'item' as const,
+			name: 'soda',
+			x: 3,
+			y: 1,
+			layer: 'objects' as const,
+			index: 0,
+			line: 5,
+		};
+		const withSoda = levelSnapshot(
+			{},
+			levelView(12, 8, { items: [{ kind: 'soda', x: 3, y: 1, generator: null, line: 5 }] }),
+		);
+
+		it('asks the main window to move it, and shows what the main window answers', async () => {
+			const user = userEvent.setup();
+			const { main, heard } = mount(
+				'panel-inspector-1',
+				share({ selectedThing: soda }),
+				createFakeTearoff(),
+				withSoda,
+			);
+			main.on('inspector/edit', (message, from) =>
+				main.send(from, 'inspector/result', {
+					serial: message.serial,
+					result: { ok: false, problem: { text: 'No, thank you.' } },
+				}),
+			);
+			await user.click(await screen.findByRole('button', { name: 'Increase x' }));
+			expect(await screen.findByRole('alert')).toHaveTextContent('No, thank you.');
+			expect(heard).toContainEqual({
+				topic: 'inspector/edit',
+				payload: {
+					serial: 1,
+					spec: { op: 'move', x: 4, y: 1 },
+					mergeKey: expect.stringMatching(/^thing:item:0:move:/),
+				},
+			});
+		});
+
+		it('tells the main window when the run of changes is over', async () => {
+			const user = userEvent.setup();
+			const { main, heard } = mount(
+				'panel-inspector-1',
+				share({ selectedThing: soda }),
+				createFakeTearoff(),
+				withSoda,
+			);
+			main.on('inspector/edit', (message, from) =>
+				main.send(from, 'inspector/result', { serial: message.serial, result: { ok: true } }),
+			);
+			await user.click(await screen.findByRole('button', { name: 'Increase x' }));
+			await user.click(document.body);
+			expect(heard.map((h) => h.topic)).toContain('inspector/endStep');
+		});
 	});
 
 	it('says nothing is selected in the Inspector’s window while nothing is', async () => {

@@ -1,0 +1,55 @@
+.field {
+	display: contents;
+}
+
+.label {
+	color: var(--fls-text-secondary);
+}
+
+.control {
+	display: flex;
+	align-items: center;
+	gap: 0.3rem;
+	min-width: 0;
+}
+
+.input {
+	flex: 1;
+	min-width: 3rem;
+	height: var(--fls-key-height);
+	padding: 0 0.4rem;
+	color: var(--fls-text-primary);
+	background: var(--fls-bg-raised);
+	border: 1px solid var(--fls-border-subtle);
+	border-radius: 4px;
+	font: inherit;
+	font-variant-numeric: tabular-nums;
+	text-align: center;
+}
+
+.input:focus-visible {
+	outline: 2px solid var(--fls-focus-ring);
+	outline-offset: 1px;
+}
+
+.input:disabled {
+	color: var(--fls-text-muted);
+}
+
+/* The browser's own spin buttons would be a second, unstyled pair of steppers. */
+.input::-webkit-inner-spin-button,
+.input::-webkit-outer-spin-button {
+	margin: 0;
+	appearance: none;
+}
+
+.input {
+	appearance: textfield;
+}
+
+.step {
+	composes: keycap from '@liminal-hq/fizz-studio-chrome/Keycap/keycap.module.css';
+	flex: none;
+	min-width: var(--fls-key-height);
+	padding: 0 0.5rem;
+}

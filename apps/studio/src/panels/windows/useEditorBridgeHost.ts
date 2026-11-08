@@ -13,6 +13,7 @@ import type { ZoneId } from '@liminal-hq/fizz-studio-protocol/generated/ZoneId';
 import { BRUSH_GROUPS, type Brush } from '../../tools/brush';
 import { ZONE_IDS } from '../dock/dockModel';
 import { PANEL_SPECS, type PanelId } from '../float/panelSpecs';
+import type { ThingEditResult, ThingEditSpec } from '../../inspector/thingEdit';
 import { TOOL_IDS, type Cell, type Thing } from '../../tools/tool';
 import { EVERY_PANEL, type EditorShare, type PaletteChoice, type PanelBridge } from './panelBridge';
 
@@ -23,6 +24,10 @@ export interface EditorBridgeHandlers {
 	setSpacing(spacing: number): void;
 	chooseObject(cell: Cell): void;
 	selectThing(thing: Thing): void;
+	/** Applies a change a torn-off Inspector asked for, in the editor's own queue. */
+	editThing(spec: ThingEditSpec, mergeKey: string): Promise<ThingEditResult>;
+	/** Ends the undo step the Inspector's run of changes made. */
+	endThingStep(): void;
 	showLine(line: number): void;
 	setGhostsShown(shown: boolean): void;
 	setHiddenLayers(hidden: string[]): void;
@@ -45,6 +50,14 @@ const isZoneId = (value: unknown): value is ZoneId => ZONE_IDS.includes(value as
 
 const isPlace = (value: unknown): value is number | null =>
 	value === null || (typeof value === 'number' && Number.isInteger(value) && value >= 0);
+
+function isThingEditSpec(value: unknown): value is ThingEditSpec {
+	if (typeof value !== 'object' || value === null) return false;
+	const v = value as Record<string, unknown>;
+	if (v.op === 'delete') return true;
+	if (v.op === 'face') return v.facing === 'left' || v.facing === 'right';
+	return v.op === 'move' && isCoordinate(v.x) && (v.y === null || isCoordinate(v.y));
+}
 
 const THING_KINDS = ['item', 'enemy', 'start', 'cell'];
 
@@ -99,6 +112,15 @@ export function useEditorBridgeHost(
 			bridge.on('objects/select', (thing) => {
 				if (isThing(thing)) live.current.selectThing(thing);
 			}),
+			bridge.on('inspector/edit', (message, from) => {
+				if (!message || !Number.isInteger(message.serial) || !isThingEditSpec(message.spec)) return;
+				if (typeof message.mergeKey !== 'string') return;
+				const { serial } = message;
+				void live.current.editThing(message.spec, message.mergeKey).then((result) => {
+					bridge.send(from, 'inspector/result', { serial, result });
+				});
+			}),
+			bridge.on('inspector/endStep', () => live.current.endThingStep()),
 			bridge.on('script/show', (message) => {
 				if (message && Number.isInteger(message.line) && message.line >= 1) {
 					live.current.showLine(message.line);

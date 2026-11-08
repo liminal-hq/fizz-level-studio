@@ -329,6 +329,24 @@ export const enMessages = {
 	'inspector.showInScript': 'Show in script',
 	// translator: Shown for an item that a generator statement made, which cannot be changed one by one. {generator} is the statement's word, such as pogo-cache; {line} is its script line.
 	'inspector.generated': 'Made by the {generator} on line {line}: edit that line in the script.',
+	// translator: Name of the button that moves the selected thing one cell down the {axis} axis (towards zero); {axis} is the letter x or y.
+	'inspector.decrease': 'Decrease {axis}',
+	// translator: Name of the button that moves the selected thing one cell up the {axis} axis (away from zero); {axis} is the letter x or y.
+	'inspector.increase': 'Increase {axis}',
+	// translator: Button in the Inspector that makes an enemy stand on whatever ground is under it again, instead of at a fixed height.
+	'inspector.onGround': 'On the ground',
+	// translator: Accessible name of the pair of buttons that choose which way an enemy faces.
+	'inspector.facingGroup': 'Facing',
+	// translator: Button in the Inspector that removes the selected item or enemy from the level script. The change can be undone.
+	'inspector.delete': 'Delete',
+	// translator: Shown beside the disabled Delete button when the start is selected: a level cannot be without a start.
+	'inspector.deleteStart': 'A level needs a start.',
+	// translator: Shown in the Inspector after the person deleted a thing. {name} is the thing's word, such as soda; Ctrl+Z is the Undo shortcut.
+	'inspector.deleted': 'Deleted {name}. Ctrl+Z puts it back.',
+	// translator: Shown under the Inspector's fields when the selected thing shares its cell with another item or enemy. It is only a warning: the game allows it.
+	'inspector.overlap': 'Another thing is on this cell.',
+	// translator: Shown in the Inspector when a change was refused because the line it would change is no longer the one that was selected, usually because the script was changed first.
+	'inspector.gone': 'That line changed. Select the thing again.',
 	// translator: Shown in the Inspector for a Fizz 2 level, whose things cannot yet be changed from the Inspector. Fizz 2 is the name of a game.
 	'inspector.fizz2': 'Things in a Fizz 2 level are changed in its script for now.',
 

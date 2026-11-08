@@ -15,6 +15,7 @@
 import { emit, listen } from '@tauri-apps/api/event';
 import type { ZoneId } from '@liminal-hq/fizz-studio-protocol/generated/ZoneId';
 import type { Brush } from '../../tools/brush';
+import type { ThingEditResult, ThingEditSpec } from '../../inspector/thingEdit';
 import type { Cell, Thing, ToolId } from '../../tools/tool';
 
 /** The one event every message travels on. */
@@ -59,6 +60,16 @@ export interface BridgeTopics {
 	'objects/choose': Cell;
 	/** A panel window to the main window: the person chose this thing in the Objects list, so select it. */
 	'objects/select': Thing;
+	/**
+	 * A torn-off Inspector to the main window: change the selected thing. The main window applies it
+	 * in its own queue, with every other edit, and answers with `inspector/result` and the same
+	 * `serial`.
+	 */
+	'inspector/edit': { serial: number; spec: ThingEditSpec; mergeKey: string };
+	/** The main window to the torn-off Inspector: what became of the change with this serial. */
+	'inspector/result': { serial: number; result: ThingEditResult };
+	/** A torn-off Inspector to the main window: the run of changes is over, so end its undo step. */
+	'inspector/endStep': null;
 	/** A panel window to the main window: show this script line (from 1). */
 	'script/show': { line: number };
 	/** A panel window to the main window: show or hide Claude's proposals over the level. */

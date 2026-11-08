@@ -19,6 +19,7 @@ import { PalettePanel } from '../panels/PalettePanel';
 import { ScriptPanel } from '../panels/ScriptPanel';
 import type { Brush } from '../tools/brush';
 import { InspectorPanel } from '../inspector/InspectorPanel';
+import type { ThingEditApi } from '../inspector/thingEdit';
 import type { Cell, Thing } from '../tools/tool';
 
 export interface PanelContentContext {
@@ -35,6 +36,8 @@ export interface PanelContentContext {
 	selectedThing: Thing | null;
 	/** The script line that last set a cell, for a selected cell. */
 	lookupCellLine?: (x: number, y: number) => Promise<number | null>;
+	/** Changes the selected thing, for the Inspector. */
+	thingEdits?: ThingEditApi;
 	showLine: (line: number) => void;
 	undo: () => void;
 	redo: () => void;
@@ -94,6 +97,7 @@ export function panelContent(id: PanelId, ctx: PanelContentContext): ReactNode {
 					words={ctx.words}
 					onShowLine={ctx.showLine}
 					lookupCellLine={ctx.lookupCellLine}
+					edit={ctx.thingEdits}
 				/>
 			);
 		case 'objects':

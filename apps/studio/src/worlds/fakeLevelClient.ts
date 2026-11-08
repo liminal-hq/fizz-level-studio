@@ -1,4 +1,4 @@
-// An in-memory LevelClient for tests and development: it applies paint, clear and place edits
+// An in-memory LevelClient for tests and development: it applies the append edits and, as a test double, the thing edits
 //
 // (c) Copyright 2026 Liminal HQ, Scott Morris
 // SPDX-License-Identifier: Apache-2.0 OR MIT
@@ -21,8 +21,15 @@ function rangeText(ranges: Array<[number, number]>): string {
 	return ranges.map(([from, to]) => (from === to ? `${from}` : `${from}..${to}`)).join(',');
 }
 
-/** The edits that append a line; the thing edits are built on top of this fake by the Inspector. */
-type AppendEdit = Exclude<LevelEdit, { kind: 'move-thing' | 'face-thing' | 'delete-thing' }>;
+/** The edits that append a line. */
+type AppendEdit = Exclude<LevelEdit, ThingEdit>;
+
+/** The edits that change one placed thing in place. */
+type ThingEdit = Extract<LevelEdit, { kind: 'move-thing' | 'face-thing' | 'delete-thing' }>;
+
+function isThingEdit(edit: LevelEdit): edit is ThingEdit {
+	return edit.kind === 'move-thing' || edit.kind === 'face-thing' || edit.kind === 'delete-thing';
+}
 
 function editLine(edit: AppendEdit): string {
 	if (edit.kind === 'row') {
@@ -115,11 +122,7 @@ export class FakeLevelClient implements LevelClient {
 		this.check(id, basedOn);
 		if (this.refuseEdits) throw this.refuseEdits;
 		this.applied.push({ edit, basedOn, mergeKey });
-		if (edit.kind === 'move-thing' || edit.kind === 'face-thing' || edit.kind === 'delete-thing') {
-			// The real document refuses these until the structured edit engine lands; the fake never
-			// writes script text for them.
-			throw { kind: 'invalid', message: 'editing a thing in place is not built yet' } as LevelError;
-		}
+		if (isThingEdit(edit)) return this.applyThing(edit, mergeKey);
 		const joins = mergeKey !== undefined && this.openKey === mergeKey && this.undoStack.length > 0;
 		const before = this.current;
 		const next = cloneSnapshot(before);
@@ -131,6 +134,67 @@ export class FakeLevelClient implements LevelClient {
 		next.can_redo = false;
 		next.redo_name = null;
 		if (!joins) this.undoStack.push({ before, name: editName(edit) });
+		this.redoStack = [];
+		this.openKey = mergeKey ?? null;
+		return this.settle(next);
+	}
+
+	/**
+	 * A test double for the three thing edits: it changes the view entry the edit names and never
+	 * writes script text, which only the real document does. A `ThingRef` that names no entry is
+	 * `gone`, as the real engine says it, and a rider or the start refuse what they cannot take.
+	 */
+	private applyThing(edit: ThingEdit, mergeKey?: string): LevelSnapshot {
+		const before = this.current;
+		const next = cloneSnapshot(before);
+		const { thing } = edit;
+		const view = next.view;
+		const gone = () => ({ kind: 'gone', line: thing.line }) as LevelError;
+		const invalid = (message: string) => ({ kind: 'invalid', message }) as LevelError;
+		let name: string;
+		if (thing.kind === 'start') {
+			if (!view.start) throw gone();
+			if (edit.kind === 'face-thing') throw invalid('the start has no facing');
+			if (edit.kind === 'delete-thing') throw invalid('a level needs a start');
+			view.start = { ...view.start, x: edit.x, y: edit.y ?? view.start.y };
+			name = `Move start to ${edit.x}, ${view.start.y}`;
+		} else if (thing.kind === 'item') {
+			const item = view.items[thing.index];
+			if (!item) throw gone();
+			if (edit.kind === 'face-thing') throw invalid('an item has no facing');
+			if (edit.kind === 'delete-thing') {
+				if (item.generator !== null) throw invalid('a generated item cannot be deleted');
+				view.items.splice(thing.index, 1);
+				name = `Delete ${item.kind}`;
+			} else {
+				item.x = edit.x;
+				item.y = edit.y ?? item.y;
+				name = `Move ${item.kind} to ${item.x}, ${item.y}`;
+			}
+		} else {
+			const spawn = view.spawns[thing.index];
+			if (!spawn) throw gone();
+			if (edit.kind === 'delete-thing') {
+				view.spawns.splice(thing.index, 1);
+				name = `Delete ${spawn.kind}`;
+			} else if (edit.kind === 'face-thing') {
+				if (spawn.ride) throw invalid('a rider has no facing');
+				spawn.dir = edit.facing === 'left' ? -1 : 1;
+				name = `Turn ${spawn.kind} to face ${edit.facing}`;
+			} else {
+				spawn.x = edit.x;
+				spawn.y = edit.y;
+				spawn.on_ground = edit.y === null;
+				name = `Move ${spawn.kind} to ${edit.x}, ${edit.y ?? 'the ground'}`;
+			}
+		}
+		const joins = mergeKey !== undefined && this.openKey === mergeKey && this.undoStack.length > 0;
+		next.revision = before.revision + 1n;
+		next.author = 'person';
+		next.can_redo = false;
+		next.redo_name = null;
+		if (joins) this.undoStack[this.undoStack.length - 1]!.name = name;
+		else this.undoStack.push({ before, name });
 		this.redoStack = [];
 		this.openKey = mergeKey ?? null;
 		return this.settle(next);
