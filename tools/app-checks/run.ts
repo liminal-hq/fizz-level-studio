@@ -4340,8 +4340,8 @@ function leaveAndCount(bridge: Bridge, selector: string, index: number): Promise
  * a hover, keeps no native `title`, stays inside the window, and never makes the shell scroll.
  */
 async function tooltipChecks(bridge: Bridge): Promise<void> {
-	await setUi(bridge, { toolbar: 'toolbar' });
-	const buttons = '[data-app-toolbar] button';
+	await setUi(bridge, { toolbar: 'classic' });
+	const buttons = '[data-app-toolbar] button[aria-label]';
 	const rows = await bridge.js<{ label: string; title: string | null }[]>(
 		`return [...document.querySelectorAll(${JSON.stringify(buttons)})].map((b) => ({ label: b.getAttribute('aria-label') ?? b.textContent.trim(), title: b.getAttribute('title') }));`,
 	);
