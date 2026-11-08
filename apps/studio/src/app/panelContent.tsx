@@ -109,6 +109,7 @@ export function panelContent(id: PanelId, ctx: PanelContentContext): ReactNode {
 					view={snapshot.view}
 					onSelectCell={ctx.onObjectChosen}
 					onSelectThing={ctx.onThingChosen}
+					selected={ctx.selectedThing}
 					onSelectLine={ctx.showLine}
 				/>
 			);

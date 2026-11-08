@@ -4040,6 +4040,68 @@ async function inspectorChecks(bridge: Bridge, path: string): Promise<void> {
 	check('inspector: after Save the title shows no unsaved changes', clean !== null);
 }
 
+/** The Objects list's filter and line numbers, in the running app. It leaves nothing selected. */
+async function objectsFilterChecks(bridge: Bridge): Promise<void> {
+	await showFromRail(bridge, 'Objects');
+	const rows = () =>
+		bridge.js<string[]>(
+			`return [...document.querySelectorAll('[role=list][aria-label=Objects] li')].map((li) => li.textContent.trim());`,
+		);
+	const type = (text: string) =>
+		bridge.js<boolean>(
+			`const i = document.querySelector('input[type=search][aria-label="Filter things"]');
+			 if (!i) return false;
+			 Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(i, ${JSON.stringify(text)});
+			 i.dispatchEvent(new Event('input', { bubbles: true }));
+			 return true;`,
+		);
+	const all = await rows();
+	check(
+		'objects: each thing’s row ends with its script line',
+		all.some((r) => /^Item soda at 36, 5line \d+$/.test(r)),
+		JSON.stringify(all.slice(0, 4)),
+	);
+	check('objects: the filter is typed into', await type('soda'));
+	const narrowed = await within(3000, async () => {
+		const now = await rows();
+		return now.length === 2 && now.every((r) => r.startsWith('Item soda'));
+	});
+	check(
+		'objects: the filter narrows the list to the sodas',
+		narrowed !== null,
+		JSON.stringify(await rows()),
+	);
+	await type('line 5');
+	check(
+		'objects: the filter matches a line',
+		(await within(3000, async () => (await rows()).every((r) => /line 5\d?$|line 5$/.test(r)))) !==
+			null,
+	);
+	await type('qqq');
+	check(
+		'objects: a filter that matches nothing says so',
+		(await within(3000, async () => (await rows()).join().includes('Nothing matches'))) !== null,
+	);
+	await type('');
+	await checkKeycaps(bridge, 'the Objects list with its filter');
+	check(
+		'objects: the filter clears',
+		(await within(3000, async () => (await rows()).length === all.length)) !== null,
+	);
+	await chooseInObjects(bridge, 'Item soda at 36, 5');
+	await showFromRail(bridge, 'Objects');
+	check(
+		'objects: the chosen thing’s row is marked',
+		(await within(3000, () =>
+			bridge.js<boolean>(
+				`return [...document.querySelectorAll('[role=list][aria-label=Objects] button[aria-current=true]')].some((b) => b.textContent.startsWith('Item soda at 36, 5'));`,
+			),
+		)) !== null,
+	);
+	await pressKey(bridge, 'canvas[role=application]', 'Escape');
+	await showFromRail(bridge, 'Inspector');
+}
+
 async function main(): Promise<void> {
 	if (!existsSync(binary)) {
 		console.error(`No debug build at ${binary}. Run \`bun run app:build\` first.`);
@@ -4514,6 +4576,7 @@ async function main(): Promise<void> {
 
 		// 5a. The Inspector, on the real engine; it leaves the text as it found it.
 		await inspectorChecks(bridge, path);
+		await objectsFilterChecks(bridge);
 
 		// 5b. The appearance and tear-off plugins answer, the theme follows the settings and the
 		// system, and the Script panel tears off into panel-script-1 and docks back.

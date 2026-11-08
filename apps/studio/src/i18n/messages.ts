@@ -118,6 +118,12 @@ export const enMessages = {
 	'objects.diagnostic': 'Line {line}, {code}: {message}',
 	// translator: Shown in place of the list of objects when the level has none.
 	'objects.none': 'Nothing placed yet',
+	// translator: Label and placeholder of the field above the Objects list that narrows it to the things whose kind, name, or script line match what is typed.
+	'objects.filter': 'Filter things',
+	// translator: Shown in the Objects list when the filter matches nothing. {filter} is what was typed.
+	'objects.noMatch': 'Nothing matches “{filter}”',
+	// translator: The script line a thing in the Objects list is on, counted from 1, shown at the end of its row, such as "line 43".
+	'objects.line': 'line {line}',
 
 	// translator: Heading of the panel that shows the level’s script text.
 	'script.title': 'Script',
