@@ -5,7 +5,19 @@
 
 import type { ViewDiagnostic } from '@liminal-hq/fizz-studio-protocol/generated/ViewDiagnostic';
 import type { WordDoc } from '@liminal-hq/fizz-studio-protocol/generated/WordDoc';
+import { selectAll } from '@codemirror/commands';
+import { foldAll, unfoldAll } from '@codemirror/language';
+import { openSearchPanel } from '@codemirror/search';
+import type { EditorView } from '@codemirror/view';
 import { useEffect, useRef, useState } from 'react';
+import { useCommandBridge } from '../commands/commandBridge';
+import {
+	SCRIPT_COPY,
+	SCRIPT_FIND,
+	SCRIPT_FOLD_ALL,
+	SCRIPT_SELECT_ALL,
+	SCRIPT_UNFOLD_ALL,
+} from '../commands/scriptCommands';
 import { t } from '../i18n/messages';
 import styles from './ScriptPanel.module.css';
 import { ScriptEditor, type RevealRequest } from './script/ScriptEditor';
@@ -41,6 +53,26 @@ export function ScriptPanel({
 }: ScriptPanelProps) {
 	const [reveal, setReveal] = useState<RevealRequest | null>(null);
 	const serial = useRef(0);
+	const view = useRef<EditorView | null>(null);
+
+	// The editor's own commands, for its right-click menu and the command palette: they run on the
+	// editor's view, which is focused first so the browser's copy acts on its selection.
+	const bridge = useCommandBridge();
+	useEffect(() => {
+		const onView = (run: (editor: EditorView) => void) => () => {
+			const editor = view.current;
+			if (!editor) return;
+			editor.focus();
+			run(editor);
+		};
+		return bridge?.setHandlers({
+			[SCRIPT_COPY]: onView(() => void document.execCommand('copy')),
+			[SCRIPT_SELECT_ALL]: onView((editor) => void selectAll(editor)),
+			[SCRIPT_FIND]: onView((editor) => void openSearchPanel(editor)),
+			[SCRIPT_FOLD_ALL]: onView((editor) => void foldAll(editor)),
+			[SCRIPT_UNFOLD_ALL]: onView((editor) => void unfoldAll(editor)),
+		});
+	}, [bridge]);
 
 	const ask = (line: number, focus: boolean) => {
 		serial.current += 1;
@@ -63,6 +95,7 @@ export function ScriptPanel({
 				words={words}
 				reveal={reveal}
 				editable={editable}
+				onView={(editor) => (view.current = editor)}
 			/>
 			<div className={styles.footer}>
 				<h3 className={styles.subtitle}>{t('script.diagnostics')}</h3>
