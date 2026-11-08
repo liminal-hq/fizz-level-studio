@@ -12,6 +12,7 @@ import {
 	lineCells,
 	reduceTool,
 	thingAt,
+	thingsOnCells,
 	type Cell,
 	type PointerPhase,
 	type ToolContext,
@@ -155,6 +156,69 @@ describe('erase', () => {
 			{ x: 3, y: 0 },
 		]);
 		expect(result.edits).toEqual([{ kind: 'clear', x: [[1, 3]], y: [[0, 0]] }]);
+	});
+
+	it('also names the cells it covered when the stroke ends, and a paint stroke does not', () => {
+		const cells = [
+			{ x: 1, y: 0 },
+			{ x: 3, y: 0 },
+		];
+		expect(gesture('erase', cells).erased).toEqual([
+			{ x: 1, y: 0 },
+			{ x: 2, y: 0 },
+			{ x: 3, y: 0 },
+		]);
+		expect(gesture('paint', cells).erased).toBeUndefined();
+	});
+});
+
+describe('thingsOnCells', () => {
+	const view = levelView(12, 8, {
+		items: [
+			{ kind: 'soda', x: 3, y: 1, generator: null, line: 4 },
+			{ kind: 'soda', x: 4, y: 1, generator: null, line: 4 },
+			{ kind: 'cookie', x: 3, y: 1, generator: 'pogo-cache', line: 5 },
+			{ kind: 'gem', x: 9, y: 9, generator: null, line: null },
+		],
+		spawns: [
+			{ kind: 'gloop', x: 3, y: null, dir: null, ride: false, on_ground: true, line: 8 },
+			{ kind: 'bat', x: 3, y: 1, dir: null, ride: false, on_ground: false, line: 9 },
+			{ kind: 'bat', x: 8, y: 1, dir: null, ride: false, on_ground: false, line: 10 },
+		],
+	});
+
+	it('lists the items and enemies on the cells, each as the Inspector would select it', () => {
+		const things = thingsOnCells(view, [{ x: 3, y: 1 }]);
+		expect(things.map((t) => [t.kind, t.name, t.index])).toEqual([
+			['item', 'soda', 0],
+			['enemy', 'bat', 1],
+			['enemy', 'gloop', 0],
+		]);
+	});
+
+	it('leaves a generated item and a thing with no line, and the start', () => {
+		const names = thingsOnCells(view, [
+			{ x: 3, y: 1 },
+			{ x: 9, y: 9 },
+			{ x: 1, y: 1 },
+		]).map((t) => t.name);
+		expect(names).not.toContain('cookie');
+		expect(names).not.toContain('gem');
+		expect(names).not.toContain('start');
+	});
+
+	it('orders each list highest index first, so deleting one never moves the next', () => {
+		const things = thingsOnCells(view, [
+			{ x: 3, y: 1 },
+			{ x: 4, y: 1 },
+		]);
+		expect(things.filter((t) => t.kind === 'item').map((t) => t.index)).toEqual([1, 0]);
+	});
+
+	it('keeps the level’s own indices when the view has the things of a layer left out', () => {
+		const shown = { ...view, items: view.items.slice(1) };
+		const things = thingsOnCells(shown, [{ x: 4, y: 1 }], view);
+		expect(things.map((t) => [t.name, t.index])).toEqual([['soda', 1]]);
 	});
 });
 

@@ -43,6 +43,8 @@ export interface ToolHandle {
 	 * (empty until a stroke ends) so the caller can apply them as one merge group.
 	 */
 	pointer: (phase: PointerPhase, cell: Cell) => LevelEdit[];
+	/** Like `pointer`, and also the cells an Erase stroke covered when this event ended it. */
+	stroke: (phase: PointerPhase, cell: Cell) => { edits: LevelEdit[]; erased: readonly Cell[] };
 }
 
 export function useTool(view: LevelView): ToolHandle {
@@ -77,16 +79,20 @@ export function useTool(view: LevelView): ToolHandle {
 
 	const setSpacing = useCallback((next: number) => setSpacingState(clampSpacing(next)), []);
 
-	const pointer = useCallback(
-		(phase: PointerPhase, cell: Cell): LevelEdit[] => {
+	const stroke = useCallback(
+		(phase: PointerPhase, cell: Cell) => {
 			const result = reduceTool(tool, latest.current, phase, cell, { view, brush, spacing, clip });
 			latest.current = result.state;
 			setState(result.state);
 			if (result.pick !== null) setBrushChoice(result.pick);
 			if (tool === 'pick' && phase === 'up') setToolState('paint');
-			return result.edits;
+			return { edits: result.edits, erased: result.erased ?? [] };
 		},
 		[tool, view, brush, spacing, clip],
+	);
+	const pointer = useCallback(
+		(phase: PointerPhase, cell: Cell): LevelEdit[] => stroke(phase, cell).edits,
+		[stroke],
 	);
 
 	const preview = useMemo(() => {
@@ -107,5 +113,6 @@ export function useTool(view: LevelView): ToolHandle {
 		preview,
 		selection: toolState.selection,
 		pointer,
+		stroke,
 	};
 }

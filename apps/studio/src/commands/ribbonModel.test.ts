@@ -127,12 +127,12 @@ describe('buildRibbon', () => {
 				for (const item of group.items ?? []) expect(known.has(item.id), item.id).toBe(true);
 			}
 		}
-		// Both groups show on the Level tab now that the Layers panel exists.
+		// Layers, the selection's commands and Checks all show on the Level tab.
 		expect(
 			tab(model, 'level')
 				.groups.filter((group) => group.items?.length)
 				.map((g) => g.label),
-		).toEqual(['Layers', 'Checks']);
+		).toEqual(['Layers', 'Selection', 'Checks']);
 		expect(RIBBON_TABS.every((entry) => entry.groups.length > 0)).toBe(true);
 	});
 

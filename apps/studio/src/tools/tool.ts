@@ -59,6 +59,8 @@ export interface ToolResult {
 	edits: LevelEdit[];
 	/** The brush Pick read (a tile, an item or an enemy), if it read one. */
 	pick: Brush | null;
+	/** The cells an Erase stroke covered, on the event that ends it: Erase also removes the things on them. */
+	erased?: readonly Cell[];
 }
 
 export const initialToolState: ToolState = {
@@ -144,7 +146,12 @@ function strokeTool(
 			const tile = context.brush.kind;
 			edits = pathEdits(path, (x, y) => ({ kind: 'paint', tile, x, y }));
 		}
-		return { state: { ...state, active: false, path: [] }, edits, pick: null };
+		return {
+			state: { ...state, active: false, path: [] },
+			edits,
+			pick: null,
+			...(kind === 'clear' ? { erased: path } : {}),
+		};
 	};
 }
 
@@ -259,6 +266,51 @@ export function thingAt(view: LevelView, cell: Cell, whole: LevelView = view): T
 		index: 0,
 		line: null,
 	};
+}
+
+/**
+ * The items and enemies on any of `cells`, each as the Inspector would select it (counted in the
+ * level's own lists), in the order they can be deleted without moving one another: the highest
+ * index of each list first. `view` is what the person sees, with hidden layers left out, so a hidden
+ * thing is never touched. Generated items and things with no line cannot be edited, so they are left.
+ */
+export function thingsOnCells(
+	view: LevelView,
+	cells: readonly Cell[],
+	whole: LevelView = view,
+): Thing[] {
+	const key = (cell: Cell) => `${cell.x},${cell.y}`;
+	const covered = new Set(cells.map(key));
+	const things: Thing[] = [];
+	view.items.forEach((item, at) => {
+		const cell = { x: Math.floor(item.x), y: Math.floor(item.y) };
+		if (!covered.has(key(cell)) || item.generator !== null || item.line === null) return;
+		const index = wholeIndex(whole.items, view.items, at);
+		things.push({
+			kind: 'item',
+			name: item.kind,
+			...cell,
+			layer: 'objects',
+			index,
+			line: item.line,
+		});
+	});
+	view.spawns.forEach((spawn, at) => {
+		const cell = spawnCell(view, spawn);
+		if (!covered.has(key(cell)) || spawn.line === null) return;
+		const index = wholeIndex(whole.spawns, view.spawns, at);
+		things.push({
+			kind: 'enemy',
+			name: spawn.kind,
+			...cell,
+			layer: 'objects',
+			index,
+			line: spawn.line,
+		});
+	});
+	return things.sort((a, b) =>
+		a.kind === b.kind ? b.index - a.index : a.kind === 'item' ? -1 : 1,
+	);
 }
 
 /** The cell a spawn stands on: its own row, or the resting row of its column when it has none. */

@@ -26,6 +26,18 @@ export interface ShortcutRow {
 export const SHORTCUT_SOURCES: readonly { commands: readonly string[]; action: MessageId }[] = [
 	{ commands: TOOL_IDS.map(toolCommandId), action: 'shortcuts.tools' },
 	{ commands: ['edit.undo', 'edit.redo'], action: 'shortcuts.undoRedo' },
+	{ commands: ['edit.delete'], action: 'shortcuts.delete' },
+	{ commands: ['selection.flip'], action: 'shortcuts.flip' },
+	{
+		commands: [
+			'selection.nudge.left',
+			'selection.nudge.right',
+			'selection.nudge.up',
+			'selection.nudge.down',
+		],
+		action: 'shortcuts.nudge',
+	},
+	{ commands: ['selection.showInScript'], action: 'shortcuts.showInScript' },
 	{ commands: ['file.save'], action: 'shortcuts.save' },
 	{ commands: ['file.new'], action: 'shortcuts.newLevel' },
 	{ commands: ['file.open'], action: 'shortcuts.openLevel' },

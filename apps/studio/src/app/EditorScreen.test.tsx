@@ -11,6 +11,7 @@ import { fakeDockClient, floatingDock } from '../test/dockFixtures';
 import { levelSections, levelSnapshot, levelView } from '../test/levelFixtures';
 import { FakeLevelClient } from '../worlds/fakeLevelClient';
 import { CommandBridgeContext, createCommandBridge } from '../commands/commandBridge';
+import { runCommand } from '../commands/registry';
 import { EditorScreen } from './EditorScreen';
 import { newerSnapshot } from './snapshotRule';
 
@@ -530,6 +531,261 @@ describe('EditorScreen', () => {
 			expect(await within(inspector).findByRole('alert')).toHaveTextContent(
 				'That line changed. Select the thing again.',
 			);
+		});
+	});
+
+	describe('the selection commands', () => {
+		const text = [
+			'script fizz1 0',
+			'start 1,1',
+			'treats',
+			'soda x=4 y=3',
+			'enemies',
+			'gloop x=8',
+			'drone x=9 y=5 dir=1',
+		].join('\n');
+		async function selectSoda() {
+			const user = userEvent.setup();
+			const snapshot = levelSnapshot(
+				{ text },
+				levelView(12, 8, {
+					items: [
+						{ kind: 'soda', x: 4, y: 3, generator: null, line: 4 },
+						{ kind: 'cookie', x: 7, y: 2, generator: 'pogo-cache', line: 4 },
+					],
+					spawns: [
+						{ kind: 'gloop', x: 8, y: null, dir: null, ride: false, on_ground: true, line: 6 },
+						{ kind: 'drone', x: 9, y: 5, dir: 1, ride: false, on_ground: false, line: 7 },
+					],
+				}),
+			);
+			const client = new FakeLevelClient(snapshot);
+			const bridge = createCommandBridge();
+			render(
+				<CommandBridgeContext.Provider value={bridge}>
+					<EditorScreen snapshot={snapshot} client={client} docks={floating()} />
+				</CommandBridgeContext.Provider>,
+			);
+			const inspector = await screen.findByRole('region', { name: 'Inspector' });
+			const canvas = screen.getByRole('application');
+			canvas.focus();
+			await user.keyboard('q');
+			const run = (id: string) => runCommand(id, bridge.getSnapshot());
+			return { user, client, bridge, inspector, canvas, run };
+		}
+
+		it('publishes what may be done to the selection as a fact, and nothing for a cell', async () => {
+			const { client, bridge, canvas } = await selectSoda();
+			expect(bridge.getSnapshot().facts.selection.kind).toBeNull();
+			stroke(canvas, [[0, 4]]);
+			await waitFor(() => expect(bridge.getSnapshot().facts.selection.kind).toBe('cell'));
+			expect(bridge.getSnapshot().facts.selection.canDelete).toBe(false);
+			stroke(canvas, [[4, 3]]);
+			await waitFor(() =>
+				expect(bridge.getSnapshot().facts.selection).toMatchObject({
+					kind: 'item',
+					editable: true,
+					canDelete: true,
+					canFlip: false,
+				}),
+			);
+			expect(client.applied).toHaveLength(0);
+		});
+
+		it('moves the thing with the arrows instead of the cursor, one step for a run, until Escape', async () => {
+			const { user, client, inspector, canvas, run } = await selectSoda();
+			stroke(canvas, [[4, 3]]);
+			await within(inspector).findByRole('heading', { name: 'Soda · treat' });
+			const cursorBefore = screen.getByText(/^Cell /).textContent;
+			canvas.focus();
+			await user.keyboard('{ArrowRight}');
+			// The key is the dispatcher's in the running app; here its command is run directly.
+			expect(screen.getByText(/^Cell /).textContent).toBe(cursorBefore);
+			expect(run('selection.nudge.right')).toBe(true);
+			expect(run('selection.nudge.right')).toBe(true);
+			expect(run('selection.nudge.up')).toBe(true);
+			await waitFor(() => expect(client.applied).toHaveLength(3));
+			expect(new Set(client.applied.map((a) => a.mergeKey)).size).toBe(1);
+			await waitFor(() =>
+				expect(within(inspector).getByRole('spinbutton', { name: 'x' })).toHaveValue(6),
+			);
+			expect(within(inspector).getByRole('spinbutton', { name: 'y' })).toHaveValue(4);
+			// One undo step, named for where the run ended.
+			await waitFor(() =>
+				expect(screen.getByRole('button', { name: /Undo Move soda to 6, 4/ })).toBeInTheDocument(),
+			);
+			// Escape lets go of the thing; the arrows then walk the cursor again.
+			canvas.focus();
+			await user.keyboard('{Escape}');
+			expect(canvas).not.toHaveAttribute('data-inspected');
+			await user.keyboard('{ArrowRight}');
+			expect(screen.getByText(/^Cell /).textContent).not.toBe(cursorBefore);
+		});
+
+		it('stops at the edge of the level instead of asking for a cell outside it', async () => {
+			const { client, canvas, run } = await selectSoda();
+			stroke(canvas, [[4, 3]]);
+			await waitFor(() => expect(run('selection.nudge.down')).toBe(true));
+			for (let n = 0; n < 5; n += 1) run('selection.nudge.down');
+			await waitFor(() =>
+				expect(client.applied.at(-1)!.edit).toMatchObject({ kind: 'move-thing', y: 0 }),
+			);
+			const before = client.applied.length;
+			run('selection.nudge.down');
+			await Promise.resolve();
+			expect(client.applied).toHaveLength(before);
+		});
+
+		it('keeps an enemy on the ground when it moves sideways, and pins it when it moves up', async () => {
+			const { client, canvas, run } = await selectSoda();
+			stroke(canvas, [[8, 1]]);
+			await waitFor(() => expect(run('selection.nudge.left')).toBe(true));
+			await waitFor(() =>
+				expect(client.applied.at(-1)!.edit).toMatchObject({ kind: 'move-thing', x: 7, y: null }),
+			);
+			expect(run('selection.nudge.up')).toBe(true);
+			await waitFor(() =>
+				expect(client.applied.at(-1)!.edit).toMatchObject({ kind: 'move-thing', x: 7, y: 2 }),
+			);
+		});
+
+		it('flips an enemy between left and right, each as its own undo step', async () => {
+			const { client, canvas, run } = await selectSoda();
+			stroke(canvas, [[9, 5]]);
+			await waitFor(() => expect(run('selection.flip')).toBe(true));
+			await waitFor(() =>
+				expect(client.applied.at(-1)!.edit).toMatchObject({ kind: 'face-thing', facing: 'left' }),
+			);
+			await waitFor(() => expect(run('selection.flip')).toBe(true));
+			await waitFor(() =>
+				expect(client.applied.at(-1)!.edit).toMatchObject({ kind: 'face-thing', facing: 'right' }),
+			);
+			expect(new Set(client.applied.map((a) => a.mergeKey)).size).toBe(2);
+		});
+
+		it('cannot flip an item, and says why', async () => {
+			const { canvas, run } = await selectSoda();
+			stroke(canvas, [[4, 3]]);
+			await waitFor(() => expect(run('selection.nudge.right')).toBe(true));
+			expect(run('selection.flip')).toBe(false);
+		});
+
+		it('deletes the selection, clears it, and the Inspector says how to undo it', async () => {
+			const { client, inspector, canvas, run, user } = await selectSoda();
+			stroke(canvas, [[4, 3]]);
+			await within(inspector).findByRole('heading', { name: 'Soda · treat' });
+			expect(run('edit.delete')).toBe(true);
+			expect(
+				await within(inspector).findByText('Deleted soda. Ctrl+Z puts it back.'),
+			).toBeVisible();
+			expect(canvas).not.toHaveAttribute('data-inspected');
+			expect(client.snapshot().view.items.map((i) => i.kind)).toEqual(['cookie']);
+			// With nothing selected the command cannot run.
+			expect(run('edit.delete')).toBe(false);
+			await user.click(screen.getByRole('button', { name: /Undo Delete soda/ }));
+			await waitFor(() => expect(client.snapshot().view.items).toHaveLength(2));
+		});
+
+		it('cannot delete the start or a generated item', async () => {
+			const { canvas, run, inspector } = await selectSoda();
+			stroke(canvas, [[1, 1]]);
+			await within(inspector).findByRole('heading', { name: 'Start' });
+			expect(run('edit.delete')).toBe(false);
+			stroke(canvas, [[7, 2]]);
+			await within(inspector).findByRole('heading', { name: 'Cookie · treat' });
+			expect(run('edit.delete')).toBe(false);
+			expect(run('selection.nudge.left')).toBe(false);
+			expect(run('selection.showInScript')).toBe(true);
+		});
+
+		it('shows the selected thing’s line in the script', async () => {
+			const { canvas, run, inspector } = await selectSoda();
+			stroke(canvas, [[8, 1]]);
+			await within(inspector).findByRole('heading', { name: 'Gloop · enemy' });
+			expect(run('selection.showInScript')).toBe(true);
+			await waitFor(() =>
+				expect(document.querySelector('.cm-revealedLine')?.textContent).toContain('gloop'),
+			);
+		});
+
+		it('shows a refusal of a command-run change as the editor’s problem', async () => {
+			const { client, canvas, run } = await selectSoda();
+			stroke(canvas, [[4, 3]]);
+			await waitFor(() => expect(run('selection.nudge.right')).toBe(true));
+			client.refuseEdits = { kind: 'locked', layers: ['treats'] };
+			run('selection.nudge.right');
+			expect(await screen.findByText(/Treats is locked/)).toBeInTheDocument();
+		});
+	});
+
+	describe('the Erase tool', () => {
+		const text = [
+			'script fizz1 0',
+			'start 1,1',
+			'treats',
+			'soda x=4 y=3',
+			'enemies',
+			'gloop x=5 y=3',
+		].join('\n');
+		async function mountErase(extra: Partial<Parameters<typeof levelView>[2]> = {}) {
+			const user = userEvent.setup();
+			const snapshot = levelSnapshot(
+				{ text },
+				levelView(12, 8, {
+					items: [
+						{ kind: 'soda', x: 4, y: 3, generator: null, line: 4 },
+						{ kind: 'cookie', x: 6, y: 3, generator: 'pogo-cache', line: 4 },
+					],
+					spawns: [
+						{ kind: 'gloop', x: 5, y: 3, dir: null, ride: false, on_ground: false, line: 6 },
+					],
+					...extra,
+				}),
+			);
+			const client = new FakeLevelClient(snapshot);
+			render(<EditorScreen snapshot={snapshot} client={client} docks={floating()} />);
+			await screen.findByRole('region', { name: 'History' });
+			const canvas = screen.getByRole('application');
+			canvas.focus();
+			await user.keyboard('e');
+			return { user, client, canvas };
+		}
+
+		it('deletes the item and the enemy it touches along with the tiles it clears, as one undo step', async () => {
+			const { user, client, canvas } = await mountErase();
+			stroke(canvas, [
+				[3, 3],
+				[4, 3],
+				[5, 3],
+			]);
+			await waitFor(() => expect(client.snapshot().view.spawns).toHaveLength(0));
+			expect(client.snapshot().view.items.map((i) => i.kind)).toEqual(['cookie']);
+			const kinds = client.applied.map((a) => a.edit.kind);
+			expect(kinds[0]).toBe('clear');
+			expect(kinds.slice(1).sort()).toEqual(['delete-thing', 'delete-thing']);
+			expect(new Set(client.applied.map((a) => a.mergeKey)).size).toBe(1);
+			// Undo once puts back everything the stroke did.
+			await user.click(screen.getByRole('button', { name: /^Undo/ }));
+			await waitFor(() => expect(client.snapshot().view.spawns).toHaveLength(1));
+			expect(client.snapshot().view.items).toHaveLength(2);
+			expect(client.snapshot().can_undo).toBe(false);
+		});
+
+		it('leaves a generated item and a thing on a hidden layer where they are', async () => {
+			const { client, canvas } = await mountErase();
+			stroke(canvas, [[6, 3]]);
+			await waitFor(() => expect(client.applied).toHaveLength(1));
+			expect(client.applied.map((a) => a.edit.kind)).toEqual(['clear']);
+			expect(client.snapshot().view.items).toHaveLength(2);
+		});
+
+		it('deletes only what the stroke covered', async () => {
+			const { client, canvas } = await mountErase();
+			stroke(canvas, [[4, 3]]);
+			await waitFor(() =>
+				expect(client.snapshot().view.items.map((i) => i.kind)).toEqual(['cookie']),
+			);
+			expect(client.snapshot().view.spawns).toHaveLength(1);
 		});
 	});
 

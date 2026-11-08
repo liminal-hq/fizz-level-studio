@@ -5,6 +5,7 @@
 
 import type { GhostProposal } from '@liminal-hq/fizz-studio-protocol/generated/GhostProposal';
 import type { LevelEdit } from '@liminal-hq/fizz-studio-protocol/generated/LevelEdit';
+import type { LevelView } from '@liminal-hq/fizz-studio-protocol/generated/LevelView';
 import type { LevelSnapshot } from '@liminal-hq/fizz-studio-protocol/generated/LevelSnapshot';
 import type { WordDoc } from '@liminal-hq/fizz-studio-protocol/generated/WordDoc';
 import {
@@ -71,9 +72,18 @@ import {
 	editProblem,
 	type ThingEditApi,
 	type ThingEditResult,
-	type ThingEditSpec,
+	type ThingEditSource,
 } from '../inspector/thingEdit';
-import { thingAt, type Cell, type PointerPhase, type Thing } from '../tools/tool';
+import type { Nudge } from '../commands/selectionCommands';
+import { entryOf, selectionFacts } from '../inspector/selectionFacts';
+import {
+	spawnCell,
+	thingAt,
+	thingsOnCells,
+	type Cell,
+	type PointerPhase,
+	type Thing,
+} from '../tools/tool';
 import { useTool } from '../tools/useTool';
 import { isLevelError, type LevelClient } from '../worlds/levelClient';
 import styles from './EditorScreen.module.css';
@@ -163,6 +173,8 @@ export function EditorScreen({
 	const [selectedThing, setSelectedThing] = useState<Thing | null>(null);
 	// Set when the selected thing went away under the person (an outside edit), until they choose again.
 	const [selectionLost, setSelectionLost] = useState(false);
+	// The word of the thing deleted last, until the person selects something again.
+	const [deletedName, setDeletedName] = useState<string | null>(null);
 	const [words, setWords] = useState<WordDoc[]>([]);
 	const [proposals, setProposals] = useState<GhostProposal[]>([]);
 	const [showGhosts, setShowGhosts] = useState(true);
@@ -286,8 +298,11 @@ export function EditorScreen({
 		});
 	}, []);
 
+	// A stroke is one merge group and so one undo step. An Erase stroke carries the things on the cells
+	// it covered: they are deleted after its clears, under the same key, from the level as the queue
+	// finds it, highest index first so the deletes do not move one another.
 	const sendStroke = useCallback(
-		(edits: LevelEdit[]) => {
+		(edits: LevelEdit[], doomed: readonly Thing[] = []) => {
 			const mergeKey = `stroke-${(strokes.current += 1)}`;
 			enqueue(async () => {
 				setProblem(null);
@@ -299,6 +314,24 @@ export function EditorScreen({
 						mergeKey,
 					);
 					accept(next);
+				}
+				for (const target of doomed) {
+					const snap = held.current;
+					const thing = resolveThing(target, snap.view);
+					const ref = thing ? thingRef(snap.view, snap.text, thing) : null;
+					if (!ref) continue;
+					if (selectedNow.current && thing && sameThing(selectedNow.current, thing)) {
+						selectedNow.current = null;
+						setSelectedThing(null);
+					}
+					accept(
+						await client.applyEdit(
+							snap.id,
+							buildEdit({ op: 'delete' }, ref),
+							snap.revision,
+							mergeKey,
+						),
+					);
 				}
 				accept(await client.endStep(held.current.id));
 			});
@@ -360,14 +393,20 @@ export function EditorScreen({
 			if (tool.tool === 'inspect') {
 				if (phase === 'down') {
 					setSelectionLost(false);
+					setDeletedName(null);
 					setSelectedThing(thingAt(shownView, cell, levelView));
 				}
 				return;
 			}
-			const edits = tool.pointer(phase, cell);
-			if (edits.length > 0) sendStroke(edits);
+			const { edits, erased } = tool.stroke(phase, cell);
+			// Erase also removes the items and enemies on the cells it covered (a Fizz 1 level only).
+			const doomed =
+				erased.length > 0 && snapshot.target === 'fizz1'
+					? thingsOnCells(shownView, erased, levelView)
+					: [];
+			if (edits.length > 0) sendStroke(edits, doomed);
 		},
-		[tool, sendStroke, shownView, levelView],
+		[tool, sendStroke, shownView, levelView, snapshot.target],
 	);
 	const inspected = useMemo(
 		() => (selectedThing ? { x: selectedThing.x, y: selectedThing.y } : null),
@@ -376,15 +415,22 @@ export function EditorScreen({
 	// The Inspector's changes go through the same queue as every other edit, tied to the revision
 	// and the thing as they are when the turn comes, and a refusal goes back to the Inspector to show.
 	const applyThingEdit = useCallback(
-		(spec: ThingEditSpec, mergeKey: string) =>
+		(source: ThingEditSource, mergeKey: string) =>
 			new Promise<ThingEditResult>((resolve) => {
 				queue.current = queue.current.then(async () => {
 					const snap = held.current;
 					const prev = selectedNow.current;
 					const thing = prev ? resolveThing(prev, snap.view) : null;
 					const ref = thing ? thingRef(snap.view, snap.text, thing) : null;
-					if (!ref) {
+					if (!ref || !thing) {
 						resolve({ ok: false, problem: { id: 'inspector.gone' } });
+						return;
+					}
+					// A change worked out from the level as the queue finds it (a nudge, a flip) may find
+					// there is nothing to do.
+					const spec = typeof source === 'function' ? source(snap.view, thing) : source;
+					if (!spec) {
+						resolve({ ok: true });
 						return;
 					}
 					try {
@@ -392,6 +438,17 @@ export function EditorScreen({
 						if (spec.op === 'delete') {
 							selectedNow.current = null;
 							setSelectedThing(null);
+							setDeletedName(thing.name);
+						} else if (spec.op === 'move') {
+							// The thing keeps its place in the level's lists, so it is the same entry on its new
+							// cell; saying so here keeps the selection exact when another thing shares the old one.
+							const moved = {
+								...thing,
+								x: Math.floor(spec.x),
+								y: Math.floor(spec.y ?? entryRowAfter(held.current.view, thing)),
+							};
+							selectedNow.current = moved;
+							setSelectedThing(moved);
 						}
 						resolve({ ok: true });
 					} catch (error) {
@@ -412,6 +469,78 @@ export function EditorScreen({
 		() => ({ apply: applyThingEdit, endStep: endThingStep }),
 		[applyThingEdit, endThingStep],
 	);
+	// The selection commands: what the keys, the menus and the ribbon run on the selected thing. A
+	// refusal has no Inspector under it here, so it is shown as the screen's own problem.
+	const showProblem = useCallback((result: ThingEditResult) => {
+		if (result.ok) return;
+		setProblem('id' in result.problem ? result.problem : { id: 'editor.failed' });
+	}, []);
+	const nudgeRun = useRef({ burst: 0, running: false, timer: 0 });
+	const endNudgeRun = useCallback(() => {
+		window.clearTimeout(nudgeRun.current.timer);
+		if (!nudgeRun.current.running) return;
+		nudgeRun.current.running = false;
+		nudgeRun.current.burst += 1;
+		endThingStep();
+	}, [endThingStep]);
+	const nudge = useCallback(
+		(way: Nudge) => {
+			// Worked out when the edit's turn comes, so a quick run of presses counts on from the last.
+			const step: ThingEditSource = (view, thing) => {
+				const entry = entryOf(view, thing);
+				if (!entry || thing.kind === 'cell') return null;
+				const dx = way === 'left' ? -1 : way === 'right' ? 1 : 0;
+				const dy = way === 'down' ? -1 : way === 'up' ? 1 : 0;
+				const spawn = thing.kind === 'enemy' ? view.spawns[thing.index] : undefined;
+				const row = spawn ? spawnCell(view, spawn).y : (entry.y ?? 0);
+				const x = Math.min(Math.max(entry.x + dx, 0), view.width - 1);
+				const y = Math.min(Math.max(row + dy, 0), view.height - 1);
+				if (dx !== 0 ? x === entry.x : y === row) return null;
+				// An enemy on the ground stays on it until it is moved up or down, which pins it.
+				return { op: 'move', x, y: spawn && dy === 0 ? spawn.y : y };
+			};
+			const selected = selectedNow.current;
+			if (!selected) return;
+			nudgeRun.current.running = true;
+			window.clearTimeout(nudgeRun.current.timer);
+			nudgeRun.current.timer = window.setTimeout(endNudgeRun, NUDGE_RUN_MS);
+			const key = `nudge:${selected.kind}:${selected.index}:${nudgeRun.current.burst}`;
+			void applyThingEdit(step, key).then(showProblem);
+		},
+		[applyThingEdit, endNudgeRun, showProblem],
+	);
+	// A run of nudges ends when another thing is selected or the editor goes away.
+	const selectedIdentity = selectedThing ? `${selectedThing.kind}:${selectedThing.index}` : null;
+	useEffect(() => endNudgeRun, [selectedIdentity, endNudgeRun]);
+	const oneShot = useRef(0);
+	const flip = useCallback(() => {
+		const turn: ThingEditSource = (view, thing) => {
+			const spawn = thing.kind === 'enemy' ? view.spawns[thing.index] : undefined;
+			if (!spawn || spawn.ride) return null;
+			return { op: 'face', facing: spawn.dir !== null && spawn.dir > 0 ? 'left' : 'right' };
+		};
+		void applyThingEdit(turn, `flip:${(oneShot.current += 1)}`).then(showProblem);
+	}, [applyThingEdit, showProblem]);
+	const deleteSelected = useCallback(
+		() =>
+			void applyThingEdit({ op: 'delete' }, `delete:${(oneShot.current += 1)}`).then(showProblem),
+		[applyThingEdit, showProblem],
+	);
+	const showSelectedLine = useCallback(() => {
+		const prev = selectedNow.current;
+		const entry = prev ? entryOf(held.current.view, prev) : null;
+		if (entry && entry.line !== null) showLine(entry.line);
+	}, [showLine]);
+	const selection = useMemo(
+		() => ({
+			facts: selectionFacts(snapshot, selectedThing),
+			delete: deleteSelected,
+			flip,
+			nudge,
+			showInScript: showSelectedLine,
+		}),
+		[snapshot, selectedThing, deleteSelected, flip, nudge, showSelectedLine],
+	);
 	const lookupCellLine = useCallback(
 		(x: number, y: number) => client.cellLine(held.current.id, x, y),
 		[client],
@@ -422,16 +551,21 @@ export function EditorScreen({
 	}, []);
 	const chooseThing = useCallback((thing: Thing) => {
 		setSelectionLost(false);
+		setDeletedName(null);
 		setSelectedThing(thing);
 	}, []);
 	// The level changed (an edit of the person's, or one from outside): the selected thing follows
 	// its entry, or is let go with a note when it is no longer in the level.
 	const selectedNow = useRef(selectedThing);
 	selectedNow.current = selectedThing;
+	// Undo and Redo bring an earlier text back, so the thing is taken by its place in the list.
+	const afterHistory = useRef(false);
 	useEffect(() => {
 		const prev = selectedNow.current;
 		if (!prev) return;
-		const next = resolveThing(prev, levelView);
+		const lenient = afterHistory.current;
+		afterHistory.current = false;
+		const next = resolveThing(prev, levelView, lenient);
 		if (next === prev) return;
 		setSelectedThing(next);
 		if (next === null) setSelectionLost(true);
@@ -441,6 +575,7 @@ export function EditorScreen({
 		() =>
 			enqueue(async () => {
 				setProblem(null);
+				afterHistory.current = true;
 				accept(await client.undo(held.current.id, held.current.revision));
 			}),
 		[client, accept, enqueue],
@@ -450,6 +585,7 @@ export function EditorScreen({
 		() =>
 			enqueue(async () => {
 				setProblem(null);
+				afterHistory.current = true;
 				accept(await client.redo(held.current.id, held.current.revision));
 			}),
 		[client, accept, enqueue],
@@ -465,6 +601,7 @@ export function EditorScreen({
 		undo,
 		redo,
 		showLine,
+		selection,
 		tearOff: tearOffPanel,
 		zoom,
 		onZoom: (kind) => setZoomRequest((old) => ({ kind, serial: (old?.serial ?? 0) + 1 })),
@@ -623,6 +760,7 @@ export function EditorScreen({
 			focus: focusLine === null ? null : { line: focusLine, serial: focusSerial },
 			hiddenLayers,
 			selectedThing,
+			deletedName,
 		}),
 		[
 			levelId,
@@ -635,6 +773,7 @@ export function EditorScreen({
 			focusSerial,
 			hiddenLayers,
 			selectedThing,
+			deletedName,
 		],
 	);
 	useEditorBridgeHost(panelBridge ?? null, share, anyAway, {
@@ -699,6 +838,7 @@ export function EditorScreen({
 				selectedThing,
 				lookupCellLine,
 				thingEdits,
+				deletedName,
 				showLine,
 				undo,
 				redo,
@@ -775,6 +915,7 @@ export function EditorScreen({
 							paste={tool.tool === 'stamp' && tool.clip ? pasteRect(tool.clip, cursor) : null}
 							selection={tool.selection}
 							inspected={inspected}
+							arrowsMoveThing={selection.facts.editable}
 							onClearInspected={clearInspected}
 							ghosts={ghostCells}
 							reveal={reveal}
@@ -851,4 +992,18 @@ export function EditorScreen({
 			</div>
 		</div>
 	);
+}
+
+/** How long a run of arrow-key nudges stays one undo step after the last one, in milliseconds. */
+const NUDGE_RUN_MS = 900;
+
+/** Two selections of the same place in the level's lists. */
+function sameThing(a: Thing, b: Thing): boolean {
+	return a.kind === b.kind && a.index === b.index;
+}
+
+/** The row a thing stands on in `view`: an enemy with no row of its own rests on its column's ground. */
+function entryRowAfter(view: LevelView, thing: Thing): number {
+	const spawn = thing.kind === 'enemy' ? view.spawns[thing.index] : undefined;
+	return spawn ? spawnCell(view, spawn).y : thing.y;
 }

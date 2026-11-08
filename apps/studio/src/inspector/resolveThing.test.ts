@@ -47,14 +47,25 @@ describe('resolveThing', () => {
 		expect(resolveThing(gloop, base)).toBe(gloop);
 	});
 
-	it('follows the thing the person moved: same index and word, new cell', () => {
-		const moved = { ...base, items: [base.items[0]!, item('soda', 4, 1, 6)] };
-		expect(resolveThing(soda, moved)).toEqual({ ...soda, x: 4 });
+	it('follows the thing when the entry before it is deleted: its index and line move, its cell does not', () => {
+		// The cheezie at index 0 is gone; the soda is now the first entry, on the line above.
+		const deleted = { ...base, items: [item('soda', 3, 1, 5)] };
+		expect(resolveThing(soda, deleted)).toEqual({ ...soda, index: 0, line: 5 });
 	});
 
-	it('follows a move that split its statement: new cell and a new line', () => {
-		const split = { ...base, items: [base.items[0]!, item('soda', 4, 2, 7)] };
-		expect(resolveThing(soda, split)).toEqual({ ...soda, x: 4, y: 2, line: 7 });
+	it('does not take a neighbour of the same word for the thing, even on the same line number', () => {
+		// The first soda was deleted, so the second moved up a line: the line the selection read now
+		// belongs to a different soda on a different cell.
+		const sodas = {
+			...base,
+			items: [item('soda', 7, 1, 5), item('soda', 9, 1, 6)],
+		};
+		expect(resolveThing({ ...soda, x: 9, index: 2, line: 7 }, sodas)).toEqual({
+			...soda,
+			x: 9,
+			index: 1,
+			line: 6,
+		});
 	});
 
 	it('finds the thing by its word and cell when an outside edit shifted the list', () => {
@@ -65,12 +76,30 @@ describe('resolveThing', () => {
 		expect(resolveThing(soda, shifted)).toEqual({ ...soda, index: 2, line: 7 });
 	});
 
-	it('takes the match with the nearest line when twins share a cell', () => {
+	it('takes the match nearest its old index when twins share a cell, then the nearest line', () => {
 		const twins = {
 			...base,
 			items: [item('soda', 3, 1, 2), item('cheezie', 1, 1, 5), item('soda', 3, 1, 40)],
 		};
-		expect(resolveThing({ ...soda, index: 5, line: 6 }, twins)).toMatchObject({ index: 0 });
+		expect(resolveThing({ ...soda, index: 5, line: 6 }, twins)).toMatchObject({ index: 2 });
+		const same = { ...base, items: [item('soda', 3, 1, 2), item('soda', 3, 1, 40)] };
+		expect(resolveThing({ ...soda, index: 0, line: 41 }, same)).toMatchObject({ index: 0 });
+	});
+
+	it('keeps a ground enemy whose row changed because the tiles under it did', () => {
+		const raised = {
+			...base,
+			spawns: [{ kind: 'gloop', x: 5, y: null, dir: null, ride: false, on_ground: true, line: 9 }],
+			cells: base.cells.map((c, i) => (i === 1 * base.width + 5 ? 2 : c)),
+		};
+		// The tile at (5, 1) is now ground, so a ground enemy in column 5 stands on row 2.
+		expect(resolveThing(gloop, raised)).toEqual({ ...gloop, y: 2 });
+	});
+
+	it('lets the editor name where the person’s own move put it', () => {
+		const moved = { ...base, items: [base.items[0]!, item('soda', 4, 1, 6)] };
+		// The thing as the editor sets it after the move: same index, new cell.
+		expect(resolveThing({ ...soda, x: 4 }, moved)).toEqual({ ...soda, x: 4 });
 	});
 
 	it('lets go of a thing that is no longer there', () => {

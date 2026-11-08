@@ -8,7 +8,36 @@ import type { ToolbarMode } from '@liminal-hq/fizz-studio-protocol/generated/Too
 import type { ZoneId } from '@liminal-hq/fizz-studio-protocol/generated/ZoneId';
 import { PANEL_SPECS, type PanelId } from '../panels/float/panelSpecs';
 import type { Brush } from '../tools/brush';
-import type { ToolId } from '../tools/tool';
+import type { MessageId } from '../i18n/messages';
+import type { ThingKind, ToolId } from '../tools/tool';
+
+/**
+ * What the selection commands need to know about the thing Inspect or Objects selected. `reason`
+ * says why the thing cannot be changed, when it cannot.
+ */
+export interface SelectionFacts {
+	/** What is selected, or null. */
+	kind: ThingKind | null;
+	/** The thing can be moved, turned or deleted (a Fizz 1 item or enemy a hand-written line placed). */
+	editable: boolean;
+	/** An enemy that has a facing to turn. */
+	canFlip: boolean;
+	/** An item or enemy that can be deleted: the start and a generated item cannot. */
+	canDelete: boolean;
+	/** The thing is on a script line the Script panel can show. */
+	hasLine: boolean;
+	/** Why the thing cannot be changed, as a catalogue message; null while it can. */
+	reason: MessageId | null;
+}
+
+export const NO_SELECTION: SelectionFacts = {
+	kind: null,
+	editable: false,
+	canFlip: false,
+	canDelete: false,
+	hasLine: false,
+	reason: null,
+};
 
 /** What the menu needs to know to enable, disable and check its rows. */
 export interface CommandFacts {
@@ -54,6 +83,8 @@ export interface CommandFacts {
 	locks: readonly string[];
 	/** The layers hidden on the canvas in this window, by id (the editor publishes them; they are a view, not saved). */
 	hiddenLayers: readonly string[];
+	/** The selected thing and what may be done to it. */
+	selection: SelectionFacts;
 	/** The menu bar is on (the `ui.menu_bar` setting). */
 	menuBar: boolean;
 	/** The commands row under the menus (the `ui.toolbar` setting). */
@@ -90,6 +121,7 @@ export const NO_FACTS: CommandFacts = {
 	focusedPanel: null,
 	locks: [],
 	hiddenLayers: [],
+	selection: NO_SELECTION,
 	menuBar: false,
 	toolbar: 'classic',
 	ribbonFolded: false,
@@ -167,7 +199,8 @@ export function createCommandBridge(): CommandBridge {
 				sameJson(next.workspace, was.workspace) &&
 				sameJson(next.placeOf, was.placeOf) &&
 				sameJson(next.locks, was.locks) &&
-				sameJson(next.hiddenLayers, was.hiddenLayers);
+				sameJson(next.hiddenLayers, was.hiddenLayers) &&
+				sameJson(next.selection, was.selection);
 			if (!same) set({ ...snapshot, facts: next });
 		},
 		setHandlers(handlers) {

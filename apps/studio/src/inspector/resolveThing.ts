@@ -41,40 +41,58 @@ function same(a: Thing, b: Thing): boolean {
 /**
  * Where `prev` is in `view` now, or null when it is gone.
  *
- * - An item or an enemy stays selected at its index when the entry there is the same word and is
- *   still on the same cell or the same line.
- * - Otherwise the entry with the same word on the same cell is taken, the one whose line is nearest.
- * - Otherwise an entry of the same word at the same index is taken as the thing after the person's
- *   own move, which can change both its cell and, when a statement is split, its line.
+ * - An item or an enemy stays selected at its index when the entry there is the same word and still
+ *   on the same cell.
+ * - Otherwise the entry with the same word on the same cell is taken, the one nearest its old index
+ *   and then its old line (a delete or an outside edit moved the list under it).
+ * - Otherwise an entry of the same word at the same index and on the same line is taken: an enemy
+ *   standing on the ground, whose cell changed because the tiles under it did.
  * - The start stays selected while the level has one, and a cell while it is inside the level.
+ *
+ * With `afterHistory`, which Undo and Redo set, an entry of the same word at the same index is also
+ * taken: the text came back to an earlier one, so where the thing sits is not what the selection
+ * last drew.
+ *
+ * The person's own move is not guessed here: the editor sets the thing's new cell when the move is
+ * applied, so it is found at its index like any other.
  *
  * The result is `prev` itself when nothing about it changed, so a selection that was not touched
  * does not redraw.
  */
-export function resolveThing(prev: Thing, view: LevelView): Thing | null {
+export function resolveThing(prev: Thing, view: LevelView, afterHistory = false): Thing | null {
 	let next: Thing | null = null;
 	if (prev.kind === 'item' || prev.kind === 'enemy') {
 		const list: readonly Entry[] = prev.kind === 'item' ? view.items : view.spawns;
-		const at = list[prev.index];
 		const mine = (entry: Entry, index: number) =>
 			asThing(prev.kind as 'item' | 'enemy', index, entry, view);
+		const at = list[prev.index];
 		if (at && at.kind === prev.name) {
 			const here = mine(at, prev.index);
-			if ((here.x === prev.x && here.y === prev.y) || at.line === prev.line) next = here;
+			if (here.x === prev.x && here.y === prev.y) next = here;
 		}
 		if (!next) {
 			let best: Thing | null = null;
+			const rank = (candidate: Thing) => [
+				Math.abs(candidate.index - prev.index),
+				Math.abs((candidate.line ?? 0) - (prev.line ?? 0)),
+			];
 			list.forEach((entry, index) => {
 				if (entry.kind !== prev.name) return;
 				const candidate = mine(entry, index);
 				if (candidate.x !== prev.x || candidate.y !== prev.y) return;
-				const distance = Math.abs((entry.line ?? 0) - (prev.line ?? 0));
-				const bestDistance = best ? Math.abs((best.line ?? 0) - (prev.line ?? 0)) : Infinity;
-				if (distance < bestDistance) best = candidate;
+				if (!best) {
+					best = candidate;
+					return;
+				}
+				const [a1, a2] = rank(candidate);
+				const [b1, b2] = rank(best);
+				if (a1! < b1! || (a1 === b1 && a2! < b2!)) best = candidate;
 			});
 			next = best;
 		}
-		if (!next && at && at.kind === prev.name) next = mine(at, prev.index);
+		if (!next && at && at.kind === prev.name && (afterHistory || at.line === prev.line)) {
+			next = mine(at, prev.index);
+		}
 	} else if (prev.kind === 'start') {
 		const start = view.start;
 		if (start) {

@@ -39,6 +39,8 @@ export interface EditorShare {
 	hiddenLayers: string[];
 	/** What Inspect or the Objects list selected, or null: the Inspector in a window of its own draws it. */
 	selectedThing: Thing | null;
+	/** The word of the thing deleted last, until something is selected again. */
+	deletedName: string | null;
 }
 
 /** The palette state a panel window may set; the main window applies it through the editor's own setters. */

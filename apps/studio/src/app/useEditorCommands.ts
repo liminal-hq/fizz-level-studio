@@ -6,7 +6,12 @@
 import type { LevelSnapshot } from '@liminal-hq/fizz-studio-protocol/generated/LevelSnapshot';
 import type { WordDoc } from '@liminal-hq/fizz-studio-protocol/generated/WordDoc';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { NO_FACTS, type CommandBridge, type CommandFacts } from '../commands/commandBridge';
+import {
+	NO_FACTS,
+	type CommandBridge,
+	type CommandFacts,
+	type SelectionFacts,
+} from '../commands/commandBridge';
 import {
 	brushCommandId,
 	dockBackCommandId,
@@ -19,6 +24,14 @@ import {
 	toolCommandId,
 } from '../commands/registry';
 import { LAYERS_SHOW_ALL, LAYERS_UNLOCK_ALL } from '../commands/layerCommands';
+import {
+	NUDGES,
+	SELECTION_DELETE,
+	SELECTION_FLIP,
+	SELECTION_SHOW_IN_SCRIPT,
+	nudgeCommandId,
+	type Nudge,
+} from '../commands/selectionCommands';
 import { panelOfNode } from '../panels/dock/dockKeys';
 import { ZONE_IDS, zoneOf } from '../panels/dock/dockModel';
 import type { useDockLayout } from '../panels/dock/useDockLayout';
@@ -45,6 +58,14 @@ export interface EditorCommandsInput {
 	zoom: CommandFacts['zoom'];
 	/** Asks the canvas to zoom in, out or fit; the zoom commands run it. */
 	onZoom: (kind: 'in' | 'out' | 'fit') => void;
+	/** The selected thing: what may be done to it, and the actions the selection commands run. */
+	selection: {
+		facts: SelectionFacts;
+		delete: () => void;
+		flip: () => void;
+		nudge: (way: Nudge) => void;
+		showInScript: () => void;
+	};
 	/** The Layers panel's state, for Show all and Unlock all and the `locks` and `hiddenLayers` facts. */
 	layers: {
 		locked: readonly string[];
@@ -72,6 +93,7 @@ export function useEditorCommands({
 	zoom,
 	onZoom,
 	layers,
+	selection,
 }: EditorCommandsInput): void {
 	// The application menu's Edit and View rows: facts as they are now, and actions that call the latest.
 	const latest = {
@@ -95,6 +117,7 @@ export function useEditorCommands({
 		away: windows.away,
 		showAllLayers: layers.showAll,
 		unlockAllLayers: layers.unlockAll,
+		selection,
 	};
 	const live = useRef(latest);
 	live.current = latest;
@@ -156,6 +179,12 @@ export function useEditorCommands({
 		handlers['script.tab.level.close'] = () => live.current.setVisible('script', false);
 		handlers[LAYERS_SHOW_ALL] = () => live.current.showAllLayers();
 		handlers[LAYERS_UNLOCK_ALL] = () => live.current.unlockAllLayers();
+		handlers[SELECTION_DELETE] = () => live.current.selection.delete();
+		handlers[SELECTION_FLIP] = () => live.current.selection.flip();
+		handlers[SELECTION_SHOW_IN_SCRIPT] = () => live.current.selection.showInScript();
+		for (const way of NUDGES) {
+			handlers[nudgeCommandId(way)] = () => live.current.selection.nudge(way);
+		}
 		handlers['view.zoomIn'] = () => live.current.onZoom('in');
 		handlers['view.zoomOut'] = () => live.current.onZoom('out');
 		handlers['view.zoomFit'] = () => live.current.onZoom('fit');
@@ -206,6 +235,7 @@ export function useEditorCommands({
 				focusedPanel: null,
 				locks: [],
 				hiddenLayers: [],
+				selection: NO_FACTS.selection,
 			});
 		};
 	}, [bridge]);
@@ -266,6 +296,7 @@ export function useEditorCommands({
 			focusedPanel,
 			locks: layers.locked,
 			hiddenLayers: layers.hidden,
+			selection: selection.facts,
 		});
 	}, [
 		bridge,
@@ -292,5 +323,6 @@ export function useEditorCommands({
 		focusedPanel,
 		layers.locked,
 		layers.hidden,
+		selection.facts,
 	]);
 }

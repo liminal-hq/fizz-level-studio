@@ -13,6 +13,8 @@ export interface KeyChord {
 	shift?: boolean | 'any';
 	/** The chord pauses while the keyboard focus is in a box the person types in (a bare key is a character there). */
 	unlessTyping?: boolean;
+	/** The chord runs only while the keyboard focus is inside an element that matches this selector (the canvas, the Inspector). */
+	within?: string;
 	/** The chord is handled in the capture phase, ahead of the script editor, so it works with focus in the editor. */
 	capture?: boolean;
 }
@@ -36,7 +38,11 @@ export function chordMatches(event: KeyEventLike, chord: KeyChord): boolean {
 	if ((event.ctrlKey || event.metaKey) !== (chord.mod === true)) return false;
 	if (chord.shift !== 'any' && event.shiftKey !== (chord.shift === true)) return false;
 	if (event.key.toLowerCase() !== chord.key.toLowerCase()) return false;
-	return !(chord.unlessTyping && isTypingTarget(event.target));
+	if (chord.unlessTyping && isTypingTarget(event.target)) return false;
+	if (chord.within) {
+		return event.target instanceof Element && event.target.closest(chord.within) !== null;
+	}
+	return true;
 }
 
 /** The chord as the rows show it: `Ctrl+Shift+P`, `F1`, `?`. A single letter is shown in capitals. */

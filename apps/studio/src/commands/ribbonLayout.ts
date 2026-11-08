@@ -63,6 +63,11 @@ export const RIBBON_TABS: readonly RibbonLayoutTab[] = [
 				label: 'ribbon.group.layers',
 				commands: ['view.panel.layers', 'layers.showAll', 'layers.unlockAll'],
 			},
+			{
+				id: 'selection',
+				label: 'ribbon.group.selection',
+				commands: ['edit.delete', 'selection.flip', 'selection.showInScript'],
+			},
 			{ id: 'checks', label: 'ribbon.group.checks', commands: ['panel.script.show'] },
 		],
 	},

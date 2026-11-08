@@ -419,6 +419,9 @@ export type IconId =
 	| 'search'
 	| 'layers.showAll'
 	| 'layers.unlockAll'
+	| 'selection.delete'
+	| 'selection.flip'
+	| 'selection.showInScript'
 	| `panel.${PanelId}`
 	| `tool.${ToolId}`
 	| 'menu.file'
@@ -432,6 +435,27 @@ const PANEL_ICON_ENTRIES = PANEL_SPECS.map(
 );
 const TOOL_ICON_ENTRIES = (Object.keys(TOOL_ICONS) as ToolId[]).map(
 	(id) => [`tool.${id}`, TOOL_ICONS[id]] as const,
+);
+
+/** A bin: delete the selected thing. */
+export const DeleteIcon: IconComponent = ({ size }) => (
+	<Svg size={size}>
+		<path d="M2.5 4.5h11M6 4.5v-2h4v2M4 4.5l.6 8.5h6.8l.6-8.5M6.8 7v4M9.2 7v4" />
+	</Svg>
+);
+
+/** Two arrowheads either side of a line: turn the selected enemy round. */
+export const FlipIcon: IconComponent = ({ size }) => (
+	<Svg size={size}>
+		<path d="M8 2v12M5.5 4.5 2 8l3.5 3.5zM10.5 4.5 14 8l-3.5 3.5z" />
+	</Svg>
+);
+
+/** Angle brackets with a slash: show the line in the script. */
+export const ShowInScriptIcon: IconComponent = ({ size }) => (
+	<Svg size={size}>
+		<path d="M5.5 4.5 2 8l3.5 3.5M10.5 4.5 14 8l-3.5 3.5M9 3.5 7 12.5" />
+	</Svg>
 );
 
 export const APP_ICONS: Record<IconId, IconComponent> = {
@@ -470,6 +494,9 @@ export const APP_ICONS: Record<IconId, IconComponent> = {
 	search: SearchIcon,
 	'layers.showAll': ShowAllLayersIcon,
 	'layers.unlockAll': UnlockAllLayersIcon,
+	'selection.delete': DeleteIcon,
+	'selection.flip': FlipIcon,
+	'selection.showInScript': ShowInScriptIcon,
 	...(Object.fromEntries(PANEL_ICON_ENTRIES) as Record<`panel.${PanelId}`, IconComponent>),
 	...(Object.fromEntries(TOOL_ICON_ENTRIES) as Record<`tool.${ToolId}`, IconComponent>),
 	'menu.file': FileMenuIcon,

@@ -266,7 +266,10 @@ export function buildMenuBar(snapshot: BridgeSnapshot): MenuItem[] {
 			rows('file.preferences'),
 			rows('file.quit'),
 		),
-		edit: menuSections([...rows('edit.undo', 'edit.redo'), historySubmenu(snapshot)]),
+		edit: menuSections(
+			[...rows('edit.undo', 'edit.redo'), historySubmenu(snapshot)],
+			rows('edit.delete', 'selection.showInScript'),
+		),
 		view: menuSections(
 			rows('view.menuBar', 'view.toolbar.classic', 'view.toolbar.ribbon', 'view.ribbon.fold'),
 			rows('view.zoomIn', 'view.zoomOut', 'view.zoomFit'),

@@ -14,6 +14,7 @@ import { TOOL_IDS, type ToolId } from '../tools/tool';
 import type { Brush } from '../tools/brush';
 import type { BridgeSnapshot, CommandFacts } from './commandBridge';
 import { layerCommands } from './layerCommands';
+import { selectionCommands } from './selectionCommands';
 import { formatChord, type KeyChord } from './keyChords';
 import type { ZoneId } from '@liminal-hq/fizz-studio-protocol/generated/ZoneId';
 
@@ -617,11 +618,11 @@ export function panelWindowCommands(facts: CommandFacts): CommandDef[] {
 }
 
 /**
- * The commands a feature registers beside the fixed lists: today the Layers panel's Show all and
- * Unlock all. A feature adds its builder here and nothing else in the registry changes.
+ * The commands a feature registers beside the fixed lists: the Layers panel's Show all and
+ * Unlock all, and the selection's Delete, Flip, Show in script and nudges. A feature adds its builder here and nothing else in the registry changes.
  */
 export function extraCommands(_facts: CommandFacts): CommandDef[] {
-	return [...layerCommands()];
+	return [...layerCommands(), ...selectionCommands()];
 }
 
 /**

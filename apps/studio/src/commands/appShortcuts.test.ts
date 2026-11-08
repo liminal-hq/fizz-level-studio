@@ -119,4 +119,73 @@ describe('the app keys', () => {
 		expect(runCommand(id, snapshot({ hasLevel: true }, handlers))).toBe(true);
 		expect(close).toHaveBeenCalledOnce();
 	});
+
+	describe('the selection keys', () => {
+		const canvas = document.createElement('canvas');
+		canvas.setAttribute('role', 'application');
+		const inspector = document.createElement('div');
+		inspector.setAttribute('data-inspector-scope', '');
+		const stepper = document.createElement('button');
+		inspector.append(stepper);
+		const field = document.createElement('input');
+		inspector.append(field);
+		const elsewhere = document.createElement('button');
+		document.body.append(canvas, inspector, elsewhere);
+
+		it('maps Delete and Backspace to Delete on the canvas and in the Inspector only', () => {
+			for (const name of ['Delete', 'Backspace']) {
+				expect(key({ key: name }, canvas)).toBe('edit.delete');
+				expect(key({ key: name }, stepper)).toBe('edit.delete');
+				expect(key({ key: name }, elsewhere)).toBeNull();
+				expect(key({ key: name }, null)).toBeNull();
+			}
+		});
+
+		it('never takes Delete or Backspace or F in a box the person types in', () => {
+			for (const name of ['Delete', 'Backspace', 'f']) {
+				expect(key({ key: name }, field)).toBeNull();
+			}
+		});
+
+		it('maps F to Flip where Delete works, and the arrows to the nudges on the canvas only', () => {
+			expect(key({ key: 'f' }, canvas)).toBe('selection.flip');
+			expect(key({ key: 'f', ctrlKey: true }, canvas)).toBeNull();
+			expect(key({ key: 'ArrowLeft' }, canvas)).toBe('selection.nudge.left');
+			expect(key({ key: 'ArrowRight' }, canvas)).toBe('selection.nudge.right');
+			expect(key({ key: 'ArrowUp' }, canvas)).toBe('selection.nudge.up');
+			expect(key({ key: 'ArrowDown' }, canvas)).toBe('selection.nudge.down');
+			expect(key({ key: 'ArrowLeft' }, stepper)).toBeNull();
+			expect(key({ key: 'ArrowLeft', shiftKey: true }, canvas)).toBeNull();
+		});
+
+		it('maps Ctrl+J to Show in script anywhere', () => {
+			expect(key({ key: 'j', ctrlKey: true }, elsewhere)).toBe('selection.showInScript');
+			expect(key({ key: 'j', ctrlKey: true }, field)).toBe('selection.showInScript');
+		});
+
+		it('runs only while the selection allows it, and says why when it does not', () => {
+			const handlers = { 'edit.delete': vi.fn(), 'selection.flip': vi.fn() };
+			const editor = { hasLevel: true, editorOpen: true };
+			expect(runCommand('edit.delete', snapshot(editor, handlers))).toBe(false);
+			const item = {
+				kind: 'item' as const,
+				editable: true,
+				canFlip: false,
+				canDelete: true,
+				hasLine: true,
+				reason: null,
+			};
+			expect(runCommand('edit.delete', snapshot({ ...editor, selection: item }, handlers))).toBe(
+				true,
+			);
+			expect(runCommand('selection.flip', snapshot({ ...editor, selection: item }, handlers))).toBe(
+				false,
+			);
+			const def = allCommands(NO_FACTS).find((command) => command.id === 'edit.delete')!;
+			expect(
+				def.reason?.({ ...NO_FACTS, selection: { ...item, kind: 'start', canDelete: false } }),
+			).toBe('inspector.deleteStart');
+			expect(def.reason?.(NO_FACTS)).toBe('selection.needsThing');
+		});
+	});
 });

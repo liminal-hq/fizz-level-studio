@@ -38,6 +38,8 @@ export interface PanelContentContext {
 	lookupCellLine?: (x: number, y: number) => Promise<number | null>;
 	/** Changes the selected thing, for the Inspector. */
 	thingEdits?: ThingEditApi;
+	/** The word of the thing deleted last, for the Inspector to say how to undo it. */
+	deletedName?: string | null;
 	showLine: (line: number) => void;
 	undo: () => void;
 	redo: () => void;
@@ -98,6 +100,7 @@ export function panelContent(id: PanelId, ctx: PanelContentContext): ReactNode {
 					onShowLine={ctx.showLine}
 					lookupCellLine={ctx.lookupCellLine}
 					edit={ctx.thingEdits}
+					deleted={ctx.deletedName}
 				/>
 			);
 		case 'objects':

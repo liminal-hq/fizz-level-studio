@@ -292,6 +292,27 @@ export const enMessages = {
 	'inspector.title': 'Inspector',
 	// translator: The accessible name of the group holding the Inspector's fields about the one thing selected on the level.
 	'inspector.group': 'Selected thing',
+	// translator: Menu row, palette entry, and button that deletes the selected item or enemy. It can be undone.
+	'selection.delete': 'Delete',
+	// translator: Palette entry and button that turns the selected enemy to face the other way: left becomes right and right becomes left.
+	'selection.flip': 'Flip',
+	// translator: Palette entry for moving the selected item, enemy, or start one cell to the left.
+	'selection.nudgeLeft': 'Move the selected thing left',
+	// translator: Palette entry for moving the selected item, enemy, or start one cell to the right.
+	'selection.nudgeRight': 'Move the selected thing right',
+	// translator: Palette entry for moving the selected item, enemy, or start one cell up.
+	'selection.nudgeUp': 'Move the selected thing up',
+	// translator: Palette entry for moving the selected item, enemy, or start one cell down.
+	'selection.nudgeDown': 'Move the selected thing down',
+	// translator: Why a command that changes the selected thing cannot run: nothing is selected, or only a cell is. Inspect is a tool and Q is its key.
+	'selection.needsThing':
+		'Select an item or enemy first: Inspect (Q) one on the level, or choose one in Objects.',
+	// translator: Why Flip cannot run: the selection is an item or the start, which have no facing to turn.
+	'selection.noFacing': 'Only an enemy has a facing to turn.',
+	// translator: Why Show in script cannot run: nothing is selected that sits on a line of the script.
+	'selection.needsLine': 'Select a thing that sits on a script line first.',
+	// translator: Why the selected item cannot be changed: a generator line in the script made it, so the line has to be edited instead.
+	'selection.generated': 'A generator line in the script made this item. Edit that line instead.',
 	// translator: Shown in the Inspector when nothing is selected. "Inspect" is the name of a tool and Q is its key.
 	'inspector.empty':
 		'Nothing selected. Inspect (Q) a thing on the level, or choose one in Objects.',
@@ -565,6 +586,8 @@ export const enMessages = {
 	'ribbon.group.brush': 'Brush',
 	// translator: Name of a group of ribbon buttons: the Layers panel of the level.
 	'ribbon.group.layers': 'Layers',
+	// translator: Name of a group of ribbon buttons that act on the selected thing: delete, flip, show in script.
+	'ribbon.group.selection': 'Selection',
 	// translator: Name of a group of ribbon buttons: checking the script for problems.
 	'ribbon.group.checks': 'Checks',
 	// translator: Name of a group of ribbon buttons: zooming the level.
@@ -767,6 +790,14 @@ export const enMessages = {
 	'menuBar.label': 'Application menu',
 	// translator: Accessible name of the button that holds the menus that do not fit in the menu bar.
 	'menuBar.more': 'More menus',
+	// translator: Row in the keyboard shortcuts window. Deletes the selected item or enemy from the level script; it can be undone.
+	'shortcuts.delete': 'Delete the selected item or enemy',
+	// translator: Row in the keyboard shortcuts window. Turns the selected enemy to face the other way.
+	'shortcuts.flip': 'Turn the selected enemy round',
+	// translator: Row in the keyboard shortcuts window. Moves the selected item, enemy, or start one cell while the level has focus; with nothing selected the arrows move the cursor.
+	'shortcuts.nudge': 'Move the selected thing one cell',
+	// translator: Row in the keyboard shortcuts window. Shows the script line of the selected thing in the Script panel.
+	'shortcuts.showInScript': 'Show the selected thing in the script',
 	// translator: A line shown in a panel’s own window while the main window has no level open, so the panel has nothing to show.
 	'panelWindow.noLevel': 'Open a level in the main window to use this panel.',
 

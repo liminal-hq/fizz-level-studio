@@ -168,18 +168,23 @@ describe('the Inspector panel’s controls', () => {
 		const apply = vi.fn().mockResolvedValue(answer);
 		const endStep = vi.fn();
 		const edit: ThingEditApi = { apply, endStep };
-		const ui = (current: Thing | null) => (
+		const ui = (current: Thing | null, deleted: string | null = null) => (
 			<InspectorPanel
 				snapshot={snapshot}
 				thing={current}
 				words={words}
 				onShowLine={() => {}}
 				edit={edit}
+				deleted={deleted}
 				{...over}
 			/>
 		);
 		const view = render(ui(selected));
-		return { apply, endStep, rerender: (t: Thing | null) => view.rerender(ui(t)) };
+		return {
+			apply,
+			endStep,
+			rerender: (t: Thing | null, deleted?: string | null) => view.rerender(ui(t, deleted)),
+		};
 	}
 	const soda = thing({});
 	const gloop = thing({ kind: 'enemy', name: 'gloop', index: 0, line: 11, x: 5, y: 1 });
@@ -263,7 +268,7 @@ describe('the Inspector panel’s controls', () => {
 		expect(apply).toHaveBeenLastCalledWith({ op: 'delete' }, expect.any(String));
 		await waitFor(() => expect(apply).toHaveResolved());
 		// The editor lets go of the selection once Rust has applied the delete.
-		rerender(null);
+		rerender(null, 'soda');
 		expect(await screen.findByText('Deleted soda. Ctrl+Z puts it back.')).toBeInTheDocument();
 		expect(screen.getByText(/Nothing selected/)).toBeInTheDocument();
 	});

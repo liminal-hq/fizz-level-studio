@@ -178,6 +178,7 @@ function PanelWindow({
 							onThingChosen: (thing) => bridge.send(owner, 'objects/select', thing),
 							selectedThing: share.selectedThing ?? null,
 							thingEdits,
+							deletedName: share.deletedName ?? null,
 							lookupCellLine: (x, y) =>
 								share.levelId ? levels.cellLine(share.levelId, x, y) : Promise.resolve(null),
 							showLine: (line) => bridge.send(owner, 'script/show', { line }),

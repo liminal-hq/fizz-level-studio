@@ -232,7 +232,14 @@ describe('the registry', () => {
 			'-',
 			'file.quit',
 		]);
-		expect(shape('menu:edit')).toEqual(['edit.undo', 'edit.redo', 'menu:history']);
+		expect(shape('menu:edit')).toEqual([
+			'edit.undo',
+			'edit.redo',
+			'menu:history',
+			'-',
+			'edit.delete',
+			'selection.showInScript',
+		]);
 		expect(shape('menu:view')).toEqual([
 			'view.menuBar',
 			'view.toolbar.classic',
@@ -605,7 +612,14 @@ describe('the Undo history submenu', () => {
 
 	it('sits in the Edit menu after Undo and Redo', () => {
 		const edit = rowsOf(buildMenuBar(snapshot({ hasLevel: true, editorOpen: true })), 'menu:edit');
-		expect(edit.map((item) => item.id)).toEqual(['edit.undo', 'edit.redo', 'menu:history']);
+		expect(edit.map((item) => item.id)).toEqual([
+			'edit.undo',
+			'edit.redo',
+			'menu:history',
+			'rule-3',
+			'edit.delete',
+			'selection.showInScript',
+		]);
 		expect(edit[2]).toMatchObject({ type: 'submenu', label: 'Undo history' });
 	});
 

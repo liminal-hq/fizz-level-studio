@@ -60,6 +60,11 @@ export interface LevelCanvasProps {
 	selection?: Rect | null;
 	/** The cell of the thing Inspect selected, drawn as an outline and named by `data-inspected`. */
 	inspected?: Cell | null;
+	/**
+	 * True while a thing (not a cell) is selected: the arrows then move the thing, through the
+	 * selection commands, and leave the cursor where it is. Escape deselects, after which they walk the cursor again.
+	 */
+	arrowsMoveThing?: boolean;
 	/** Called on Escape while the canvas has focus and something is inspected, to clear it. */
 	onClearInspected?: () => void;
 	/** Claude's pending proposals to draw as ghosts; leave out to draw none. */
@@ -117,6 +122,7 @@ export function LevelCanvas({
 	paste = null,
 	selection = null,
 	inspected = null,
+	arrowsMoveThing = false,
 	onClearInspected,
 	ghosts = NO_GHOSTS,
 	reveal = null,
@@ -391,6 +397,8 @@ export function LevelCanvas({
 		if (event.ctrlKey || event.metaKey || event.altKey) return;
 		const { key } = event;
 		if (key === 'ArrowLeft' || key === 'ArrowRight' || key === 'ArrowUp' || key === 'ArrowDown') {
+			// With a thing selected the command that moves it takes the arrow; the cursor stays.
+			if (arrowsMoveThing) return;
 			moveTo(moveCursor(cursor, key, view));
 		} else if (key === 'Home' || key === 'End') {
 			moveTo(moveCursor(cursor, key, view));

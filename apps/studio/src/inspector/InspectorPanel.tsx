@@ -18,6 +18,7 @@ import { useCallback, useEffect, useRef, useState, type FocusEvent, type ReactNo
 import { t, type MessageId } from '../i18n/messages';
 import { spawnCell, type Thing } from '../tools/tool';
 import { CoordField } from './CoordField';
+import { entryOf } from './selectionFacts';
 import styles from './InspectorPanel.module.css';
 import {
 	moveKey,
@@ -39,6 +40,8 @@ export interface InspectorPanelProps {
 	lookupCellLine?: (x: number, y: number) => Promise<number | null>;
 	/** Changes the selected thing. Without it the panel only shows. */
 	edit?: ThingEditApi;
+	/** The word of the thing deleted last, shown with how to undo it until something is selected again. */
+	deleted?: string | null;
 }
 
 /** A number as written in the script: whole numbers bare, a fraction as it is. */
@@ -49,14 +52,6 @@ export function coordText(value: number): string {
 /** The word with its first letter capitalised, for a heading. */
 function capitalised(word: string): string {
 	return word.charAt(0).toLocaleUpperCase() + word.slice(1);
-}
-
-/** The entry of the level's own view that `thing` points to, or null where it is no longer there. */
-function entryOf(view: LevelView, thing: Thing) {
-	if (thing.kind === 'item') return view.items[thing.index] ?? null;
-	if (thing.kind === 'enemy') return view.spawns[thing.index] ?? null;
-	if (thing.kind === 'start') return view.start;
-	return null;
 }
 
 /** The facing a spawn shows: its `dir`, or the Builder's default, left, when it has none. */
@@ -85,6 +80,7 @@ export function InspectorPanel({
 	onShowLine,
 	lookupCellLine,
 	edit,
+	deleted = null,
 }: InspectorPanelProps) {
 	const view = snapshot.view;
 	const cellX = thing?.kind === 'cell' ? thing.x : null;
@@ -106,7 +102,6 @@ export function InspectorPanel({
 
 	// A refusal stays under the fields until the person chooses another thing or tries again.
 	const [problem, setProblem] = useState<EditProblem | null>(null);
-	const [deleted, setDeleted] = useState<string | null>(null);
 	const burst = useRef(0);
 	// Whether a change has been sent since the last time the run ended: only then is there a step to end.
 	const running = useRef(false);
@@ -120,7 +115,6 @@ export function InspectorPanel({
 	const identity = thing ? `${thing.kind}:${thing.index}` : null;
 	useEffect(() => {
 		setProblem(null);
-		if (identity !== null) setDeleted(null);
 		return () => {
 			if (identity !== null) endRun();
 		};
@@ -152,14 +146,24 @@ export function InspectorPanel({
 	);
 	if (!thing) {
 		return (
-			<div className={styles.panel} role="group" aria-label={t('inspector.group')}>
+			<div
+				className={styles.panel}
+				role="group"
+				aria-label={t('inspector.group')}
+				data-inspector-scope=""
+			>
 				{emptyState}
 			</div>
 		);
 	}
 	if (thing.kind === 'cell') {
 		return (
-			<div className={styles.panel} role="group" aria-label={t('inspector.group')}>
+			<div
+				className={styles.panel}
+				role="group"
+				aria-label={t('inspector.group')}
+				data-inspector-scope=""
+			>
 				<h3 className={styles.heading}>
 					{t('inspector.cell', { x: thing.x, y: thing.y, tile: thing.name })}
 				</h3>
@@ -171,7 +175,12 @@ export function InspectorPanel({
 	const entry = entryOf(view, thing);
 	if (!entry) {
 		return (
-			<div className={styles.panel} role="group" aria-label={t('inspector.group')}>
+			<div
+				className={styles.panel}
+				role="group"
+				aria-label={t('inspector.group')}
+				data-inspector-scope=""
+			>
 				{emptyState}
 			</div>
 		);
@@ -198,7 +207,13 @@ export function InspectorPanel({
 	const keptY = spawn ? spawn.y : shownY;
 	const facing = spawn ? facingOf(spawn) : null;
 	return (
-		<div className={styles.panel} role="group" aria-label={t('inspector.group')} onBlur={onBlur}>
+		<div
+			className={styles.panel}
+			role="group"
+			aria-label={t('inspector.group')}
+			onBlur={onBlur}
+			data-inspector-scope=""
+		>
 			<h3 className={styles.heading}>{heading}</h3>
 			{help && <p className={styles.help}>{help}</p>}
 			<div className={styles.fields}>
@@ -298,10 +313,7 @@ export function InspectorPanel({
 						blocked={generator !== null || entry.line === null}
 						onDelete={() =>
 							send({ op: 'delete' }, (result) => {
-								if (result.ok) {
-									setDeleted(thing.name);
-									endRun();
-								}
+								if (result.ok) endRun();
 							})
 						}
 					/>

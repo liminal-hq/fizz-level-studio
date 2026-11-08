@@ -10,6 +10,7 @@
 
 import type { Facing } from '@liminal-hq/fizz-studio-protocol/generated/Facing';
 import type { LevelEdit } from '@liminal-hq/fizz-studio-protocol/generated/LevelEdit';
+import type { LevelView } from '@liminal-hq/fizz-studio-protocol/generated/LevelView';
 import type { LevelError } from '@liminal-hq/fizz-studio-protocol/generated/LevelError';
 import type { ThingRef } from '@liminal-hq/fizz-studio-protocol/generated/ThingRef';
 import type { ViewSection } from '@liminal-hq/fizz-studio-protocol/generated/ViewSection';
@@ -22,6 +23,15 @@ export type ThingEditSpec =
 	| { op: 'move'; x: number; y: number | null }
 	| { op: 'face'; facing: Facing }
 	| { op: 'delete' };
+
+/**
+ * What to ask of the level: a change, or a function that works the change out from the level as the
+ * edit queue finds it when its turn comes (a nudge counts on from the one before it) and answers
+ * null when there is nothing to do.
+ */
+export type ThingEditSource =
+	| ThingEditSpec
+	| ((view: LevelView, thing: Thing) => ThingEditSpec | null);
 
 /** Why a change was not made, as a catalogue message or, for Rust's own words, plain text. */
 export type EditProblem =

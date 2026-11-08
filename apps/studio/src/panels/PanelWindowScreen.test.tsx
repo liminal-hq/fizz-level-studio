@@ -41,6 +41,7 @@ const share = (overrides: Partial<EditorShare> = {}): EditorShare => ({
 	hiddenLayers: [],
 	focus: null,
 	selectedThing: null,
+	deletedName: null,
 	...overrides,
 });
 
