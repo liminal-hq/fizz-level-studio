@@ -156,13 +156,35 @@ fn lines(text: &str) -> Vec<&str> {
     text.split('\n').collect()
 }
 
-/// Every line but those of the rewritten statement is byte for byte what it was.
+/// Every line but those of the rewritten statement is byte for byte what it was. One exception, the
+/// join of R7: an edit that makes a line say what its neighbour says (a spawn moved back to the
+/// ground beside two split off it) joins them, so the line before and the line after may change, and
+/// no line further away may.
 fn untouched_lines_are_identical(old: &str, new: &str, line: usize) {
     let (o, n) = (lines(old), lines(new));
-    assert_eq!(o[..line - 1], n[..line - 1], "lines above line {line}");
     let tail = o.len() - line;
-    assert!(n.len() >= tail);
-    assert_eq!(o[line..], n[n.len() - tail..], "lines below line {line}");
+    let strict =
+        n.len() >= tail && o[..line - 1] == n[..line - 1] && o[line..] == n[n.len() - tail..];
+    if strict {
+        return;
+    }
+    let above = line.saturating_sub(2);
+    assert_eq!(
+        o[..above],
+        n[..above],
+        "lines above line {line} (beyond its neighbour)"
+    );
+    let below = (line + 1).min(o.len());
+    let tail = o.len() - below;
+    assert!(
+        n.len() >= tail,
+        "line {line}: the text got shorter than its tail"
+    );
+    assert_eq!(
+        o[below..],
+        n[n.len() - tail..],
+        "lines below line {line} (beyond its neighbour)"
+    );
 }
 
 fn move_to(text: &str, thing: ThingRef, x: f64, y: Option<f64>) -> Result<String, DocumentError> {
@@ -175,6 +197,7 @@ struct Tally {
     refused: usize,
     split: usize,
     restored_bytes: usize,
+    rejoined: usize,
     deleted: usize,
     turned: usize,
     locked: usize,
@@ -270,14 +293,7 @@ fn check_level(name: &str, text: &str, items: usize, spawns: usize) -> Tally {
             // And back: what the level builds is restored, and the bytes when it was one number
             // changed in place.
             if let Some(back) = thing_ref(&moved, &after, kind, index) {
-                let target_back = (
-                    x,
-                    if kind == ThingKind::Spawn && target == 1 {
-                        Some(resolved)
-                    } else {
-                        y
-                    },
-                );
+                let target_back = (x, y);
                 if let Ok(restored) = move_to(&moved, back, target_back.0, target_back.1) {
                     assert_eq!(
                         shape(&LevelDocument::new(&restored).view()),
@@ -297,6 +313,18 @@ fn check_level(name: &str, text: &str, items: usize, spawns: usize) -> Tally {
                     if simple {
                         assert_eq!(restored, text, "{label}: bytes not restored");
                         tally.restored_bytes += 1;
+                    }
+                    // R7: a statement split by the move up is joined again by the move back, when
+                    // the list was written as the engine writes one.
+                    let plain = !old_line.contains("..")
+                        && !old_line.contains("row ")
+                        && !old_line.contains("//")
+                        && !old_line.contains(", ")
+                        && !old_line.contains(" ,");
+                    let grew = lines(&moved).len() > lines(text).len();
+                    if target == 1 && grew && canonical && plain && kind != ThingKind::Start {
+                        assert_eq!(restored, text, "{label}: a split was not joined back");
+                        tally.rejoined += 1;
                     }
                 }
             }
@@ -395,6 +423,7 @@ fn run_corpus(corpus: Vec<(String, String)>, items: usize, spawns: usize) -> Tal
                     all.refused += t.refused;
                     all.split += t.split;
                     all.restored_bytes += t.restored_bytes;
+                    all.rejoined += t.rejoined;
                     all.deleted += t.deleted;
                     all.turned += t.turned;
                     all.locked += t.locked;
@@ -415,6 +444,7 @@ fn every_real_level_keeps_every_untouched_line_and_every_other_thing() {
     assert!(tally.locked > 100, "{tally:?}");
     assert!(tally.split > 5, "some moves split a statement: {tally:?}");
     assert!(tally.restored_bytes > 20, "{tally:?}");
+    assert!(tally.rejoined > 3, "splits are joined back: {tally:?}");
 }
 
 #[test]

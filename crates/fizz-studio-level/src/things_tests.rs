@@ -424,3 +424,48 @@ fn tabs_and_columns_survive_a_move() {
     let (_, new) = gone_and_new(&text, &outcome);
     assert_eq!(new, ["\tsoda\t\t\tx=40\ty=6"]);
 }
+
+#[test]
+fn moving_a_split_spawn_back_to_the_ground_joins_its_line_again() {
+    let text = BASE.replace("gloop  x=35,42,55  // three", "gloop  x=35,42,55");
+    let up = mv(&text, ThingKind::Spawn, 1, 42.0, Some(6.0)).unwrap();
+    assert!(up
+        .text
+        .contains("  gloop  x=35\n  gloop  x=42 y=6\n  gloop  x=55\n"));
+    let back = mv(&up.text, ThingKind::Spawn, 1, 42.0, None).unwrap();
+    assert_eq!(back.text, text, "the three lines are one again");
+    assert_eq!(back.name, "Move gloop to 42, 3");
+}
+
+#[test]
+fn moving_a_split_item_back_joins_its_list_again() {
+    let first = 4 + 1 + 3;
+    let up = mv(BASE, ThingKind::Item, first + 1, 26.0, Some(9.0)).unwrap();
+    assert!(up
+        .text
+        .contains("  cheezie x=10 y=6\n  cheezie x=26 y=9\n  cheezie x=40 y=6\n"));
+    let back = mv(&up.text, ThingKind::Item, first + 1, 26.0, Some(6.0)).unwrap();
+    assert_eq!(back.text, BASE);
+}
+
+#[test]
+fn a_comment_keeps_two_lines_apart() {
+    // The first line carries a comment, so the middle joins only the line without one.
+    let up = mv(BASE, ThingKind::Spawn, 1, 42.0, Some(6.0)).unwrap();
+    let back = mv(&up.text, ThingKind::Spawn, 1, 42.0, None).unwrap();
+    assert!(
+        back.text
+            .contains("  gloop  x=35  // three\n  gloop  x=42,55\n"),
+        "{}",
+        back.text
+    );
+    // ...and moving a thing whose neighbours were left apart by their author joins nothing.
+    let apart = BASE.replace(
+        "  gloop  x=35,42,55  // three",
+        "  gloop  x=35\n  gloop  x=42\n  gloop  x=55",
+    );
+    let moved = mv(&apart, ThingKind::Spawn, 1, 43.0, None).unwrap();
+    assert!(moved
+        .text
+        .contains("  gloop  x=35\n  gloop  x=43\n  gloop  x=55\n"));
+}

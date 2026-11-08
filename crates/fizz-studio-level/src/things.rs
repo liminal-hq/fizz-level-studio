@@ -930,6 +930,78 @@ fn error_keys(errors: &[fizz_studio_language::errors::Diagnostic]) -> Vec<(Strin
     keys
 }
 
+/// The statement a line says, without its x list, when it is one that can join another: an item
+/// (`KIND x=LIST y=N`), a `place`, or a spawn, with no trailing comment.
+fn joinable(node: &Node) -> Option<Body> {
+    if node.comment.is_some() {
+        return None;
+    }
+    let mut body = node.body.clone();
+    match &mut body {
+        Body::Item { xs, .. } | Body::Place { xs, .. } => xs.clear(),
+        Body::Spawn { xs, .. } => xs.clear(),
+        _ => return None,
+    }
+    Some(body)
+}
+
+/// Joins the rewritten lines with the line before the first and the line after the last when the edit
+/// made them say the same thing: both are the same kind of statement with the same fields (word,
+/// `y`, `dir`, `ride`) and neither has a trailing comment, so the two x lists become one, in order,
+/// and the things keep their order. A pair that could already have joined before the edit, and was
+/// left apart by whoever wrote it, is left apart: only a join the edit made possible is made. `at` is
+/// the index of the first rewritten line, `count` how many there are, and `original` is the
+/// statement before the edit. Returns whether anything was joined. The result is checked like any
+/// other, so a join that changed what the level builds is refused.
+fn coalesce(lines: &mut Vec<String>, at: usize, count: usize, original: &Node) -> bool {
+    if count == 0 {
+        return false;
+    }
+    let text = lines.join("\n");
+    let parsed = parse(&text);
+    let nodes = &parsed.ast.nodes;
+    let original = joinable(original);
+    // The rewritten lines' neighbours, as they are now.
+    let left = at
+        .checked_sub(1)
+        .and_then(|i| nodes.get(i))
+        .and_then(joinable);
+    let right = nodes.get(at + count).and_then(joinable);
+    // Whether the neighbour could have joined the original: then it was left apart on purpose.
+    let was_apart = |neighbour: &Option<Body>| original.is_none() || *neighbour != original;
+    let join = |lines: &mut Vec<String>, i: usize| -> bool {
+        let (la, lb) = (Line::new(&lines[i]), Line::new(&lines[i + 1]));
+        let items = |line: &Line| -> Option<Vec<String>> {
+            let field = line.field("x")?;
+            (0..field.items.len())
+                .map(|k| line.item("x", k).map(str::to_string))
+                .collect()
+        };
+        let merged = items(&la).zip(items(&lb)).and_then(|(mut a, b)| {
+            a.extend(b);
+            la.set_list("x", &a)
+        });
+        match merged {
+            Some(line) => {
+                lines[i] = line;
+                lines.remove(i + 1);
+                true
+            }
+            None => false,
+        }
+    };
+    let last = joinable(&nodes[at + count - 1]);
+    let first = joinable(&nodes[at]);
+    let mut joined = false;
+    if right.is_some() && last == right && last.is_some() && was_apart(&right) {
+        joined |= join(lines, at + count - 1);
+    }
+    if left.is_some() && first == left && first.is_some() && was_apart(&left) {
+        joined |= join(lines, at - 1);
+    }
+    joined
+}
+
 /// Makes a thing edit against `text`. A no-op (the same place, the facing it already has) gives the
 /// text back unchanged. A thing that cannot be edited, or an edit that would not be safe, is
 /// refused with a reason; a thing that is no longer where the caller saw it is
@@ -989,10 +1061,13 @@ pub fn apply_thing_edit(text: &str, edit: &LevelEdit) -> Result<ThingOutcome, Do
         }
     }
     let split = rewrite.lines.len() > 1;
-    let mut out: Vec<&str> = Vec::with_capacity(lines.len() + 2);
-    out.extend_from_slice(&lines[..found.line - 1]);
-    out.extend(rewrite.lines.iter().map(String::as_str));
-    out.extend_from_slice(&lines[found.line..]);
+    let mut out: Vec<String> = Vec::with_capacity(lines.len() + 2);
+    out.extend(lines[..found.line - 1].iter().map(|l| l.to_string()));
+    out.extend(rewrite.lines.iter().cloned());
+    out.extend(lines[found.line..].iter().map(|l| l.to_string()));
+    // A statement that an earlier split left in pieces joins its neighbours again when they say
+    // the same thing, so moving a thing back puts the line back.
+    let joined = coalesce(&mut out, found.line - 1, rewrite.lines.len(), node);
     let new_text = out.join("\n");
 
     // 6. Validate.
@@ -1008,7 +1083,7 @@ pub fn apply_thing_edit(text: &str, edit: &LevelEdit) -> Result<ThingOutcome, Do
         &found,
         &change,
         &rewrite,
-        split,
+        split && !joined,
         new_world.as_ref(),
         thing.line,
     );
