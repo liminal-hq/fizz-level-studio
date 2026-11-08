@@ -128,7 +128,7 @@ describe('the command palette', () => {
 		// The best match comes first; a longer command that spells the letters out of order may follow it.
 		expect(names().length).toBeGreaterThan(0);
 		expect(names()[0]).toContain('Erase');
-		const marks = screen.getByRole('option', { name: /Erase/ }).querySelectorAll('mark');
+		const marks = screen.getByRole('option', { name: /^Erase$/ }).querySelectorAll('mark');
 		expect(
 			Array.from(marks)
 				.map((mark) => mark.textContent)

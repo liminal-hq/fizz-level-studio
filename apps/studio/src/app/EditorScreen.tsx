@@ -611,6 +611,41 @@ export function EditorScreen({
 			hidden: hiddenLayers,
 			showAll: () => setHiddenLayers([]),
 			unlockAll: layerLocks.unlockAll,
+			toggleHidden: (id) =>
+				setHiddenLayers((was) =>
+					was.includes(id) ? was.filter((hidden) => hidden !== id) : [...was, id],
+				),
+			toggleLocked: layerLocks.toggle,
+			only: (id) =>
+				setHiddenLayers(
+					held.current.view.sections.map((section) => section.id).filter((other) => other !== id),
+				),
+		},
+		canvas: {
+			pickHere: () => {
+				const { pick } = tool.once('pick', cursor);
+				if (pick) tool.setBrush(pick);
+			},
+			paintHere: () => {
+				const { edits } = tool.once('paint', cursor);
+				if (edits.length > 0) sendStroke(edits);
+			},
+			eraseHere: () => {
+				const { edits, erased } = tool.once('erase', cursor);
+				// As the Erase tool does, an erase also removes the items and enemies on the cell (a Fizz 1 level only).
+				const doomed =
+					erased.length > 0 && snapshot.target === 'fizz1'
+						? thingsOnCells(shownView, erased, levelView)
+						: [];
+				if (edits.length > 0) sendStroke(edits, doomed);
+			},
+			reveal: () => {
+				const picked = selectedNow.current;
+				if (!picked) return;
+				const cell = { x: picked.x, y: picked.y };
+				setCursor(cell);
+				setReveal((old) => ({ cell, serial: (old?.serial ?? 0) + 1 }));
+			},
 		},
 	});
 

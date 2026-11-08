@@ -45,6 +45,16 @@ export interface ToolHandle {
 	pointer: (phase: PointerPhase, cell: Cell) => LevelEdit[];
 	/** Like `pointer`, and also the cells an Erase stroke covered when this event ended it. */
 	stroke: (phase: PointerPhase, cell: Cell) => { edits: LevelEdit[]; erased: readonly Cell[] };
+	/**
+	 * One press and release of `tool` on `cell`, whatever the current tool is, as a menu's Paint here,
+	 * Erase here and Pick this tile do. It reads the brush and settings as they are, leaves the
+	 * current tool and any stroke in progress alone, and returns what the stroke would: the edits to
+	 * send, the cells an Erase covered, and the brush a Pick read (null for the other tools).
+	 */
+	once: (
+		tool: ToolId,
+		cell: Cell,
+	) => { edits: LevelEdit[]; erased: readonly Cell[]; pick: Brush | null };
 }
 
 export function useTool(view: LevelView): ToolHandle {
@@ -90,6 +100,20 @@ export function useTool(view: LevelView): ToolHandle {
 		},
 		[tool, view, brush, spacing, clip],
 	);
+	const once = useCallback(
+		(id: ToolId, cell: Cell) => {
+			const context = { view, brush, spacing, clip };
+			const fresh = { ...initialToolState, selection: latest.current.selection };
+			const down = reduceTool(id, fresh, 'down', cell, context);
+			const up = reduceTool(id, down.state, 'up', cell, context);
+			return {
+				edits: [...down.edits, ...up.edits],
+				erased: [...(down.erased ?? []), ...(up.erased ?? [])],
+				pick: down.pick ?? up.pick,
+			};
+		},
+		[view, brush, spacing, clip],
+	);
 	const pointer = useCallback(
 		(phase: PointerPhase, cell: Cell): LevelEdit[] => stroke(phase, cell).edits,
 		[stroke],
@@ -114,5 +138,6 @@ export function useTool(view: LevelView): ToolHandle {
 		selection: toolState.selection,
 		pointer,
 		stroke,
+		once,
 	};
 }

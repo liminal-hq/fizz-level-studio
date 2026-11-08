@@ -10,7 +10,8 @@
 
 import type { MessageId } from '../i18n/messages';
 import type { CommandFacts } from './commandBridge';
-import type { CommandDef } from './registry';
+import { lockedReason } from './canvasCommands';
+import type { CommandDef, CommandReason } from './registry';
 
 export const SELECTION_DELETE = 'edit.delete';
 export const SELECTION_SHOW_IN_SCRIPT = 'selection.showInScript';
@@ -45,6 +46,19 @@ const whyNot = (facts: CommandFacts): MessageId =>
 		? 'selection.needsThing'
 		: (facts.selection.reason ?? 'selection.needsThing');
 
+/**
+ * Delete and Flip are dimmed with the lock's reason while the thing's layer is locked and nothing
+ * else rules the command out (`allowed`); the nudges still try, and Rust says why not.
+ */
+const whyBlocked = (
+	facts: CommandFacts,
+	allowed: boolean,
+	otherwise: CommandReason,
+): CommandReason =>
+	allowed && facts.selection.lockedLayer !== null
+		? lockedReason([facts.selection.lockedLayer], facts)
+		: otherwise;
+
 /** The selection commands. */
 export function selectionCommands(): CommandDef[] {
 	const editor = (facts: CommandFacts) => facts.editorOpen;
@@ -59,9 +73,14 @@ export function selectionCommands(): CommandDef[] {
 				{ key: 'Backspace', unlessTyping: true, within: SELECTION_SCOPE },
 			],
 			visible: editor,
-			enabled: (facts) => facts.editorOpen && facts.selection.canDelete,
+			enabled: (facts) =>
+				facts.editorOpen && facts.selection.canDelete && facts.selection.lockedLayer === null,
 			reason: (facts) =>
-				facts.selection.kind === 'start' ? 'inspector.deleteStart' : whyNot(facts),
+				whyBlocked(
+					facts,
+					facts.selection.canDelete,
+					facts.selection.kind === 'start' ? 'inspector.deleteStart' : whyNot(facts),
+				),
 		},
 		{
 			id: SELECTION_FLIP,
@@ -70,11 +89,16 @@ export function selectionCommands(): CommandDef[] {
 			label: 'selection.flip',
 			keys: [{ key: 'f', unlessTyping: true, within: SELECTION_SCOPE }],
 			visible: editor,
-			enabled: (facts) => facts.editorOpen && facts.selection.canFlip,
+			enabled: (facts) =>
+				facts.editorOpen && facts.selection.canFlip && facts.selection.lockedLayer === null,
 			reason: (facts) =>
-				facts.selection.kind === 'item' || facts.selection.kind === 'start'
-					? 'selection.noFacing'
-					: whyNot(facts),
+				whyBlocked(
+					facts,
+					facts.selection.canFlip,
+					facts.selection.kind === 'item' || facts.selection.kind === 'start'
+						? 'selection.noFacing'
+						: whyNot(facts),
+				),
 		},
 		{
 			id: SELECTION_SHOW_IN_SCRIPT,

@@ -647,7 +647,7 @@ export function extraCommands(facts: CommandFacts): CommandDef[] {
 	return [
 		...layerCommands(facts),
 		...selectionCommands(),
-		...canvasCommands(),
+		...canvasCommands(facts),
 		...scriptCommands(),
 	];
 }

@@ -25,7 +25,14 @@ import {
 	toolCommandId,
 } from '../commands/registry';
 import { cursorFacts, layerFacts } from '../commands/levelFacts';
-import { LAYERS_SHOW_ALL, LAYERS_UNLOCK_ALL } from '../commands/layerCommands';
+import {
+	CANVAS_ERASE_HERE,
+	CANVAS_PAINT_HERE,
+	CANVAS_PICK_HERE,
+	INSPECTOR_SHOW,
+	SELECTION_REVEAL,
+} from '../commands/canvasCommands';
+import { LAYERS_SHOW_ALL, LAYERS_UNLOCK_ALL, layerCommandId } from '../commands/layerCommands';
 import {
 	NUDGES,
 	SELECTION_DELETE,
@@ -70,12 +77,25 @@ export interface EditorCommandsInput {
 		nudge: (way: Nudge) => void;
 		showInScript: () => void;
 	};
-	/** The Layers panel's state, for Show all and Unlock all and the `locks` and `hiddenLayers` facts. */
+	/** The Layers panel's state, for Show all and Unlock all and the `locks` and `hiddenLayers` facts, and each layer's own commands. */
 	layers: {
 		locked: readonly string[];
 		hidden: readonly string[];
 		showAll: () => void;
 		unlockAll: () => void;
+		/** Hides the layer, or shows it again. */
+		toggleHidden: (id: string) => void;
+		/** Locks the layer, or unlocks it. */
+		toggleLocked: (id: string) => void;
+		/** Shows the layer and hides every other. */
+		only: (id: string) => void;
+	};
+	/** What Pick this tile, Paint here, Erase here and Show on the canvas do, on the cursor and the selection. */
+	canvas: {
+		pickHere: () => void;
+		paintHere: () => void;
+		eraseHere: () => void;
+		reveal: () => void;
 	};
 }
 
@@ -98,6 +118,7 @@ export function useEditorCommands({
 	zoom,
 	onZoom,
 	layers,
+	canvas,
 	selection,
 }: EditorCommandsInput): void {
 	// The application menu's Edit and View rows: facts as they are now, and actions that call the latest.
@@ -122,6 +143,8 @@ export function useEditorCommands({
 		away: windows.away,
 		showAllLayers: layers.showAll,
 		unlockAllLayers: layers.unlockAll,
+		layers,
+		canvas,
 		selection,
 	};
 	const live = useRef(latest);
@@ -181,6 +204,15 @@ export function useEditorCommands({
 			live.current.setVisible('script', true);
 			live.current.activate('script');
 		};
+		handlers[INSPECTOR_SHOW] = () => {
+			if (live.current.away.inspector) return live.current.tearOff('inspector');
+			live.current.setVisible('inspector', true);
+			live.current.activate('inspector');
+		};
+		handlers[CANVAS_PICK_HERE] = () => live.current.canvas.pickHere();
+		handlers[CANVAS_PAINT_HERE] = () => live.current.canvas.paintHere();
+		handlers[CANVAS_ERASE_HERE] = () => live.current.canvas.eraseHere();
+		handlers[SELECTION_REVEAL] = () => live.current.canvas.reveal();
 		handlers['script.tab.level.close'] = () => live.current.setVisible('script', false);
 		handlers[LAYERS_SHOW_ALL] = () => live.current.showAllLayers();
 		handlers[LAYERS_UNLOCK_ALL] = () => live.current.unlockAllLayers();
@@ -267,6 +299,24 @@ export function useEditorCommands({
 		() => cursorFacts(snapshot.view, cursor),
 		[snapshot.view, cursor.x, cursor.y],
 	);
+	// Each layer's own commands (Hide, Show only, Lock, Show its first line) are published for the
+	// layers the level has, the way a brush's command is for each brush.
+	const layerKey = layerList.map((layer) => layer.id).join('|');
+	const layerLines = useRef(layerList);
+	layerLines.current = layerList;
+	useEffect(() => {
+		const handlers: Record<string, () => void> = {};
+		for (const layer of layerLines.current) {
+			handlers[layerCommandId('hide', layer.id)] = () => live.current.layers.toggleHidden(layer.id);
+			handlers[layerCommandId('only', layer.id)] = () => live.current.layers.only(layer.id);
+			handlers[layerCommandId('lock', layer.id)] = () => live.current.layers.toggleLocked(layer.id);
+			handlers[layerCommandId('reveal', layer.id)] = () => {
+				const line = layerLines.current.find((candidate) => candidate.id === layer.id)?.firstLine;
+				if (line !== null && line !== undefined) live.current.showLine(line);
+			};
+		}
+		return bridge.setHandlers(handlers);
+	}, [bridge, layerKey]);
 	const lineCount = useMemo(() => snapshot.text.split('\n').length, [snapshot.text]);
 	const panelsRef = useRef(panelsShown);
 	panelsRef.current = panelsShown;

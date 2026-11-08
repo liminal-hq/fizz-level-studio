@@ -20,8 +20,71 @@ export const LAYER_ACTIONS: readonly LayerAction[] = ['hide', 'only', 'lock', 'r
 /** The id of a layer's own command, such as `layers.lock.treats`. The commands are built from the `layers` fact, one set per layer the level has. */
 export const layerCommandId = (action: LayerAction, layer: string) => `layers.${action}.${layer}`;
 
-/** Show all and Unlock all, each enabled only while there is something to change, and each layer's own commands. */
-export function layerCommands(_facts?: CommandFacts): CommandDef[] {
+/** True when `layer` is the only layer shown: every other layer is hidden and it is not. */
+export function isOnlyShown(facts: CommandFacts, layer: string): boolean {
+	return (
+		!facts.hiddenLayers.includes(layer) &&
+		facts.layers.every((other) => other.id === layer || facts.hiddenLayers.includes(other.id))
+	);
+}
+
+/** The four commands of one layer, built from the `layers` fact the way `brushCommands` is built from the brushes. */
+function layerOwnCommands(
+	facts: CommandFacts,
+	layer: CommandFacts['layers'][number],
+): CommandDef[] {
+	const hidden = facts.hiddenLayers.includes(layer.id);
+	const locked = facts.locks.includes(layer.id);
+	const values = { layer: layer.name };
+	const editor = (now: CommandFacts) => now.editorOpen;
+	return [
+		{
+			id: layerCommandId('hide', layer.id),
+			icon: hidden ? 'layers.show' : 'layers.hide',
+			group: 'panels',
+			label: hidden ? 'layers.showOne' : 'layers.hideOne',
+			labelValues: values,
+			visible: editor,
+			enabled: editor,
+		},
+		{
+			id: layerCommandId('only', layer.id),
+			icon: 'layers.only',
+			group: 'panels',
+			label: 'layers.only',
+			labelValues: values,
+			visible: editor,
+			enabled: (now) => now.editorOpen && !isOnlyShown(now, layer.id),
+			reason: () => 'layers.onlyHere',
+		},
+		{
+			id: layerCommandId('lock', layer.id),
+			icon: locked ? 'layers.unlock' : 'layers.lock',
+			group: 'panels',
+			label: locked ? 'layers.unlockOne' : 'layers.lockOne',
+			labelValues: values,
+			visible: editor,
+			enabled: editor,
+		},
+		{
+			id: layerCommandId('reveal', layer.id),
+			icon: 'selection.showInScript',
+			group: 'panels',
+			label: 'layers.reveal',
+			labelValues: values,
+			shortLabel: 'layers.revealOne',
+			visible: editor,
+			enabled: (now) => now.editorOpen && layer.firstLine !== null,
+			reason: () => 'layers.noLine',
+		},
+	];
+}
+
+/**
+ * Show all and Unlock all, each enabled only while there is something to change, and the commands of
+ * each layer the level has: Hide (or Show), Show only, Lock (or Unlock) and Show its first line in the script.
+ */
+export function layerCommands(facts?: CommandFacts): CommandDef[] {
 	return [
 		{
 			id: LAYERS_SHOW_ALL,
@@ -41,5 +104,6 @@ export function layerCommands(_facts?: CommandFacts): CommandDef[] {
 			enabled: (facts) => facts.editorOpen && facts.locks.length > 0,
 			reason: () => 'layers.noneLocked',
 		},
+		...(facts?.layers ?? []).flatMap((layer) => layerOwnCommands(facts!, layer)),
 	];
 }
