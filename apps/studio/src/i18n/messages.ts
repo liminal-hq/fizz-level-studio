@@ -290,6 +290,47 @@ export const enMessages = {
 
 	// translator: Heading of the panel that shows the one thing selected on the level (an item, an enemy, or the start) with its position, facing and script line, and lets the person change it.
 	'inspector.title': 'Inspector',
+	// translator: The accessible name of the group holding the Inspector's fields about the one thing selected on the level.
+	'inspector.group': 'Selected thing',
+	// translator: Shown in the Inspector when nothing is selected. "Inspect" is the name of a tool and Q is its key.
+	'inspector.empty':
+		'Nothing selected. Inspect (Q) a thing on the level, or choose one in Objects.',
+	// translator: The Inspector's heading for a selected item or enemy: its name, then what kind of thing it is, such as "Soda · treat". The dot is a separator.
+	'inspector.heading': '{name} · {kind}',
+	// translator: What a selected item is, after its name in the Inspector's heading. Items are the things Ben collects, such as sodas and cheezies.
+	'inspector.kind.item': 'treat',
+	// translator: What a selected enemy is, after its name in the Inspector's heading.
+	'inspector.kind.enemy': 'enemy',
+	// translator: What the start is, after its name in the Inspector's heading. Not shown as a heading on its own.
+	'inspector.kind.start': 'start',
+	// translator: The Inspector's heading for Ben's starting place on the level.
+	'inspector.startName': 'Start',
+	// translator: The Inspector's heading for a selected cell of the level: its place, then the tile in it, such as "Cell 35, 4 · grass". The dot is a separator.
+	'inspector.cell': 'Cell {x}, {y} · {tile}',
+	// translator: Shown under a selected cell in the Inspector: tiles are painted with the Paint tool, not changed by number here.
+	'inspector.cellNote': 'Tiles are painted, not edited here.',
+	// translator: The label of a thing's horizontal position, in cells from the left, in the Inspector. A single letter.
+	'inspector.x': 'x',
+	// translator: The label of a thing's vertical position, in cells up from the bottom, in the Inspector. A single letter.
+	'inspector.y': 'y',
+	// translator: Shown beside an enemy's height when the script gives it none, so it stands on whatever ground is under it.
+	'inspector.ground': 'Stands on the ground',
+	// translator: The label of the direction an enemy faces in the Inspector.
+	'inspector.facing': 'Facing',
+	// translator: A direction an enemy faces: towards the left of the screen.
+	'inspector.left': 'Left',
+	// translator: A direction an enemy faces: towards the right of the screen.
+	'inspector.right': 'Right',
+	// translator: Shown in place of an enemy's facing when it is a rider, which carries its own direction and so has none to set.
+	'inspector.noFacing': 'A rider has no facing',
+	// translator: The script line, counted from 1, that holds the selected thing, such as "Line 43".
+	'inspector.line': 'Line {line}',
+	// translator: Button in the Inspector that scrolls the Script panel to the line that holds the selected thing.
+	'inspector.showInScript': 'Show in script',
+	// translator: Shown for an item that a generator statement made, which cannot be changed one by one. {generator} is the statement's word, such as pogo-cache; {line} is its script line.
+	'inspector.generated': 'Made by the {generator} on line {line}: edit that line in the script.',
+	// translator: Shown in the Inspector for a Fizz 2 level, whose things cannot yet be changed from the Inspector. Fizz 2 is the name of a game.
+	'inspector.fizz2': 'Things in a Fizz 2 level are changed in its script for now.',
 
 	// translator: Heading of the panel that shows what Claude has proposed and the person has not yet answered.
 	'ghosts.title': 'Proposals',

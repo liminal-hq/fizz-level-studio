@@ -18,6 +18,7 @@ import { LayersPanel } from '../panels/layers/LayersPanel';
 import { PalettePanel } from '../panels/PalettePanel';
 import { ScriptPanel } from '../panels/ScriptPanel';
 import type { Brush } from '../tools/brush';
+import { InspectorPanel } from '../inspector/InspectorPanel';
 import type { Cell, Thing } from '../tools/tool';
 
 export interface PanelContentContext {
@@ -30,6 +31,10 @@ export interface PanelContentContext {
 	onObjectChosen: (cell: Cell) => void;
 	/** The thing chosen in the Objects list, to select it. */
 	onThingChosen: (thing: Thing) => void;
+	/** What Inspect or the Objects list selected, or null. */
+	selectedThing: Thing | null;
+	/** The script line that last set a cell, for a selected cell. */
+	lookupCellLine?: (x: number, y: number) => Promise<number | null>;
 	showLine: (line: number) => void;
 	undo: () => void;
 	redo: () => void;
@@ -82,8 +87,15 @@ export function panelContent(id: PanelId, ctx: PanelContentContext): ReactNode {
 				/>
 			);
 		case 'inspector':
-			// The Inspector arrives with its own component.
-			return null;
+			return (
+				<InspectorPanel
+					snapshot={snapshot}
+					thing={ctx.selectedThing}
+					words={ctx.words}
+					onShowLine={ctx.showLine}
+					lookupCellLine={ctx.lookupCellLine}
+				/>
+			);
 		case 'objects':
 			return (
 				<ObjectList

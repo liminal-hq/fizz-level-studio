@@ -40,6 +40,7 @@ const share = (overrides: Partial<EditorShare> = {}): EditorShare => ({
 	ghostsShown: true,
 	hiddenLayers: [],
 	focus: null,
+	selectedThing: null,
 	...overrides,
 });
 
@@ -56,6 +57,7 @@ function mount(
 	for (const topic of [
 		'palette/set',
 		'objects/choose',
+		'objects/select',
 		'script/show',
 		'proposals/shown',
 		'dockBackTo',
@@ -82,6 +84,36 @@ describe('a panel window', () => {
 	it('waits for the main window, then shows the real panel with the level', async () => {
 		mount('panel-script-1');
 		expect(await screen.findByRole('textbox', { name: 'Script text' })).toBeVisible();
+	});
+
+	it('shows the selected thing in the Inspector’s window, and Show in script goes to the main window', async () => {
+		const user = userEvent.setup();
+		const thing = {
+			kind: 'start' as const,
+			name: 'start',
+			x: 1,
+			y: 1,
+			layer: 'objects' as const,
+			index: 0,
+			line: 2,
+		};
+		const { heard } = mount('panel-inspector-1', share({ selectedThing: thing }));
+		expect(await screen.findByRole('heading', { name: 'Start' })).toBeVisible();
+		await user.click(screen.getByRole('button', { name: 'Show in script' }));
+		expect(heard).toContainEqual({ topic: 'script/show', payload: { line: 2 } });
+	});
+
+	it('says nothing is selected in the Inspector’s window while nothing is', async () => {
+		mount('panel-inspector-1');
+		expect(await screen.findByText(/Nothing selected/)).toBeVisible();
+	});
+
+	it('sends the thing chosen in the Objects window as well as its cell', async () => {
+		const user = userEvent.setup();
+		const { heard } = mount('panel-objects-1');
+		await user.click(await screen.findByRole('button', { name: /Ben’s start/ }));
+		expect(heard.map((h) => h.topic)).toEqual(['objects/choose', 'objects/select']);
+		expect(heard[1]!.payload).toMatchObject({ kind: 'start', index: 0 });
 	});
 
 	it('shows the Script window’s one tab, and closing it docks the panel back', async () => {

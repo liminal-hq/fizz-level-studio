@@ -340,6 +340,79 @@ describe('EditorScreen', () => {
 		expect(canvas).not.toHaveAttribute('data-inspected');
 	});
 
+	it('shows the inspected thing in the Inspector, and an object chosen in Objects too', async () => {
+		const user = userEvent.setup();
+		const snapshot = levelSnapshot(
+			{ text: 'script fizz1 0\nstart 1,1\nsoda x=4 y=3\n' },
+			levelView(12, 8, {
+				items: [{ kind: 'soda', x: 4, y: 3, generator: null, line: 3 }],
+				spawns: [
+					{ kind: 'gloop', x: 8, y: null, dir: null, ride: false, on_ground: true, line: 5 },
+				],
+			}),
+		);
+		const client = new FakeLevelClient(snapshot);
+		render(<EditorScreen snapshot={snapshot} client={client} docks={floating()} />);
+		const inspector = await screen.findByRole('region', { name: 'Inspector' });
+		expect(within(inspector).getByText(/Nothing selected/)).toBeInTheDocument();
+		const canvas = screen.getByRole('application');
+		canvas.focus();
+		await user.keyboard('q');
+		stroke(canvas, [[4, 3]]);
+		expect(within(inspector).getByRole('heading', { name: 'Soda · treat' })).toBeInTheDocument();
+		expect(within(inspector).getByText('Line 3')).toBeInTheDocument();
+		// Choosing a row in Objects selects that thing and shows it.
+		await user.click(screen.getByRole('button', { name: 'Spawn gloop at column 8' }));
+		expect(within(inspector).getByRole('heading', { name: 'Gloop · enemy' })).toBeInTheDocument();
+		// Escape on the canvas lets go of it.
+		canvas.focus();
+		await user.keyboard('{Escape}');
+		expect(within(inspector).getByText(/Nothing selected/)).toBeInTheDocument();
+	});
+
+	it('follows the selected thing across a change and lets go of it, with a note, when it is gone', async () => {
+		const user = userEvent.setup();
+		const line = (kind: string, x: number, n: number) => ({
+			kind,
+			x,
+			y: 3,
+			generator: null,
+			line: n,
+		});
+		const first = levelSnapshot(
+			{ revision: 1n },
+			levelView(12, 8, { items: [line('cheezie', 2, 2), line('soda', 4, 3)] }),
+		);
+		const client = new FakeLevelClient(first);
+		render(<EditorScreen snapshot={first} client={client} docks={floating()} />);
+		const inspector = await screen.findByRole('region', { name: 'Inspector' });
+		const canvas = screen.getByRole('application');
+		canvas.focus();
+		await user.keyboard('q');
+		stroke(canvas, [[4, 3]]);
+		expect(within(inspector).getByRole('heading', { name: 'Soda · treat' })).toBeInTheDocument();
+		// An outside edit puts a new item first: the soda is now the third entry, and still selected.
+		const shifted = levelSnapshot(
+			{ revision: 2n },
+			levelView(12, 8, {
+				items: [line('gem', 9, 2), line('cheezie', 2, 3), line('soda', 4, 4)],
+			}),
+		);
+		act(() => client.emit(shifted));
+		await waitFor(() => expect(within(inspector).getByText('Line 4')).toBeInTheDocument());
+		expect(screen.queryByText('The thing you selected is no longer in the level.')).toBeNull();
+		// Then the soda is deleted outside the studio.
+		const gone = levelSnapshot(
+			{ revision: 3n },
+			levelView(12, 8, { items: [line('gem', 9, 2), line('cheezie', 2, 3)] }),
+		);
+		act(() => client.emit(gone));
+		expect(
+			await screen.findByText('The thing you selected is no longer in the level.'),
+		).toBeInTheDocument();
+		expect(within(inspector).getByText(/Nothing selected/)).toBeInTheDocument();
+	});
+
 	it('copies the outlined area with Stamp and pastes it as one undo step', async () => {
 		const user = userEvent.setup();
 		const { client, canvas } = await mount();

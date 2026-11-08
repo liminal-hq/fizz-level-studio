@@ -150,6 +150,9 @@ function PanelWindow({
 							onSpacing: (spacing) => bridge.send(owner, 'palette/set', { spacing }),
 							onObjectChosen: (cell) => bridge.send(owner, 'objects/choose', cell),
 							onThingChosen: (thing) => bridge.send(owner, 'objects/select', thing),
+							selectedThing: share.selectedThing ?? null,
+							lookupCellLine: (x, y) =>
+								share.levelId ? levels.cellLine(share.levelId, x, y) : Promise.resolve(null),
 							showLine: (line) => bridge.send(owner, 'script/show', { line }),
 							undo: session.undo,
 							redo: session.redo,

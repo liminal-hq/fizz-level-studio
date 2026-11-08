@@ -2138,6 +2138,11 @@ const PANEL_WINDOWS = [
 		probe: `return [...document.querySelectorAll('h3')].some((h) => h.textContent.trim() === 'Terrain');`,
 	},
 	{
+		id: 'inspector',
+		title: 'Inspector',
+		probe: `return document.body.innerText.includes('Nothing selected') || !!document.querySelector('[role=group][aria-label="Selected thing"]');`,
+	},
+	{
 		id: 'objects',
 		title: 'Objects',
 		probe: `return [...document.querySelectorAll('button')].some((b) => b.textContent.startsWith('Item '));`,

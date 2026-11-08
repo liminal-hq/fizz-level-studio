@@ -1,0 +1,68 @@
+.panel {
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+	min-height: 0;
+	padding: 0.5rem 0.65rem 0.75rem;
+	overflow: auto;
+	color: var(--fls-text-primary);
+}
+
+.heading {
+	margin: 0;
+	font-size: 0.95rem;
+	font-weight: 600;
+}
+
+.help {
+	margin: 0;
+	color: var(--fls-text-secondary);
+	font-size: 0.8rem;
+}
+
+.empty {
+	margin: 0;
+	padding: 0.3rem 0;
+	color: var(--fls-text-muted);
+}
+
+.note {
+	margin: 0;
+	color: var(--fls-text-secondary);
+	font-size: 0.85rem;
+}
+
+.fields {
+	display: grid;
+	grid-template-columns: auto 1fr;
+	align-items: baseline;
+	gap: 0.3rem 0.75rem;
+	margin: 0;
+}
+
+.fields dt {
+	color: var(--fls-text-secondary);
+}
+
+.fields dd {
+	margin: 0;
+	font-variant-numeric: tabular-nums;
+}
+
+.hint {
+	color: var(--fls-text-muted);
+	font-size: 0.8rem;
+}
+
+.lineRow {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.5rem;
+}
+
+.key {
+	composes: keycap from '@liminal-hq/fizz-studio-chrome/Keycap/keycap.module.css';
+	flex: none;
+	padding: 0 0.6rem;
+}

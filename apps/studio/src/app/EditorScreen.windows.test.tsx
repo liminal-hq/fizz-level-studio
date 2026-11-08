@@ -236,6 +236,30 @@ describe('the bridge to the panel windows', () => {
 		await waitFor(() => expect(focus).toMatchObject({ line: 5 }));
 	});
 
+	it('selects the thing the torn-off Objects list chose, and shares it back', async () => {
+		const { hub } = await mount({ dock: dockWithWindow('objects'), open: ['panel-objects-1'] });
+		const panel = hub.bridgeFor('panel-objects-1');
+		let shared: unknown = 'unset';
+		panel.on('editor', (share) => (shared = share.selectedThing));
+		panel.send('main-1', 'hello', null);
+		expect(shared).toBeNull();
+		const thing = {
+			kind: 'start',
+			name: 'start',
+			x: 1,
+			y: 1,
+			layer: 'objects',
+			index: 0,
+			line: 2,
+		};
+		act(() => panel.send('main-1', 'objects/select', thing as never));
+		await waitFor(() => expect(shared).toEqual(thing));
+		// A message of the wrong shape selects nothing and changes nothing.
+		act(() => panel.send('main-1', 'objects/select', { kind: 'item', index: -3 } as never));
+		panel.send('main-1', 'hello', null);
+		expect(shared).toEqual(thing);
+	});
+
 	it('shares the proposals toggle both ways', async () => {
 		const { hub } = await mount({ dock: dockWithWindow('proposals'), open: ['panel-proposals-1'] });
 		const panel = hub.bridgeFor('panel-proposals-1');

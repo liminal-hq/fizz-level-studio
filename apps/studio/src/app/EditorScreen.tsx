@@ -365,6 +365,10 @@ export function EditorScreen({
 		() => (selectedThing ? { x: selectedThing.x, y: selectedThing.y } : null),
 		[selectedThing],
 	);
+	const lookupCellLine = useCallback(
+		(x: number, y: number) => client.cellLine(held.current.id, x, y),
+		[client],
+	);
 	const clearInspected = useCallback(() => {
 		setSelectionLost(false);
 		setSelectedThing(null);
@@ -571,6 +575,7 @@ export function EditorScreen({
 			ghostsShown: showGhosts,
 			focus: focusLine === null ? null : { line: focusLine, serial: focusSerial },
 			hiddenLayers,
+			selectedThing,
 		}),
 		[
 			levelId,
@@ -582,6 +587,7 @@ export function EditorScreen({
 			focusLine,
 			focusSerial,
 			hiddenLayers,
+			selectedThing,
 		],
 	);
 	useEditorBridgeHost(panelBridge ?? null, share, anyAway, {
@@ -641,6 +647,8 @@ export function EditorScreen({
 				onSpacing: tool.setSpacing,
 				onObjectChosen,
 				onThingChosen: chooseThing,
+				selectedThing,
+				lookupCellLine,
 				showLine,
 				undo,
 				redo,

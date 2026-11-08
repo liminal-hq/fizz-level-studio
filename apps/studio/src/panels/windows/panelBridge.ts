@@ -36,6 +36,8 @@ export interface EditorShare {
 	focus: { line: number; serial: number } | null;
 	/** The ids of the layers hidden on the canvas. */
 	hiddenLayers: string[];
+	/** What Inspect or the Objects list selected, or null: the Inspector in a window of its own draws it. */
+	selectedThing: Thing | null;
 }
 
 /** The palette state a panel window may set; the main window applies it through the editor's own setters. */
