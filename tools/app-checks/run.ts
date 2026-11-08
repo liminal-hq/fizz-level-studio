@@ -2573,10 +2573,10 @@ async function opacitySliderChecks(bridge: Bridge, profile: Profile): Promise<vo
 		JSON.stringify(file?.settings?.transparency),
 	);
 	const main = (
-		await bridge.js<string>(
-			`return document.documentElement.style.getPropertyValue('--fls-glass-alpha');`,
+		await bridge.js<{ v: string }>(
+			`return { v: document.documentElement.style.getPropertyValue('--fls-glass-alpha').trim() };`,
 		)
-	).trim();
+	).v;
 	check('opacity: the main window draws 0.73', main === '0.73', main);
 	const prefs = await slider('preferences');
 	check(
