@@ -5,7 +5,7 @@
 
 import { describe, expect, it } from 'vitest';
 import { NO_SELECTION } from '../commands/commandBridge';
-import { levelSnapshot, levelView } from '../test/levelFixtures';
+import { levelSections, levelSnapshot, levelView } from '../test/levelFixtures';
 import type { Thing } from '../tools/tool';
 import { selectionFacts } from './selectionFacts';
 
@@ -80,6 +80,7 @@ describe('selectionFacts', () => {
 			canDelete: false,
 			hasLine: true,
 			reason: 'selection.generated',
+			lockedLayer: null,
 		});
 	});
 
@@ -94,5 +95,24 @@ describe('selectionFacts', () => {
 
 	it('allows nothing for an entry that is gone', () => {
 		expect(selectionFacts(snapshot, thing({ index: 9 }))).toEqual(NO_SELECTION);
+	});
+
+	it('names the locked layer the thing is written in, and only when it is locked', () => {
+		const layered = levelSnapshot(
+			{},
+			{
+				...view,
+				sections: levelSections(),
+			},
+		);
+		// The soda is on line 5, which no layer owns in the fixture's sections; the cookie is on line 8 (Terrain).
+		expect(selectionFacts(layered, thing({ index: 1, line: 8 }), ['terrain']).lockedLayer).toBe(
+			'terrain',
+		);
+		expect(
+			selectionFacts(layered, thing({ index: 1, line: 8 }), ['treats']).lockedLayer,
+		).toBeNull();
+		expect(selectionFacts(layered, thing({ index: 1, line: 8 })).lockedLayer).toBeNull();
+		expect(selectionFacts(layered, thing({}), ['terrain']).lockedLayer).toBeNull();
 	});
 });

@@ -33,10 +33,13 @@ import {
 	commandLabel,
 	dockBackCommandId,
 	paletteGroupOf,
+	reasonId,
+	reasonText,
 	runCommand,
 	tearOffCommandId,
 	toolCommandId,
 	viewOf,
+	type CommandDef,
 } from './registry';
 import { paletteEntries } from './paletteModel';
 import { TOOL_IDS } from '../tools/tool';
@@ -81,7 +84,7 @@ describe('the registry', () => {
 		for (const command of COMMANDS) {
 			for (const facts of states) {
 				const reason = command.reason?.(facts);
-				if (reason) expect(enMessages, command.id).toHaveProperty(reason);
+				if (reason) expect(enMessages, command.id).toHaveProperty(reasonId(reason));
 			}
 		}
 	});
@@ -139,6 +142,18 @@ describe('the registry', () => {
 		);
 		expect(enabled).not.toHaveProperty('disabled');
 		expect(enabled).not.toHaveProperty('title');
+	});
+
+	it('takes the values of a reason that has some', () => {
+		const def: CommandDef = {
+			id: 'test.locked',
+			label: 'selection.delete',
+			enabled: () => false,
+			reason: () => ({ id: 'level.locked', values: { layers: 'Treats' } }),
+		};
+		const here = snapshot({ editorOpen: true }, { 'test.locked': () => {} });
+		expect(viewOf(def, here).reason).toBe('Treats is locked. Unlock it in Layers to change it.');
+		expect(reasonText('canvas.zoomMax')).toBe('Already at the largest zoom');
 	});
 
 	it('tells visible from enabled on a command view', () => {

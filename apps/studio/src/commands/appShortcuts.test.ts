@@ -174,6 +174,7 @@ describe('the app keys', () => {
 				canDelete: true,
 				hasLine: true,
 				reason: null,
+				lockedLayer: null,
 			};
 			expect(runCommand('edit.delete', snapshot({ ...editor, selection: item }, handlers))).toBe(
 				true,

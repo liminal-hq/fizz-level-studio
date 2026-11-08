@@ -58,6 +58,17 @@ export const PALETTE_GROUP_LABELS: Record<PaletteGroup, MessageId> = {
 	goto: 'cmdPalette.group.goto',
 };
 
+/** Why a command is disabled: a catalogue message, or one with the values its `{tokens}` take. */
+export type CommandReason = MessageId | { id: MessageId; values: Record<string, string | number> };
+
+/** The text of a reason. */
+export const reasonText = (reason: CommandReason): string =>
+	typeof reason === 'string' ? t(reason) : t(reason.id, reason.values);
+
+/** The catalogue message of a reason, whichever form it takes. */
+export const reasonId = (reason: CommandReason): MessageId =>
+	typeof reason === 'string' ? reason : reason.id;
+
 export interface CommandDef {
 	id: string;
 	/** The menu that lists the command; a palette-only command has none. */
@@ -100,7 +111,7 @@ export interface CommandDef {
 	 * palette's detail. Without it, a disabled command says to open a level first when none is open,
 	 * and that it is not available right now otherwise.
 	 */
-	reason?: (facts: CommandFacts) => MessageId | undefined;
+	reason?: (facts: CommandFacts) => CommandReason | undefined;
 	/** The command's own action, when it needs nothing from a screen; a handler a screen publishes under the same id runs instead. */
 	run?: (argument?: string) => void;
 }
@@ -688,7 +699,7 @@ export function viewOf(def: CommandDef, snapshot: BridgeSnapshot): CommandView {
 		visible: def.visible?.(facts) ?? true,
 		enabled,
 		checked: def.checked?.(facts),
-		reason: enabled ? undefined : t(def.reason?.(facts) ?? defaultReason(facts)),
+		reason: enabled ? undefined : reasonText(def.reason?.(facts) ?? defaultReason(facts)),
 	};
 }
 

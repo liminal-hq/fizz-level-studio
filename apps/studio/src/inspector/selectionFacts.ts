@@ -20,8 +20,24 @@ export function entryOf(view: LevelView, thing: Thing) {
 	return null;
 }
 
-/** What the selection commands may do with `thing` in this level. */
-export function selectionFacts(snapshot: LevelSnapshot, thing: Thing | null): SelectionFacts {
+/** The id of the layer that owns script line `line`: the section whose runs hold it, or null. */
+export function layerOfLine(view: LevelView, line: number | null): string | null {
+	if (line === null) return null;
+	const section = view.sections.find((candidate) =>
+		candidate.lines.some(([first, last]) => line >= first && line <= last),
+	);
+	return section?.id ?? null;
+}
+
+/**
+ * What the selection commands may do with `thing` in this level. `locked` is the ids of the locked
+ * layers (Rust's to say): the thing's layer is `lockedLayer` while it is one of them.
+ */
+export function selectionFacts(
+	snapshot: LevelSnapshot,
+	thing: Thing | null,
+	locked: readonly string[] = [],
+): SelectionFacts {
 	if (!thing) return NO_SELECTION;
 	if (thing.kind === 'cell') return { ...NO_SELECTION, kind: 'cell' };
 	const view = snapshot.view;
@@ -32,6 +48,7 @@ export function selectionFacts(snapshot: LevelSnapshot, thing: Thing | null): Se
 	const item = thing.kind === 'item' ? view.items[thing.index] : undefined;
 	const generated = (item?.generator ?? null) !== null;
 	const editable = !fizz2 && !generated && entry.line !== null;
+	const layer = layerOfLine(view, entry.line);
 	return {
 		kind: thing.kind,
 		editable,
@@ -39,5 +56,6 @@ export function selectionFacts(snapshot: LevelSnapshot, thing: Thing | null): Se
 		canDelete: editable && thing.kind !== 'start',
 		hasLine: entry.line !== null,
 		reason: fizz2 ? 'inspector.fizz2' : generated ? 'selection.generated' : null,
+		lockedLayer: layer !== null && locked.includes(layer) ? layer : null,
 	};
 }

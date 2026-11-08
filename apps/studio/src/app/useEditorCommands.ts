@@ -7,6 +7,7 @@ import type { LevelSnapshot } from '@liminal-hq/fizz-studio-protocol/generated/L
 import type { WordDoc } from '@liminal-hq/fizz-studio-protocol/generated/WordDoc';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
+	NO_CURSOR,
 	NO_FACTS,
 	type CommandBridge,
 	type CommandFacts,
@@ -23,6 +24,7 @@ import {
 	tearOffCommandId,
 	toolCommandId,
 } from '../commands/registry';
+import { cursorFacts, layerFacts } from '../commands/levelFacts';
 import { LAYERS_SHOW_ALL, LAYERS_UNLOCK_ALL } from '../commands/layerCommands';
 import {
 	NUDGES,
@@ -38,7 +40,7 @@ import type { useDockLayout } from '../panels/dock/useDockLayout';
 import { PANEL_SPECS, type PanelId } from '../panels/float/panelSpecs';
 import type { usePanelWindows } from '../panels/windows/usePanelWindows';
 import { BRUSH_GROUPS, brushWords, type Brush } from '../tools/brush';
-import { TOOL_IDS } from '../tools/tool';
+import { TOOL_IDS, type Cell } from '../tools/tool';
 import type { useTool } from '../tools/useTool';
 
 export interface EditorCommandsInput {
@@ -54,6 +56,8 @@ export interface EditorCommandsInput {
 	showLine: (line: number) => void;
 	/** Tears a panel off; the screen's own, which also shows the panel's notice at once. */
 	tearOff: (id: PanelId) => void;
+	/** The cell the canvas's keyboard cursor is on, published for the commands that act on it. */
+	cursor: Cell;
 	/** The canvas zoom as it is now (null until the canvas reports it), published for the zoom commands. */
 	zoom: CommandFacts['zoom'];
 	/** Asks the canvas to zoom in, out or fit; the zoom commands run it. */
@@ -90,6 +94,7 @@ export function useEditorCommands({
 	redo,
 	showLine,
 	tearOff,
+	cursor,
 	zoom,
 	onZoom,
 	layers,
@@ -235,6 +240,8 @@ export function useEditorCommands({
 				focusedPanel: null,
 				locks: [],
 				hiddenLayers: [],
+				layers: [],
+				cursor: NO_CURSOR,
 				selection: NO_FACTS.selection,
 			});
 		};
@@ -255,6 +262,11 @@ export function useEditorCommands({
 		}
 		return bridge.setHandlers(handlers);
 	}, [bridge, brushes]);
+	const layerList = useMemo(() => layerFacts(snapshot.view), [snapshot.view.sections]);
+	const cursorNow = useMemo(
+		() => cursorFacts(snapshot.view, cursor),
+		[snapshot.view, cursor.x, cursor.y],
+	);
 	const lineCount = useMemo(() => snapshot.text.split('\n').length, [snapshot.text]);
 	const panelsRef = useRef(panelsShown);
 	panelsRef.current = panelsShown;
@@ -296,6 +308,8 @@ export function useEditorCommands({
 			focusedPanel,
 			locks: layers.locked,
 			hiddenLayers: layers.hidden,
+			layers: layerList,
+			cursor: cursorNow,
 			selection: selection.facts,
 		});
 	}, [
@@ -323,6 +337,8 @@ export function useEditorCommands({
 		focusedPanel,
 		layers.locked,
 		layers.hidden,
+		layerList,
+		cursorNow,
 		selection.facts,
 	]);
 }

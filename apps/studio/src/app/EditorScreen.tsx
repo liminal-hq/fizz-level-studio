@@ -533,13 +533,13 @@ export function EditorScreen({
 	}, [showLine]);
 	const selection = useMemo(
 		() => ({
-			facts: selectionFacts(snapshot, selectedThing),
+			facts: selectionFacts(snapshot, selectedThing, layerLocks.locked),
 			delete: deleteSelected,
 			flip,
 			nudge,
 			showInScript: showSelectedLine,
 		}),
-		[snapshot, selectedThing, deleteSelected, flip, nudge, showSelectedLine],
+		[snapshot, selectedThing, layerLocks.locked, deleteSelected, flip, nudge, showSelectedLine],
 	);
 	const lookupCellLine = useCallback(
 		(x: number, y: number) => client.cellLine(held.current.id, x, y),
@@ -603,6 +603,7 @@ export function EditorScreen({
 		showLine,
 		selection,
 		tearOff: tearOffPanel,
+		cursor,
 		zoom,
 		onZoom: (kind) => setZoomRequest((old) => ({ kind, serial: (old?.serial ?? 0) + 1 })),
 		layers: {

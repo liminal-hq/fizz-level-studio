@@ -28,6 +28,31 @@ export interface SelectionFacts {
 	hasLine: boolean;
 	/** Why the thing cannot be changed, as a catalogue message; null while it can. */
 	reason: MessageId | null;
+	/**
+	 * The id of the locked layer the thing's script line lies in, or null when its layer is open (or
+	 * it has none). Delete, Flip and the nudges are dimmed with the lock's reason while it is set.
+	 */
+	lockedLayer: string | null;
+}
+
+/** A layer of the open level, as the per-layer commands name it. */
+export interface LayerFact {
+	/** The layer's stable id (`terrain`, `treats`, and so on): the name a lock is kept under. */
+	id: string;
+	/** The layer's name in the person's language. */
+	name: string;
+	/** The first script line (from 1) the layer owns, or null when it owns none. */
+	firstLine: number | null;
+}
+
+/** Where the canvas's keyboard cursor is, for the commands that act on the cell under it. */
+export interface CursorFacts {
+	/** The cursor is on a cell of the level. */
+	inside: boolean;
+	/** The tile word on the cursor's cell, or null outside the level. */
+	tile: string | null;
+	/** The id of the layer whose statement last set the cell, or null when none did. */
+	layer: string | null;
 }
 
 export const NO_SELECTION: SelectionFacts = {
@@ -37,7 +62,10 @@ export const NO_SELECTION: SelectionFacts = {
 	canDelete: false,
 	hasLine: false,
 	reason: null,
+	lockedLayer: null,
 };
+
+export const NO_CURSOR: CursorFacts = { inside: false, tile: null, layer: null };
 
 /** What the menu needs to know to enable, disable and check its rows. */
 export interface CommandFacts {
@@ -83,6 +111,10 @@ export interface CommandFacts {
 	locks: readonly string[];
 	/** The layers hidden on the canvas in this window, by id (the editor publishes them; they are a view, not saved). */
 	hiddenLayers: readonly string[];
+	/** The layers of the open level, in file order; empty for a level that has none (a Fizz 2 level). */
+	layers: readonly LayerFact[];
+	/** The keyboard cursor, for Pick, Paint and Erase here. */
+	cursor: CursorFacts;
 	/** The selected thing and what may be done to it. */
 	selection: SelectionFacts;
 	/** The menu bar is on (the `ui.menu_bar` setting). */
@@ -121,6 +153,8 @@ export const NO_FACTS: CommandFacts = {
 	focusedPanel: null,
 	locks: [],
 	hiddenLayers: [],
+	layers: [],
+	cursor: NO_CURSOR,
 	selection: NO_SELECTION,
 	menuBar: false,
 	toolbar: 'classic',
@@ -200,6 +234,8 @@ export function createCommandBridge(): CommandBridge {
 				sameJson(next.placeOf, was.placeOf) &&
 				sameJson(next.locks, was.locks) &&
 				sameJson(next.hiddenLayers, was.hiddenLayers) &&
+				sameJson(next.layers, was.layers) &&
+				sameJson(next.cursor, was.cursor) &&
 				sameJson(next.selection, was.selection);
 			if (!same) set({ ...snapshot, facts: next });
 		},
