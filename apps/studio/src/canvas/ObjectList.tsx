@@ -4,7 +4,8 @@
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
 import type { LevelView } from '@liminal-hq/fizz-studio-protocol/generated/LevelView';
-import { useState } from 'react';
+import { useState, type KeyboardEvent, type MouseEvent } from 'react';
+import { isContextMenuKey, useContextMenu } from '../app/useContextMenu';
 import { t } from '../i18n/messages';
 import { spawnCell, type Cell, type Thing } from '../tools/tool';
 import styles from './ObjectList.module.css';
@@ -29,6 +30,8 @@ interface Row {
 	text: string;
 	name: string;
 	line: number | null;
+	/** The thing the row stands for, counted in this view's own lists. */
+	thing: Thing;
 	choose: () => void;
 }
 
@@ -46,79 +49,113 @@ export function ObjectList({
 	selected = null,
 }: ObjectListProps) {
 	const [filter, setFilter] = useState('');
+	const menu = useContextMenu();
 	const choose = (cell: Cell, thing: Thing) => {
 		onSelectCell(cell);
 		onSelectThing?.(thing);
 	};
 	const rows: Row[] = [];
+	const push = (row: Omit<Row, 'choose'>, cell: Cell) =>
+		rows.push({ ...row, choose: () => choose(cell, row.thing) });
 	const start = view.start;
 	if (start) {
 		const cell = { x: start.x, y: start.y };
-		rows.push({
-			key: 'start',
-			kind: 'start',
-			index: 0,
-			text: t('objects.start', { x: start.x, y: start.y }),
-			name: 'start',
-			line: start.line,
-			choose: () =>
-				choose(cell, {
+		push(
+			{
+				key: 'start',
+				kind: 'start',
+				index: 0,
+				text: t('objects.start', { x: start.x, y: start.y }),
+				name: 'start',
+				line: start.line,
+				thing: {
 					kind: 'start',
 					name: 'start',
 					...cell,
 					layer: 'objects',
 					index: 0,
 					line: start.line,
-				}),
-		});
+				},
+			},
+			cell,
+		);
 	}
 	view.items.forEach((item, index) =>
-		rows.push({
-			key: `item-${index}`,
-			kind: 'item',
-			index,
-			text: t('objects.item', { kind: item.kind, x: item.x, y: item.y }),
-			name: item.kind,
-			line: item.line,
-			choose: () =>
-				choose(
-					{ x: item.x, y: item.y },
-					{
-						kind: 'item',
-						name: item.kind,
-						x: item.x,
-						y: item.y,
-						layer: 'objects',
-						index,
-						line: item.line,
-					},
-				),
-		}),
+		push(
+			{
+				key: `item-${index}`,
+				kind: 'item',
+				index,
+				text: t('objects.item', { kind: item.kind, x: item.x, y: item.y }),
+				name: item.kind,
+				line: item.line,
+				thing: {
+					kind: 'item',
+					name: item.kind,
+					x: item.x,
+					y: item.y,
+					layer: 'objects',
+					index,
+					line: item.line,
+				},
+			},
+			{ x: item.x, y: item.y },
+		),
 	);
-	view.spawns.forEach((spawn, index) =>
-		rows.push({
-			key: `spawn-${index}`,
-			kind: 'enemy',
-			index,
-			text:
-				spawn.y === null
-					? t('objects.spawnGround', { kind: spawn.kind, x: spawn.x })
-					: t('objects.spawn', { kind: spawn.kind, x: spawn.x, y: spawn.y }),
-			name: spawn.kind,
-			line: spawn.line,
-			choose: () => {
-				const cell = spawnCell(view, spawn);
-				choose(cell, {
+	view.spawns.forEach((spawn, index) => {
+		const cell = spawnCell(view, spawn);
+		push(
+			{
+				key: `spawn-${index}`,
+				kind: 'enemy',
+				index,
+				text:
+					spawn.y === null
+						? t('objects.spawnGround', { kind: spawn.kind, x: spawn.x })
+						: t('objects.spawn', { kind: spawn.kind, x: spawn.x, y: spawn.y }),
+				name: spawn.kind,
+				line: spawn.line,
+				thing: {
 					kind: 'enemy',
 					name: spawn.kind,
 					...cell,
 					layer: 'objects',
 					index,
 					line: spawn.line,
-				});
+				},
 			},
-		}),
-	);
+			cell,
+		);
+	});
+
+	// A right-click (or the Menu key) on a row selects its thing, unless it is already selected, then
+	// opens the same menu the thing has on the canvas, with Show on the canvas. It does not move the
+	// cursor: that is what Show on the canvas is for.
+	const openMenu = (
+		row: Row,
+		at: { x: number; y: number } | HTMLElement,
+		focus: HTMLElement | null,
+		keyboard: boolean,
+	) => {
+		const chosen = selected !== null && selected.kind === row.kind && selected.index === row.index;
+		if (!chosen) onSelectThing?.(row.thing);
+		menu.open({ kind: 'objectRow', thing: row.thing }, at, { keyboard, returnFocusTo: focus });
+	};
+	const onRowContextMenu = (row: Row) => (event: MouseEvent<HTMLLIElement>) => {
+		event.preventDefault();
+		openMenu(
+			row,
+			{ x: event.clientX, y: event.clientY },
+			event.currentTarget.querySelector('button'),
+			false,
+		);
+	};
+	const onRowKeyDown = (row: Row) => (event: KeyboardEvent<HTMLButtonElement>) => {
+		if (!isContextMenuKey(event.nativeEvent)) return;
+		event.preventDefault();
+		event.stopPropagation();
+		openMenu(row, event.currentTarget, event.currentTarget, true);
+	};
 
 	// A row matches when what is typed is in its kind, its name, its text or its line number.
 	const needle = filter.trim().toLocaleLowerCase();
@@ -162,7 +199,7 @@ export function ObjectList({
 			/>
 			<ul className={styles.list} role="list" aria-label={t('objects.list')}>
 				{shown.map((row) => (
-					<li key={row.key} className={styles.row}>
+					<li key={row.key} className={styles.row} onContextMenu={onRowContextMenu(row)}>
 						<span className={`${styles.glyph} ${styles[row.kind]}`} aria-hidden="true" />
 						<button
 							type="button"
@@ -173,6 +210,7 @@ export function ObjectList({
 									: undefined
 							}
 							onClick={row.choose}
+							onKeyDown={onRowKeyDown(row)}
 						>
 							{row.text}
 						</button>

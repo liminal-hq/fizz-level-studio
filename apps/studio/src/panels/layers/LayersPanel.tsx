@@ -8,6 +8,8 @@
 
 import type { LevelTarget } from '@liminal-hq/fizz-studio-protocol/generated/LevelTarget';
 import type { ViewSection } from '@liminal-hq/fizz-studio-protocol/generated/ViewSection';
+import type { KeyboardEvent, MouseEvent } from 'react';
+import { isContextMenuKey, useContextMenu } from '../../app/useContextMenu';
 import { t } from '../../i18n/messages';
 import { EyeClosedIcon, EyeOpenIcon, LockClosedIcon, LockOpenIcon } from './layerIcons';
 import { layerName, layerNote } from './layerNames';
@@ -41,6 +43,31 @@ export function LayersPanel({
 	onUnlockAll,
 	onReveal,
 }: LayersPanelProps) {
+	const menu = useContextMenu();
+	// A right-click (or the Menu key) on a layer's row opens its menu. It changes nothing first: the
+	// layer's own commands act on the layer the menu names. A level with no layers has no rows.
+	const onRowContextMenu = (layer: string) => (event: MouseEvent<HTMLLIElement>) => {
+		event.preventDefault();
+		menu.open(
+			{ kind: 'layerRow', layer },
+			{ x: event.clientX, y: event.clientY },
+			{
+				returnFocusTo:
+					(event.target instanceof Element
+						? event.target.closest<HTMLElement>('button:not(:disabled)')
+						: null) ?? event.currentTarget.querySelector<HTMLElement>('button:not(:disabled)'),
+			},
+		);
+	};
+	const onRowKeyDown = (layer: string) => (event: KeyboardEvent<HTMLLIElement>) => {
+		if (!isContextMenuKey(event.nativeEvent) || !(event.target instanceof HTMLElement)) return;
+		event.preventDefault();
+		event.stopPropagation();
+		menu.open({ kind: 'layerRow', layer }, event.target, {
+			keyboard: true,
+			returnFocusTo: event.target,
+		});
+	};
 	if (sections.length === 0) {
 		return (
 			<p className={styles.empty}>{target === 'fizz2' ? t('layers.fizz2') : t('layers.none')}</p>
@@ -61,6 +88,8 @@ export function LayersPanel({
 							className={styles.row}
 							data-hidden={isHidden || undefined}
 							data-locked={isLocked || undefined}
+							onContextMenu={onRowContextMenu(section.id)}
+							onKeyDown={onRowKeyDown(section.id)}
 						>
 							<Tooltip label={t('layers.hide', { layer: name })}>
 								<button
