@@ -63,7 +63,37 @@ export const vsCodeKeys: readonly KeyBinding[] = [
  * library moves the popup to stay on screen, and copies the editor's theme classes onto it there.
  */
 export function popupPlacement(): Extension {
-	return tooltips({ parent: document.body, position: 'fixed' });
+	return tooltips({ parent: popupLayer(), position: 'fixed' });
+}
+
+/** The id of the popups' layer, so tests and the live checks can find it. */
+export const POPUP_LAYER_ID = 'fls-popup-layer';
+
+/**
+ * The one element in the page's `body` that holds the editor's popups. The library puts its popup
+ * wrapper (a `position: relative` div as tall as the page) straight into the parent it is given, and
+ * that wrapper took layout space in `body`, doubling the document's height, so revealing a line
+ * scrolled the whole app shell. This layer is fixed and has no size, so it takes no space and nothing
+ * in it can make the page scroll; the popups themselves are `position: fixed`, so they still place
+ * against the viewport. It is made on first use, and again if the page's body was cleared.
+ */
+export function popupLayer(): HTMLElement {
+	const existing = document.getElementById(POPUP_LAYER_ID);
+	if (existing?.isConnected) return existing;
+	const layer = document.createElement('div');
+	layer.id = POPUP_LAYER_ID;
+	Object.assign(layer.style, {
+		position: 'fixed',
+		inset: '0',
+		width: '0',
+		height: '0',
+		overflow: 'visible',
+		// A fixed box is a stacking context of its own, so the popups' own z-index only counts inside it:
+		// the layer takes the menu level itself, to stay above the docks and floating panels.
+		zIndex: 'var(--fls-z-menu)',
+	});
+	document.body.append(layer);
+	return layer;
 }
 
 export interface ScriptEditorOptions {

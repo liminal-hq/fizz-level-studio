@@ -429,10 +429,23 @@ body,
 #root {
 	margin: 0;
 	height: 100%;
+	overflow: hidden;
+	overscroll-behavior: none;
 	/* The window is transparent so the frame can round its own corners. */
 	background: transparent;
 	color: var(--fls-text-primary);
 	font-family: var(--fls-font);
+}
+
+/*
+ * The shell never scrolls. `hidden` on the page's root still lets a script move it (`scrollIntoView`
+ * and the library's reveal of a line walk up every scrollable ancestor), so `body` and `#root` are
+ * `clip`, which is not scrollable at all, and the viewport keeps `hidden`. A panel's own content
+ * scrolls inside its own box, as before.
+ */
+body,
+#root {
+	overflow: clip;
 }
 
 /*

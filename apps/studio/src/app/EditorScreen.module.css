@@ -26,7 +26,7 @@
 	position: relative;
 	flex: 1;
 	min-height: 0;
-	overflow: hidden;
+	overflow: clip;
 }
 
 /* The level fills the editor area; every panel floats over it. */

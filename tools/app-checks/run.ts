@@ -285,7 +285,7 @@ async function measureScriptPopup(
 		`const tip = document.querySelector('.cm-tooltip .fls-doc').closest('.cm-tooltip');
 		 const r = tip.getBoundingClientRect();
 		 const clippedBy = [];
-		 for (let e = tip.parentElement; e && e !== document.documentElement; e = e.parentElement) {
+		 for (let e = tip.parentElement; e && e !== document.documentElement && e !== document.body; e = e.parentElement) {
 			 const cs = getComputedStyle(e);
 			 if (cs.overflowX !== 'visible' || cs.overflowY !== 'visible' || cs.transform !== 'none' || cs.filter !== 'none' || cs.backdropFilter !== 'none' || cs.contain !== 'none') clippedBy.push(e.tagName + '.' + e.className.toString().slice(0, 30));
 		 }
@@ -297,12 +297,86 @@ async function measureScriptPopup(
 		 return {
 			 found: true,
 			 inWindow: r.left >= 0 && r.top >= 0 && r.right <= innerWidth && r.bottom <= innerHeight && r.width > 40,
-			 inBody: tip.parentElement.parentElement === document.body,
+			 inBody: tip.closest('#fls-popup-layer')?.parentElement === document.body,
 			 clippedBy,
 			 onTop: !!top && tip.contains(top),
 			 box: [r.left, r.top, r.width, r.height].map(Math.round),
 		 };`,
 		windowId,
+	);
+}
+
+/**
+ * How far the page of `windowId` can scroll, after a reveal has been forced: the shell must never move.
+ * It scrolls the first script line and the last into view, asks the window to scroll, and reads the
+ * document's scrolling element and the shell's own boxes. `scrollHeight === innerHeight` is the
+ * measure that failed when the popup layer doubled the page's height.
+ */
+async function shellScroll(
+	bridge: Bridge,
+	windowId = 'main-1',
+): Promise<{
+	top: number;
+	left: number;
+	height: number;
+	inner: number;
+	width: number;
+	innerW: number;
+	moved: string[];
+}> {
+	return bridge.js(
+		`const lines = [...document.querySelectorAll('.cm-line')];
+		 lines.at(-1)?.scrollIntoView({ block: 'end' });
+		 lines[0]?.scrollIntoView({ block: 'start' });
+		 document.querySelector('.cm-revealedLine')?.scrollIntoView({ block: 'center' });
+		 window.scrollTo(0, 500);
+		 await new Promise((r) => setTimeout(r, 150));
+		 const se = document.scrollingElement;
+		 const moved = [document.documentElement, document.body, document.getElementById('root'), ...document.querySelectorAll('[data-maximised] > div, main, [data-app-toolbar]')]
+			 .filter((e) => e && (e.scrollTop !== 0 || e.scrollLeft !== 0))
+			 .map((e) => e.tagName + '.' + String(e.className).slice(0, 20));
+		 return { top: se.scrollTop, left: se.scrollLeft, height: se.scrollHeight, inner: innerHeight, width: se.scrollWidth, innerW: innerWidth, moved };`,
+		windowId,
+	);
+}
+
+function shellStill(m: Awaited<ReturnType<typeof shellScroll>>): boolean {
+	return (
+		m.top === 0 &&
+		m.left === 0 &&
+		m.height === m.inner &&
+		m.width === m.innerW &&
+		m.moved.length === 0
+	);
+}
+
+/** The first Objects row, clicked, which reveals its cell and its script line. */
+function clickFirstObject(bridge: Bridge, windowId = 'main-1'): Promise<boolean> {
+	return bridge.js<boolean>(
+		`const b = [...document.querySelectorAll('[role=list][aria-label=Objects] button')].find((e) => /^Item /.test(e.textContent.trim())) ?? [...document.querySelectorAll('button')].find((x) => x.textContent.startsWith('Item '));
+		 if (!b) return false; b.click(); return true;`,
+		windowId,
+	);
+}
+
+/** The app shell stays put after a hover, a reveal, and a forced scroll: the main window and a floating Script. */
+async function shellScrollChecks(bridge: Bridge, where: string): Promise<void> {
+	const hovered = await measureScriptPopup(bridge);
+	check(`${where}: a hover popup is shown`, !!hovered?.found);
+	const afterHover = await shellScroll(bridge);
+	check(
+		`${where}: the shell does not scroll after a hover`,
+		shellStill(afterHover),
+		JSON.stringify(afterHover),
+	);
+	await showFromRail(bridge, 'Objects');
+	const clicked = await clickFirstObject(bridge);
+	await sleep(400);
+	const afterReveal = await shellScroll(bridge);
+	check(
+		`${where}: the shell does not scroll after an Objects row reveals its line`,
+		clicked && shellStill(afterReveal),
+		JSON.stringify({ clicked, ...afterReveal }),
 	);
 }
 
@@ -324,11 +398,14 @@ async function scriptPopupChecks(bridge: Bridge): Promise<void> {
 	};
 	await showFromRail(bridge, 'Script');
 	await run('docked Script');
+	await shellScrollChecks(bridge, 'docked Script');
 	check('floating: Script floats', await choosePanelMenu(bridge, 'Script', 'Float'));
 	await within(3000, () =>
 		bridge.js<boolean>(`return !!document.querySelector('section[data-panel="script"]');`),
 	);
 	await run('floating Script');
+	await showFromRail(bridge, 'Script');
+	await shellScrollChecks(bridge, 'floating Script');
 	check(
 		'floating: the layout is reset, so Script is back in the bottom dock',
 		await choosePanelMenu(bridge, 'Script', 'Reset layout'),
@@ -2772,6 +2849,12 @@ async function main(): Promise<void> {
 			)
 		).v;
 		check('the Preferences window wears the saved accent', prefsAccent === '#ffaa40', prefsAccent);
+		const prefsScroll = await shellScroll(bridge, 'preferences');
+		check(
+			'the Preferences window does not scroll its shell',
+			shellStill(prefsScroll),
+			JSON.stringify(prefsScroll),
+		);
 		await bridge.js(
 			`const cur = await window.__TAURI_INTERNALS__.invoke('plugin:fizz-studio-settings|settings_get'); await window.__TAURI_INTERNALS__.invoke('plugin:fizz-studio-settings|settings_update', { patch: { accent: { kind: 'system' }, glass: 'system' }, basedOn: cur.revision });`,
 		);
@@ -2794,6 +2877,19 @@ async function main(): Promise<void> {
 		);
 		check('the main window shows the panel is away', noticed !== null);
 		await bridge.ready('panel-script-1');
+		const tornPopup = await within(20_000, async () => {
+			try {
+				return (await measureScriptPopup(bridge, 'panel-script-1'))?.found ? true : null;
+			} catch {
+				return null;
+			}
+		});
+		const tornScroll = await shellScroll(bridge, 'panel-script-1');
+		check(
+			'torn-off Script: the shell does not scroll after a hover and a forced reveal',
+			tornPopup !== null && shellStill(tornScroll),
+			JSON.stringify(tornScroll),
+		);
 		// A slow runner can take a while to draw a new window, so wait generously, and when it still
 		// fails say what the window held so the cause is in the log rather than a bare FAIL.
 		let lastDockBackProblem = 'the button was not found';
