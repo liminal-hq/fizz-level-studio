@@ -13,7 +13,7 @@ const wash = (percent: number) => `color-mix(in srgb, var(--fls-accent) ${percen
 export const scriptTheme = EditorView.theme({
 	'&': {
 		color: 'var(--fls-text-primary)',
-		backgroundColor: 'var(--fls-bg-content)',
+		backgroundColor: 'var(--fls-editor-bg, var(--fls-bg-content))',
 		fontSize: '0.85rem',
 		height: '100%',
 	},
@@ -51,7 +51,7 @@ export const scriptTheme = EditorView.theme({
 	},
 	'.cm-gutters': {
 		color: 'var(--fls-text-muted)',
-		backgroundColor: 'var(--fls-bg-window)',
+		backgroundColor: 'var(--fls-editor-gutter-bg, var(--fls-bg-window))',
 		borderRight: '1px solid var(--fls-border-subtle)',
 	},
 	'.cm-activeLineGutter': {
@@ -110,7 +110,7 @@ export const scriptTheme = EditorView.theme({
 	'.fls-doc code': { fontFamily: 'inherit', color: 'var(--fls-syntax-keyword)' },
 	'.cm-panels': {
 		color: 'var(--fls-text-primary)',
-		backgroundColor: 'var(--fls-bg-window)',
+		backgroundColor: 'var(--fls-editor-gutter-bg, var(--fls-bg-window))',
 	},
 	'.cm-panels-top': { borderBottom: '1px solid var(--fls-border-subtle)' },
 	'.cm-panels-bottom': { borderTop: '1px solid var(--fls-border-subtle)' },

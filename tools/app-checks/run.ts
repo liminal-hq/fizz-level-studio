@@ -323,6 +323,71 @@ async function scriptPopupChecks(bridge: Bridge): Promise<void> {
 	await sleep(300);
 }
 
+/** The alpha of the computed `background-color` of the first element matching each selector (null when absent). */
+function backgroundAlphas(bridge: Bridge, selectors: string[]): Promise<(number | null)[]> {
+	return bridge.js<(number | null)[]>(
+		`const alpha = (colour) => {
+			 const slash = colour.match(/\\/\\s*([\\d.]+%?)\\s*\\)/);
+			 if (slash) return slash[1].endsWith('%') ? parseFloat(slash[1]) / 100 : parseFloat(slash[1]);
+			 const rgba = colour.match(/^rgba\\(([^)]*)\\)$/);
+			 return rgba ? parseFloat(rgba[1].split(',')[3]) : 1;
+		 };
+		 return ${JSON.stringify(selectors)}.map((s) => { const e = document.querySelector(s); return e ? alpha(getComputedStyle(e).backgroundColor) : null; });`,
+	);
+}
+
+/**
+ * The script editor follows the panel transparency switches of its host: with the docked (or
+ * floating) panels' glass on, the editor and its gutters are translucent so the glass shows; with it
+ * off they are the solid colours; and the setting applies live.
+ */
+async function transparentEditorChecks(bridge: Bridge): Promise<void> {
+	const setSwitch = (key: 'docks' | 'floating', on: boolean) =>
+		bridge.js<boolean>(
+			`const cur = await window.__TAURI_INTERNALS__.invoke('plugin:fizz-studio-settings|settings_get');
+			 await window.__TAURI_INTERNALS__.invoke('plugin:fizz-studio-settings|settings_update', { patch: { transparency: { ...cur.settings.transparency, ${key}: ${on} } }, basedOn: cur.revision });
+			 return true;`,
+		);
+	const selectors = ['.cm-editor', '.cm-gutters'];
+	const run = async (where: string, key: 'docks' | 'floating') => {
+		await setSwitch(key, true);
+		await within(5000, async () => {
+			const [editor] = await backgroundAlphas(bridge, selectors);
+			return editor !== null && editor !== undefined && editor < 0.5;
+		});
+		const on = await backgroundAlphas(bridge, selectors);
+		check(
+			`${where}: with glass on, the editor and its gutters are translucent`,
+			on.every((a) => a !== null && a < 0.5),
+			JSON.stringify(on),
+		);
+		await setSwitch(key, false);
+		await within(5000, async () => {
+			const [editor] = await backgroundAlphas(bridge, selectors);
+			return editor !== null && editor !== undefined && editor >= 0.5;
+		});
+		const off = await backgroundAlphas(bridge, selectors);
+		check(
+			`${where}: with glass off, the editor and its gutters are solid`,
+			off.every((a) => a !== null && a >= 0.99),
+			JSON.stringify(off),
+		);
+		await setSwitch(key, true);
+	};
+	await showFromRail(bridge, 'Script');
+	await run('docked Script', 'docks');
+	check('transparency: Script floats', await choosePanelMenu(bridge, 'Script', 'Float'));
+	await within(3000, () =>
+		bridge.js<boolean>(`return !!document.querySelector('section[data-panel="script"]');`),
+	);
+	await run('floating Script', 'floating');
+	check(
+		'transparency: Script docks at the bottom again',
+		await choosePanelMenu(bridge, 'Script', 'Dock bottom'),
+	);
+	await sleep(300);
+}
+
 /** Clicks the button with this accessible name. */
 function clickLabelled(bridge: Bridge, label: string): Promise<boolean> {
 	return bridge.js<boolean>(
@@ -2249,6 +2314,7 @@ async function main(): Promise<void> {
 		await dockChecks(bridge);
 		await panelMenuStaysPutChecks(bridge);
 		await scriptPopupChecks(bridge);
+		await transparentEditorChecks(bridge);
 		await dragAndMaximiseChecks(bridge);
 		await toolPickerChecks(bridge);
 		// With the default settings there is no menu bar: the title bar's app menu button is the

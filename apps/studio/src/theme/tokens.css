@@ -246,6 +246,32 @@
 	--fls-glass-floating-filter: none;
 }
 
+/*
+ * The script editor's fills. Where nothing says otherwise (a torn-off window, a maximised panel) they
+ * are the solid content and window colours, which the see-through window already makes translucent.
+ * A dock or floating panel that wears glass lets that glass show through the editor (the editor
+ * itself is clear and the gutters and bars are a faint wash), and takes the solid colours back when
+ * its glass switch is off. `DockZone`, `PeekPanel` and `FloatingPanel` pick their own pair.
+ */
+:root {
+	--fls-editor-bg: var(--fls-bg-content);
+	--fls-editor-gutter-bg: var(--fls-bg-window);
+	--fls-editor-docks-bg: transparent;
+	--fls-editor-docks-gutter-bg: color-mix(in srgb, var(--fls-text-primary) 5%, transparent);
+	--fls-editor-floating-bg: transparent;
+	--fls-editor-floating-gutter-bg: color-mix(in srgb, var(--fls-text-primary) 5%, transparent);
+}
+
+:root[data-fls-glass-docks='off'] {
+	--fls-editor-docks-bg: var(--fls-bg-content);
+	--fls-editor-docks-gutter-bg: var(--fls-bg-window);
+}
+
+:root[data-fls-glass-floating='off'] {
+	--fls-editor-floating-bg: var(--fls-bg-content);
+	--fls-editor-floating-gutter-bg: var(--fls-bg-window);
+}
+
 :root[data-fls-glass-menus='on'] {
 	--fls-bg-menu: color-mix(
 		in srgb,

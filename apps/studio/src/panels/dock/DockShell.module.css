@@ -164,6 +164,8 @@
 }
 
 .shell[data-has-maximised] [data-panel-maximised] {
+	--fls-editor-bg: var(--fls-bg-content);
+	--fls-editor-gutter-bg: var(--fls-bg-window);
 	position: absolute;
 	inset: 0;
 	z-index: 30;

@@ -1,4 +1,6 @@
 .panel {
+	--fls-editor-bg: var(--fls-editor-floating-bg);
+	--fls-editor-gutter-bg: var(--fls-editor-floating-gutter-bg);
 	position: absolute;
 	left: var(--fls-float-x);
 	top: var(--fls-float-y);
@@ -144,6 +146,8 @@
 
 /* Maximised: the panel fills the workspace where it is, without moving in the tree. */
 .panel[data-panel-maximised][data-panel-maximised] {
+	--fls-editor-bg: var(--fls-bg-content);
+	--fls-editor-gutter-bg: var(--fls-bg-window);
 	inset: 0;
 	z-index: 30;
 	width: auto;

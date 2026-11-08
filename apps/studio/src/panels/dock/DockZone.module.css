@@ -1,4 +1,6 @@
 .zone {
+	--fls-editor-bg: var(--fls-editor-docks-bg);
+	--fls-editor-gutter-bg: var(--fls-editor-docks-gutter-bg);
 	display: flex;
 	flex-direction: column;
 	box-sizing: border-box;
