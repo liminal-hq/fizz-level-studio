@@ -31,15 +31,18 @@ export function layerOfLine(view: LevelView, line: number | null): string | null
 
 /**
  * What the selection commands may do with `thing` in this level. `locked` is the ids of the locked
- * layers (Rust's to say): the thing's layer is `lockedLayer` while it is one of them.
+ * layers (Rust's to say): the thing's layer is `lockedLayer` while it is one of them. `cellLine` is the
+ * line that set a selected cell, once it is known.
  */
 export function selectionFacts(
 	snapshot: LevelSnapshot,
 	thing: Thing | null,
 	locked: readonly string[] = [],
+	cellLine: number | null = null,
 ): SelectionFacts {
 	if (!thing) return NO_SELECTION;
-	if (thing.kind === 'cell') return { ...NO_SELECTION, kind: 'cell' };
+	// A cell has no edits of its own; Show in script works once Rust has said which line set it.
+	if (thing.kind === 'cell') return { ...NO_SELECTION, kind: 'cell', hasLine: cellLine !== null };
 	const view = snapshot.view;
 	const entry = entryOf(view, thing);
 	if (!entry) return NO_SELECTION;

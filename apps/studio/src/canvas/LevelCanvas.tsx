@@ -3,6 +3,7 @@
 // (c) Copyright 2026 Liminal HQ, Scott Morris
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
+import type { MenuPosition } from '@liminal-hq/fizz-studio-chrome/ContextMenu/types';
 import type { GhostCell } from '@liminal-hq/fizz-studio-protocol/generated/GhostCell';
 import type { LevelView } from '@liminal-hq/fizz-studio-protocol/generated/LevelView';
 import {
@@ -13,9 +14,11 @@ import {
 	useState,
 	type CSSProperties,
 	type KeyboardEvent,
+	type MouseEvent,
 	type PointerEvent,
 	type ReactNode,
 } from 'react';
+import { isContextMenuKey, KEYBOARD_OPEN_GRACE_MS } from '../app/useContextMenu';
 import { t } from '../i18n/messages';
 import type { Cell, PointerPhase, Rect } from '../tools/tool';
 import { drawLevel, readCanvasColours, type DrawContext } from './drawLevel';
@@ -34,6 +37,8 @@ import {
 	clampZoom,
 	frameViewport,
 	moveCursor,
+	cellOrigin,
+	cellPx,
 	pixelToCell,
 	revealCell,
 	uncoveredRect,
@@ -102,6 +107,18 @@ export interface LevelCanvasProps {
 	onZoomAction?: (kind: ZoomKind) => void;
 	/** A line of guidance shown after the cell in the status line, such as what Stamp needs. */
 	statusNote?: string;
+	/**
+	 * Called for a right-click on a cell of the level (never on the margin), and for the Menu key or
+	 * Shift+F10 on the cursor's cell. The caller applies the selection rule and opens the menu; `at` is
+	 * the pointer, or the cursor cell's corner for the keyboard, and `focus` is where focus returns.
+	 * A right press never paints. Without it the canvas has no menu.
+	 */
+	onContextCell?: (request: {
+		cell: Cell;
+		at: MenuPosition;
+		keyboard: boolean;
+		focus: HTMLElement;
+	}) => void;
 }
 
 /** The room the tool picker leaves at the bottom of the map for the zoom control. */
@@ -133,11 +150,15 @@ export function LevelCanvas({
 	onZoomChange,
 	onZoomAction,
 	statusNote,
+	onContextCell,
 }: LevelCanvasProps) {
 	const canvasRef = useRef<HTMLCanvasElement>(null);
 	const frameRef = useRef<HTMLDivElement>(null);
 	const barRef = useRef<HTMLDivElement>(null);
 	const pressed = useRef(false);
+	// When the Menu key or Shift+F10 last opened the menu: the `contextmenu` event the browser fires
+	// after the key is only prevented, so the menu does not open a second time at a stray position.
+	const keyboardOpenedAt = useRef(0);
 	// A drag with the middle button pans the map: the pointer that holds it, and where it last was.
 	const pan = useRef<{ id: number; x: number; y: number } | null>(null);
 	const [panning, setPanning] = useState(false);
@@ -289,10 +310,18 @@ export function LevelCanvas({
 		setCamera((current) => revealCell(current, reveal.cell, seen, view));
 	}, [reveal, seen, view]);
 
+	// While a stroke or a pan is going no menu may open under it: the host reads this attribute.
+	const markBusy = () =>
+		canvasRef.current?.toggleAttribute(
+			'data-context-busy',
+			pressed.current || pan.current !== null,
+		);
+
 	const endPan = () => {
 		if (!pan.current) return;
 		pan.current = null;
 		setPanning(false);
+		markBusy();
 	};
 
 	// A window that loses focus or hides mid-drag never sees the button come up.
@@ -315,12 +344,14 @@ export function LevelCanvas({
 			}
 			pan.current = { id: event.pointerId, x: event.clientX, y: event.clientY };
 			setPanning(true);
+			markBusy();
 			return;
 		}
 		if (event.button !== 0 || pan.current) return;
 		event.currentTarget.focus();
 		event.currentTarget.setPointerCapture?.(event.pointerId);
 		pressed.current = true;
+		markBusy();
 		const cell = cellAt(event);
 		if (inside(cell)) onCursorChange(cell);
 		if (inside(cell)) onCellChosen?.(cell, 'grid');
@@ -356,6 +387,7 @@ export function LevelCanvas({
 		}
 		if (!pressed.current) return;
 		pressed.current = false;
+		markBusy();
 		onToolEvent('up', cellAt(event));
 	};
 
@@ -393,7 +425,54 @@ export function LevelCanvas({
 		});
 	}, [zoomLevel]);
 
+	// A right-click on a cell opens the cell's menu and never paints (`onPointerDown` takes only the
+	// left and middle buttons). A stroke or a pan in progress keeps the press, so nothing opens under it.
+	const onContextMenu = (event: MouseEvent<HTMLCanvasElement>) => {
+		if (!onContextCell) return;
+		if (
+			pressed.current ||
+			pan.current ||
+			Date.now() - keyboardOpenedAt.current < KEYBOARD_OPEN_GRACE_MS
+		) {
+			event.preventDefault();
+			return;
+		}
+		const rect = event.currentTarget.getBoundingClientRect();
+		const cell = pixelToCell(event.clientX - rect.left, event.clientY - rect.top, drawn, view);
+		// The margin round the level has no menu; the host blocks the browser's own.
+		if (!inside(cell)) return;
+		event.preventDefault();
+		onContextCell({
+			cell,
+			at: { x: event.clientX, y: event.clientY },
+			keyboard: false,
+			focus: event.currentTarget,
+		});
+	};
+
+	// The Menu key and Shift+F10 open the menu of the cursor's cell, at the cell's bottom edge.
+	const openAtCursor = (canvas: HTMLCanvasElement) => {
+		if (!onContextCell || !inside(cursor)) return;
+		const rect = canvas.getBoundingClientRect();
+		const origin = cellOrigin(cursor, drawn, view);
+		const size = cellPx(drawn.zoom);
+		keyboardOpenedAt.current = Date.now();
+		onContextCell({
+			cell: cursor,
+			at: { x: rect.left + origin.x + size / 2, y: rect.top + origin.y + size },
+			keyboard: true,
+			focus: canvas,
+		});
+	};
+
 	const onKeyDown = (event: KeyboardEvent<HTMLCanvasElement>) => {
+		if (isContextMenuKey(event.nativeEvent)) {
+			// Handled here, not by the app-wide key, because only the canvas knows where its cursor is.
+			event.preventDefault();
+			event.stopPropagation();
+			openAtCursor(event.currentTarget);
+			return;
+		}
 		if (event.ctrlKey || event.metaKey || event.altKey) return;
 		const { key } = event;
 		if (key === 'ArrowLeft' || key === 'ArrowRight' || key === 'ArrowUp' || key === 'ArrowDown') {
@@ -450,6 +529,7 @@ export function LevelCanvas({
 						onPointerUp={onPointerEnd}
 						onPointerCancel={onPointerEnd}
 						onLostPointerCapture={endPan}
+						onContextMenu={onContextMenu}
 						onMouseDown={(event) => {
 							if (event.button === 1) event.preventDefault();
 						}}

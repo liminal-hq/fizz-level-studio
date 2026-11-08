@@ -98,6 +98,8 @@ import {
 } from '../commands/commandBridge';
 import { runCommand } from '../commands/registry';
 import { newerSnapshot } from './snapshotRule';
+import { useContextMenu } from './useContextMenu';
+import type { CanvasContextTarget } from '../commands/contextTargets';
 
 export interface EditorScreenProps {
 	/** The level as it was when the screen opened; newer snapshots arrive through the client. */
@@ -526,20 +528,52 @@ export function EditorScreen({
 			void applyThingEdit({ op: 'delete' }, `delete:${(oneShot.current += 1)}`).then(showProblem),
 		[applyThingEdit, showProblem],
 	);
+	// The line that last set the selected cell, for Show in script on a cell: Rust answers it, so it is
+	// asked again when the selection or the level changes and held until it arrives.
+	const [cellLine, setCellLine] = useState<number | null>(null);
+	const cellLineNow = useRef<number | null>(null);
+	cellLineNow.current = cellLine;
+	const selectedCellX = selectedThing?.kind === 'cell' ? selectedThing.x : null;
+	const selectedCellY = selectedThing?.kind === 'cell' ? selectedThing.y : null;
+	useEffect(() => {
+		setCellLine(null);
+		if (selectedCellX === null || selectedCellY === null) return;
+		let current = true;
+		client.cellLine(levelId, selectedCellX, selectedCellY).then(
+			(line) => current && setCellLine(line),
+			() => {},
+		);
+		return () => {
+			current = false;
+		};
+	}, [client, levelId, revision, selectedCellX, selectedCellY]);
 	const showSelectedLine = useCallback(() => {
 		const prev = selectedNow.current;
+		if (prev?.kind === 'cell') {
+			if (cellLineNow.current !== null) showLine(cellLineNow.current);
+			return;
+		}
 		const entry = prev ? entryOf(held.current.view, prev) : null;
 		if (entry && entry.line !== null) showLine(entry.line);
 	}, [showLine]);
 	const selection = useMemo(
 		() => ({
-			facts: selectionFacts(snapshot, selectedThing, layerLocks.locked),
+			facts: selectionFacts(snapshot, selectedThing, layerLocks.locked, cellLine),
 			delete: deleteSelected,
 			flip,
 			nudge,
 			showInScript: showSelectedLine,
 		}),
-		[snapshot, selectedThing, layerLocks.locked, deleteSelected, flip, nudge, showSelectedLine],
+		[
+			snapshot,
+			selectedThing,
+			layerLocks.locked,
+			cellLine,
+			deleteSelected,
+			flip,
+			nudge,
+			showSelectedLine,
+		],
 	);
 	const lookupCellLine = useCallback(
 		(x: number, y: number) => client.cellLine(held.current.id, x, y),
@@ -554,6 +588,61 @@ export function EditorScreen({
 		setDeletedName(null);
 		setSelectedThing(thing);
 	}, []);
+	// A right-click (or the Menu key) on a cell: the selection rule, then the menu. Inside Select's
+	// rectangle the rectangle is kept and the selection is left alone; on the thing that is already
+	// selected nothing changes; anywhere else the cursor moves and the thing under the pointer is
+	// selected the way Inspect selects it, so a hidden layer's things are never chosen.
+	const contextMenu = useContextMenu();
+	const contextRequests = useRef(0);
+	const onContextCell = (request: {
+		cell: Cell;
+		at: { x: number; y: number };
+		keyboard: boolean;
+		focus: HTMLElement;
+	}) => {
+		const { cell } = request;
+		const found = thingAt(shownView, cell, levelView);
+		if (!found) return;
+		const area = tool.selection;
+		const inRect =
+			area !== null &&
+			cell.x >= area.x0 &&
+			cell.x <= area.x1 &&
+			cell.y >= area.y0 &&
+			cell.y <= area.y1;
+		setCursor(cell);
+		if (!inRect) {
+			const current = selectedNow.current;
+			const same =
+				current !== null &&
+				sameThing(current, found) &&
+				(found.kind !== 'cell' || (current.x === found.x && current.y === found.y));
+			if (!same) {
+				setSelectionLost(false);
+				setDeletedName(null);
+				selectedNow.current = found;
+				setSelectedThing(found);
+			}
+		}
+		const target: CanvasContextTarget = { kind: 'canvas', cell, thing: found, inRect, line: null };
+		contextMenu.open(target, request.at, {
+			keyboard: request.keyboard,
+			returnFocusTo: request.focus,
+		});
+		// A tile's script line comes from Rust; the header gains it when it arrives.
+		const serial = (contextRequests.current += 1);
+		if (found.kind === 'cell') {
+			void client
+				.cellLine(held.current.id, cell.x, cell.y)
+				.then((line) => {
+					if (line !== null && serial === contextRequests.current) {
+						contextMenu.update({ ...target, line });
+					}
+				})
+				.catch(() => {});
+		}
+	};
+
 	// The level changed (an edit of the person's, or one from outside): the selected thing follows
 	// its entry, or is let go with a note when it is no longer in the level.
 	const selectedNow = useRef(selectedThing);
@@ -961,6 +1050,7 @@ export function EditorScreen({
 							inspected={inspected}
 							arrowsMoveThing={selection.facts.editable}
 							onClearInspected={clearInspected}
+							onContextCell={onContextCell}
 							ghosts={ghostCells}
 							reveal={reveal}
 							onCellChosen={onCellChosen}
