@@ -31,6 +31,7 @@ import {
 	keymap,
 	lineNumbers,
 	rectangularSelection,
+	tooltips,
 	type KeyBinding,
 } from '@codemirror/view';
 import type { WordDoc } from '@liminal-hq/fizz-studio-protocol/generated/WordDoc';
@@ -54,6 +55,16 @@ export const vsCodeKeys: readonly KeyBinding[] = [
 	{ key: 'Mod-d', run: selectNextOccurrence, preventDefault: true },
 	{ key: 'Mod-/', run: toggleComment, preventDefault: true },
 ];
+
+/**
+ * Where the editor's popups (the hover documentation, completion, problems) are drawn: fixed in the
+ * page's `body`, so they sit above the docks, rails and floating panels and are never cut off by the
+ * panel's `overflow` or by a glass `backdrop-filter`, which makes a containing block of its own. The
+ * library moves the popup to stay on screen, and copies the editor's theme classes onto it there.
+ */
+export function popupPlacement(): Extension {
+	return tooltips({ parent: document.body, position: 'fixed' });
+}
 
 export interface ScriptEditorOptions {
 	/** False keeps the text read-only: the caret, selections, find and folding still work. */
@@ -87,6 +98,7 @@ export function scriptExtensions({ editable, words, label }: ScriptEditorOptions
 		highlightSelectionMatches(),
 		search({ top: true }),
 		fizzLanguageSupport,
+		popupPlacement(),
 		scriptDocs(words),
 		revealExtension,
 		scriptTheme,

@@ -227,6 +227,102 @@ async function panelMenuStaysPutChecks(bridge: Bridge): Promise<void> {
 	}
 }
 
+/**
+ * Hovers the word `crystal` in the script editor of `windowId` and measures the documentation popup:
+ * it must be a child of the page's `body`, lie wholly inside the window, have no ancestor that clips
+ * it or makes a containing block for it, and be the element on top at its own centre.
+ */
+async function measureScriptPopup(
+	bridge: Bridge,
+	windowId = 'main-1',
+): Promise<{
+	found: boolean;
+	inWindow: boolean;
+	inBody: boolean;
+	clippedBy: string[];
+	onTop: boolean;
+	box: number[];
+} | null> {
+	const hovered = await bridge.js<boolean>(
+		`const content = document.querySelector('.cm-content');
+		 if (!content) return false;
+		 const scroller = document.querySelector('.cm-scroller');
+		 const find = () => {
+			 const walker = document.createTreeWalker(content, NodeFilter.SHOW_TEXT);
+			 for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+				 const i = n.textContent.indexOf('crystal');
+				 if (i >= 0) { const r = document.createRange(); r.setStart(n, i + 2); r.setEnd(n, i + 4); return r.getBoundingClientRect(); }
+			 }
+			 return null;
+		 };
+		 let rect = find();
+		 for (let top = 0; !rect && scroller && top < scroller.scrollHeight; top += 200) { scroller.scrollTop = top; await new Promise((r) => setTimeout(r, 60)); rect = find(); }
+		 if (!rect) return false;
+		 const x = rect.left + rect.width / 2, y = rect.top + rect.height / 2;
+		 for (const type of ['mousemove', 'mouseover']) content.dispatchEvent(new MouseEvent(type, { bubbles: true, clientX: x, clientY: y }));
+		 return true;`,
+		windowId,
+	);
+	if (!hovered) return null;
+	const shown = await within(4000, () =>
+		bridge.js<boolean>(`return !!document.querySelector('.cm-tooltip .fls-doc');`, windowId),
+	);
+	if (shown === null) return null;
+	return bridge.js(
+		`const tip = document.querySelector('.cm-tooltip .fls-doc').closest('.cm-tooltip');
+		 const r = tip.getBoundingClientRect();
+		 const clippedBy = [];
+		 for (let e = tip.parentElement; e && e !== document.documentElement; e = e.parentElement) {
+			 const cs = getComputedStyle(e);
+			 if (cs.overflowX !== 'visible' || cs.overflowY !== 'visible' || cs.transform !== 'none' || cs.filter !== 'none' || cs.backdropFilter !== 'none' || cs.contain !== 'none') clippedBy.push(e.tagName + '.' + e.className.toString().slice(0, 30));
+		 }
+		 // The popup is for reading and ignores the pointer, so ask who is on top with it listening.
+		 const was = tip.style.pointerEvents;
+		 tip.style.pointerEvents = 'auto';
+		 const top = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+		 tip.style.pointerEvents = was;
+		 return {
+			 found: true,
+			 inWindow: r.left >= 0 && r.top >= 0 && r.right <= innerWidth && r.bottom <= innerHeight && r.width > 40,
+			 inBody: tip.parentElement.parentElement === document.body,
+			 clippedBy,
+			 onTop: !!top && tip.contains(top),
+			 box: [r.left, r.top, r.width, r.height].map(Math.round),
+		 };`,
+		windowId,
+	);
+}
+
+/** The popup over the editor in the docked and the floating Script panel (a torn-off window runs the same code). */
+async function scriptPopupChecks(bridge: Bridge): Promise<void> {
+	const run = async (where: string) => {
+		const m = await measureScriptPopup(bridge);
+		check(
+			`${where}: the hover documentation is a popover above the UI, whole and not clipped`,
+			!!m && m.inWindow && m.inBody && m.clippedBy.length === 0 && m.onTop,
+			JSON.stringify(m),
+		);
+		await bridge.js(
+			`document.querySelector('.cm-content')?.dispatchEvent(new MouseEvent('mouseleave', { bubbles: false })); document.body.dispatchEvent(new MouseEvent('mousemove', { bubbles: true, clientX: 2, clientY: 2 })); return true;`,
+		);
+		await within(3000, () =>
+			bridge.js<boolean>(`return !document.querySelector('.cm-tooltip .fls-doc');`),
+		);
+	};
+	await showFromRail(bridge, 'Script');
+	await run('docked Script');
+	check('floating: Script floats', await choosePanelMenu(bridge, 'Script', 'Float'));
+	await within(3000, () =>
+		bridge.js<boolean>(`return !!document.querySelector('section[data-panel="script"]');`),
+	);
+	await run('floating Script');
+	check(
+		'floating: Script docks at the bottom again',
+		await choosePanelMenu(bridge, 'Script', 'Dock bottom'),
+	);
+	await sleep(300);
+}
+
 /** Clicks the button with this accessible name. */
 function clickLabelled(bridge: Bridge, label: string): Promise<boolean> {
 	return bridge.js<boolean>(
@@ -2152,6 +2248,7 @@ async function main(): Promise<void> {
 		}
 		await dockChecks(bridge);
 		await panelMenuStaysPutChecks(bridge);
+		await scriptPopupChecks(bridge);
 		await dragAndMaximiseChecks(bridge);
 		await toolPickerChecks(bridge);
 		// With the default settings there is no menu bar: the title bar's app menu button is the

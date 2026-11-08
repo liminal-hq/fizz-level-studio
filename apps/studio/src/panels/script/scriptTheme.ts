@@ -77,6 +77,8 @@ export const scriptTheme = EditorView.theme({
 		backgroundImage: 'none',
 	},
 	'.cm-tooltip': {
+		// Above the docks, rails and floating panels, which the popup now sits over (see popupPlacement).
+		zIndex: 'var(--fls-z-menu)',
 		color: 'var(--fls-text-primary)',
 		backgroundColor: 'var(--fls-bg-raised)',
 		border: '1px solid var(--fls-border-subtle)',
