@@ -81,8 +81,11 @@ export function PanelMenuButton({ title, items, onSelect }: PanelMenuButtonProps
 			</button>
 			{open && (
 				// The menu is drawn in a portal, but React bubbles its pointer events through the
-				// header, which would take a press on a row for the start of a drag.
+				// header, which would take a press on a row for the start of a drag. The span has no box
+				// of its own (`menuHost`): in the header's flex row a boxed, empty span was one more
+				// item and its gap pushed the button left by the gap's width when the menu opened.
 				<span
+					className={styles.menuHost}
 					onPointerDown={(event) => event.stopPropagation()}
 					onPointerMove={(event) => event.stopPropagation()}
 					onPointerUp={(event) => event.stopPropagation()}

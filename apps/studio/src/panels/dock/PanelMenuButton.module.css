@@ -5,3 +5,8 @@
 	height: var(--fls-hit-target);
 	padding: 0;
 }
+
+/* Holds the open menu's React tree for the header without being a flex item of it (see the button). */
+.menuHost {
+	display: contents;
+}

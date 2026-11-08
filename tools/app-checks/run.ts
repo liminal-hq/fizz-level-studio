@@ -190,6 +190,43 @@ async function panelMenuOffers(bridge: Bridge, title: string, row: string): Prom
 	return offered !== null;
 }
 
+/**
+ * Every panel's ⋮ button keeps its place while its menu is open and once it is closed. The menu's
+ * wrapper once sat in the header's flex row as one more item, and the header's gap pushed the
+ * button left by 6.4 px as the menu opened (only a layout engine shows it, so only this check can).
+ */
+async function panelMenuStaysPutChecks(bridge: Bridge): Promise<void> {
+	const labels = await bridge.js<string[]>(
+		`return [...document.querySelectorAll('[data-panel-menu]')].map((b) => b.getAttribute('aria-label'));`,
+	);
+	check('every panel in the window has a ⋮ button to measure', labels.length >= 2, labels.join());
+	for (const label of labels) {
+		const x = () =>
+			bridge.js<number | null>(
+				`const b = document.querySelector('button[aria-label=' + JSON.stringify(${JSON.stringify(label)}) + ']');
+				 return b ? b.getBoundingClientRect().left : null;`,
+			);
+		const before = await x();
+		await bridge.js(
+			`document.querySelector('button[aria-label=' + JSON.stringify(${JSON.stringify(label)}) + ']').click(); return true;`,
+		);
+		await within(3000, () => bridge.js<boolean>(`return !!document.querySelector('[role=menu]');`));
+		await sleep(200);
+		const during = await x();
+		await bridge.js(
+			`document.querySelector('[role=menu]')?.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true })); return true;`,
+		);
+		await within(3000, () => bridge.js<boolean>(`return !document.querySelector('[role=menu]');`));
+		await sleep(150);
+		const after = await x();
+		check(
+			`${label}: the ⋮ button does not move while its menu is open or after it closes`,
+			before !== null && during === before && after === before,
+			JSON.stringify({ before, during, after }),
+		);
+	}
+}
+
 /** Clicks the button with this accessible name. */
 function clickLabelled(bridge: Bridge, label: string): Promise<boolean> {
 	return bridge.js<boolean>(
@@ -2113,6 +2150,7 @@ async function main(): Promise<void> {
 			);
 		}
 		await dockChecks(bridge);
+		await panelMenuStaysPutChecks(bridge);
 		await dragAndMaximiseChecks(bridge);
 		await toolPickerChecks(bridge);
 		// With the default settings there is no menu bar: the title bar's app menu button is the
