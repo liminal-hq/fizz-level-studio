@@ -2868,8 +2868,10 @@ async function exitPixels(
 		 const ratio = window.devicePixelRatio || 1;
 		 const ctx = canvas.getContext('2d');
 		 const block = (x, yTop, yBottom) => {
-			 const px = Math.round((left + x * cell - scrollX) * ratio), py = Math.round((originY + (height - 1 - yBottom) * cell) * ratio);
-			 const w = Math.round(cell * ratio), h = Math.round((yBottom - yTop + 1) * cell * ratio);
+			 // Inset by 2 px: the edge of a cell is drawn against its neighbours, which hiding changes.
+			 const inset = 2;
+			 const px = Math.round((left + x * cell - scrollX + inset) * ratio), py = Math.round((originY + (height - 1 - yBottom) * cell + inset) * ratio);
+			 const w = Math.round((cell - 2 * inset) * ratio), h = Math.round(((yBottom - yTop + 1) * cell - 2 * inset) * ratio);
 			 return Array.from(ctx.getImageData(px, py, w, h).data);
 		 };
 		 // The crystal at x 178 has no y: it sits on the ground surface, so it is where the terrain says.
@@ -2878,7 +2880,13 @@ async function exitPixels(
 		 let y = -1;
 		 for (let row = 0; row < height; row++) if (view.cells[row * width + 178] === crystal) y = row;
 		 if (y < 0) return null;
-		 return { exit: block(186, 6, 7), crystal: block(178, y, y), sky: block(180, 20, 21) };`,
+		 const found = { exit: block(186, 6, 7), crystal: block(178, y, y), sky: block(180, 20, 21) };
+		 // Put the camera back at the left end, where the checks that follow expect it.
+		 fire('pointerdown', 1, 4, 0);
+		 for (const dx of [2000, 4000, 6000]) { fire('pointermove', -1, 4, dx); await new Promise((r) => setTimeout(r, 30)); }
+		 fire('pointerup', 1, 0, 6000);
+		 await new Promise((r) => setTimeout(r, 200));
+		 return found;`,
 	);
 }
 
@@ -2964,6 +2972,8 @@ async function layerChecks(bridge: Bridge, path: string, original: string): Prom
 	// Tile layers are drawn without too: Rust runs the level without their statements. What stays
 	// drawn must stay where it is: the exit door's pixels are the same with the ground hidden.
 	const exitShown = await exitPixels(bridge);
+	// The camera is at the level's left end now, so the drawing to come back to is this one.
+	const groundDrawn = await canvasFingerprint(bridge);
 	check(
 		'the exit door and a crystal are on screen and are not the sky',
 		exitShown !== null &&
@@ -2975,7 +2985,7 @@ async function layerChecks(bridge: Bridge, path: string, original: string): Prom
 		await pressLayerToggle(bridge, 'Hide Terrain on the canvas'),
 	);
 	const noGround = await within(5000, async () =>
-		(await canvasFingerprint(bridge)) !== drawn ? true : null,
+		(await canvasFingerprint(bridge)) !== groundDrawn ? true : null,
 	);
 	check('hiding Terrain removes the ground from the drawing', noGround !== null);
 	const exitHidden = await exitPixels(bridge);
@@ -2994,7 +3004,7 @@ async function layerChecks(bridge: Bridge, path: string, original: string): Prom
 		`const b = [...document.querySelectorAll('button')].find((x) => x.textContent.trim() === 'Show all'); b?.click(); return true;`,
 	);
 	const groundBack = await within(5000, async () =>
-		(await canvasFingerprint(bridge)) === drawn ? true : null,
+		(await canvasFingerprint(bridge)) === groundDrawn ? true : null,
 	);
 	check('Show all brings the ground back', groundBack !== null);
 
