@@ -1731,6 +1731,61 @@ async function dragAndMaximiseChecks(bridge: Bridge): Promise<void> {
 		JSON.stringify([floated, target]),
 	);
 
+	// While a floating panel is dragged over the docks, their drop hints (outlines and washes) lie
+	// under it: the element on top at its centre is inside the panel, and the hints' computed
+	// stacking is below the panel's. (The hints never take the pointer, so the stacking is the proof.)
+	const hintsUnder = await bridge.js<{
+		shown: number;
+		overlapping: number;
+		panelZ: number;
+		hintZ: number[];
+		topInside: boolean;
+		topOfCentre: string;
+	} | null>(
+		`const panel = document.querySelector('section[data-panel="objects"]');
+		 const grip = panel?.querySelector('[data-grip]');
+		 const rail = document.querySelector('[data-rail="left"]');
+		 if (!panel || !grip || !rail) return null;
+		 const g = grip.getBoundingClientRect(), t = rail.getBoundingClientRect();
+		 const start = { x: g.left + g.width / 2, y: g.top + g.height / 2 };
+		 const end = { x: t.left + t.width / 2 + 60, y: t.top + t.height / 2 };
+		 const wait = () => new Promise((res) => setTimeout(res, 80));
+		 const fire = (type, p) => grip.dispatchEvent(new PointerEvent(type, { bubbles: true, cancelable: true, pointerId: 43, button: 0, clientX: p.x, clientY: p.y }));
+		 fire('pointerdown', start);
+		 await wait();
+		 fire('pointermove', { x: start.x - 12, y: start.y + 12 });
+		 await wait();
+		 fire('pointermove', end);
+		 await wait();
+		 const hints = [...document.querySelectorAll('[data-drop-zone]')].filter((e) => getComputedStyle(e).display !== 'none');
+		 const pr = panel.getBoundingClientRect();
+		 const overlapping = hints.filter((h) => { const r = h.getBoundingClientRect(); return r.left < pr.right && r.right > pr.left && r.top < pr.bottom && r.bottom > pr.top; }).length;
+		 const top = document.elementFromPoint(pr.left + pr.width / 2, pr.top + pr.height / 2);
+		 const out = {
+			 shown: hints.length,
+			 overlapping,
+			 panelZ: Number(getComputedStyle(panel).zIndex),
+			 hintZ: hints.map((h) => Number(getComputedStyle(h).zIndex)),
+			 topInside: !!top && panel.contains(top),
+			 topOfCentre: top ? top.tagName + '.' + String(top.className).slice(0, 30) : 'none',
+		 };
+		 document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+		 await wait();
+		 fire('pointerup', end);
+		 await wait();
+		 return out;`,
+	);
+	check(
+		'drag: the dock drop hints lie under the dragged floating panel, never over its content',
+		!!hintsUnder &&
+			hintsUnder.shown >= 3 &&
+			hintsUnder.overlapping >= 1 &&
+			hintsUnder.topInside &&
+			hintsUnder.hintZ.every((z) => z < hintsUnder.panelZ),
+		JSON.stringify(hintsUnder),
+	);
+	await sleep(200);
+
 	// A floating panel resizes from every edge and corner: the opposite edges stay where they are,
 	// the panel stays inside the area and above its minimum size, and the size is saved.
 	interface Edges {
