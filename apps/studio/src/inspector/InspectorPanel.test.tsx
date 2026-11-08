@@ -43,6 +43,7 @@ const words = [
 		syntax: 'soda x=N y=N',
 		example: '',
 		note: 'A soda restores health.',
+		group: '',
 	},
 ];
 
@@ -129,7 +130,9 @@ describe('the Inspector panel', () => {
 			{ lookupCellLine: lookup },
 		);
 		expect(screen.getByRole('heading', { name: 'Cell 4, 0 · fill' })).toBeInTheDocument();
-		expect(screen.getByText('Tiles are painted, not edited here.')).toBeInTheDocument();
+		expect(
+			screen.getByText('Tiles are painted with the Palette, not edited here.'),
+		).toBeInTheDocument();
 		expect(await screen.findByText('Line 7')).toBeInTheDocument();
 		expect(lookup).toHaveBeenCalledWith(4, 0);
 		await userEvent.setup().click(screen.getByRole('button', { name: 'Show in script' }));

@@ -17,6 +17,9 @@ import type { WordDoc } from '@liminal-hq/fizz-studio-protocol/generated/WordDoc
 import { useCallback, useEffect, useRef, useState, type FocusEvent, type ReactNode } from 'react';
 import { t, type MessageId } from '../i18n/messages';
 import { spawnCell, type Thing } from '../tools/tool';
+import type { Brush } from '../tools/brush';
+import { CellDetails } from './CellDetails';
+import { describeCell } from './cellDescription';
 import { CoordField } from './CoordField';
 import { entryOf } from './selectionFacts';
 import styles from './InspectorPanel.module.css';
@@ -42,6 +45,12 @@ export interface InspectorPanelProps {
 	edit?: ThingEditApi;
 	/** The word of the thing deleted last, shown with how to undo it until something is selected again. */
 	deleted?: string | null;
+	/** The ids of the layers locked in the level, from Rust, for a selected cell's layer. */
+	lockedLayers?: readonly string[];
+	/** The ids of the layers hidden on the canvas. */
+	hiddenLayers?: readonly string[];
+	/** Chooses the Palette brush for a selected cell's tile. */
+	onBrush?: (brush: Brush) => void;
 }
 
 /** A number as written in the script: whole numbers bare, a fraction as it is. */
@@ -73,6 +82,8 @@ function othersOnCell(view: LevelView, thing: Thing, cell: { x: number; y: numbe
 	return items + spawns;
 }
 
+const NONE: readonly string[] = [];
+
 export function InspectorPanel({
 	snapshot,
 	thing,
@@ -81,6 +92,9 @@ export function InspectorPanel({
 	lookupCellLine,
 	edit,
 	deleted = null,
+	lockedLayers = NONE,
+	hiddenLayers = NONE,
+	onBrush,
 }: InspectorPanelProps) {
 	const view = snapshot.view;
 	const cellX = thing?.kind === 'cell' ? thing.x : null;
@@ -164,11 +178,25 @@ export function InspectorPanel({
 				aria-label={t('inspector.group')}
 				data-inspector-scope=""
 			>
-				<h3 className={styles.heading}>
-					{t('inspector.cell', { x: thing.x, y: thing.y, tile: thing.name })}
-				</h3>
-				<p className={styles.note}>{t('inspector.cellNote')}</p>
-				<LineRow line={cellLine} onShowLine={onShowLine} />
+				<CellDetails
+					cell={describeCell(
+						{
+							view,
+							text: snapshot.text,
+							words,
+							x: thing.x,
+							y: thing.y,
+							line: cellLine,
+							locked: lockedLayers,
+							hidden: hiddenLayers,
+						},
+						thing.name,
+					)}
+					fizz2={snapshot.target === 'fizz2'}
+					onShowLine={onShowLine}
+					onBrush={onBrush}
+				/>
+				{snapshot.target === 'fizz2' && <p className={styles.note}>{t('inspector.fizz2')}</p>}
 			</div>
 		);
 	}

@@ -334,8 +334,41 @@ export const enMessages = {
 	'inspector.startName': 'Start',
 	// translator: The Inspector's heading for a selected cell of the level: its place, then the tile in it, such as "Cell 35, 4 · grass". The dot is a separator.
 	'inspector.cell': 'Cell {x}, {y} · {tile}',
-	// translator: Shown under a selected cell in the Inspector: tiles are painted with the Paint tool, not changed by number here.
-	'inspector.cellNote': 'Tiles are painted, not edited here.',
+	// translator: Shown at the end of a selected cell's details in the Inspector: tiles are painted with the Paint tool and a brush from the Palette, not changed by number here.
+	'inspector.cellNote': 'Tiles are painted with the Palette, not edited here.',
+	// translator: Label of the layer a selected cell belongs to in the Inspector: the section of the script whose statement last set the cell, such as Terrain or Edits.
+	'inspector.cellLayer': 'Layer',
+	// translator: Label before the script line that last set a selected cell in the Inspector, with the line’s text below it.
+	'inspector.cellSetBy': 'Last set by',
+	// translator: The place of the statement that last set a cell: {layer} is the layer's name such as Terrain, and {line} the line number in the script, such as “Terrain, line 9”.
+	'inspector.cellSetByAt': '{layer}, line {line}',
+	// translator: Shown for a cell with a tile where no statement in the script sets it, so the tile comes from the level itself.
+	'inspector.cellNoLine': 'No line of the script sets this cell.',
+	// translator: Label before the script syntax that writes a tile, such as “fill x=A..B y=A..B”, in the Inspector.
+	'inspector.cellWrittenAs': 'Written as',
+	// translator: Label of the Palette brush that places the selected cell's tile in the Inspector.
+	'inspector.cellBrush': 'Brush',
+	// translator: Button in the Inspector that chooses the Palette brush for the selected cell's tile, so the next paint lays that tile. {tile} is the tile's word, such as grass.
+	'inspector.useBrush': 'Use the {tile} brush',
+	// translator: Shown when the selected cell's tile has no Palette brush to place it with.
+	'inspector.noBrush': 'The Palette has no brush for this tile.',
+	// translator: Shown for a selected cell with nothing painted on it in the Inspector.
+	'inspector.cellEmpty': 'Empty: nothing is painted here.',
+	// translator: Shown under an empty selected cell: the Palette sections whose brushes could be placed on it. {sections} is a list of section names, such as “Terrain and Hazards”, or “Terrain, Hazards and Markers”, joined for the person's language.
+	'inspector.cellPlace': 'Brushes you can place here, from the Palette: {sections}.',
+	// translator: Shown under an empty selected cell: which layer a paint on it would write to. {layer} is the layer's name, such as Edits. Paints are added to the end of the script.
+	'inspector.cellPaintLayer': 'A paint here is added to {layer}, at the end of the script.',
+	// translator: Shown in the Inspector when the layer of the selected cell is locked: nothing in it can be changed, by the person or by Claude.
+	'inspector.cellLocked':
+		'This layer is locked. It cannot be changed, by you or by Claude. Unlock it in Layers.',
+	// translator: Shown in the Inspector when the layer of the selected cell is hidden on the canvas. Hiding changes only what the person sees.
+	'inspector.cellHidden': 'This layer is hidden on the canvas. Hiding is for your view only.',
+	// translator: Short badge after a layer's name in the Inspector: the layer is locked.
+	'inspector.badgeLocked': 'Locked',
+	// translator: Short badge after a layer's name in the Inspector: the layer is hidden on the canvas.
+	'inspector.badgeHidden': 'Hidden',
+	// translator: The accessible name of the list of facts about the selected cell in the Inspector (its layer, the line that set it, and its brush).
+	'inspector.cellFacts': 'About this cell',
 	// translator: The label of a thing's horizontal position, in cells from the left, in the Inspector. A single letter.
 	'inspector.x': 'x',
 	// translator: The label of a thing's vertical position, in cells up from the bottom, in the Inspector. A single letter.

@@ -101,6 +101,9 @@ export function panelContent(id: PanelId, ctx: PanelContentContext): ReactNode {
 					lookupCellLine={ctx.lookupCellLine}
 					edit={ctx.thingEdits}
 					deleted={ctx.deletedName}
+					lockedLayers={ctx.lockedLayers}
+					hiddenLayers={ctx.hiddenLayers}
+					onBrush={ctx.onBrush}
 				/>
 			);
 		case 'objects':

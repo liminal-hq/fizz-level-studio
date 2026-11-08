@@ -25,7 +25,8 @@ export interface PalettePanelProps {
 	onSpacing: (spacing: number) => void;
 }
 
-const SECTION_LABELS = {
+/** The catalogue key of each section's heading; the Inspector names the sections it offers the same way. */
+export const SECTION_LABELS = {
 	terrain: 'palette.section.terrain',
 	hazards: 'palette.section.hazards',
 	treats: 'palette.section.treats',

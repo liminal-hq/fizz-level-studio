@@ -4040,6 +4040,183 @@ async function inspectorChecks(bridge: Bridge, path: string): Promise<void> {
 	check('inspector: after Save the title shows no unsaved changes', clean !== null);
 }
 
+/**
+ * The Inspector's account of a selected cell, in the running app on `crater.fizz`: a terrain cell
+ * (name, the language's description, the line and its text, the layer, the brush button that
+ * chooses that brush) and a cell painted in the studio (the `edits` line), then an empty cell. It
+ * paints one cell and undoes it, and leaves Paint chosen with nothing inspected.
+ */
+async function tileInspectorChecks(bridge: Bridge): Promise<void> {
+	const canvas = 'canvas[role=application]';
+	const level = () => levelCall(bridge, 'level_snapshot', { id: 'level-1' });
+	const before = await level();
+	const textLines = before.text.split('\n');
+	const walkTo = async (target: { x: number; y: number }) => {
+		const from = await cursorCell(bridge);
+		if (!from) return false;
+		const keys = [
+			...Array(Math.abs(target.x - from.x)).fill(target.x > from.x ? 'ArrowRight' : 'ArrowLeft'),
+			...Array(Math.abs(target.y - from.y)).fill(target.y > from.y ? 'ArrowUp' : 'ArrowDown'),
+		] as string[];
+		await bridge.js<boolean>(
+			`const e = document.querySelector(${JSON.stringify(canvas)});
+			 e.focus();
+			 for (const key of ${JSON.stringify(keys)}) {
+			   e.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true }));
+			   await new Promise((r) => setTimeout(r, 0));
+			 }
+			 return true;`,
+		);
+		return (
+			(await within(3000, async () => {
+				const at = await cursorCell(bridge);
+				return at !== null && at.x === target.x && at.y === target.y;
+			})) !== null
+		);
+	};
+	const select = async (cell: { x: number; y: number }) => {
+		await pressKey(bridge, canvas, 'q');
+		const there = await walkTo(cell);
+		await pressKey(bridge, canvas, ' ');
+		return there;
+	};
+	const settled = (needle: string) =>
+		within(4000, async () => ((await inspectorText(bridge)) ?? '').includes(needle));
+
+	await showFromRail(bridge, 'Inspector');
+
+	// A terrain cell: the pool line of the Terrain layer wrote it.
+	const poolLine = textLines.findIndex((l) => l.trim().startsWith('pool 4, flat 8')) + 1;
+	check(
+		'tile inspector: Inspect walks to a terrain cell',
+		await select({ x: 64, y: 2 }),
+		JSON.stringify(await cursorCell(bridge)),
+	);
+	const terrain = await settled(`Terrain, line ${poolLine}`);
+	const text = (await inspectorText(bridge)) ?? '';
+	check('tile inspector: a terrain cell names its tile', text.includes('Cell 64, 2 · fill'), text);
+	check(
+		'tile inspector: it gives the language’s group and description',
+		text.includes('Ground and solids') &&
+			text.includes(
+				'Solid ground. The basic filler for terrain, and what fill-by-range lines write.',
+			),
+		text,
+	);
+	check(
+		'tile inspector: the group stands apart from the description',
+		!text.includes('Ground and solids: '),
+		text,
+	);
+	check(
+		'tile inspector: it names the layer and the line, with the line’s text',
+		terrain !== null && poolLine > 0 && text.includes(textLines[poolLine - 1]!.trim().slice(0, 30)),
+		text,
+	);
+	check('tile inspector: it names the Terrain layer', text.includes('Terrain'), text);
+	check(
+		'tile inspector: the brush button is there and Show in script is kept',
+		await bridge.js<boolean>(
+			`const bs = [...document.querySelectorAll('[role=group][aria-label="Selected thing"] button')].map((b) => b.textContent.trim());
+			 return bs.includes('Use the fill brush') && bs.includes('Show in script');`,
+		),
+		text,
+	);
+	check(
+		'tile inspector: the old one-line note alone is gone',
+		!text.includes('Tiles are painted, not edited here.'),
+	);
+	await checkKeycaps(bridge, 'tile inspector with a terrain cell');
+
+	// The brush button chooses that brush in the Palette and switches to Paint.
+	await pressKey(bridge, canvas, 'Escape');
+	await select({ x: 64, y: 2 });
+	await settled('Cell 64, 2');
+	check(
+		'tile inspector: the brush button is pressed',
+		await pressInInspector(bridge, 'Use the fill brush'),
+	);
+	await showFromRail(bridge, 'Palette');
+	check(
+		'tile inspector: that brush is chosen in the Palette',
+		(await within(3000, () =>
+			bridge.js<boolean>(
+				`return document.querySelector('[role=option][aria-selected=true]')?.getAttribute('data-kind') === 'fill';`,
+			),
+		)) !== null,
+	);
+	check(
+		'tile inspector: choosing it switched the tool to Paint',
+		await bridge.js<boolean>(
+			`return document.querySelector('[role=group][aria-label=Tools] button[aria-label=Paint]')?.getAttribute('aria-pressed') === 'true';`,
+		),
+	);
+	await showFromRail(bridge, 'Inspector');
+
+	// A painted cell: the Edits layer and its line.
+	const painted = await levelCall(bridge, 'level_apply', {
+		id: 'level-1',
+		edit: { kind: 'paint', tile: 'grass', x: [[5, 5]], y: [[9, 9]] },
+		basedOn: before.revision,
+		mergeKey: null,
+	});
+	const paintLines = painted.text.split('\n');
+	const paintLine = paintLines.findLastIndex((l: string) => l.includes('paint grass x=5 y=9')) + 1;
+	await select({ x: 5, y: 9 });
+	check(
+		'tile inspector: a painted cell shows the Edits layer and its line',
+		(await settled(`Edits, line ${paintLine}`)) !== null,
+		String(await inspectorText(bridge)),
+	);
+	const paintedText = (await inspectorText(bridge)) ?? '';
+	check(
+		'tile inspector: it shows the paint line’s text and the tile’s group',
+		paintedText.includes('paint grass x=5 y=9') && paintedText.includes('Cell 5, 9 · grass'),
+		paintedText,
+	);
+
+	// An empty cell: empty, what could be placed, and where a paint would be written.
+	await pressKey(bridge, canvas, 'Escape');
+	await select({ x: 6, y: 20 });
+	const empty = await settled('Empty: nothing is painted here.');
+	const emptyText = (await inspectorText(bridge)) ?? '';
+	check('tile inspector: an empty cell says it is empty', empty !== null, emptyText);
+	check(
+		'tile inspector: it lists the Palette sections and the layer a paint would write to',
+		emptyText.includes('Brushes you can place here, from the Palette:') &&
+			emptyText.includes('A paint here is added to Edits'),
+		emptyText,
+	);
+
+	// Put the level back as it was.
+	await pressKey(bridge, canvas, 'Escape');
+	check('tile inspector: the painted cell is undone', await pressUndoKeyOnCanvas(bridge, canvas));
+	check(
+		'tile inspector: the text is back as it was',
+		(await within(3000, async () => (await level()).text === before.text)) !== null,
+	);
+	await bridge.js<boolean>(
+		`const b = document.querySelector('[role=group][aria-label=Tools] button[aria-label=Paint]'); b?.click(); return true;`,
+	);
+	// Save the way a person does, so the window's title loses its unsaved mark as well.
+	await bridge.js<boolean>(
+		`document.dispatchEvent(new KeyboardEvent('keydown', { key: 's', ctrlKey: true, bubbles: true })); return true;`,
+	);
+	const clean = await within(5000, async () => !((await titleBarText(bridge)) ?? '').includes('•'));
+	check('tile inspector: after Save the title shows no unsaved changes', clean !== null);
+}
+
+/** Presses Ctrl+Z on the canvas. */
+function pressUndoKeyOnCanvas(bridge: Bridge, canvas: string): Promise<boolean> {
+	return bridge.js<boolean>(
+		`const e = document.querySelector(${JSON.stringify(canvas)});
+		 if (!e) return false;
+		 e.focus();
+		 e.dispatchEvent(new KeyboardEvent('keydown', { key: 'z', ctrlKey: true, bubbles: true, cancelable: true }));
+		 return true;`,
+	);
+}
+
 /** The Objects list's filter and line numbers, in the running app. It leaves nothing selected. */
 async function objectsFilterChecks(bridge: Bridge): Promise<void> {
 	await showFromRail(bridge, 'Objects');
@@ -4577,6 +4754,7 @@ async function main(): Promise<void> {
 		// 5a. The Inspector, on the real engine; it leaves the text as it found it.
 		await inspectorChecks(bridge, path);
 		await objectsFilterChecks(bridge);
+		await tileInspectorChecks(bridge);
 
 		// 5b. The appearance and tear-off plugins answer, the theme follows the settings and the
 		// system, and the Script panel tears off into panel-script-1 and docks back.

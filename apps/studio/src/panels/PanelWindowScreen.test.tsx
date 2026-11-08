@@ -6,6 +6,7 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
+import type { WordDoc } from '@liminal-hq/fizz-studio-protocol/generated/WordDoc';
 import type { EditorShare } from './windows/panelBridge';
 
 vi.mock('@tauri-apps/api/window', () => {
@@ -51,6 +52,7 @@ function mount(
 	state: EditorShare | null = share(),
 	tearoff: FakeTearoff = createFakeTearoff(),
 	snapshot = levelSnapshot(),
+	wordDocs: WordDoc[] = [],
 ) {
 	const hub = createBridgeHub();
 	const main = hub.bridgeFor('main-1');
@@ -70,6 +72,7 @@ function mount(
 		main.on(topic, (payload) => heard.push({ topic, payload }));
 	}
 	const levels = new FakeLevelClient(snapshot);
+	levels.wordDocs = wordDocs;
 	const windows = fakePanelWindows([label]);
 	render(
 		<PanelWindowScreen
@@ -104,6 +107,60 @@ describe('a panel window', () => {
 		expect(await screen.findByRole('heading', { name: 'Start' })).toBeVisible();
 		await user.click(screen.getByRole('button', { name: 'Show in script' }));
 		expect(heard).toContainEqual({ topic: 'script/show', payload: { line: 2 } });
+	});
+
+	it('describes a selected cell in the Inspector’s window, and its brush button reaches the main window', async () => {
+		const user = userEvent.setup();
+		const cell = {
+			kind: 'cell' as const,
+			name: 'fill',
+			x: 2,
+			y: 0,
+			layer: 'tiles' as const,
+			index: 0,
+			line: null,
+		};
+		const view = levelView(6, 4, {
+			sections: [
+				{
+					id: 'terrain',
+					label: 'Terrain',
+					kind: 'tiles',
+					affects: 'cells',
+					lines: [[2, 2]],
+					count: 1,
+				},
+			],
+			cell_sections: Array.from({ length: 24 }, (_, i) => (i < 6 ? 0 : 255)),
+			cells: Array.from({ length: 24 }, (_, i) => (i < 6 ? 1 : 0)),
+		});
+		const { heard, levels } = mount(
+			'panel-inspector-1',
+			share({ selectedThing: cell, hiddenLayers: ['terrain'] }),
+			createFakeTearoff(),
+			levelSnapshot({ text: 'script fizz1 0\n  flat 6\n' }, view),
+			[
+				{
+					word: 'fill',
+					kind: 'tile',
+					syntax: 'fill x=A..B y=A..B',
+					example: '',
+					note: 'Ground and solids: Solid ground.',
+					group: 'Ground and solids',
+				},
+			],
+		);
+		levels.cellLines.set('2,0', 2);
+		expect(await screen.findByRole('heading', { name: 'Cell 2, 0 · fill' })).toBeVisible();
+		expect(await screen.findByText('Terrain, line 2')).toBeVisible();
+		expect(screen.getByText('flat 6')).toBeVisible();
+		expect(await screen.findByText('Solid ground.')).toBeVisible();
+		expect(screen.getByText('Hidden')).toBeVisible();
+		await user.click(screen.getByRole('button', { name: 'Use the fill brush' }));
+		expect(heard).toContainEqual({
+			topic: 'palette/set',
+			payload: { brush: { group: 'tile', kind: 'fill' } },
+		});
 	});
 
 	describe('changing the thing from the Inspector’s window', () => {
