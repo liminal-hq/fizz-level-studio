@@ -2841,6 +2841,47 @@ function layerRows(
 	);
 }
 
+/**
+ * Pans the map to its right end with a middle-button drag (the drag is clamped, so any long one
+ * lands on the edge), then reads the canvas pixels of the cell block of the exit door of
+ * `levels/crater.fizz` (x 186, y 6 to 7, ground-relative neighbours around it) and of an empty
+ * sky block above it. Null when the level is not the crater or the map has no room to show it.
+ */
+async function exitPixels(
+	bridge: Bridge,
+): Promise<{ exit: number[]; crystal: number[]; sky: number[] } | null> {
+	return bridge.js<{ exit: number[]; crystal: number[]; sky: number[] } | null>(
+		`const canvas = document.querySelector('canvas');
+		 const map = document.querySelector('[data-map]').getBoundingClientRect();
+		 const box = canvas.getBoundingClientRect();
+		 const fire = (type, button, buttons, dx) => canvas.dispatchEvent(new PointerEvent(type, { bubbles: true, cancelable: true, pointerId: 11, pointerType: 'mouse', button, buttons, clientX: map.left + map.width / 2 + dx, clientY: map.top + map.height / 2 }));
+		 fire('pointerdown', 1, 4, 0);
+		 for (const dx of [-2000, -4000, -6000]) { fire('pointermove', -1, 4, dx); await new Promise((r) => setTimeout(r, 30)); }
+		 fire('pointerup', 1, 0, -6000);
+		 await new Promise((r) => setTimeout(r, 300));
+		 // Zoom 4: 16 px a cell; the crater is 192 by 28 cells. At the right end the map's right edge is the level's.
+		 const cell = 16, width = 192, height = 28;
+		 if (map.height < height * cell + 40) return null;
+		 const left = map.left - box.left, top = map.top - box.top;
+		 const scrollX = width * cell - map.width;
+		 const originY = top + (map.height - height * cell) / 2;
+		 const ratio = window.devicePixelRatio || 1;
+		 const ctx = canvas.getContext('2d');
+		 const block = (x, yTop, yBottom) => {
+			 const px = Math.round((left + x * cell - scrollX) * ratio), py = Math.round((originY + (height - 1 - yBottom) * cell) * ratio);
+			 const w = Math.round(cell * ratio), h = Math.round((yBottom - yTop + 1) * cell * ratio);
+			 return Array.from(ctx.getImageData(px, py, w, h).data);
+		 };
+		 // The crystal at x 178 has no y: it sits on the ground surface, so it is where the terrain says.
+		 const view = await window.__TAURI_INTERNALS__.invoke('plugin:fizz-studio-worlds|level_view_masked', { id: 'level-1', hidden: [] });
+		 const crystal = view.palette.indexOf('crystal-tile');
+		 let y = -1;
+		 for (let row = 0; row < height; row++) if (view.cells[row * width + 178] === crystal) y = row;
+		 if (y < 0) return null;
+		 return { exit: block(186, 6, 7), crystal: block(178, y, y), sky: block(180, 20, 21) };`,
+	);
+}
+
 /** Presses a Layers toggle by its accessible name, such as `Hide Treats on the canvas`. */
 function pressLayerToggle(bridge: Bridge, label: string): Promise<boolean> {
 	return bridge.js<boolean>(
@@ -2920,7 +2961,15 @@ async function layerChecks(bridge: Bridge, path: string, original: string): Prom
 		(await canvasFingerprint(bridge)) === drawn ? true : null,
 	);
 	check('Show all brings the drawing back as it was', shownAgain !== null);
-	// Tile layers are drawn without too: Rust runs the level without their statements.
+	// Tile layers are drawn without too: Rust runs the level without their statements. What stays
+	// drawn must stay where it is: the exit door's pixels are the same with the ground hidden.
+	const exitShown = await exitPixels(bridge);
+	check(
+		'the exit door and a crystal are on screen and are not the sky',
+		exitShown !== null &&
+			JSON.stringify(exitShown.exit) !== JSON.stringify(exitShown.sky) &&
+			JSON.stringify(exitShown.crystal) !== JSON.stringify(exitShown.sky),
+	);
 	check(
 		'hiding Terrain is pressed from its eye',
 		await pressLayerToggle(bridge, 'Hide Terrain on the canvas'),
@@ -2929,6 +2978,14 @@ async function layerChecks(bridge: Bridge, path: string, original: string): Prom
 		(await canvasFingerprint(bridge)) !== drawn ? true : null,
 	);
 	check('hiding Terrain removes the ground from the drawing', noGround !== null);
+	const exitHidden = await exitPixels(bridge);
+	check(
+		'hiding Terrain leaves the exit door and a ground-relative crystal at the same pixels',
+		exitShown !== null &&
+			exitHidden !== null &&
+			JSON.stringify(exitHidden.exit) === JSON.stringify(exitShown.exit) &&
+			JSON.stringify(exitHidden.crystal) === JSON.stringify(exitShown.crystal),
+	);
 	check(
 		'hiding Terrain leaves the level text and revision alone',
 		(await levelCall(bridge, 'level_snapshot', { id: 'level-1' })).revision === 0,

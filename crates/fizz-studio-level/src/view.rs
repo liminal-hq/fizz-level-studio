@@ -7,7 +7,7 @@ use std::collections::HashMap;
 
 use fizz_studio_language::messages::message;
 use fizz_studio_language::parser::parse;
-use fizz_studio_language::raster::{rasterise_without, World};
+use fizz_studio_language::raster::{rasterise, rasterise_hiding, World};
 use fizz_studio_language::tables::{words, TILES};
 use fizz_studio_protocol::{LevelView, ViewDiagnostic, ViewItem, ViewMarker, ViewSpawn, ViewStart};
 use fizz_studio_session::Document;
@@ -76,8 +76,8 @@ impl LevelDocument {
             })
             .collect();
         let mut palette: Vec<String> = words(TILES).into_iter().map(String::from).collect();
-        let skipped = lines_in(&parsed.ast, hidden);
-        let Some(world) = rasterise_without(&parsed.ast, |node| skipped.contains(&node.line))
+        let hidden_lines = lines_in(&parsed.ast, hidden);
+        let Some(world) = rasterise_hiding(&parsed.ast, |node| hidden_lines.contains(&node.line))
         else {
             return LevelView {
                 width: 0,
@@ -110,11 +110,19 @@ impl LevelDocument {
             })
             .collect();
         let markers = markers(&world);
+        // The rows count what the whole script builds, so a hidden layer keeps its count and can be
+        // read as what it would show.
+        let counted = if hidden_lines.is_empty() {
+            None
+        } else {
+            rasterise(&parsed.ast)
+        };
+        let counted = counted.as_ref().unwrap_or(&world);
         let sections = sections(
             &parsed.ast,
-            world.items.len(),
-            world.spawns.len(),
-            markers.len(),
+            counted.items.len(),
+            counted.spawns.len(),
+            self::markers(counted).len(),
         );
         let cell_sections = cell_sections(&parsed.ast, &world, &sections);
         LevelView {

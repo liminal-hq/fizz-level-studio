@@ -721,3 +721,175 @@ fn an_outside_edit_that_adds_a_paint_over_locked_cells_is_refused_and_a_free_one
     let sky = format!("{CRATER}\nedits\n  paint grass x=5 y=20\n");
     session.apply_outside_edit(&token, 0, &sky).unwrap();
 }
+
+/// A level whose things are all placed relative to the ground the terrain lays: crystals, enemies
+/// with no `y`, a pogo cache, and a start and an exit at fixed places for contrast.
+const GROUND_RELATIVE: &str = "level \"Relative\" 60x24 ground=4 id=crater
+theme crater
+start 3,4
+
+terrain
+  flat 10, up 3, flat 8, down 3, flat 6, up22 2, flat 12, spikes 2, flat 8
+
+walls
+
+blocks
+  block    x=20..22 y=12
+  plat     x=30..33 y=9
+  exit     x=57 y=6..7
+  crystal  x=2,8,14,26,40
+
+treats
+  row cheezie x=4..7 y=8
+  pogo-cache  x=12..14 rise=6
+  pogo-cache  x=44..46 rise=3
+
+enemies
+  gloop  x=5,16,28,50
+  hopper x=36
+  drone  x=20.5 y=9.5
+";
+
+/// What a layer's hiding may leave out of a view: the cells, items, spawns and markers owned by
+/// statements of the hidden layers. Everything else must be exactly as in the whole view.
+fn assert_only_the_hidden_is_gone(text: &str, hidden: &[&str]) {
+    let document = LevelDocument::new(text);
+    let full = document.view();
+    let ids: Vec<String> = hidden.iter().map(|id| (*id).to_string()).collect();
+    let masked = document.view_without(&ids);
+    let gone = crate::layers::lines_in(&fizz_studio_language::parser::parse(text).ast, &ids);
+    let shown = |line: Option<u32>| !line.is_some_and(|l| gone.contains(&(l as usize)));
+    let what = format!("hiding {hidden:?}");
+
+    assert_eq!(
+        (masked.width, masked.height),
+        (full.width, full.height),
+        "{what}"
+    );
+    assert_eq!(masked.start, full.start.filter(|s| shown(s.line)), "{what}");
+    let items: Vec<_> = full
+        .items
+        .iter()
+        .filter(|i| shown(i.line))
+        .cloned()
+        .collect();
+    assert_eq!(masked.items, items, "{what}: items");
+    let spawns: Vec<_> = full
+        .spawns
+        .iter()
+        .filter(|s| shown(s.line))
+        .cloned()
+        .collect();
+    assert_eq!(
+        masked.spawns, spawns,
+        "{what}: spawns (a spawn with no y keeps its ground height)"
+    );
+    let markers: Vec<_> = full
+        .markers
+        .iter()
+        .filter(|m| shown(m.line))
+        .cloned()
+        .collect();
+    assert_eq!(masked.markers, markers, "{what}: markers");
+
+    // A cell whose last writer is shown holds the same tile; one whose last writer is hidden does not
+    // show that writer's tile. The rows keep their counts, so a hidden layer can be read and shown.
+    assert_eq!(masked.sections, full.sections, "{what}: rows");
+    for (at, owner) in full.cell_sections.iter().enumerate() {
+        let id = full
+            .sections
+            .get(usize::from(*owner))
+            .map(|s| s.id.as_str());
+        if id.is_some_and(|id| hidden.contains(&id)) {
+            assert!(
+                masked.cell_sections[at] != *owner || full.cells[at] == masked.cells[at],
+                "{what}: cell {at} still drawn from a hidden layer"
+            );
+        } else {
+            assert_eq!(masked.cells[at], full.cells[at], "{what}: cell {at}");
+            assert_eq!(masked.cell_sections[at], *owner, "{what}: cell {at} owner");
+        }
+    }
+}
+
+#[test]
+fn hiding_any_layer_or_set_of_layers_moves_nothing_that_stays_visible() {
+    let layers = [
+        "terrain", "walls", "blocks", "crystals", "markers", "treats", "enemies",
+    ];
+    for text in [CRATER, GROUND_RELATIVE] {
+        for id in layers {
+            assert_only_the_hidden_is_gone(text, &[id]);
+        }
+        for (a, b) in [
+            ("terrain", "walls"),
+            ("terrain", "blocks"),
+            ("terrain", "crystals"),
+            ("terrain", "treats"),
+            ("terrain", "enemies"),
+            ("walls", "blocks"),
+            ("crystals", "markers"),
+            ("treats", "enemies"),
+        ] {
+            assert_only_the_hidden_is_gone(text, &[a, b]);
+        }
+        assert_only_the_hidden_is_gone(text, &layers);
+    }
+}
+
+#[test]
+fn hiding_terrain_keeps_the_crystals_the_spawns_and_the_pogo_caches_where_they_were() {
+    let document = LevelDocument::new(GROUND_RELATIVE);
+    let full = document.view();
+    assert!(full.diagnostics.is_empty(), "{:?}", full.diagnostics);
+    let masked = document.view_without(&["terrain".to_string()]);
+    let word = |view: &fizz_studio_protocol::LevelView, x: usize, y: usize| {
+        view.palette[usize::from(view.cells[y * 60 + x])].clone()
+    };
+    // Crystals sit on the ground surface; without the terrain drawn they are still there.
+    assert_eq!(word(&full, 8, 4), "crystal-tile");
+    assert_eq!(word(&masked, 8, 4), "crystal-tile");
+    assert_eq!(word(&full, 14, 7), "crystal-tile");
+    assert_eq!(word(&masked, 14, 7), "crystal-tile");
+    // The ground under them is not drawn.
+    assert_eq!(word(&masked, 8, 1), "empty");
+    // Every enemy keeps the y the ground gave it, and the treats of the pogo caches stay up.
+    assert!(full
+        .spawns
+        .iter()
+        .filter(|s| s.kind != "drone")
+        .all(|s| s.y.is_some()));
+    assert_eq!(masked.spawns, full.spawns);
+    assert_eq!(masked.items, full.items);
+    // The ground-relative things were not placed at the fixed-height fallback.
+    assert!(full.items.len() >= 7);
+}
+
+#[test]
+fn hiding_a_layer_keeps_every_rows_count() {
+    let document = LevelDocument::new(CRATER);
+    let full = document.view();
+    for id in ["terrain", "treats", "enemies", "markers", "crystals"] {
+        let masked = document.view_without(&[id.to_string()]);
+        let counts = |view: &fizz_studio_protocol::LevelView| {
+            view.sections
+                .iter()
+                .map(|s| (s.id.clone(), s.count))
+                .collect::<Vec<_>>()
+        };
+        assert_eq!(counts(&masked), counts(&full), "hiding {id}");
+    }
+}
+
+#[test]
+fn a_locked_layer_still_refuses_an_edit_over_a_ground_relative_thing() {
+    // Locking the crystals refuses an edit that would paint over a crystal's cell, whether or not
+    // the terrain under it is hidden: locks look at the script's own cells, not the masked drawing.
+    let (mut session, token) = open();
+    session.set_locks(vec!["crystals".to_string()]);
+    let before = session.document().text().to_string();
+    let edit = paint("grass", 10, 4);
+    let asked = request(&session, edit);
+    assert!(session.apply(&token, asked).is_err());
+    assert_eq!(session.document().text(), before);
+}
