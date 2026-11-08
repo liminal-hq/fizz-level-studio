@@ -27,6 +27,7 @@ import {
 	useState,
 	type PointerEvent as ReactPointerEvent,
 } from 'react';
+import { CONTEXT_BUSY } from '../../app/contextBusy';
 import type { DropTarget, Point } from './dockDrop';
 
 /** What was pressed: a rail entry or a tab, a panel's header grip, or a tab in the Script panel's header. */
@@ -226,6 +227,8 @@ export function useDockDrag(options: DockDragOptions): DockDrag {
 			// while the pointer moves, whatever was under the press or already selected.
 			const refuse = (e: Event) => e.preventDefault();
 			window.getSelection?.()?.removeAllRanges();
+			// While the drag runs no context menu opens (the host reads this mark).
+			document.documentElement.setAttribute(CONTEXT_BUSY, '');
 			document.addEventListener('dragstart', refuse, true);
 			document.addEventListener('selectstart', refuse, true);
 			document.addEventListener('pointermove', move);
@@ -233,6 +236,7 @@ export function useDockDrag(options: DockDragOptions): DockDrag {
 			document.addEventListener('pointercancel', aborted);
 			document.addEventListener('keydown', key, true);
 			stop.current = () => {
+				document.documentElement.removeAttribute(CONTEXT_BUSY);
 				document.removeEventListener('dragstart', refuse, true);
 				document.removeEventListener('selectstart', refuse, true);
 				document.removeEventListener('pointermove', move);

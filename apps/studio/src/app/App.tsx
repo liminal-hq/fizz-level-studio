@@ -3,7 +3,9 @@
 // (c) Copyright 2026 Liminal HQ, Scott Morris
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
+import { createCommandBridge } from '../commands/commandBridge';
+import { ContextMenuHost } from './ContextMenuHost';
 import type { MessageId } from '../i18n/messages';
 import { t } from '../i18n/messages';
 import styles from './App.module.css';
@@ -34,6 +36,17 @@ function PlaceholderScreen({ titleId, messageId }: { titleId: MessageId; message
 }
 
 export function App({ windowLabel }: AppProps) {
+	// One command bridge and one context menu for the window, whichever screen it shows: the screens
+	// publish their facts and actions into the bridge, and the host reads them to build its rows.
+	const [bridge] = useState(createCommandBridge);
+	return (
+		<ContextMenuHost bridge={bridge}>
+			<Screen windowLabel={windowLabel} />
+		</ContextMenuHost>
+	);
+}
+
+function Screen({ windowLabel }: AppProps) {
 	const kind = windowKindFromLabel(windowLabel);
 	// A main window's end of the channel to its torn-off panels.
 	const panelBridge = useMemo(

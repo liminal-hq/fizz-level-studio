@@ -5,7 +5,7 @@
 
 import type { LevelSnapshot } from '@liminal-hq/fizz-studio-protocol/generated/LevelSnapshot';
 import { layerList } from '../panels/layers/lockedNote';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useContext, useEffect, useRef, useState } from 'react';
 import {
 	CommandBridgeContext,
 	createCommandBridge,
@@ -94,9 +94,15 @@ export function levelName(snapshot: Pick<LevelSnapshot, 'view' | 'path'>): strin
 	return snapshot.view.name.trim() || baseName(snapshot.path);
 }
 
-/** The main window: provides the command bridge the application menu reads, then the screen. */
+/**
+ * The main window: provides the command bridge the application menu reads, then the screen. The
+ * window's root (`App`) makes the bridge so its context menu reads the same one; a screen drawn
+ * without a root (a test) makes its own.
+ */
 export function MainScreen(props: MainScreenProps) {
-	const [bridge] = useState(createCommandBridge);
+	const inherited = useContext(CommandBridgeContext);
+	const [own] = useState(() => (inherited ? null : createCommandBridge()));
+	const bridge = inherited ?? own!;
 	return (
 		<CommandBridgeContext.Provider value={bridge}>
 			<MainScreenBody {...props} bridge={bridge} />

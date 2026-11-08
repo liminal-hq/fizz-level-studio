@@ -7,6 +7,7 @@ pub mod close_gate;
 pub mod effects;
 pub mod launch;
 pub mod logging;
+pub mod native_menu;
 pub mod panel_place;
 pub mod quit;
 pub mod quit_round;
@@ -114,6 +115,7 @@ pub fn run() {
             windows::tear_off_panel,
             windows::close_panel,
             launch::app_launch_paths,
+            native_menu::app_native_menu_allowed,
             quit::app_quit,
             quit::app_quit_answer,
             quit::app_quit_confirm,
