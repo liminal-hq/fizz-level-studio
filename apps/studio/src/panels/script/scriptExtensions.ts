@@ -73,7 +73,7 @@ export const POPUP_LAYER_ID = 'fls-popup-layer';
  * The one element in the page's `body` that holds the editor's popups. The library puts its popup
  * wrapper (a `position: relative` div as tall as the page) straight into the parent it is given, and
  * that wrapper took layout space in `body`, doubling the document's height, so revealing a line
- * scrolled the whole app shell. This layer is fixed and has no size, so it takes no space and nothing
+ * scrolled the whole app shell. This layer is fixed and has no height, so it takes no space and nothing
  * in it can make the page scroll; the popups themselves are `position: fixed`, so they still place
  * against the viewport. It is made on first use, and again if the page's body was cleared.
  */
@@ -85,7 +85,10 @@ export function popupLayer(): HTMLElement {
 	Object.assign(layer.style, {
 		position: 'fixed',
 		inset: '0',
-		width: '0',
+		// As wide as the window and no taller than a line: the popups size themselves against this box,
+		// so a zero width squeezed the documentation popup to its narrowest wrapping. A fixed box takes
+		// no layout space whatever its width, so the shell still cannot scroll.
+		width: '100vw',
 		height: '0',
 		overflow: 'visible',
 		// A fixed box is a stacking context of its own, so the popups' own z-index only counts inside it:

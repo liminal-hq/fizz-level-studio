@@ -63,7 +63,7 @@ describe('the popups’ layer', () => {
 		const layer = popupLayer();
 		expect(layer.parentElement).toBe(document.body);
 		expect(layer.style.position).toBe('fixed');
-		expect(layer.style.width).toBe('0px');
+		expect(layer.style.width).toBe('100vw');
 		expect(layer.style.height).toBe('0px');
 		// It is a stacking context of its own, so it must carry the menu level to stay above the panels.
 		expect(layer.style.zIndex).toBe('var(--fls-z-menu)');
