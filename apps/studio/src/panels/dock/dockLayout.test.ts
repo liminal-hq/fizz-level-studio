@@ -234,6 +234,19 @@ describe('its own window', () => {
 		sound(back);
 	});
 
+	it('keeps the home spot of a panel floated and then torn off, for Dock back', () => {
+		const docked = defaultWorkspace();
+		const homeZone = zoneOf(docked, 'palette');
+		const floated = floatPanel(docked, 'palette', { x: 60, y: 70 });
+		const spot = floated.panels.palette!.home_spot;
+		const out = sendToWindow(floated, 'palette', { x: 5, y: 6, w: 300, h: 400 });
+		expect(out.panels.palette).toMatchObject({ place: 'window', home: homeZone, home_spot: spot });
+		const back = dockBack(out, 'palette');
+		expect(zoneOf(back, 'palette')).toBe(homeZone);
+		expect(back.panels.palette!.place).toBe('docked');
+		sound(back);
+	});
+
 	it('ignores bringing back a panel that is not in a window', () => {
 		const ws = defaultWorkspace();
 		expect(bringBack(ws, 'palette')).toBe(ws);

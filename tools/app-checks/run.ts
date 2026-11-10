@@ -3101,6 +3101,73 @@ async function checkDockBackHome(
 	);
 }
 
+/**
+ * Dragging a floating panel by its header out of the window tears it off, as for a docked panel.
+ * Synthetic events stay inside the page, so this plays the page's side only (the press, the moves
+ * past the edge, the release); the plugin and the cursor are real. Which route the desktop gives is
+ * the plugin's to say, so the check holds for either answer: the panel's window opens and Dock back
+ * floats it again at the same rectangle, or the page says why not and the panel keeps floating. A
+ * real compositor drag is only checked by hand.
+ */
+async function floatingDragOutChecks(bridge: Bridge): Promise<void> {
+	const floatRect = () =>
+		bridge.js<{ x: number; y: number; w: number; h: number } | null>(
+			`const e = document.querySelector('section[data-panel="objects"]'); if (!e) return null; const r = e.getBoundingClientRect(); return { x: r.left, y: r.top, w: r.width, h: r.height };`,
+		);
+	await showFromRail(bridge, 'Objects');
+	check('float drag-out: Objects floats', await choosePanelMenu(bridge, 'Objects', 'Float'));
+	await within(3000, async () => (await floatRect()) !== null);
+	const before = await floatRect();
+	await bridge.js(
+		`const header = document.querySelector('section[data-panel="objects"] header');
+		 const r = header.getBoundingClientRect();
+		 const at = (target, type, x, y) => target.dispatchEvent(new PointerEvent(type, { bubbles: true, pointerId: 43, button: 0, clientX: x, clientY: y }));
+		 at(header, 'pointerdown', r.left + 40, r.top + 10);
+		 for (const x of [r.left - 20, -60, -120]) at(header, 'pointermove', x, r.top + 10);
+		 await new Promise((go) => setTimeout(go, 400));
+		 at(header, 'pointerup', -120, r.top + 10);
+		 return true;`,
+	);
+	const dragged = await within(8000, async () => {
+		if ((await bridge.windows()).includes('panel-objects-1')) return 'window';
+		const said = await bridge.js<boolean>(
+			`return [...document.querySelectorAll('[role=status]')].some((n) => /Tear off|cancelled|Move cancelled/.test(n.textContent ?? ''));`,
+		);
+		return said ? 'note' : null;
+	});
+	check(
+		'float drag-out: dragging a floating panel out of the window opens its window, or says why it cannot',
+		dragged !== null,
+		String(dragged),
+	);
+	if (dragged === 'window') {
+		check('float drag-out: its window opens', true);
+		check('float drag-out: Dock back closes the window', await dockBackWindow(bridge, 'objects'));
+		await within(3000, async () => (await floatRect()) !== null);
+		const after = await floatRect();
+		check(
+			'float drag-out: it floats again at the same rectangle',
+			!!before &&
+				!!after &&
+				(['x', 'y', 'w', 'h'] as const).every((k) => Math.abs(before[k] - after[k]) <= 1),
+			JSON.stringify({ before, after }),
+		);
+	} else {
+		const after = await floatRect();
+		check(
+			'float drag-out: with no route the panel keeps floating where it was',
+			!!before &&
+				!!after &&
+				(['x', 'y', 'w', 'h'] as const).every((k) => Math.abs(before[k] - after[k]) <= 1),
+			JSON.stringify({ before, after }),
+		);
+	}
+	check(
+		'float drag-out: Objects docks right again',
+		await choosePanelMenu(bridge, 'Objects', 'Dock right'),
+	);
+}
+
 async function checkPanelWindows(
 	bridge: Bridge,
 	profile: Profile,
@@ -5330,6 +5397,7 @@ async function main(): Promise<void> {
 			() => app!,
 			(next) => (app = next),
 		);
+		await floatingDragOutChecks(bridge);
 		await checkDockBackHome(
 			bridge,
 			profile,

@@ -6,6 +6,7 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
+import type { LeaveWindowInfo } from '../dock/useDockDrag';
 import { FloatingPanel, type FloatingPanelProps } from './FloatingPanel';
 
 const rect = { x: 100, y: 100, w: 300, h: 200 };
@@ -259,5 +260,92 @@ describe('FloatingPanel', () => {
 	it('shows extra header controls', () => {
 		setup({ actions: <button type="button">Extra</button> });
 		expect(screen.getByRole('button', { name: 'Extra' })).toBeInTheDocument();
+	});
+
+	describe('dragged out of the window', () => {
+		const exitOf = () => ({ move: vi.fn(), drop: vi.fn(), cancel: vi.fn() });
+		const headerOf = () =>
+			screen.getByRole('heading', { name: 'Demo' }).parentElement as HTMLElement;
+
+		it('calls the window exit once, with the press, and hands it the move and the release', () => {
+			const exit = exitOf();
+			const onLeaveWindow = vi.fn((_info: LeaveWindowInfo) => exit);
+			const { onChange } = setup({ onLeaveWindow });
+			const header = headerOf();
+			fireEvent.pointerDown(header, { pointerId: 1, clientX: 10, clientY: 10, button: 0 });
+			fireEvent.pointerMove(header, { pointerId: 1, clientX: 50, clientY: 50 });
+			expect(onLeaveWindow).not.toHaveBeenCalled();
+			fireEvent.pointerMove(header, { pointerId: 1, clientX: -30, clientY: 50 });
+			fireEvent.pointerMove(header, { pointerId: 1, clientX: -60, clientY: 60 });
+			expect(onLeaveWindow).toHaveBeenCalledTimes(1);
+			expect(onLeaveWindow.mock.calls[0]![0]).toMatchObject({
+				id: 'demo',
+				source: 'header',
+				start: { x: 10, y: 10 },
+			});
+			expect(exit.move).toHaveBeenLastCalledWith({ x: -60, y: 60 });
+			onChange.mockClear();
+			fireEvent.pointerUp(header, { pointerId: 1, clientX: -80, clientY: 60 });
+			expect(exit.drop).toHaveBeenCalledWith({ x: -80, y: 60 });
+			// The panel is put back where it was pressed, for the way back from its window.
+			expect(onChange).toHaveBeenLastCalledWith(rect, true);
+		});
+
+		it('keeps floating, and lets the exit go, when dropped back inside', () => {
+			const exit = exitOf();
+			const onDockDrop = vi.fn(() => false);
+			const { onChange } = setup({ onLeaveWindow: () => exit, onDockDrop });
+			const header = headerOf();
+			fireEvent.pointerDown(header, { pointerId: 1, clientX: 10, clientY: 10, button: 0 });
+			fireEvent.pointerMove(header, { pointerId: 1, clientX: -30, clientY: 50 });
+			fireEvent.pointerMove(header, { pointerId: 1, clientX: 200, clientY: 150 });
+			expect(exit.cancel).toHaveBeenCalledTimes(1);
+			fireEvent.pointerUp(header, { pointerId: 1, clientX: 200, clientY: 150 });
+			expect(exit.drop).not.toHaveBeenCalled();
+			expect(onDockDrop).toHaveBeenCalledWith({ x: 200, y: 150 });
+			expect(onChange).toHaveBeenLastCalledWith({ ...rect, x: 290, y: 240 }, true);
+		});
+
+		it('is cancelled by Escape while outside, and the panel goes back', () => {
+			const exit = exitOf();
+			const { onChange } = setup({ onLeaveWindow: () => exit });
+			const header = headerOf();
+			fireEvent.pointerDown(header, { pointerId: 1, clientX: 10, clientY: 10, button: 0 });
+			fireEvent.pointerMove(header, { pointerId: 1, clientX: -30, clientY: 50 });
+			fireEvent.keyDown(document, { key: 'Escape' });
+			expect(exit.cancel).toHaveBeenCalledTimes(1);
+			expect(onChange).toHaveBeenLastCalledWith(rect, true);
+			fireEvent.pointerUp(header, { pointerId: 1, clientX: -80, clientY: 60 });
+			expect(exit.drop).not.toHaveBeenCalled();
+		});
+
+		it('is put back, and not dropped, when the exit finishes the drag itself', () => {
+			let finish = () => {};
+			const exit = exitOf();
+			const { onChange } = setup({
+				onLeaveWindow: (info) => {
+					finish = info.finish;
+					return exit;
+				},
+			});
+			const header = headerOf();
+			fireEvent.pointerDown(header, { pointerId: 1, clientX: 10, clientY: 10, button: 0 });
+			fireEvent.pointerMove(header, { pointerId: 1, clientX: -30, clientY: 50 });
+			finish();
+			expect(onChange).toHaveBeenLastCalledWith(rect, true);
+			fireEvent.pointerUp(header, { pointerId: 1, clientX: -80, clientY: 60 });
+			expect(exit.drop).not.toHaveBeenCalled();
+		});
+
+		it('places the panel as before when no exit is given', () => {
+			const onLeaveWindow = vi.fn();
+			const { onChange } = setup({ onLeaveWindow });
+			const header = headerOf();
+			fireEvent.pointerDown(header, { pointerId: 1, clientX: 10, clientY: 10, button: 0 });
+			fireEvent.pointerMove(header, { pointerId: 1, clientX: -30, clientY: 50 });
+			fireEvent.pointerUp(header, { pointerId: 1, clientX: -30, clientY: 50 });
+			expect(onLeaveWindow).toHaveBeenCalledTimes(1);
+			expect(onChange).toHaveBeenLastCalledWith({ ...rect, x: 60, y: 140 }, true);
+		});
 	});
 });

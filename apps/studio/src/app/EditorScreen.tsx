@@ -1091,6 +1091,7 @@ export function EditorScreen({
 							onGuides={setGuides}
 							onDockHover={(point) => drag.hoverFloat(spec.id, point)}
 							onDockDrop={(point) => drag.dropFloat(spec.id, point)}
+							onLeaveWindow={tearDrag.onLeaveWindow}
 							onChange={(rect) => dock.changeFloat(spec.id, rect)}
 							onToggleCollapsed={() => dock.toggleFloatCollapsed(spec.id)}
 							onRaise={() => dock.raise(spec.id)}

@@ -27,6 +27,7 @@ import {
 } from './panelGeometry';
 import type { PanelId } from './panelSpecs';
 import { snapMoveWithin, snapResize, type Guide } from './snap';
+import type { LeaveWindowInfo, WindowExit } from '../dock/useDockDrag';
 
 export interface FloatingPanelProps {
 	/** A stable name, such as `script`; it keys the panel's saved place. */
@@ -58,6 +59,13 @@ export interface FloatingPanelProps {
 	onDockHover?: (point: { x: number; y: number } | null) => void;
 	/** The header was let go at this point: return true when that docked the panel (it is then not placed). */
 	onDockDrop?: (point: { x: number; y: number }) => boolean;
+	/**
+	 * The header's pointer left the window mid-move (called once per exit). The exit it returns
+	 * takes the drag over while the pointer is outside, as for a docked panel's drag
+	 * (`useDockDrag`'s `onLeaveWindow`), which is how the panel is torn off into a window. A
+	 * callback that returns nothing leaves the move as the panel's own.
+	 */
+	onLeaveWindow?: (info: LeaveWindowInfo) => WindowExit | void;
 	/** The panel fills the workspace: its header offers only `actions`, and it cannot be moved. */
 	maximised?: boolean;
 	/** Another panel is maximised: this one stays mounted, hidden. */
@@ -78,6 +86,16 @@ interface Gesture {
 	y: number;
 	start: Rect;
 	handle: ResizeHandle;
+	/** Where in the header the press was, in logical pixels from its top-left. */
+	grab: { x: number; y: number };
+	/** Whether the pointer is outside the window (a move only). */
+	outside: boolean;
+	/** What took the drag over while the pointer was outside. */
+	exit: WindowExit | null;
+}
+
+function outsideWindow(x: number, y: number): boolean {
+	return x < 0 || y < 0 || x > window.innerWidth || y > window.innerHeight;
 }
 
 /** The handles that only a pointer uses; the corner grip is the one a keyboard reaches. */
@@ -105,6 +123,7 @@ export function FloatingPanel({
 	onGuides,
 	onDockHover,
 	onDockDrop,
+	onLeaveWindow,
 	maximised = false,
 	suppressed = false,
 	actions,
@@ -131,6 +150,8 @@ export function FloatingPanel({
 	onGuidesRef.current = onGuides;
 	const onDockHoverRef = useRef(onDockHover);
 	onDockHoverRef.current = onDockHover;
+	const onLeaveRef = useRef(onLeaveWindow);
+	onLeaveRef.current = onLeaveWindow;
 	const stopEscape = useRef<(() => void) | null>(null);
 
 	// Escape ends a pointer drag wherever the keyboard focus is, putting the panel back.
@@ -140,6 +161,7 @@ export function FloatingPanel({
 			if (event.key !== 'Escape' || !g) return;
 			gesture.current = null;
 			stopEscape.current?.();
+			g.exit?.cancel();
 			onGuidesRef.current?.([]);
 			onDockHoverRef.current?.(null);
 			onChangeRef.current(g.start, true);
@@ -150,17 +172,27 @@ export function FloatingPanel({
 			stopEscape.current = null;
 		};
 	};
-	useEffect(() => () => stopEscape.current?.(), []);
+	useEffect(
+		() => () => {
+			stopEscape.current?.();
+			gesture.current?.exit?.cancel();
+		},
+		[],
+	);
 
 	const begin = (event: PointerEvent<HTMLElement>, handle: ResizeHandle = 'se') => {
 		if (event.button !== 0 || maximised) return;
 		watchEscape();
+		const box = event.currentTarget.getBoundingClientRect();
 		gesture.current = {
 			pointer: event.pointerId,
 			x: event.clientX,
 			y: event.clientY,
 			start: live.current,
 			handle,
+			grab: { x: Math.max(0, event.clientX - box.left), y: Math.max(0, event.clientY - box.top) },
+			outside: false,
+			exit: null,
 		};
 		// Capture keeps the drag going outside the handle; it throws for a pointer that is no
 		// longer active, and the gesture still works from the events the handle receives.
@@ -193,7 +225,37 @@ export function FloatingPanel({
 		const dy = event.clientY - g.y;
 		const { rect: next, guides } = drag(g, dx, dy, kind);
 		onGuides?.(guides);
-		if (kind === 'move') onDockHover?.({ x: event.clientX, y: event.clientY });
+		if (kind === 'move') {
+			const point = { x: event.clientX, y: event.clientY };
+			const out = outsideWindow(point.x, point.y);
+			if (out && !g.outside) {
+				// Past the window's edge: a window exit may take the drag over (tearing the panel off).
+				g.exit =
+					onLeaveRef.current?.({
+						id,
+						point,
+						source: 'header',
+						start: { x: g.x, y: g.y },
+						grab: g.grab,
+						// An exit that handed the drag to the compositor ends this one with the panel put back.
+						finish: () => {
+							if (gesture.current !== g) return;
+							gesture.current = null;
+							stopEscape.current?.();
+							onGuidesRef.current?.([]);
+							onDockHoverRef.current?.(null);
+							onChangeRef.current(g.start, true);
+						},
+					}) ?? null;
+			} else if (!out && g.outside) {
+				// Back inside: the panel's own drag again.
+				g.exit?.cancel();
+				g.exit = null;
+			}
+			g.outside = out;
+			if (out) g.exit?.move?.(point);
+			onDockHover?.(out ? null : point);
+		}
 		onChange(next, false);
 	};
 
@@ -210,7 +272,15 @@ export function FloatingPanel({
 		onGuides?.([]);
 		if (kind === 'move') onDockHover?.(null);
 		if (cancelled) {
+			g.exit?.cancel();
 			onChange(g.start, true);
+			return;
+		}
+		if (kind === 'move' && g.outside && g.exit) {
+			// Let go outside the window: the exit places it (a window opens there), so the panel
+			// stays where it was pressed for the way back.
+			onChange(g.start, true);
+			g.exit.drop({ x: event.clientX, y: event.clientY });
 			return;
 		}
 		if (kind === 'move' && onDockDrop?.({ x: event.clientX, y: event.clientY })) return;
@@ -226,6 +296,7 @@ export function FloatingPanel({
 		if (!origin) return false;
 		gesture.current = null;
 		keyOrigin.current = null;
+		g?.exit?.cancel();
 		event.preventDefault();
 		onDockHover?.(null);
 		onChange(origin, true);
