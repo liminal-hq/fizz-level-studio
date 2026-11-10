@@ -337,6 +337,16 @@ describe('FloatingPanel', () => {
 			expect(exit.drop).not.toHaveBeenCalled();
 		});
 
+		it('leaves the exit running when the panel unmounts mid-drag, as it does once torn off', () => {
+			const exit = exitOf();
+			const { unmount } = setup({ onLeaveWindow: () => exit });
+			const header = headerOf();
+			fireEvent.pointerDown(header, { pointerId: 1, clientX: 10, clientY: 10, button: 0 });
+			fireEvent.pointerMove(header, { pointerId: 1, clientX: -30, clientY: 50 });
+			unmount();
+			expect(exit.cancel).not.toHaveBeenCalled();
+		});
+
 		it('places the panel as before when no exit is given', () => {
 			const onLeaveWindow = vi.fn();
 			const { onChange } = setup({ onLeaveWindow });

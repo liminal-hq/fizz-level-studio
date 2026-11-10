@@ -172,13 +172,10 @@ export function FloatingPanel({
 			stopEscape.current = null;
 		};
 	};
-	useEffect(
-		() => () => {
-			stopEscape.current?.();
-			gesture.current?.exit?.cancel();
-		},
-		[],
-	);
+	// The exit is not cancelled here: a panel that is torn off leaves the floating layer mid-drag (it
+	// is recorded as away as soon as its window opens), which unmounts this component while the
+	// compositor is dragging that window. The exit's own route ends the drag, or cancels it.
+	useEffect(() => () => stopEscape.current?.(), []);
 
 	const begin = (event: PointerEvent<HTMLElement>, handle: ResizeHandle = 'se') => {
 		if (event.button !== 0 || maximised) return;
