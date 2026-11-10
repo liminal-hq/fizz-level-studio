@@ -6,9 +6,9 @@
 import type { TabGroup } from '@liminal-hq/fizz-studio-protocol/generated/TabGroup';
 import type { ZoneId } from '@liminal-hq/fizz-studio-protocol/generated/ZoneId';
 import type { PointerEvent, ReactNode } from 'react';
+import { useSurfaceMenu } from '../../app/useSurfaceMenu';
 import { t, type MessageId } from '../../i18n/messages';
-import { FoldButton } from './FoldButton';
-import { PanelCommands } from './PanelCommands';
+import { PanelMenuButton, type PanelMenu } from './PanelMenuButton';
 import { PanelExpandButton } from './PanelExpandButton';
 import { GripIcon, PANEL_ICONS } from './panelIcons';
 import type { PanelId } from '../float/panelSpecs';
@@ -20,11 +20,10 @@ export interface DockZoneProps {
 	groups: readonly TabGroup[];
 	titleOf: (id: string) => string;
 	renderPanel: (id: string) => ReactNode;
-	onDock: (id: string, zone: ZoneId) => void;
-	onFloat: (id: string) => void;
-	/** Tears a panel off into a window of its own; the button is left out when this is absent. */
-	onTearOff?: (id: string) => void;
-	onFold: () => void;
+	/** The rows of a panel's own ⋮ menu and what choosing one does; the button is left out when this is absent. */
+	panelMenu?: (id: string) => PanelMenu;
+	/** What a panel's header shows in place of its title text (the Script's tab strip); `width` is `narrow` in a side dock. */
+	headerExtra?: (id: string, width: HeaderWidth) => ReactNode;
 	/** A press on a header that may become a drag. */
 	onDragStart?: (event: PointerEvent<HTMLElement>, id: string, source: DragSource) => void;
 	/** Whether a panel can be maximised, and the action that does it. */
@@ -35,7 +34,12 @@ export interface DockZoneProps {
 	onRestore?: () => void;
 	/** The panel being dragged, dimmed where it sits. */
 	dragging?: string | null;
+	/** The panel that just landed from a drag: its header is marked for a moment. */
+	landed?: string | null;
 }
+
+/** How much room a header has: a side dock is narrow. */
+export type HeaderWidth = 'wide' | 'narrow';
 
 export const ZONE_LABELS: Record<ZoneId, MessageId> = {
 	left: 'dock.zone.left',
@@ -45,7 +49,7 @@ export const ZONE_LABELS: Record<ZoneId, MessageId> = {
 
 /**
  * The panels docked in a zone. Each group is a header with a grip, the showing panel's icon and
- * title, and its buttons, over its content; only the showing panel is mounted. The zone's rail is
+ * title, Maximise and its ⋮ menu, over its content; only the showing panel is mounted. The zone's rail is
  * where the other panels are chosen and reordered, so the header has no tab strip of its own and
  * a panel is listed once on the rail and named once here. A press on the header that moves drags
  * the showing panel.
@@ -55,12 +59,11 @@ export function DockZone({
 	groups,
 	titleOf,
 	renderPanel,
-	onDock,
-	onFloat,
-	onTearOff,
-	onFold,
+	panelMenu,
+	headerExtra,
 	onDragStart,
 	dragging = null,
+	landed = null,
 	expandable,
 	onMaximise,
 	maximised = null,
@@ -76,12 +79,11 @@ export function DockZone({
 					index={index}
 					titleOf={titleOf}
 					renderPanel={renderPanel}
-					onDock={onDock}
-					onFloat={onFloat}
-					onTearOff={onTearOff}
-					onFold={onFold}
+					panelMenu={panelMenu}
+					headerExtra={headerExtra}
 					onDragStart={onDragStart}
 					dragging={dragging}
+					landed={landed}
 					expandable={expandable}
 					onMaximise={onMaximise}
 					maximised={maximised}
@@ -103,12 +105,11 @@ function Group({
 	index,
 	titleOf,
 	renderPanel,
-	onDock,
-	onFloat,
-	onTearOff,
-	onFold,
+	panelMenu,
+	headerExtra,
 	onDragStart,
 	dragging = null,
+	landed = null,
 	expandable,
 	onMaximise,
 	maximised = null,
@@ -118,6 +119,14 @@ function Group({
 	const filling = maximised === active;
 	const Icon = PANEL_ICONS[active as PanelId];
 	const title = titleOf(active);
+	const menu = panelMenu?.(active);
+	const extra = headerExtra?.(active, zone === 'bottom' ? 'wide' : 'narrow');
+	// A right-click, the Menu key or Shift+F10 on the header opens the panel's menu.
+	const headerMenu = useSurfaceMenu<HTMLDivElement>(() => ({
+		kind: 'panel',
+		panel: active as PanelId,
+		where: 'header',
+	}));
 	return (
 		<div
 			className={styles.group}
@@ -130,6 +139,8 @@ function Group({
 				className={styles.header}
 				data-strip=""
 				data-dragging={active === dragging || undefined}
+				data-landed={active === landed || undefined}
+				{...headerMenu}
 				onPointerDown={(event) => {
 					if (filling || (event.target as HTMLElement).closest('button')) return;
 					onDragStart?.(event, active, 'header');
@@ -146,8 +157,8 @@ function Group({
 							<GripIcon size={14} />
 						</span>
 						{Icon && <Icon size={14} />}
-						<h2 className={styles.title}>{title}</h2>
-						<span className={styles.spacer} />
+						<h2 className={extra ? styles.hiddenTitle : styles.title}>{title}</h2>
+						{extra ?? <span className={styles.spacer} />}
 						{onMaximise && expandable?.(active) && (
 							<PanelExpandButton
 								title={title}
@@ -155,18 +166,11 @@ function Group({
 								onToggle={() => onMaximise(active)}
 							/>
 						)}
-						<PanelCommands
-							title={title}
-							at={zone}
-							onDock={(to) => onDock(active, to)}
-							onFloat={() => onFloat(active)}
-							onTearOff={onTearOff && (() => onTearOff(active))}
-						/>
-						{index === 0 && <FoldButton zone={zone} folded={false} onClick={onFold} />}
+						{menu && <PanelMenuButton title={title} items={menu.items} onSelect={menu.onSelect} />}
 					</>
 				)}
 			</div>
-			<div className={styles.body} data-panel-id={active}>
+			<div className={styles.body} data-panel-id={active} id={`panel-body-${active}`}>
 				{renderPanel(active)}
 			</div>
 		</div>

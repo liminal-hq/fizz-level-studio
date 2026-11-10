@@ -13,6 +13,7 @@ const doc = (word: string, kind: string): WordDoc => ({
 	syntax: `${word} ...`,
 	example: word,
 	note: '',
+	group: '',
 });
 
 const words = [

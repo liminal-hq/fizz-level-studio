@@ -39,8 +39,9 @@ export function transparencyAtDefaults(value: TransparencySettings): boolean {
 	);
 }
 
-const clamp = (value: number, min: number, max: number): number =>
-	Math.min(max, Math.max(min, value));
+/** `value` held to `min` and `max`; `fallback` when it is not a number at all (so a stray value cannot make a rule invalid). */
+const clamp = (value: number, min: number, max: number, fallback = min): number =>
+	Number.isFinite(value) ? Math.min(max, Math.max(min, value)) : fallback;
 const hundredths = (percent: number): number => Math.round(clamp(percent, 0, 100)) / 100;
 
 /** The custom property values the glass draws with, as CSS text. */
@@ -60,10 +61,18 @@ export function glassValues(
 	t: Pick<TransparencySettings, 'blur' | 'saturation' | 'panel_opacity' | 'menu_opacity'>,
 ): GlassValues {
 	return {
-		blur: `${clamp(Math.round(t.blur), 0, GLASS_BLUR_MAX)}px`,
-		saturation: `${clamp(Math.round(t.saturation), GLASS_SATURATION_MIN, GLASS_SATURATION_MAX)}%`,
-		alpha: String(hundredths(clamp(t.panel_opacity, PANEL_OPACITY_MIN, OPACITY_MAX))),
-		menuAlpha: String(hundredths(clamp(t.menu_opacity, MENU_OPACITY_MIN, OPACITY_MAX))),
+		blur: `${clamp(Math.round(t.blur), 0, GLASS_BLUR_MAX, TRANSPARENCY_DEFAULTS.blur)}px`,
+		saturation: `${clamp(Math.round(t.saturation), GLASS_SATURATION_MIN, GLASS_SATURATION_MAX, TRANSPARENCY_DEFAULTS.saturation)}%`,
+		alpha: String(
+			hundredths(
+				clamp(t.panel_opacity, PANEL_OPACITY_MIN, OPACITY_MAX, TRANSPARENCY_DEFAULTS.panel_opacity),
+			),
+		),
+		menuAlpha: String(
+			hundredths(
+				clamp(t.menu_opacity, MENU_OPACITY_MIN, OPACITY_MAX, TRANSPARENCY_DEFAULTS.menu_opacity),
+			),
+		),
 	};
 }
 
@@ -112,7 +121,9 @@ export function windowAlpha(
 	text: string | null,
 	surface: string | null,
 ): number {
-	const wanted = hundredths(clamp(panelOpacity, PANEL_OPACITY_MIN, OPACITY_MAX));
+	const wanted = hundredths(
+		clamp(panelOpacity, PANEL_OPACITY_MIN, OPACITY_MAX, TRANSPARENCY_DEFAULTS.panel_opacity),
+	);
 	const floor = (text && surface ? alphaFloor(text, surface) : null) ?? FALLBACK_FLOOR;
 	return Math.max(wanted, floor);
 }

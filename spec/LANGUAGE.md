@@ -149,9 +149,9 @@ The edits block is where the studio and Claude record changes made by hand on th
 6. **`place ITEM x=LIST y=LIST`** appends items, one `b.item` call per cell, x first then y, after every hand-written item.
 7. **`row ITEM x=A..B y=N [by=S]`** is the same run as in `treats` (`b.row`), for a drag of items the studio spaces every `S` cells; it follows the `row` rules above (E012 when `B` is off the step).
 8. The block takes `paint`, `clear`, `place` and `row`, any enemy statement (such as `drone x=88.5 y=7.5`), `hover`, `channel`, `room` and `secret-room`. Anything else after the `edits` header is E008.
-9. Edits are undone by deleting or editing their lines; the studio treats the block as an append-only log, and a person may tidy it.
+9. Edits are undone by deleting or editing their lines, or with Undo in the studio, which restores the bytes. The studio appends painting, clearing and placing here and never touches a line it did not write, with one exception that D72 allows: a move, turn or delete of a hand-written thing rewrites that thing's own statement, wherever it is (including a `place`, `row` or enemy line in this block), keeping its indent, spacing, line ending and trailing comment and never reordering things, so a statement may be split into consecutive statements. A person may tidy the block.
 
-Items are not tiles. Adding an enemy, a lift, a room or a switch channel is an edit. Removing a hand-written item, moving an enemy or changing terrain is not an edit in v0: change the hand-written line (that is a deliberate rewrite, made by a person or by Claude on request, not by the studio's append).
+Items are not tiles. Adding an enemy, a lift, a room or a switch channel is an edit. Removing a hand-written item, moving an item, an enemy or the start, and turning an enemy are structured edits of its own statement (D72) rather than appended lines: the studio rewrites that one statement in place, as one undo step, and leaves every other line as written. Changing terrain, exits, doors and generated items (`pogo-cache`) is still not an edit: change the hand-written line (a deliberate rewrite, made by a person or by Claude on request).
 
 ## Parse errors
 

@@ -8,7 +8,7 @@
 // into cells, so the webview draws them and never reads a line of the language itself.
 
 use fizz_studio_language::ast::{Body, Range};
-use fizz_studio_language::docs::{docs_for, DocKind, Scope};
+use fizz_studio_language::docs::{data, docs_for, DocKind, Scope};
 use fizz_studio_language::parser::parse;
 use fizz_studio_protocol::{GhostCell, GhostOp, GhostProposal, WordDoc};
 
@@ -35,12 +35,22 @@ pub fn word_docs() -> Vec<WordDoc> {
                 DocKind::Enemy => "enemy",
                 DocKind::Field => return None,
             };
+            let group = match doc.kind {
+                DocKind::Tile => data()
+                    .tile_notes
+                    .iter()
+                    .find(|tile| tile.word == doc.word)
+                    .map(|tile| tile.group.clone())
+                    .unwrap_or_default(),
+                _ => String::new(),
+            };
             Some(WordDoc {
                 word: doc.word.clone(),
                 kind: kind.to_string(),
                 syntax: doc.syntax.clone(),
                 example: doc.example.clone(),
                 note: doc.note.clone(),
+                group,
             })
         })
         .collect()
@@ -124,6 +134,36 @@ fn proposal_cells(level_text: &str, lines: &[String], width: u32, height: u32) -
     cells
 }
 
+/// The layers proposal lines would touch if they were appended to the level's `edits` block: those
+/// of what the lines build, `edits`, and the layers that wrote the cells a paint or clear covers.
+fn proposal_layers(level_text: &str, lines: &[String]) -> Vec<String> {
+    let parsed = parse(level_text);
+    if !parsed
+        .ast
+        .nodes
+        .iter()
+        .any(|n| matches!(n.body, Body::Level { .. }))
+    {
+        return Vec::new();
+    }
+    let has_edits = parsed.ast.nodes.iter().any(|n| {
+        matches!(
+            n.body,
+            Body::Section {
+                name: fizz_studio_language::ast::SectionName::Edits
+            }
+        )
+    });
+    let mut with_lines = level_text.trim_end().to_string();
+    if !has_edits {
+        with_lines.push_str("\n\nedits");
+    }
+    with_lines.push('\n');
+    with_lines.push_str(&lines.join("\n"));
+    with_lines.push('\n');
+    crate::layers::layers_changed(level_text, &with_lines)
+}
+
 /// The pending proposals in a sidecar, as ghosts over a level. Anything not pending is ignored, and
 /// a sidecar that is not valid JSON, or has no history, has none: it is never an error to draw
 /// nothing.
@@ -157,6 +197,7 @@ pub fn pending_ghosts(
                 title: text_of(entry, "title").unwrap_or_default(),
                 why: text_of(entry, "why"),
                 cells: proposal_cells(level_text, &lines, width, height),
+                layers: proposal_layers(level_text, &lines),
                 lines,
             })
         })
@@ -194,6 +235,30 @@ mod tests {
     }
 
     #[test]
+    fn a_tile_word_carries_its_group_and_the_other_kinds_have_none() {
+        let words = word_docs();
+        let fill = words
+            .iter()
+            .find(|w| w.word == "fill" && w.kind == "tile")
+            .unwrap();
+        assert_eq!(fill.group, "Ground and solids");
+        assert!(fill.note.starts_with("Ground and solids: "));
+        let slope = words.iter().find(|w| w.word == "slope-r45").unwrap();
+        assert_eq!(slope.group, "Slopes");
+        for tile in words.iter().filter(|w| w.kind == "tile") {
+            assert!(!tile.group.is_empty(), "{} has no group", tile.word);
+            assert!(
+                tile.note.starts_with(&format!("{}: ", tile.group)),
+                "{} note does not start with its group",
+                tile.word
+            );
+        }
+        for other in words.iter().filter(|w| w.kind != "tile") {
+            assert!(other.group.is_empty(), "{} has a group", other.word);
+        }
+    }
+
+    #[test]
     fn a_pending_proposal_spreads_into_cells_and_others_are_left_out() {
         let json = sidecar(
             r#"{"id":"h1","by":"claude","mode":"propose","title":"A ledge","why":"for a jump",
@@ -213,6 +278,20 @@ mod tests {
         assert_eq!(at(2, 5).op, GhostOp::Place);
         assert_eq!(at(0, 0).op, GhostOp::Clear);
         assert_eq!(ghost.cells.len(), 4);
+    }
+
+    #[test]
+    fn a_proposal_names_the_layers_it_would_touch() {
+        let json = sidecar(
+            r#"{"id":"h1","title":"Snacks","lines":["place cheezie x=2 y=5","paint exit x=3 y=5"],"status":"pending"},
+            {"id":"h2","title":"Ground","lines":["paint grass x=2 y=3"],"status":"pending"},
+            {"id":"h3","title":"Sky","lines":["paint grass x=2 y=15"],"status":"pending"}"#,
+        );
+        let ghosts = pending_ghosts(CRATER, 40, 20, &json);
+        assert_eq!(ghosts[0].layers, ["markers", "treats", "edits"]);
+        // Painting grass on a cell the terrain wrote touches the terrain as well.
+        assert_eq!(ghosts[1].layers, ["terrain", "edits"]);
+        assert_eq!(ghosts[2].layers, ["edits"]);
     }
 
     #[test]

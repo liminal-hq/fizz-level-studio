@@ -1,7 +1,60 @@
+.panel {
+	display: flex;
+	flex-direction: column;
+	min-height: 0;
+}
+
+.filter {
+	flex: none;
+	margin: 0.4rem 0.4rem 0;
+	padding: 0.3rem 0.5rem;
+	color: var(--fls-text-primary);
+	background: var(--fls-bg-raised);
+	border: 1px solid var(--fls-border-subtle);
+	border-radius: 4px;
+	font: inherit;
+}
+
+.filter:focus-visible {
+	outline: 2px solid var(--fls-focus-ring);
+	outline-offset: 1px;
+}
+
 .list {
 	margin: 0;
 	padding: 0.25rem;
 	list-style: none;
+}
+
+.row {
+	display: flex;
+	align-items: center;
+	gap: 0.4rem;
+	padding-inline-start: 0.4rem;
+	border-radius: 4px;
+}
+
+.row:hover {
+	background: var(--fls-bg-hover);
+}
+
+.glyph {
+	flex: none;
+	width: 0.75rem;
+	height: 0.75rem;
+	border-radius: 3px;
+}
+
+.item {
+	background: var(--fls-canvas-item);
+}
+
+.enemy {
+	background: var(--fls-canvas-spawn);
+}
+
+.start {
+	background: var(--fls-canvas-start);
 }
 
 .entry {
@@ -17,13 +70,32 @@
 	cursor: default;
 }
 
+.row .entry {
+	flex: 1;
+	min-width: 0;
+	width: auto;
+	padding-inline-start: 0.1rem;
+}
+
 .entry:hover {
 	background: var(--fls-bg-hover);
+}
+
+.entry[aria-current='true'] {
+	background: var(--fls-bg-selected);
 }
 
 .entry:focus-visible {
 	outline: 2px solid var(--fls-focus-ring);
 	outline-offset: -2px;
+}
+
+.line {
+	flex: none;
+	padding-inline-end: 0.5rem;
+	color: var(--fls-text-muted);
+	font-size: 0.8rem;
+	font-variant-numeric: tabular-nums;
 }
 
 .problem {

@@ -3,6 +3,7 @@
 // (c) Copyright 2026 Liminal HQ, Scott Morris
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
+use std::collections::BTreeSet;
 use std::sync::atomic::{AtomicU64, Ordering};
 
 use crate::document::{Document, Edit};
@@ -118,6 +119,8 @@ pub struct Session<D: Document> {
     open_step: bool,
     writer: Option<(u64, String)>,
     claims: u64,
+    /// The layers no change may touch, whoever makes it.
+    locks: BTreeSet<String>,
 }
 
 // The document's text is the person's work and may be private, so Debug shows sizes and counts only.
@@ -147,6 +150,7 @@ impl<D: Document> Session<D> {
             open_step: false,
             writer: None,
             claims: 0,
+            locks: BTreeSet::new(),
         }
     }
 
@@ -156,6 +160,29 @@ impl<D: Document> Session<D> {
         let mut session = Self::new(document);
         session.revision = 1;
         session
+    }
+
+    /// The locked layers, by id. A change that touches one is refused (apply, undo, redo and an
+    /// outside edit alike), whoever makes it.
+    pub fn locks(&self) -> &BTreeSet<String> {
+        &self.locks
+    }
+
+    /// Replaces the locked layers. Nothing about the text or the history changes.
+    pub fn set_locks(&mut self, locks: impl IntoIterator<Item = String>) {
+        self.locks = locks.into_iter().collect();
+    }
+
+    /// The locked layers a change from `old` to `new` touches.
+    fn locked_between(&self, old: &str, new: &str) -> Vec<String> {
+        if self.locks.is_empty() {
+            return Vec::new();
+        }
+        self.document
+            .layers_changed(old, new)
+            .into_iter()
+            .filter(|layer| self.locks.contains(layer))
+            .collect()
     }
 
     pub fn document(&self) -> &D {
@@ -275,7 +302,15 @@ impl<D: Document> Session<D> {
     ) -> Result<Patch, SessionError> {
         self.check_writer(writer)?;
         self.check_revision(request.base_revision)?;
+        let before = (!self.locks.is_empty()).then(|| self.document.text().to_string());
         let edits = self.document.apply(&request.intent)?;
+        if let Some(before) = before {
+            let touched = self.locked_between(&before, self.document.text());
+            if !touched.is_empty() {
+                self.revert(edits.iter().rev().map(Edit::inverse));
+                return Err(SessionError::Locked { layers: touched });
+            }
+        }
         if edits.is_empty() {
             return Ok(Patch {
                 revision: self.revision,
@@ -292,6 +327,8 @@ impl<D: Document> Session<D> {
         if merges {
             if let Some(last) = self.undo.last_mut() {
                 last.edits.extend(edits.iter().cloned());
+                // The step says what the run did so far, not what its first request did.
+                last.name = request.name;
             }
         } else {
             self.push_step(Step {
@@ -332,6 +369,10 @@ impl<D: Document> Session<D> {
                 edited_outside: true,
             });
         }
+        let touched = self.locked_between(&removed, new_text);
+        if !touched.is_empty() {
+            return Err(SessionError::Locked { layers: touched });
+        }
         self.document.replace(0, removed.len(), new_text)?;
         let edit = Edit {
             start: 0,
@@ -365,6 +406,7 @@ impl<D: Document> Session<D> {
         self.check_writer(writer)?;
         self.check_revision(base_revision)?;
         let step = self.undo.pop().ok_or(SessionError::NothingToUndo)?;
+        let before = self.document.text().to_string();
         let mut applied = Vec::with_capacity(step.edits.len());
         for edit in step.edits.iter().rev() {
             let inverse = edit.inverse();
@@ -387,6 +429,12 @@ impl<D: Document> Session<D> {
             }
             applied.push(inverse);
         }
+        let touched = self.locked_between(&before, self.document.text());
+        if !touched.is_empty() {
+            self.revert(applied.iter().rev().map(Edit::inverse));
+            self.undo.push(step);
+            return Err(SessionError::Locked { layers: touched });
+        }
         let author = step.author;
         self.redo.push(step);
         self.open_step = false;
@@ -408,6 +456,7 @@ impl<D: Document> Session<D> {
         self.check_writer(writer)?;
         self.check_revision(base_revision)?;
         let step = self.redo.pop().ok_or(SessionError::NothingToRedo)?;
+        let before = self.document.text().to_string();
         let mut applied: Vec<&Edit> = Vec::with_capacity(step.edits.len());
         for edit in &step.edits {
             if let Err(error) = self
@@ -426,6 +475,12 @@ impl<D: Document> Session<D> {
             }
             applied.push(edit);
         }
+        let touched = self.locked_between(&before, self.document.text());
+        if !touched.is_empty() {
+            self.revert(applied.iter().rev().map(|edit| edit.inverse()));
+            self.redo.push(step);
+            return Err(SessionError::Locked { layers: touched });
+        }
         let edits = step.edits.clone();
         let author = step.author;
         self.undo.push(step);
@@ -437,6 +492,16 @@ impl<D: Document> Session<D> {
             author,
             edited_outside: false,
         })
+    }
+
+    /// Puts the document back by applying `edits`, each against the text the one before left. Used
+    /// after a change turns out to touch a locked layer, so a refusal changes nothing.
+    fn revert(&mut self, edits: impl Iterator<Item = Edit>) {
+        for edit in edits {
+            let _ =
+                self.document
+                    .replace(edit.start, edit.start + edit.removed.len(), &edit.inserted);
+        }
     }
 
     fn push_step(&mut self, step: Step) {
@@ -451,6 +516,7 @@ impl<D: Document> Session<D> {
 mod tests {
     use super::*;
     use crate::document::{PlainText, PlainTextIntent};
+    use crate::error::DocumentError;
 
     fn open(text: &str) -> (Session<PlainText>, WriterToken) {
         let mut session = Session::new(PlainText::new(text));
@@ -699,6 +765,30 @@ mod tests {
     }
 
     #[test]
+    fn a_merged_step_takes_the_name_of_the_latest_request() {
+        let (mut s, w) = open("");
+        let r = Request::new(
+            s.revision(),
+            "Move a to 1",
+            PlainTextIntent::replace(0, 0, "a"),
+        )
+        .merging("k");
+        s.apply(&w, r).unwrap();
+        let r = Request::new(
+            s.revision(),
+            "Move a to 2",
+            PlainTextIntent::replace(0, 1, "b"),
+        )
+        .merging("k");
+        s.apply(&w, r).unwrap();
+        assert_eq!(s.undo_depth(), 1);
+        assert_eq!(s.undo_step().unwrap().name, "Move a to 2");
+        s.undo(&w, 2).unwrap();
+        assert_eq!(s.text(), "");
+        assert_eq!(s.redo_step().unwrap().name, "Move a to 2");
+    }
+
+    #[test]
     fn claudes_steps_are_marked_and_do_not_merge_with_the_persons() {
         let (mut s, w) = open("");
         let r = insert(&s, 0, "a").merging("k");
@@ -766,5 +856,147 @@ mod tests {
         assert!(!format!("{:?}", patch.edits[0]).contains("secret"));
         let request = Request::new(1, "x", PlainTextIntent::insert(0, "hidden words"));
         assert!(!format!("{request:?}").contains("hidden"));
+    }
+
+    // Locks: a document whose lines start `a:` or `b:` belongs to the layer of that letter.
+
+    struct Layered(PlainText);
+
+    impl Document for Layered {
+        type Intent = PlainTextIntent;
+        fn text(&self) -> &str {
+            self.0.text()
+        }
+        fn apply(&mut self, intent: &PlainTextIntent) -> Result<Vec<Edit>, DocumentError> {
+            self.0.apply(intent)
+        }
+        fn replace(&mut self, start: usize, end: usize, with: &str) -> Result<(), DocumentError> {
+            self.0.replace(start, end, with)
+        }
+        fn layers_changed(&self, old: &str, new: &str) -> Vec<String> {
+            let lines = |text: &str| -> Vec<String> { text.lines().map(str::to_owned).collect() };
+            let (old, new) = (lines(old), lines(new));
+            let mut touched: Vec<String> = Vec::new();
+            for line in old
+                .iter()
+                .filter(|l| !new.contains(l))
+                .chain(new.iter().filter(|l| !old.contains(l)))
+            {
+                if let Some(layer) = line.get(..1).filter(|_| line.get(1..2) == Some(":")) {
+                    if !touched.iter().any(|t| t == layer) {
+                        touched.push(layer.to_owned());
+                    }
+                }
+            }
+            touched.sort();
+            touched
+        }
+    }
+
+    fn open_layered(text: &str, locks: &[&str]) -> (Session<Layered>, WriterToken) {
+        let mut session = Session::new(Layered(PlainText::new(text)));
+        session.set_locks(locks.iter().map(|l| (*l).to_owned()));
+        let token = session.claim_writer("test").unwrap();
+        (session, token)
+    }
+
+    fn type_at(session: &Session<Layered>, at: usize, text: &str) -> Request<PlainTextIntent> {
+        Request::new(
+            session.revision(),
+            "Type",
+            PlainTextIntent::insert(at, text),
+        )
+    }
+
+    #[test]
+    fn a_change_to_a_locked_layer_is_refused_and_changes_nothing() {
+        let (mut s, w) = open_layered("a:one\nb:two\n", &["a"]);
+        let request = type_at(&s, 0, "a:new\n");
+        let error = s.apply(&w, request).unwrap_err();
+        assert_eq!(
+            error,
+            SessionError::Locked {
+                layers: vec!["a".into()]
+            }
+        );
+        assert_eq!(s.text(), "a:one\nb:two\n");
+        assert_eq!(s.revision(), 0);
+        assert!(!s.can_undo());
+    }
+
+    #[test]
+    fn a_change_to_another_layer_goes_through_and_names_every_locked_layer_it_touches() {
+        let (mut s, w) = open_layered("a:one\nb:two\n", &["a", "b"]);
+        let request = type_at(&s, 0, "c:free\n");
+        assert!(s.apply(&w, request).is_ok());
+        let request = type_at(&s, 0, "b:x\na:y\n");
+        let error = s.apply(&w, request).unwrap_err();
+        assert_eq!(
+            error,
+            SessionError::Locked {
+                layers: vec!["a".into(), "b".into()]
+            }
+        );
+        assert_eq!(s.revision(), 1);
+    }
+
+    #[test]
+    fn undo_and_redo_across_a_lock_are_refused_and_keep_their_steps() {
+        let (mut s, w) = open_layered("b:two\n", &[]);
+        let request = type_at(&s, 0, "a:one\n");
+        s.apply(&w, request).unwrap();
+        s.set_locks(["a".to_owned()]);
+        let error = s.undo(&w, 1).unwrap_err();
+        assert_eq!(
+            error,
+            SessionError::Locked {
+                layers: vec!["a".into()]
+            }
+        );
+        assert_eq!(s.text(), "a:one\nb:two\n");
+        assert_eq!(s.revision(), 1);
+        assert!(s.can_undo() && !s.can_redo());
+        s.set_locks([]);
+        s.undo(&w, 1).unwrap();
+        assert_eq!(s.text(), "b:two\n");
+        s.set_locks(["a".to_owned()]);
+        let error = s.redo(&w, 2).unwrap_err();
+        assert_eq!(
+            error,
+            SessionError::Locked {
+                layers: vec!["a".into()]
+            }
+        );
+        assert_eq!(s.text(), "b:two\n");
+        assert!(s.can_redo() && !s.can_undo());
+        s.set_locks([]);
+        s.redo(&w, 2).unwrap();
+        assert_eq!(s.text(), "a:one\nb:two\n");
+    }
+
+    #[test]
+    fn an_outside_edit_to_a_locked_layer_is_refused_whole() {
+        let (mut s, w) = open_layered("a:one\nb:two\n", &["a"]);
+        let error = s
+            .apply_outside_edit(&w, 0, "a:changed\nb:two\n")
+            .unwrap_err();
+        assert_eq!(
+            error,
+            SessionError::Locked {
+                layers: vec!["a".into()]
+            }
+        );
+        assert_eq!(s.text(), "a:one\nb:two\n");
+        assert!(s.outside_revision().is_none());
+        assert!(s.apply_outside_edit(&w, 0, "a:one\nb:three\n").is_ok());
+    }
+
+    #[test]
+    fn a_document_with_no_layers_is_never_locked() {
+        let (mut s, w) = open("hello");
+        s.set_locks(["a".to_owned()]);
+        let request = insert(&s, 5, "!");
+        assert!(s.apply(&w, request).is_ok());
+        assert_eq!(s.locks().len(), 1);
     }
 }

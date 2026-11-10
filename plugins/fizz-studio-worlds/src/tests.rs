@@ -14,7 +14,8 @@ use tauri::test::{mock_builder, mock_context, noop_assets, MockRuntime};
 use tauri::{Listener, Manager, WebviewUrl, WebviewWindowBuilder};
 
 use crate::{
-    commands, init_with, LevelConflict, RecoveryConfig, Worlds, CHANGED_EVENT, CONFLICT_EVENT,
+    commands, init_with, LevelConflict, LevelLayers, RecoveryConfig, Worlds, CHANGED_EVENT,
+    CONFLICT_EVENT, LAYERS_EVENT,
 };
 
 type App = tauri::App<MockRuntime>;
@@ -316,26 +317,34 @@ fn an_outside_write_becomes_a_revision_marked_edited_outside() {
 }
 
 #[test]
-fn an_outside_edit_beside_unsaved_changes_is_merged() {
+fn an_outside_edit_over_unsaved_changes_comes_in_whole_as_one_step_and_undo_returns_the_unsaved_text(
+) {
     let app = app();
     let (_dir, path) = project();
     let opened = open(&app, &path);
-    apply(&app, &opened.id, paint("grass", 5), 0).unwrap();
+    let unsaved = apply(&app, &opened.id, paint("grass", 5), 0).unwrap().text;
+    assert!(unsaved.contains("paint grass x=5 y=10"));
 
-    // The person's change is at the end of the file; the outside one is near the top.
+    // The outside change is far from the person's, so a merge would have kept both.
     let outside = CRATER.replace("start 3,4", "start 4,4");
     std::fs::write(&path, &outside).unwrap();
     assert!(within(Duration::from_secs(1), || {
         current(&app, &opened.id).revision == 2
     }));
     let level = current(&app, &opened.id);
-    assert!(level.text.contains("start 4,4"));
-    assert!(level.text.contains("paint grass x=5 y=10"));
-    assert_ne!(level.saved_revision, level.revision, "still unsaved");
+    assert_eq!(level.text, outside, "the disk text, whole: no merge");
+    assert_eq!(level.author, "outside");
+    assert!(level.edited_outside);
+    assert_eq!(level.undo_name.as_deref(), Some("Edit outside the studio"));
+
+    let undone = commands::level_undo(app.handle().clone(), worlds(&app), opened.id.clone(), 2)
+        .unwrap()
+        .text;
+    assert_eq!(undone, unsaved, "one undo returns the unsaved text");
 }
 
 #[test]
-fn an_outside_edit_over_the_same_lines_is_a_conflict_and_changes_nothing() {
+fn an_outside_edit_over_the_same_lines_as_unsaved_changes_also_comes_in_whole() {
     let app = app();
     let (_dir, path) = project();
     let opened = open(&app, &path);
@@ -347,16 +356,190 @@ fn an_outside_edit_over_the_same_lines_is_a_conflict_and_changes_nothing() {
         x: vec![[1, 1]],
         y: vec![[1, 1]],
     };
-    let session_text = apply(&app, &opened.id, mine, 0).unwrap().text;
-    std::fs::write(&path, format!("{CRATER}\nedits\n  paint rock x=2 y=2\n")).unwrap();
+    apply(&app, &opened.id, mine, 0).unwrap();
+    let outside = format!("{CRATER}\nedits\n  paint rock x=2 y=2\n");
+    std::fs::write(&path, &outside).unwrap();
+
+    assert!(within(Duration::from_secs(1), || {
+        current(&app, &opened.id).revision == 2
+    }));
+    assert_eq!(current(&app, &opened.id).text, outside);
+    assert!(
+        conflicts.lock().unwrap().is_empty(),
+        "no conflict without a lock"
+    );
+}
+
+#[test]
+fn an_outside_edit_to_a_locked_layer_is_a_conflict_that_names_it_and_the_studio_keeps_its_text() {
+    let app = app();
+    let (_dir, path) = project();
+    let opened = open(&app, &path);
+    let conflicts = hear::<LevelConflict>(&app, "main-1", CONFLICT_EVENT);
+    worlds(&app)
+        .with(&opened.id, |level| {
+            level.session.set_locks(["treats".to_string()]);
+            Ok(())
+        })
+        .unwrap();
+
+    let outside = CRATER.replace("soda        x=36 y=5", "soda        x=37 y=5");
+    std::fs::write(&path, &outside).unwrap();
 
     assert!(within(Duration::from_secs(1), || {
         !conflicts.lock().unwrap().is_empty()
     }));
     let conflicts = conflicts.lock().unwrap();
     assert_eq!(conflicts[0].id, opened.id);
-    assert!(conflicts[0].marked.contains("<<<<<<<"));
-    assert_eq!(current(&app, &opened.id).text, session_text);
+    assert_eq!(conflicts[0].locked, ["treats"]);
+    assert_eq!(conflicts[0].marked, outside);
+    assert_eq!(current(&app, &opened.id).text, CRATER);
+}
+
+#[test]
+fn an_edit_to_a_locked_layer_is_refused_as_locked_and_changes_nothing() {
+    let app = app();
+    let (_dir, path) = project();
+    let opened = open(&app, &path);
+    worlds(&app)
+        .with(&opened.id, |level| {
+            level.session.set_locks(["edits".to_string()]);
+            Ok(())
+        })
+        .unwrap();
+    let refused = apply(&app, &opened.id, paint("grass", 5), 0);
+    assert!(matches!(
+        refused,
+        Err(LevelError::Locked { ref layers }) if layers == &["edits".to_string()]
+    ));
+    assert_eq!(current(&app, &opened.id).revision, 0);
+}
+
+fn set_locked(app: &App, id: &str, layer: &str, locked: bool) -> Result<LevelLayers, LevelError> {
+    commands::level_set_layer_locked(
+        app.handle().clone(),
+        worlds(app),
+        id.to_string(),
+        layer.to_string(),
+        locked,
+    )
+}
+
+fn sidecar(path: &Path) -> PathBuf {
+    PathBuf::from(fizz_studio_level::sidecar_path(&path.to_string_lossy()))
+}
+
+#[test]
+fn locking_a_layer_is_kept_in_the_sidecar_keeping_the_other_keys_and_announced() {
+    let app = app();
+    let (_dir, path) = project();
+    let opened = open(&app, &path);
+    let heard = hear::<LevelLayers>(&app, "panel-layers-1", LAYERS_EVENT);
+    let mcp = "{\n  \"version\": 1,\n  \"mode\": \"propose\",\n  \"history\": []\n}\n";
+    std::fs::write(sidecar(&path), mcp).unwrap();
+
+    let layers = set_locked(&app, &opened.id, "treats", true).unwrap();
+    assert_eq!(layers.locked, ["treats"]);
+    let text = std::fs::read_to_string(sidecar(&path)).unwrap();
+    assert!(text.starts_with("{\n  \"version\": 1,\n  \"mode\": \"propose\",\n  \"history\": [],"));
+    assert_eq!(fizz_studio_level::locked_layers(&text), ["treats"]);
+    assert!(within(Duration::from_secs(1), || !heard
+        .lock()
+        .unwrap()
+        .is_empty()));
+    assert_eq!(heard.lock().unwrap()[0].locked, ["treats"]);
+
+    let again = commands::level_layers(worlds(&app), opened.id.clone()).unwrap();
+    assert_eq!(again.locked, ["treats"]);
+
+    set_locked(&app, &opened.id, "treats", false).unwrap();
+    assert_eq!(std::fs::read_to_string(sidecar(&path)).unwrap(), mcp);
+    assert!(set_locked(&app, &opened.id, "bogus", true).is_err());
+    assert!(set_locked(&app, "nope", "treats", true).is_err());
+}
+
+#[test]
+fn a_level_opens_with_the_locks_its_sidecar_holds_and_enforces_them() {
+    let app = app();
+    let (_dir, path) = project();
+    std::fs::write(
+        sidecar(&path),
+        r#"{"layers":{"locked":["edits"]},"mode":"direct"}"#,
+    )
+    .unwrap();
+    let opened = open(&app, &path);
+    let layers = commands::level_layers(worlds(&app), opened.id.clone()).unwrap();
+    assert_eq!(layers.locked, ["edits"]);
+    let refused = apply(&app, &opened.id, paint("grass", 5), 0);
+    assert!(matches!(refused, Err(LevelError::Locked { .. })));
+}
+
+#[test]
+fn a_lock_survives_the_level_being_closed_and_opened_again() {
+    let app = app();
+    let (_dir, path) = project();
+    let opened = open(&app, &path);
+    set_locked(&app, &opened.id, "enemies", true).unwrap();
+    commands::level_close(worlds(&app), opened.id).unwrap();
+    let again = open(&app, &path);
+    let layers = commands::level_layers(worlds(&app), again.id).unwrap();
+    assert_eq!(layers.locked, ["enemies"]);
+}
+
+#[test]
+fn a_sidecar_that_cannot_be_read_is_not_overwritten_and_the_lock_stays_off() {
+    let app = app();
+    let (_dir, path) = project();
+    let opened = open(&app, &path);
+    std::fs::write(sidecar(&path), "not json").unwrap();
+    let refused = set_locked(&app, &opened.id, "treats", true);
+    assert!(matches!(refused, Err(LevelError::Io { .. })));
+    assert_eq!(std::fs::read_to_string(sidecar(&path)).unwrap(), "not json");
+    let layers = commands::level_layers(worlds(&app), opened.id).unwrap();
+    assert!(layers.locked.is_empty());
+}
+
+#[test]
+fn a_server_rewriting_the_sidecar_without_the_lock_has_it_put_back() {
+    let app = app();
+    let (_dir, path) = project();
+    let opened = open(&app, &path);
+    set_locked(&app, &opened.id, "treats", true).unwrap();
+    std::fs::write(
+        sidecar(&path),
+        r#"{"version":1,"mode":"propose","history":[]}"#,
+    )
+    .unwrap();
+    assert!(within(Duration::from_secs(2), || {
+        std::fs::read_to_string(sidecar(&path))
+            .map(|text| fizz_studio_level::locked_layers(&text) == ["treats"])
+            .unwrap_or(false)
+    }));
+    let text = std::fs::read_to_string(sidecar(&path)).unwrap();
+    assert!(text.contains("\"mode\": \"propose\""));
+}
+
+#[test]
+fn a_level_is_drawn_without_hidden_layers_and_nothing_is_saved() {
+    let app = app();
+    let (_dir, path) = project();
+    let opened = open(&app, &path);
+    let masked = |hidden: &[&str]| {
+        commands::level_view_masked(
+            worlds(&app),
+            opened.id.clone(),
+            hidden.iter().map(|h| (*h).to_string()).collect(),
+        )
+    };
+    assert_eq!(masked(&[]).unwrap(), opened.view);
+    let without = masked(&["terrain"]).unwrap();
+    assert_ne!(without.cells, opened.view.cells);
+    assert_eq!(without.sections.len(), opened.view.sections.len());
+    assert!(masked(&["bogus"]).is_ok());
+    assert!(commands::level_view_masked(worlds(&app), "nope".into(), vec![]).is_err());
+    let after = current(&app, &opened.id);
+    assert_eq!(after.revision, 0);
+    assert_eq!(after.text, CRATER);
 }
 
 #[test]
@@ -803,4 +986,139 @@ fn the_ghosts_are_the_pending_proposals_in_the_sidecar() {
 
     let missing = commands::level_ghosts(worlds(&app), "nope".into());
     assert!(matches!(missing, Err(LevelError::NotOpen { .. })));
+}
+
+fn first_of(level: &LevelSnapshot, word: &str) -> fizz_studio_protocol::ThingRef {
+    let (index, item) = level
+        .view
+        .items
+        .iter()
+        .enumerate()
+        .find(|(_, i)| i.kind == word && i.generator.is_none())
+        .expect("an item of that kind");
+    let line = item.line.unwrap();
+    fizz_studio_protocol::ThingRef {
+        kind: fizz_studio_protocol::ThingKind::Item,
+        index: index as u32,
+        line,
+        expect: level
+            .text
+            .split('\n')
+            .nth(line as usize - 1)
+            .unwrap()
+            .to_string(),
+        x: item.x,
+        y: Some(item.y),
+    }
+}
+
+#[test]
+fn a_thing_edit_with_a_stale_revision_lands_when_its_statement_is_still_there() {
+    let app = app();
+    let (_dir, path) = project();
+    let opened = open(&app, &path);
+    let soda = first_of(&opened, "soda");
+    // Someone else's edit lands first, so the revision the webview drew from is stale.
+    apply(&app, &opened.id, paint("grass", 5), 0).unwrap();
+    let moved = apply(
+        &app,
+        &opened.id,
+        LevelEdit::MoveThing {
+            thing: soda,
+            x: 37.0,
+            y: Some(5.0),
+        },
+        0,
+    )
+    .expect("the thing is found again, so the edit is retried on the current revision");
+    assert!(moved.text.contains("soda        x=37 y=5"));
+    assert!(moved.text.contains("paint grass x=5 y=10"));
+    assert_eq!(moved.undo_name.as_deref(), Some("Move soda to 37, 5"));
+    // The appended edits keep the plain refusal.
+    assert!(matches!(
+        apply(&app, &opened.id, paint("grass", 6), 0),
+        Err(LevelError::Stale { .. })
+    ));
+}
+
+#[test]
+fn a_thing_edit_whose_line_changed_is_gone_and_changes_nothing() {
+    let app = app();
+    let (_dir, path) = project();
+    let opened = open(&app, &path);
+    let mut soda = first_of(&opened, "soda");
+    soda.expect = "  soda        x=99 y=5".into();
+    let line = soda.line;
+    let refused = apply(
+        &app,
+        &opened.id,
+        LevelEdit::DeleteThing { thing: soda },
+        opened.revision,
+    );
+    assert!(matches!(refused, Err(LevelError::Gone { line: l }) if l == line));
+    assert_eq!(current(&app, &opened.id).text, CRATER);
+}
+
+#[test]
+fn a_burst_of_moves_under_one_merge_key_is_one_step_with_the_latest_name() {
+    let app = app();
+    let (_dir, path) = project();
+    let opened = open(&app, &path);
+    let mut level = opened.clone();
+    for x in [37.0, 38.0, 39.0] {
+        let thing = first_of(&level, "soda");
+        level = commands::level_apply(
+            app.handle().clone(),
+            worlds(&app),
+            opened.id.clone(),
+            LevelEdit::MoveThing {
+                thing,
+                x,
+                y: Some(5.0),
+            },
+            level.revision,
+            Some("thing:item:4:move".into()),
+        )
+        .unwrap();
+    }
+    commands::level_end_step(worlds(&app), opened.id.clone()).unwrap();
+    let level = current(&app, &opened.id);
+    assert_eq!(level.undo_name.as_deref(), Some("Move soda to 39, 5"));
+    let undone = commands::level_undo(
+        app.handle().clone(),
+        worlds(&app),
+        opened.id,
+        level.revision,
+    )
+    .unwrap();
+    assert_eq!(undone.text, CRATER, "one undo puts the first position back");
+}
+
+#[test]
+fn a_locked_layer_refuses_a_thing_edit_and_the_text_stays() {
+    let app = app();
+    let (_dir, path) = project();
+    let opened = open(&app, &path);
+    let soda = first_of(&opened, "soda");
+    worlds(&app)
+        .with(&opened.id, |level| {
+            level.session.set_locks(["treats".to_string()]);
+            Ok(())
+        })
+        .unwrap();
+    let refused = apply(
+        &app,
+        &opened.id,
+        LevelEdit::MoveThing {
+            thing: soda,
+            x: 37.0,
+            y: Some(5.0),
+        },
+        opened.revision,
+    );
+    assert!(matches!(
+        refused,
+        Err(LevelError::Locked { ref layers }) if layers == &["treats".to_string()]
+    ));
+    assert_eq!(current(&app, &opened.id).text, CRATER);
 }

@@ -28,7 +28,7 @@ const server = new Server(
 	{
 		capabilities: { tools: {} },
 		instructions:
-			'Fizz Level Studio. Read the level with get_level and get_region, then change it with edit_level. In the default propose mode your edits are only proposals that the person accepts or rejects; you cannot change the mode or accept anything yourself.',
+			'Fizz Level Studio. Read the level with get_level and get_region, then change it with edit_level. In the default propose mode your edits are only proposals that the person accepts or rejects; you cannot change the mode or accept anything yourself. The person can lock layers (see locked_layers in get_level); a lock binds you exactly as it binds them, and an edit that would touch a locked layer is refused.',
 	},
 );
 

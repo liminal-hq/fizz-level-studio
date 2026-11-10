@@ -11,9 +11,14 @@
 // everything back (nothing has moved until the drop). A floating panel moves itself, so it only
 // reports where its pointer is (`hoverFloat`) and asks whether the drop docked it (`dropFloat`).
 //
-// Extension point: `onLeaveWindow` is called once each time the pointer leaves the window while a
-// drag is active, with the panel and the pointer's last position. It does nothing yet; the step
-// that tears a panel off into its own window passes a callback here and takes the drag over.
+// `onLeaveWindow` is called once each time the pointer leaves the window while a drag is active.
+// It may return a `WindowExit`, which takes the drag over while the pointer is outside: it hears the
+// pointer move, the release (a drop outside every window of the page) and a cancel (Escape, a
+// cancelled pointer, or the pointer coming back in, when the drag is the page's own again). That is
+// how a panel is torn off into a window of its own by dragging (`panels/windows/tearDrag.ts`). A
+// callback that returns nothing leaves a release outside the window to cancel the drag, as before.
+// An exit that hands the drag to the compositor, which then sends this page no more pointer events,
+// calls `info.finish()` so the controller stops waiting for a release that will never come.
 
 import {
 	useCallback,
@@ -22,9 +27,11 @@ import {
 	useState,
 	type PointerEvent as ReactPointerEvent,
 } from 'react';
+import { CONTEXT_BUSY } from '../../app/contextBusy';
 import type { DropTarget, Point } from './dockDrop';
 
-export type DragSource = 'tab' | 'header';
+/** What was pressed: a rail entry or a tab, a panel's header grip, or a tab in the Script panel's header. */
+export type DragSource = 'tab' | 'header' | 'scriptTab';
 
 export interface DockDragState {
 	id: string;
@@ -39,6 +46,22 @@ export interface LeaveWindowInfo {
 	id: string;
 	point: Point;
 	source: DragSource;
+	/** Where the press was, in the page. */
+	start: Point;
+	/** Where inside the pressed element it was held, in logical pixels from its top-left. */
+	grab: Point;
+	/** Ends the page's drag without a drop or a cancel, for an exit that handed the drag on. */
+	finish: () => void;
+}
+
+/** What takes a drag over while the pointer is outside the window. */
+export interface WindowExit {
+	/** The pointer moved, outside the window still (page coordinates, which may be negative). */
+	move?: (point: Point) => void;
+	/** The pointer was let go outside the window. */
+	drop: (point: Point) => void;
+	/** The drag was cancelled, or the pointer came back into the window. */
+	cancel: () => void;
 }
 
 export interface DockDragOptions {
@@ -46,8 +69,8 @@ export interface DockDragOptions {
 	onDrop: (id: string, target: DropTarget, point: Point) => void;
 	/** A drag was cancelled (Escape, a cancelled pointer, or a drop over nothing). */
 	onCancel?: (id: string) => void;
-	/** The extension point for tearing a panel off: see the note at the top of the file. */
-	onLeaveWindow?: (info: LeaveWindowInfo) => void;
+	/** Called when the pointer leaves the window mid-drag; the exit it returns takes the drag over (see the note at the top). */
+	onLeaveWindow?: (info: LeaveWindowInfo) => WindowExit | void;
 	/** How far the pointer moves before a press becomes a drag, in pixels. */
 	threshold?: number;
 }
@@ -71,6 +94,8 @@ interface Press {
 	start: Point;
 	active: boolean;
 	outside: boolean;
+	exit: WindowExit | null;
+	grab: Point;
 	target: Element;
 }
 
@@ -82,6 +107,12 @@ function capture(target: Element, pointer: number, on: boolean): void {
 	} catch {
 		// Nothing to capture or release.
 	}
+}
+
+/** Where in `target` a press at (`x`, `y`) was, from its top-left. */
+function grabAt(target: Element, x: number, y: number): Point {
+	const rect = target.getBoundingClientRect();
+	return { x: Math.max(0, x - rect.left), y: Math.max(0, y - rect.top) };
 }
 
 function outsideWindow(p: Point): boolean {
@@ -116,6 +147,8 @@ export function useDockDrag(options: DockDragOptions): DockDrag {
 				start: { x: event.clientX, y: event.clientY },
 				active: false,
 				outside: false,
+				exit: null,
+				grab: grabAt(target, event.clientX, event.clientY),
 				target,
 			};
 			press.current = current;
@@ -130,14 +163,28 @@ export function useDockDrag(options: DockDragOptions): DockDrag {
 				}
 				const out = outsideWindow(point);
 				if (out && !current.outside) {
-					opts.current.onLeaveWindow?.({ id, point, source });
+					current.exit =
+						opts.current.onLeaveWindow?.({
+							id,
+							point,
+							source,
+							start: current.start,
+							grab: current.grab,
+							finish,
+						}) ?? null;
+				} else if (!out && current.outside) {
+					// Back inside: the page's own drag again, and the exit lets go of the pointer.
+					current.exit?.cancel();
+					current.exit = null;
 				}
 				current.outside = out;
+				if (out) current.exit?.move?.(point);
 				setState({ id, point, target: out ? null : opts.current.locate(point, id), ghost: true });
 			};
 
 			const cancel = () => {
 				const was = finish();
+				was?.exit?.cancel();
 				if (was?.active) opts.current.onCancel?.(id);
 			};
 
@@ -154,6 +201,10 @@ export function useDockDrag(options: DockDragOptions): DockDrag {
 				};
 				document.addEventListener('click', swallow, true);
 				setTimeout(() => document.removeEventListener('click', swallow, true), 0);
+				if (outsideWindow(point) && was.exit) {
+					was.exit.drop(point);
+					return;
+				}
 				const where = outsideWindow(point) ? null : opts.current.locate(point, id);
 				if (where) opts.current.onDrop(id, where, point);
 				else opts.current.onCancel?.(id);
@@ -171,11 +222,23 @@ export function useDockDrag(options: DockDragOptions): DockDrag {
 				cancel();
 			};
 
+			// The drag is ours alone: the webview must not start a text selection or a native drag and
+			// drop of the page's text (its drag image is a window of its own, drawn over the desktop)
+			// while the pointer moves, whatever was under the press or already selected.
+			const refuse = (e: Event) => e.preventDefault();
+			window.getSelection?.()?.removeAllRanges();
+			// While the drag runs no context menu opens (the host reads this mark).
+			document.documentElement.setAttribute(CONTEXT_BUSY, '');
+			document.addEventListener('dragstart', refuse, true);
+			document.addEventListener('selectstart', refuse, true);
 			document.addEventListener('pointermove', move);
 			document.addEventListener('pointerup', up);
 			document.addEventListener('pointercancel', aborted);
 			document.addEventListener('keydown', key, true);
 			stop.current = () => {
+				document.documentElement.removeAttribute(CONTEXT_BUSY);
+				document.removeEventListener('dragstart', refuse, true);
+				document.removeEventListener('selectstart', refuse, true);
 				document.removeEventListener('pointermove', move);
 				document.removeEventListener('pointerup', up);
 				document.removeEventListener('pointercancel', aborted);
@@ -188,6 +251,7 @@ export function useDockDrag(options: DockDragOptions): DockDrag {
 	useEffect(
 		() => () => {
 			stop.current?.();
+			press.current?.exit?.cancel();
 		},
 		[],
 	);

@@ -31,6 +31,8 @@ export interface ScriptEditorProps {
 	/** False while the backend has no way to take a typed change; the text then stays read-only. */
 	editable?: boolean;
 	className?: string;
+	/** Told of the view once it exists, and with null when it goes: how the panel reaches the editor's own commands. */
+	onView?: (view: EditorView | null) => void;
 }
 
 /**
@@ -45,7 +47,10 @@ export function ScriptEditor({
 	reveal = null,
 	editable = false,
 	className,
+	onView,
 }: ScriptEditorProps) {
+	const onViewRef = useRef(onView);
+	onViewRef.current = onView;
 	const host = useRef<HTMLDivElement>(null);
 	const view = useRef<EditorView | null>(null);
 	const features = useRef(new Compartment());
@@ -61,7 +66,9 @@ export function ScriptEditor({
 			}),
 		});
 		view.current = created;
+		onViewRef.current?.(created);
 		return () => {
+			onViewRef.current?.(null);
 			created.destroy();
 			view.current = null;
 		};

@@ -15,6 +15,8 @@ import {
 	maximiseCommandId,
 	panelCommandId,
 	panelWindowCommands,
+	WORKSPACE_COMMANDS,
+	shortcutOf,
 	viewOf,
 	type CommandView,
 	type MenuName,
@@ -47,7 +49,7 @@ const MENU_ICONS: Record<MenuName, IconId> = {
 	help: 'menu.help',
 };
 
-const iconFor = (id: IconId) => createElement(APP_ICONS[id]);
+export const iconFor = (id: IconId) => createElement(APP_ICONS[id]);
 
 /** Alt plus the letter opens that menu: Alt+F File, Alt+E Edit, Alt+V View, Alt+W Window and Alt+H Help. */
 export const APP_MENU_MNEMONICS: Readonly<Record<string, string>> = {
@@ -59,14 +61,15 @@ export const APP_MENU_MNEMONICS: Readonly<Record<string, string>> = {
 };
 
 /** The row of a command: none while it is not visible; a disabled row carries its reason as the tooltip. */
-export function commandRow(view: CommandView): MenuItem[] {
+export function commandRow(view: CommandView, options: { short?: boolean } = {}): MenuItem[] {
 	if (!view.visible) return [];
 	const { def } = view;
+	const keys = shortcutOf(def);
 	const common = {
 		id: def.id,
-		label: commandLabel(def),
+		label: options.short && def.shortLabel ? t(def.shortLabel) : commandLabel(def),
 		...(def.icon ? { icon: iconFor(def.icon) } : {}),
-		...(def.shortcut ? { shortcut: def.shortcut } : {}),
+		...(keys ? { shortcut: keys } : {}),
 		...(view.enabled ? {} : { disabled: true }),
 		...(!view.enabled && view.reason ? { title: view.reason } : {}),
 	};
@@ -175,24 +178,85 @@ export function historyItems(snapshot: BridgeSnapshot): MenuItem[] {
 	return menuSections(body, [more]);
 }
 
-/**
- * The five menus as submenu items, each written as groups with one rule between them. A menu with
- * no row to show is left out altogether.
- */
-export function appMenuItems(snapshot: BridgeSnapshot): MenuItem[] {
+export const PANELS_MENU_ID = 'menu:panels';
+export const WINDOW_SUBMENU_ID = 'menu:window';
+export const WORKSPACE_MENU_ID = 'menu:workspace';
+
+/** A submenu item, left out when it has no row to show. */
+function submenu(id: string, label: MessageId, icon: IconId, items: MenuItem[]): MenuItem[] {
+	return items.length === 0
+		? []
+		: [{ type: 'submenu', id, label: t(label), icon: iconFor(icon), items }];
+}
+
+/** The undo history as a submenu, shared by the Edit menu and the flat app menu. */
+function historySubmenu(snapshot: BridgeSnapshot): MenuItem {
+	return {
+		type: 'submenu',
+		id: HISTORY_MENU_ID,
+		label: t('appMenu.history'),
+		icon: iconFor('history'),
+		items: historyItems(snapshot),
+	};
+}
+
+/** The rows of the commands with these ids, in this order, leaving out the ones that are not visible. */
+function rowsFor(snapshot: BridgeSnapshot) {
 	const defs = allCommands(snapshot.facts);
-	/** The rows of these commands, in this order, leaving out the ones that are not visible. */
-	const rows = (...ids: string[]): MenuItem[] =>
+	return (...ids: string[]): MenuItem[] =>
 		ids.flatMap((id) => {
 			const def = defs.find((command) => command.id === id);
 			return def ? commandRow(viewOf(def, snapshot)) : [];
 		});
+}
 
-	const panels = PANEL_SPECS.map((spec) => panelCommandId(spec.id));
-	const maximising = PANEL_SPECS.filter((spec) => spec.expandable).flatMap((spec) => [
-		maximiseCommandId(spec.id, false),
-		maximiseCommandId(spec.id, true),
-	]);
+const workspaceIds = WORKSPACE_COMMANDS.map((entry) => entry.id);
+const panelIds = PANEL_SPECS.map((spec) => panelCommandId(spec.id));
+const maximiseIds = PANEL_SPECS.filter((spec) => spec.expandable).flatMap((spec) => [
+	maximiseCommandId(spec.id, false),
+	maximiseCommandId(spec.id, true),
+]);
+const focusedPanelIds = ['window.floatFocused', 'window.tearOffFocused', 'window.dockAllBack'];
+
+/**
+ * The flat app menu the title bar button opens while the menu bar is off: one list with no
+ * File, Edit or View headings, in the order of the design. It leaves out the rows that need the
+ * bar (Edit's Go to line, Zoom, Fit); the menu bar's View menu carries them.
+ *
+ *   New level, Open level | Save, Close level | Undo, Redo, Undo history |
+ *   Menu bar, Toolbar, Ribbon | Panels, Window, Command palette | Preferences, Help, Keyboard shortcuts, About | Quit
+ */
+export function buildAppMenu(snapshot: BridgeSnapshot): MenuItem[] {
+	const rows = rowsFor(snapshot);
+	return menuSections(
+		rows('file.new', 'file.open'),
+		rows('file.save', 'file.close'),
+		[...rows('edit.undo', 'edit.redo'), historySubmenu(snapshot)],
+		rows('view.menuBar', 'view.toolbar.classic', 'view.toolbar.ribbon'),
+		[
+			...submenu(PANELS_MENU_ID, 'panels.menu', 'menu.view', rows(...panelIds)),
+			...submenu(
+				WINDOW_SUBMENU_ID,
+				'appMenu.window',
+				'menu.window',
+				menuSections(
+					submenu(WORKSPACE_MENU_ID, 'appMenu.workspace', 'workspace', rows(...workspaceIds)),
+					rows(...focusedPanelIds),
+				),
+			),
+			...rows('view.commandPalette'),
+		],
+		rows('file.preferences', 'help.help', 'help.shortcuts', 'help.about'),
+		rows('file.quit'),
+	);
+}
+
+/**
+ * The five menus as submenu items for the menu bar, each written as groups with one rule between
+ * them. A menu with no row to show is left out altogether.
+ */
+export function buildMenuBar(snapshot: BridgeSnapshot): MenuItem[] {
+	const rows = rowsFor(snapshot);
 	const panelWindows = panelWindowCommands(snapshot.facts).map((def) => def.id);
 
 	const menus: Record<MenuName, MenuItem[]> = {
@@ -202,36 +266,28 @@ export function appMenuItems(snapshot: BridgeSnapshot): MenuItem[] {
 			rows('file.preferences'),
 			rows('file.quit'),
 		),
-		edit: menuSections([
-			...rows('edit.undo', 'edit.redo'),
-			{
-				type: 'submenu',
-				id: HISTORY_MENU_ID,
-				label: t('appMenu.history'),
-				icon: iconFor('history'),
-				items: historyItems(snapshot),
-			},
-		]),
+		edit: menuSections(
+			[...rows('edit.undo', 'edit.redo'), historySubmenu(snapshot)],
+			rows('edit.delete', 'selection.showInScript'),
+		),
 		view: menuSections(
-			rows(...panels),
-			rows(...maximising, 'view.levelFirst', 'view.resetLayout'),
+			rows('view.menuBar', 'view.toolbar.classic', 'view.toolbar.ribbon', 'view.ribbon.fold'),
+			rows('view.zoomIn', 'view.zoomOut', 'view.zoomFit'),
+			[
+				...submenu(PANELS_MENU_ID, 'panels.menu', 'menu.view', rows(...panelIds)),
+				...rows(...maximiseIds, 'view.levelFirst', 'view.resetLayout'),
+			],
 			rows('view.commandPalette'),
 		),
-		window: menuSections(rows(...panelWindows)),
+		window: menuSections(
+			submenu(WORKSPACE_MENU_ID, 'appMenu.workspace', 'workspace', rows(...workspaceIds)),
+			rows(...focusedPanelIds),
+			rows(...panelWindows),
+		),
 		help: menuSections(rows('help.help', 'help.shortcuts'), rows('help.about')),
 	};
 
 	return (Object.keys(MENU_IDS) as MenuName[]).flatMap((menu) =>
-		menus[menu].length === 0
-			? []
-			: [
-					{
-						type: 'submenu',
-						id: MENU_IDS[menu],
-						label: t(MENU_LABELS[menu]),
-						icon: iconFor(MENU_ICONS[menu]),
-						items: menus[menu],
-					} satisfies MenuItem,
-				],
+		submenu(MENU_IDS[menu], MENU_LABELS[menu], MENU_ICONS[menu], menus[menu]),
 	);
 }

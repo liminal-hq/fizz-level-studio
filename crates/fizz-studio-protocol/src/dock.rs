@@ -112,6 +112,34 @@ pub struct PanelPlaced {
     pub positioned: bool,
 }
 
+/// Where a panel sat among the docked panels when it last left its zone, so docking it back puts
+/// it there and not just in the zone. Neighbours are panel ids, not positions, so the place
+/// survives other panels being reordered, moved or removed while the panel is away.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[ts(export, export_to = "../../../packages/protocol/src/generated/")]
+pub struct HomeSpot {
+    /// The zone it left (the same as the entry's `home`; a record for another zone is ignored).
+    pub zone: ZoneId,
+    /// The index of its tab group in the zone, used when no neighbour can be found.
+    pub group: u32,
+    /// The tab it followed in its group; `None` when it was the first tab.
+    #[serde(default)]
+    pub after: Option<String>,
+    /// The tab that followed it; `None` when it was the last tab. Both `None` means it was alone
+    /// in a group of its own.
+    #[serde(default)]
+    pub before: Option<String>,
+    /// Whether it was the showing tab of its group.
+    #[serde(default)]
+    pub active: bool,
+    /// Whether its zone was folded to the rail.
+    #[serde(default)]
+    pub folded: bool,
+    /// The zone's size when it was the only panel docked there, for recreating the zone.
+    #[serde(default)]
+    pub size: Option<i32>,
+}
+
 /// One panel in a workspace.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, TS)]
 #[ts(export, export_to = "../../../packages/protocol/src/generated/")]
@@ -125,6 +153,10 @@ pub struct PanelEntry {
     pub window: Option<WindowPlacement>,
     /// What it was before it went to its own window (docked or floating): where it returns to.
     pub window_from: PlaceKind,
+    /// The full place it left in `home`: its group, its neighbouring tabs, whether it showed and
+    /// whether the zone was folded. Absent in files from before it was kept (the zone only).
+    #[serde(default)]
+    pub home_spot: Option<HomeSpot>,
 }
 
 /// Where the floating tool picker sits over the level: its top-left corner, in pixels from the

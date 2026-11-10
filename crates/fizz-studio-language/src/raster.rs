@@ -148,6 +148,13 @@ struct Builder {
     liquid_tile: String,
     /// The line of the statement being applied, recorded beside what it builds.
     line: usize,
+    /// What is drawn when some statements' own painting is left out (see [`rasterise_hiding`]):
+    /// `world` always holds what the whole script builds, so every position and height is the full
+    /// script's, and this holds only what the statements that are not hidden painted. `None` when
+    /// nothing is hidden, in which case `world` is the result.
+    shown: Option<World>,
+    /// Whether the statement being applied paints into `shown`.
+    visible: bool,
 }
 
 impl Builder {
@@ -167,6 +174,13 @@ impl Builder {
         self.world.tiles[at] = tile.to_string();
         self.world.liquid[at] = liquid;
         self.world.lines[at] = self.line;
+        if self.visible {
+            if let Some(shown) = &mut self.shown {
+                shown.tiles[at] = tile.to_string();
+                shown.liquid[at] = liquid;
+                shown.lines[at] = self.line;
+            }
+        }
     }
 
     fn get(&self, x: f64, y: f64) -> &str {
@@ -286,12 +300,55 @@ impl Builder {
     }
 
     fn item(&mut self, kind: &str, x: f64, y: f64) {
-        self.world.items.push(ItemAt {
+        let item = ItemAt {
             kind: kind.to_string(),
             x,
             y,
             line: self.line,
-        });
+        };
+        if self.visible {
+            if let Some(shown) = &mut self.shown {
+                shown.items.push(item.clone());
+            }
+        }
+        self.world.items.push(item);
+    }
+
+    fn spawn(&mut self, spawn: SpawnAt) {
+        if self.visible {
+            if let Some(shown) = &mut self.shown {
+                shown.spawns.push(spawn.clone());
+            }
+        }
+        self.world.spawns.push(spawn);
+    }
+
+    fn hover(&mut self, hover: HoverAt) {
+        if self.visible {
+            if let Some(shown) = &mut self.shown {
+                shown.hovers.push(hover.clone());
+            }
+        }
+        self.world.hovers.push(hover);
+    }
+
+    fn start(&mut self, start: StartAt) {
+        if self.visible {
+            if let Some(shown) = &mut self.shown {
+                shown.start = Some(start);
+            }
+        }
+        self.world.start = Some(start);
+    }
+
+    fn switch(&mut self, bit: u32, on: bool) {
+        let apply = |bits: u32| if on { bits | bit } else { bits & !bit };
+        if self.visible {
+            if let Some(shown) = &mut self.shown {
+                shown.switches = apply(shown.switches);
+            }
+        }
+        self.world.switches = apply(self.world.switches);
     }
 
     fn crys(&mut self, x: f64) {
@@ -316,6 +373,17 @@ fn cells(ranges: &[Range]) -> Vec<f64> {
 /// Runs the script in file order, as the Builder would, and returns the grid and entity lists.
 /// Returns `None` when the script has no level header.
 pub fn rasterise(ast: &Ast) -> Option<World> {
+    rasterise_hiding(ast, |_| false)
+}
+
+/// Like [`rasterise`], but the statements `hidden` picks are run all the same and only their
+/// painting is left out: the cells they set and the things they place are not in the result.
+/// Everything is worked out from the whole script, so a statement that places a thing relative to
+/// the ground (a crystal, a spawn or an exit with no `y`, a pogo cache) finds the heights the hidden
+/// terrain statements laid, and every thing and cell that is shown lies exactly where it does when
+/// nothing is hidden. The level header is never hidden. With a `hidden` that picks nothing the
+/// result is exactly [`rasterise`]'s.
+pub fn rasterise_hiding(ast: &Ast, hidden: impl Fn(&Node) -> bool) -> Option<World> {
     let (name, w, h, ground, id) = ast.nodes.iter().find_map(|n| match &n.body {
         Body::Level {
             name,
@@ -335,12 +403,30 @@ pub fn rasterise(ast: &Ast) -> Option<World> {
         ground,
         liquid_tile: "choc".to_string(),
         line: 0,
+        shown: None,
+        visible: true,
     };
-    for n in &ast.nodes {
+    let hides: Vec<bool> = ast
+        .nodes
+        .iter()
+        .map(|n| hidden(n) && !matches!(n.body, Body::Level { .. }))
+        .collect();
+    if hides.iter().any(|h| *h) {
+        b.shown = Some(b.world.clone());
+    }
+    for (n, hides) in ast.nodes.iter().zip(hides) {
         b.line = n.line;
+        b.visible = !hides;
         apply(&mut b, n);
     }
-    Some(b.world)
+    let Some(mut shown) = b.shown else {
+        return Some(b.world);
+    };
+    // What is not drawn but describes the level stays the whole script's.
+    shown.theme = b.world.theme;
+    shown.area = b.world.area;
+    shown.h_at = b.world.h_at;
+    Some(shown)
 }
 
 fn apply(b: &mut Builder, n: &Node) {
@@ -349,13 +435,11 @@ fn apply(b: &mut Builder, n: &Node) {
     match &n.body {
         Body::Theme { name } => b.world.theme = Some(name.clone()),
         Body::Area { name } => b.world.area = Some(name.clone()),
-        Body::Start { x, y } => {
-            b.world.start = Some(StartAt {
-                x: x.value,
-                y: y.value,
-                line: b.line,
-            })
-        }
+        Body::Start { x, y } => b.start(StartAt {
+            x: x.value,
+            y: y.value,
+            line: b.line,
+        }),
         Body::Walls => {
             b.fill(0.0, 0.0, 0.0, h - 1.0, "block", false);
             b.fill(w - 1.0, w - 1.0, 0.0, h - 1.0, "block", false);
@@ -370,7 +454,7 @@ fn apply(b: &mut Builder, n: &Node) {
             speed,
             size,
             dwell,
-        } => b.world.hovers.push(HoverAt {
+        } => b.hover(HoverAt {
             from: [from[0].value, from[1].value],
             to: [to[0].value, to[1].value],
             speed: speed.value,
@@ -381,11 +465,7 @@ fn apply(b: &mut Builder, n: &Node) {
             for c in chs {
                 // JavaScript shifts by the count modulo 32, which `wrapping_shl` does too.
                 let bit = 1u32.wrapping_shl(u32::from(*c));
-                b.world.switches = if *on {
-                    b.world.switches | bit
-                } else {
-                    b.world.switches & !bit
-                };
+                b.switch(bit, *on);
             }
         }
         Body::Crystal { xs } => {
@@ -478,13 +558,14 @@ fn apply(b: &mut Builder, n: &Node) {
         } => {
             for x in xs {
                 let at = y.as_ref().map_or_else(|| b.ground_at(x.value), |y| y.value);
-                b.world.spawns.push(SpawnAt {
+                let line = b.line;
+                b.spawn(SpawnAt {
                     kind: kind.clone(),
                     x: x.value,
                     y: (at >= 0.0).then_some(at),
                     dir: dir.as_ref().map(|d| d.value),
                     ride: *ride,
-                    line: b.line,
+                    line,
                 });
             }
         }

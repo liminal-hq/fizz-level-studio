@@ -1,0 +1,14 @@
+{
+	"version": 7,
+	"settings": {
+		"colour_mode": "light",
+		"glass": "on",
+		"larger_controls": false,
+		"ui": { "menu_bar": true },
+		"locale": "en-CA",
+		"recent_worlds": ["/worlds/a.fizz"],
+		"transparency": { "blur": 30 },
+		"layout": {},
+		"dock": { "active": "", "workspaces": {} }
+	}
+}

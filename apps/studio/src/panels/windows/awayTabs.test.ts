@@ -17,11 +17,11 @@ describe('withAwayTabs', () => {
 
 	it('adds a docked panel’s tab back to its home zone, last in the last group', () => {
 		const ws = sendToWindow(defaultWorkspace(), 'history');
-		expect(dockedIn(ws, 'right')).toEqual(['objects']);
+		expect(dockedIn(ws, 'right')).toEqual(['inspector', 'objects']);
 		const drawn = withAwayTabs(ws);
-		expect(dockedIn(drawn, 'right')).toEqual(['objects', 'history']);
-		expect(drawn.zones.right.groups[0]!.active).toBe('objects');
-		expect(dockedIn(ws, 'right')).toEqual(['objects']);
+		expect(dockedIn(drawn, 'right')).toEqual(['inspector', 'objects', 'history']);
+		expect(drawn.zones.right.groups[0]!.active).toBe('inspector');
+		expect(dockedIn(ws, 'right')).toEqual(['inspector', 'objects']);
 	});
 
 	it('shows the away tab when asked to', () => {
@@ -30,9 +30,9 @@ describe('withAwayTabs', () => {
 	});
 
 	it('makes a group of its own in a zone with none', () => {
-		const ws = sendToWindow(defaultWorkspace(), 'palette');
+		const ws = sendToWindow(sendToWindow(defaultWorkspace(), 'layers'), 'palette');
 		expect(dockedIn(ws, 'left')).toEqual([]);
-		expect(dockedIn(withAwayTabs(ws), 'left')).toEqual(['palette']);
+		expect(dockedIn(withAwayTabs(ws), 'left')).toEqual(['palette', 'layers']);
 	});
 
 	it('shows a panel that came from floating in its home zone and keeps its floating rectangle', () => {

@@ -18,6 +18,7 @@ export type PreferencesField =
 	| 'accentHex'
 	| 'glass'
 	| 'menuBar'
+	| 'toolbar'
 	| 'blur'
 	| 'saturation'
 	| 'panelOpacity'
@@ -63,7 +64,7 @@ export const PREFERENCE_DEFAULTS: PreferencesValues = {
 	colour_mode: 'system',
 	accent: { kind: 'system' },
 	glass: 'system',
-	ui: { menu_bar: false },
+	ui: { menu_bar: false, toolbar: 'classic', ribbon_folded: false },
 	transparency: TRANSPARENCY_DEFAULTS,
 };
 

@@ -140,7 +140,7 @@ bun packages/mcp/src/cli.ts reject <proposal-id|all> levels/crater-play.fizz [--
 bun packages/mcp/src/cli.ts undo levels/crater-play.fizz
 ```
 
-Every change Claude makes is kept in a history list in the sidecar (`by: claude`, id, time, mode, title, lines, status: pending, accepted, rejected, applied or undone). A write is a list of `edits` lines (`paint`, `clear`, `place`). Each line is checked by the language parser before anything is stored; a bad line rejects the whole call with the parser's code, line number and suggested fix. Accepted and direct edits are appended with `appendEdits` under the `edits` block, so hand-written lines are never rewritten. Accepted lines are printed in the language's canonical form (for example `paint one-way x=26,28,30 y=9`), not necessarily as Claude typed them.
+Every change Claude makes is kept in a history list in the sidecar (`by: claude`, id, time, mode, title, lines, status: pending, accepted, rejected, applied or undone). A write is a list of `edits` lines (`paint`, `clear`, `place`). Each line is checked by the language parser before anything is stored; a bad line rejects the whole call with the parser's code, line number and suggested fix. Accepted and direct edits are appended with `appendEdits` under the `edits` block, so this server never rewrites a hand-written line. The person's own edits in the studio may rewrite a hand-written line in place (moving, turning or deleting a thing, D72), so line numbers from `get_level` go stale: read again before writing. Accepted lines are printed in the language's canonical form (for example `paint one-way x=26,28,30 y=9`), not necessarily as Claude typed them.
 
 A sample session:
 
@@ -188,7 +188,7 @@ On each surface row, a gap is a run of columns with nothing to stand on at that 
 ### Honest limits
 
 - **The playtest bot is not implemented.** `run_checks` always says `playtest_bot: "not run"`. Nothing here claims a level is beatable.
-- Claude can only add `paint`, `clear` and `place` lines. It cannot change terrain, move enemies, remove an item or rewrite a hand-written line; `clear` removes tiles, not items or enemies.
+- Claude can only add `paint`, `clear` and `place` lines. It cannot change terrain, move enemies, remove an item or rewrite a hand-written line; `clear` removes tiles, not items or enemies. The person can move, turn and delete things in the studio (D72), which rewrites those hand-written lines in place, so re-read the level with `get_level` before writing; Claude's own structured tools wait for the live-mode server.
 - The gap check ignores hover platforms and moving things (they are not surfaces), does not model height differences between the two edges, and does not judge vertical gaps or climbs.
 - `undo` works on direct steps only. It removes the step's exact lines; it refuses if they are no longer the last statements in the file, even if the later change would not strictly conflict.
 - The person's own hand edits in an editor are not in the history; `get_level` shows the current script.

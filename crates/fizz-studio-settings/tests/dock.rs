@@ -4,8 +4,8 @@
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
 use fizz_studio_protocol::{
-    DockSettings, PlaceKind, Settings, SettingsError, SettingsField, SettingsPatch, TabGroup,
-    ToolPickerPlacement, WindowPlacement, Workspace, ZoneId,
+    DockSettings, HomeSpot, PlaceKind, Settings, SettingsError, SettingsField, SettingsPatch,
+    TabGroup, ToolPickerPlacement, WindowPlacement, Workspace, ZoneId,
 };
 use fizz_studio_settings::{
     apply_patch, default_dock, default_layout, default_workspace, default_workspace_for,
@@ -103,7 +103,8 @@ fn every_panel_is_in_exactly_one_place_in_every_default_workspace() {
 }
 
 #[test]
-fn the_default_arrangement_is_palette_left_objects_and_history_right_script_and_proposals_below() {
+fn the_default_arrangement_is_palette_and_layers_left_inspector_objects_and_history_right_script_and_proposals_below(
+) {
     let ws = default_workspace();
     let tabs = |zone: ZoneId| -> Vec<String> {
         ws.zones
@@ -113,8 +114,8 @@ fn the_default_arrangement_is_palette_left_objects_and_history_right_script_and_
             .flat_map(|g| g.tabs.clone())
             .collect()
     };
-    assert_eq!(tabs(ZoneId::Left), ["palette"]);
-    assert_eq!(tabs(ZoneId::Right), ["objects", "history"]);
+    assert_eq!(tabs(ZoneId::Left), ["palette", "layers"]);
+    assert_eq!(tabs(ZoneId::Right), ["inspector", "objects", "history"]);
     assert_eq!(tabs(ZoneId::Bottom), ["script", "proposals"]);
     assert_eq!(
         [
@@ -271,7 +272,10 @@ fn a_tool_picker_off_the_map_is_refused_and_one_on_it_is_accepted() {
 #[test]
 fn a_window_on_a_screen_to_the_left_is_accepted() {
     let settings = with_workspace(|ws| {
-        ws.zones.left.groups.clear();
+        ws.zones.left.groups = vec![TabGroup {
+            tabs: vec!["layers".to_owned()],
+            active: "layers".to_owned(),
+        }];
         let entry = ws.panels.get_mut("palette").unwrap();
         entry.place = PlaceKind::Window;
         entry.window = Some(WindowPlacement {
@@ -470,11 +474,9 @@ fn a_version_five_file_keeps_a_tool_picker_place_already_there() {
 #[test]
 fn a_file_with_a_broken_dock_is_set_aside_not_half_loaded() {
     let mut dock = default_dock();
-    dock.workspaces
-        .get_mut("Paint")
-        .unwrap()
-        .panels
-        .remove("palette");
+    let paint = dock.workspaces.get_mut("Paint").unwrap();
+    let stray = paint.panels["palette"].clone();
+    paint.panels.insert("scratch".to_owned(), stray);
     let text = json!({ "version": 4, "settings": { "dock": dock } }).to_string();
     let file = memory_file(&text);
     let report = file.load();
@@ -484,4 +486,214 @@ fn a_file_with_a_broken_dock_is_set_aside_not_half_loaded() {
         Some("settings.json.unreadable-1")
     );
     assert!(report.settings.dock.workspaces.is_empty());
+}
+
+#[test]
+fn a_saved_workspace_without_layers_gains_it_beside_the_palette_and_loads_unchanged() {
+    // A dock saved before the Layers panel existed: every panel but `layers`.
+    let mut dock = default_dock();
+    for ws in dock.workspaces.values_mut() {
+        ws.panels.remove("layers");
+        for zone in [
+            &mut ws.zones.left,
+            &mut ws.zones.right,
+            &mut ws.zones.bottom,
+        ] {
+            for group in &mut zone.groups {
+                group.tabs.retain(|t| t != "layers");
+            }
+        }
+    }
+    let settings = Settings {
+        dock,
+        ..Settings::default()
+    };
+    let text = serde_json::to_string(&json!({
+        "version": SETTINGS_VERSION,
+        "settings": serde_json::to_value(&settings).unwrap(),
+    }))
+    .unwrap();
+    let report = memory_file(&text).load();
+    assert!(report.problem.is_none(), "{:?}", report.problem);
+    assert!(report.set_aside.is_none());
+    for (name, ws) in &report.settings.dock.workspaces {
+        assert!(ws.panels.contains_key("layers"), "{name}");
+        let left: Vec<&str> = ws.zones.left.groups[0]
+            .tabs
+            .iter()
+            .map(String::as_str)
+            .collect();
+        assert_eq!(left, ["palette", "layers"], "{name}");
+    }
+    assert_eq!(report.settings.dock, {
+        let mut expected = default_dock();
+        expected.active = report.settings.dock.active.clone();
+        expected
+    });
+}
+
+#[test]
+fn a_saved_workspace_without_the_inspector_gains_it_in_the_right_dock_and_loads_unchanged() {
+    // A dock saved before the Inspector existed: every panel but `inspector`.
+    let mut dock = default_dock();
+    for ws in dock.workspaces.values_mut() {
+        ws.panels.remove("inspector");
+        for zone in [
+            &mut ws.zones.left,
+            &mut ws.zones.right,
+            &mut ws.zones.bottom,
+        ] {
+            for group in &mut zone.groups {
+                group.tabs.retain(|t| t != "inspector");
+            }
+        }
+        for zone in [&mut ws.zones.right] {
+            for group in &mut zone.groups {
+                if !group.tabs.contains(&group.active) {
+                    group.active = group.tabs[0].clone();
+                }
+            }
+        }
+    }
+    let settings = Settings {
+        dock,
+        ..Settings::default()
+    };
+    let text = serde_json::to_string(&json!({
+        "version": SETTINGS_VERSION,
+        "settings": serde_json::to_value(&settings).unwrap(),
+    }))
+    .unwrap();
+    let report = memory_file(&text).load();
+    assert!(report.problem.is_none(), "{:?}", report.problem);
+    assert!(report.set_aside.is_none());
+    for (name, ws) in &report.settings.dock.workspaces {
+        assert!(ws.panels.contains_key("inspector"), "{name}");
+        assert!(
+            ws.zones.right.groups[0]
+                .tabs
+                .iter()
+                .any(|t| t == "inspector"),
+            "{name}"
+        );
+        assert_eq!(ws.panels.len(), PANEL_IDS.len(), "{name}");
+    }
+}
+
+// The remembered home of a panel that is away
+
+fn spot() -> HomeSpot {
+    HomeSpot {
+        zone: ZoneId::Right,
+        group: 0,
+        after: Some("inspector".to_owned()),
+        before: Some("history".to_owned()),
+        active: true,
+        folded: false,
+        size: None,
+    }
+}
+
+#[test]
+fn a_remembered_home_round_trips_through_the_file() {
+    let file = SettingsFile::new(MemoryStorage::default());
+    let mut settings = Settings {
+        dock: default_dock(),
+        ..Settings::default()
+    };
+    for (name, id, zone) in [
+        ("Paint", "objects", ZoneId::Right),
+        ("Script", "layers", ZoneId::Left),
+    ] {
+        let ws = settings.dock.workspaces.get_mut(name).unwrap();
+        // The panel is away from its tab group: floating, with its place remembered.
+        for z in [&mut ws.zones.left, &mut ws.zones.right] {
+            for group in &mut z.groups {
+                group.tabs.retain(|t| t != id);
+                if !group.tabs.contains(&group.active) {
+                    group.active = group.tabs[0].clone();
+                }
+            }
+        }
+        let entry = ws.panels.get_mut(id).unwrap();
+        entry.place = PlaceKind::Floating;
+        entry.home_spot = Some(HomeSpot { zone, ..spot() });
+    }
+    file.save(&settings).unwrap();
+    let report = file.load();
+    assert!(report.problem.is_none(), "{:?}", report.problem);
+    assert_eq!(report.settings, settings);
+    assert_eq!(
+        report.settings.dock.workspaces["Paint"].panels["objects"].home_spot,
+        Some(spot())
+    );
+}
+
+#[test]
+fn a_file_from_before_the_home_was_kept_loads_unchanged_with_no_version_bump() {
+    let mut dock = serde_json::to_value(default_dock()).unwrap();
+    for workspace in dock["workspaces"].as_object_mut().unwrap().values_mut() {
+        for entry in workspace["panels"].as_object_mut().unwrap().values_mut() {
+            entry.as_object_mut().unwrap().remove("home_spot");
+        }
+    }
+    let text = json!({ "version": SETTINGS_VERSION, "settings": { "dock": dock } }).to_string();
+    let report = memory_file(&text).load();
+    assert!(report.problem.is_none(), "{:?}", report.problem);
+    assert!(report.set_aside.is_none());
+    assert_eq!(report.settings.dock, default_dock());
+    for ws in report.settings.dock.workspaces.values() {
+        assert!(ws.panels.values().all(|e| e.home_spot.is_none()));
+    }
+}
+
+#[test]
+fn a_remembered_home_with_missing_optional_fields_loads_with_their_defaults() {
+    let mut dock = serde_json::to_value(default_dock()).unwrap();
+    dock["workspaces"]["Paint"]["panels"]["objects"]["home_spot"] =
+        json!({ "zone": "right", "group": 0 });
+    let text = json!({ "version": SETTINGS_VERSION, "settings": { "dock": dock } }).to_string();
+    let report = memory_file(&text).load();
+    assert!(report.problem.is_none(), "{:?}", report.problem);
+    let loaded = report.settings.dock.workspaces["Paint"].panels["objects"]
+        .home_spot
+        .clone()
+        .unwrap();
+    assert_eq!(
+        loaded,
+        HomeSpot {
+            zone: ZoneId::Right,
+            group: 0,
+            after: None,
+            before: None,
+            active: false,
+            folded: false,
+            size: None,
+        }
+    );
+}
+
+#[test]
+fn an_unsound_remembered_home_is_refused() {
+    let unknown = with_workspace(|ws| {
+        ws.panels.get_mut("objects").unwrap().home_spot = Some(HomeSpot {
+            after: Some("ghost".to_owned()),
+            ..spot()
+        });
+    });
+    assert_eq!(field_of(validate(&unknown)), SettingsField::WorkspacePanel);
+    let size = with_workspace(|ws| {
+        ws.panels.get_mut("objects").unwrap().home_spot = Some(HomeSpot {
+            size: Some(5),
+            ..spot()
+        });
+    });
+    assert_eq!(field_of(validate(&size)), SettingsField::WorkspacePanel);
+    let sound = with_workspace(|ws| {
+        ws.panels.get_mut("objects").unwrap().home_spot = Some(HomeSpot {
+            size: Some(SIDE_MIN),
+            ..spot()
+        });
+    });
+    assert!(validate(&sound).is_ok());
 }

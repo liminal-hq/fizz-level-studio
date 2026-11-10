@@ -116,6 +116,18 @@ pub fn build_window_at<R: Runtime>(
     id: &WindowId,
     place: Option<Fitted>,
 ) -> tauri::Result<WebviewWindow<R>> {
+    build_window_with(app, id, place, true)
+}
+
+/// Builds the window `id` like [`build_window_at`], and leaves it hidden when `show` is false. A
+/// window the compositor is about to drag (the tear-off plugin's `toplevel_drag`) is made hidden:
+/// the drag shows it itself, through GTK, so it can attach the window before it is mapped.
+pub fn build_window_with<R: Runtime>(
+    app: &AppHandle<R>,
+    id: &WindowId,
+    place: Option<Fitted>,
+    show: bool,
+) -> tauri::Result<WebviewWindow<R>> {
     let spec = spec_for(id.kind());
     let mut builder =
         WebviewWindowBuilder::new(app, id.label(), WebviewUrl::App("index.html".into()))
@@ -129,7 +141,7 @@ pub fn build_window_at<R: Runtime>(
             .decorations(false)
             .transparent(true)
             .shadow(true)
-            .visible(place.is_none())
+            .visible(show && place.is_none())
             .center();
     if let Some((width, height)) = spec.min_size {
         builder = builder.min_inner_size(width, height);
@@ -147,7 +159,9 @@ pub fn build_window_at<R: Runtime>(
         if let Some((x, y)) = place.position {
             window.set_position(PhysicalPosition::new(x, y))?;
         }
-        window.show()?;
+        if show {
+            window.show()?;
+        }
     }
     Ok(window)
 }
@@ -274,22 +288,27 @@ fn open_panel_window<R: Runtime>(
     panel: String,
     placement: Option<WindowPlacement>,
     screens: &[WindowPlacement],
+    hidden: bool,
 ) -> Result<WebviewWindow<R>, String> {
     let id = WindowId::Panel { panel, n: 1 };
     if !id.is_openable() {
         return Err(format!("{} is not a window the app opens", id.label()));
     }
     if let Some(open) = app.get_webview_window(&id.label()) {
-        open.unminimize().map_err(|e| e.to_string())?;
-        open.show().map_err(|e| e.to_string())?;
-        open.set_focus().map_err(|e| e.to_string())?;
+        if !hidden {
+            open.unminimize().map_err(|e| e.to_string())?;
+            open.show().map_err(|e| e.to_string())?;
+            open.set_focus().map_err(|e| e.to_string())?;
+        }
         return Ok(open);
     }
     let fitted = placement.map(|place| fit(place, screens, position_known_here()));
-    build_window_at(app, &id, fitted).map_err(|e| e.to_string())
+    build_window_with(app, &id, fitted, !hidden).map_err(|e| e.to_string())
 }
 
-/// Opens a panel's window, or brings it forward when it is open, and says where it is.
+/// Opens a panel's window, or brings it forward when it is open, and says where it is. With
+/// `hidden` the window is made and left hidden for the compositor's window drag to show (a drag
+/// that then cannot start closes it again through `close_panel`).
 ///
 /// Like `open_window` this is `async` so building a webview does not wait on the main thread.
 #[tauri::command]
@@ -297,8 +316,15 @@ pub async fn tear_off_panel<R: Runtime>(
     app: AppHandle<R>,
     panel: String,
     placement: Option<WindowPlacement>,
+    hidden: Option<bool>,
 ) -> Result<PanelPlaced, String> {
-    let window = open_panel_window(&app, panel, placement, &screens(&app))?;
+    let window = open_panel_window(
+        &app,
+        panel,
+        placement,
+        &screens(&app),
+        hidden.unwrap_or(false),
+    )?;
     let label = window.label().to_owned();
     // A window that has not been drawn yet may not know its size; the place asked for, or the
     // kind's default size, stands in until it moves or resizes and reports.
@@ -452,7 +478,7 @@ mod tests {
                 .expect("opens");
             assert!(app.get_webview_window(&id.label()).is_some(), "{panel}");
         }
-        assert_eq!(open_panels(app.handle().clone()).len(), 5);
+        assert_eq!(open_panels(app.handle().clone()).len(), 7);
         let unknown = WindowId::Panel {
             panel: "game-view".into(),
             n: 1,
@@ -467,18 +493,18 @@ mod tests {
         let app = tauri::test::mock_app();
         for panel in fizz_studio_protocol::PANEL_IDS {
             let window =
-                open_panel_window(app.handle(), panel.to_owned(), None, &[]).expect("opens");
+                open_panel_window(app.handle(), panel.to_owned(), None, &[], false).expect("opens");
             assert_eq!(window.label(), format!("panel-{panel}-1"));
         }
-        open_panel_window(app.handle(), "script".into(), None, &[]).expect("focuses");
-        assert_eq!(open_panels(app.handle().clone()).len(), 5);
+        open_panel_window(app.handle(), "script".into(), None, &[], false).expect("focuses");
+        assert_eq!(open_panels(app.handle().clone()).len(), 7);
     }
 
     #[test]
     fn tearing_off_a_panel_that_is_not_ours_is_refused() {
         let app = tauri::test::mock_app();
         for panel in ["game-view", "", "Script"] {
-            let refused = open_panel_window(app.handle(), panel.into(), None, &[]);
+            let refused = open_panel_window(app.handle(), panel.into(), None, &[], false);
             assert!(refused.is_err(), "{panel:?}");
         }
         assert!(open_panels(app.handle().clone()).is_empty());
@@ -501,9 +527,24 @@ mod tests {
         }];
         // The mock window cannot report a size back, so what is applied is checked in `panel_place`
         // and in the running app; here the window must open and be shown.
-        let window = open_panel_window(app.handle(), "history".into(), Some(place), &screens)
-            .expect("opens");
+        let window =
+            open_panel_window(app.handle(), "history".into(), Some(place), &screens, false)
+                .expect("opens");
         assert!(window.is_visible().unwrap());
+    }
+
+    #[test]
+    fn a_panel_window_can_be_opened_hidden_and_asking_again_makes_no_second() {
+        // The mock runtime reports every window as visible, so that the window is left hidden is
+        // checked in the running app (`tools/app-checks`); here the hidden path must open the
+        // window once and find it again.
+        let app = tauri::test::mock_app();
+        let window =
+            open_panel_window(app.handle(), "layers".into(), None, &[], true).expect("opens");
+        assert_eq!(window.label(), "panel-layers-1");
+        open_panel_window(app.handle(), "layers".into(), None, &[], true).expect("finds it");
+        open_panel_window(app.handle(), "layers".into(), None, &[], false).expect("shows it");
+        assert_eq!(open_panels(app.handle().clone()), vec!["panel-layers-1"]);
     }
 
     #[test]

@@ -3,7 +3,7 @@
 // (c) Copyright 2026 Liminal HQ, Scott Morris
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
-import { render, screen } from '@testing-library/react';
+import { act, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { PanelExpandButton } from './PanelExpandButton';
@@ -13,7 +13,9 @@ describe('PanelExpandButton', () => {
 		const onToggle = vi.fn();
 		render(<PanelExpandButton title="Script" expanded={false} onToggle={onToggle} />);
 		const button = screen.getByRole('button', { name: 'Maximise Script' });
-		expect(button).toHaveAttribute('title', 'Maximise Script (Ctrl+Shift+M)');
+		expect(button).not.toHaveAttribute('title');
+		act(() => button.focus());
+		expect(screen.getByRole('tooltip')).toHaveTextContent('Maximise ScriptCtrlShiftM');
 		expect(button).toHaveAttribute('aria-keyshortcuts', 'Control+Shift+M');
 		expect(button.querySelector('svg')).toHaveAttribute('data-icon', 'maximise');
 		expect(button.querySelector('svg')).toHaveAttribute('aria-hidden', 'true');
@@ -24,7 +26,9 @@ describe('PanelExpandButton', () => {
 	it('offers Restore with a different icon when the panel is maximised', () => {
 		render(<PanelExpandButton title="Script" expanded onToggle={() => {}} />);
 		const button = screen.getByRole('button', { name: 'Restore Script' });
-		expect(button).toHaveAttribute('title', 'Restore Script (Ctrl+Shift+M)');
+		expect(button).not.toHaveAttribute('title');
+		act(() => button.focus());
+		expect(screen.getByRole('tooltip')).toHaveTextContent('Restore ScriptCtrlShiftM');
 		expect(button.querySelector('svg')).toHaveAttribute('data-icon', 'restore');
 	});
 });

@@ -12,6 +12,7 @@ import {
 	lineCells,
 	reduceTool,
 	thingAt,
+	thingsOnCells,
 	type Cell,
 	type PointerPhase,
 	type ToolContext,
@@ -156,6 +157,69 @@ describe('erase', () => {
 		]);
 		expect(result.edits).toEqual([{ kind: 'clear', x: [[1, 3]], y: [[0, 0]] }]);
 	});
+
+	it('also names the cells it covered when the stroke ends, and a paint stroke does not', () => {
+		const cells = [
+			{ x: 1, y: 0 },
+			{ x: 3, y: 0 },
+		];
+		expect(gesture('erase', cells).erased).toEqual([
+			{ x: 1, y: 0 },
+			{ x: 2, y: 0 },
+			{ x: 3, y: 0 },
+		]);
+		expect(gesture('paint', cells).erased).toBeUndefined();
+	});
+});
+
+describe('thingsOnCells', () => {
+	const view = levelView(12, 8, {
+		items: [
+			{ kind: 'soda', x: 3, y: 1, generator: null, line: 4 },
+			{ kind: 'soda', x: 4, y: 1, generator: null, line: 4 },
+			{ kind: 'cookie', x: 3, y: 1, generator: 'pogo-cache', line: 5 },
+			{ kind: 'gem', x: 9, y: 9, generator: null, line: null },
+		],
+		spawns: [
+			{ kind: 'gloop', x: 3, y: null, dir: null, ride: false, on_ground: true, line: 8 },
+			{ kind: 'bat', x: 3, y: 1, dir: null, ride: false, on_ground: false, line: 9 },
+			{ kind: 'bat', x: 8, y: 1, dir: null, ride: false, on_ground: false, line: 10 },
+		],
+	});
+
+	it('lists the items and enemies on the cells, each as the Inspector would select it', () => {
+		const things = thingsOnCells(view, [{ x: 3, y: 1 }]);
+		expect(things.map((t) => [t.kind, t.name, t.index])).toEqual([
+			['item', 'soda', 0],
+			['enemy', 'bat', 1],
+			['enemy', 'gloop', 0],
+		]);
+	});
+
+	it('leaves a generated item and a thing with no line, and the start', () => {
+		const names = thingsOnCells(view, [
+			{ x: 3, y: 1 },
+			{ x: 9, y: 9 },
+			{ x: 1, y: 1 },
+		]).map((t) => t.name);
+		expect(names).not.toContain('cookie');
+		expect(names).not.toContain('gem');
+		expect(names).not.toContain('start');
+	});
+
+	it('orders each list highest index first, so deleting one never moves the next', () => {
+		const things = thingsOnCells(view, [
+			{ x: 3, y: 1 },
+			{ x: 4, y: 1 },
+		]);
+		expect(things.filter((t) => t.kind === 'item').map((t) => t.index)).toEqual([1, 0]);
+	});
+
+	it('keeps the level’s own indices when the view has the things of a layer left out', () => {
+		const shown = { ...view, items: view.items.slice(1) };
+		const things = thingsOnCells(shown, [{ x: 4, y: 1 }], view);
+		expect(things.map((t) => [t.name, t.index])).toEqual([['soda', 1]]);
+	});
 });
 
 describe('paint with an item brush', () => {
@@ -230,8 +294,8 @@ describe('pick', () => {
 
 	it('reads an item or an enemy before the tile beneath it', () => {
 		const view = levelView(12, 8, {
-			items: [{ kind: 'soda', x: 3, y: 1, line: 9 }],
-			spawns: [{ kind: 'gloop', x: 5, y: 1, dir: null, ride: false, line: 12 }],
+			items: [{ kind: 'soda', x: 3, y: 1, generator: null, line: 9 }],
+			spawns: [{ kind: 'gloop', x: 5, y: 1, dir: null, ride: false, on_ground: false, line: 12 }],
 		});
 		const on = { ...context, view };
 		expect(reduceTool('pick', initialToolState, 'down', { x: 3, y: 1 }, on).pick).toEqual({
@@ -252,14 +316,14 @@ describe('pick', () => {
 describe('thingAt', () => {
 	const view = levelView(12, 8, {
 		items: [
-			{ kind: 'soda', x: 3, y: 1, line: null },
-			{ kind: 'cheezie', x: 5, y: 1, line: null },
+			{ kind: 'soda', x: 3, y: 1, generator: null, line: 6 },
+			{ kind: 'cheezie', x: 5, y: 1, generator: null, line: 7 },
 		],
 		spawns: [
-			{ kind: 'gloop', x: 5, y: 1, dir: null, ride: false, line: null },
-			{ kind: 'bat', x: 7, y: null, dir: null, ride: false, line: null },
+			{ kind: 'gloop', x: 5, y: 1, dir: null, ride: false, on_ground: false, line: 9 },
+			{ kind: 'bat', x: 7, y: null, dir: null, ride: false, on_ground: true, line: 10 },
 		],
-		start: { x: 2, y: 1, line: null },
+		start: { x: 2, y: 1, line: 3 },
 	});
 
 	it('finds an item on the objects layer', () => {
@@ -269,6 +333,8 @@ describe('thingAt', () => {
 			x: 3,
 			y: 1,
 			layer: 'objects',
+			index: 0,
+			line: 6,
 		});
 	});
 
@@ -276,7 +342,7 @@ describe('thingAt', () => {
 		expect(thingAt(view, { x: 5, y: 1 })).toMatchObject({ kind: 'item', name: 'cheezie' });
 		const start = {
 			...view,
-			spawns: [{ kind: 'slug', x: 2, y: 1, dir: null, ride: false, line: null }],
+			spawns: [{ kind: 'slug', x: 2, y: 1, dir: null, ride: false, on_ground: false, line: null }],
 		};
 		expect(thingAt(start, { x: 2, y: 1 })).toMatchObject({ kind: 'enemy', name: 'slug' });
 	});
@@ -294,6 +360,8 @@ describe('thingAt', () => {
 			x: 2,
 			y: 1,
 			layer: 'objects',
+			index: 0,
+			line: 3,
 		});
 	});
 
@@ -304,8 +372,28 @@ describe('thingAt', () => {
 			x: 9,
 			y: 0,
 			layer: 'tiles',
+			index: 0,
+			line: null,
 		});
 		expect(thingAt(view, { x: 9, y: 5 })).toMatchObject({ kind: 'cell', name: 'empty' });
+	});
+
+	it('counts an enemy at its place in the level’s own list', () => {
+		expect(thingAt(view, { x: 5, y: 1 })).toMatchObject({ kind: 'item', index: 1, line: 7 });
+		expect(thingAt(view, { x: 7, y: 1 })).toMatchObject({ kind: 'enemy', index: 1, line: 10 });
+	});
+
+	it('keeps the level’s own index when the view has things left out', () => {
+		// A view with the first item and first spawn hidden: the cheezie and the bat keep their indices.
+		const shown = {
+			...view,
+			items: view.items.slice(1),
+			spawns: view.spawns.slice(1),
+		};
+		expect(thingAt(shown, { x: 5, y: 1 }, view)).toMatchObject({ kind: 'item', index: 1 });
+		expect(thingAt(shown, { x: 7, y: 1 }, view)).toMatchObject({ kind: 'enemy', index: 1 });
+		// Without the whole view the index is the shown list's own.
+		expect(thingAt(shown, { x: 5, y: 1 })).toMatchObject({ kind: 'item', index: 0 });
 	});
 
 	it('finds nothing outside the level', () => {
@@ -355,8 +443,8 @@ describe('select', () => {
 
 describe('stamp', () => {
 	const view = levelView(12, 8, {
-		items: [{ kind: 'cheezie', x: 2, y: 3, line: 9 }],
-		spawns: [{ kind: 'gloop', x: 3, y: 1, dir: null, ride: false, line: 12 }],
+		items: [{ kind: 'cheezie', x: 2, y: 3, generator: null, line: 9 }],
+		spawns: [{ kind: 'gloop', x: 3, y: 1, dir: null, ride: false, on_ground: false, line: 12 }],
 	});
 	const clip = copyArea(view, { x0: 1, y0: 0, x1: 3, y1: 3 });
 	const pasting: ToolContext = { ...context, view, clip };

@@ -18,7 +18,7 @@ use crate::rules::validate;
 use crate::storage::{BlobStorage, StorageError};
 
 /// The version of the file this build writes.
-pub const SETTINGS_VERSION: u32 = 7;
+pub const SETTINGS_VERSION: u32 = 8;
 
 /// The name of the settings file in the storage.
 pub const SETTINGS_FILE: &str = "settings.json";
@@ -96,8 +96,10 @@ impl<S: BlobStorage> SettingsFile<S> {
             .cloned()
             .ok_or_else(|| fail("the file has no settings".to_owned()))?;
         let body = migrate(body, version, self.current, self.steps).map_err(fail)?;
-        let settings: Settings =
+        let mut settings: Settings =
             serde_json::from_value(body).map_err(|e| DocumentError(e.to_string()))?;
+        // A panel a newer build added (Layers) joins a saved workspace that lacks it.
+        crate::dock::fill_missing_panels(&mut settings.dock);
         validate(&settings).map_err(|e| DocumentError(e.to_string()))?;
         Ok(settings)
     }

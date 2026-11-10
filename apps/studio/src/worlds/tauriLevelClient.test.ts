@@ -176,7 +176,14 @@ describe('cell lines', () => {
 
 describe('words and ghosts', () => {
 	it('reads both through the plugin', async () => {
-		const doc = { word: 'paint', kind: 'statement', syntax: 's', example: 'e', note: 'n' };
+		const doc = {
+			word: 'paint',
+			kind: 'statement',
+			syntax: 's',
+			example: 'e',
+			note: 'n',
+			group: '',
+		};
 		plugin.languageWords.mockResolvedValue([doc]);
 		plugin.levelGhosts.mockResolvedValue([]);
 		const client = new TauriLevelClient();

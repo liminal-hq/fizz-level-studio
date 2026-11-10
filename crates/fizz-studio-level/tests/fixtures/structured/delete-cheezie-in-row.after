@@ -1,0 +1,47 @@
+// Crater Fields: the first level of Episode 1. Mirrors `fn crater()` in levels.rs call for call.
+level "Crater Fields" 192x28 ground=4 id=crater
+theme crater
+area crater-fields
+start 3,4
+
+terrain
+  flat 14, up 2, flat 6, down 2, flat 5
+  pool 4, flat 8, up22 2, flat 10, gap 3, flat 9, down22 2, flat 6
+  spikes 4, flat 10, up 3, flat 8, down 3
+  pool 6, flat 10, up22 3, flat 14, down 3, flat 12
+  spikes 3, flat 8, up 2, flat 22
+
+walls
+
+blocks
+  block    x=49..51 y=10
+  plat     x=107..108 y=5
+  plat     x=131..134 y=12
+  red-door x=171 y=6..7
+  block    x=171 y=8..27
+  exit     x=186 y=6..7
+  crystal  x=10,26,60,98,118,150,178
+
+treats
+  cheezie x=17,19..20 y=7
+  row cheezie x=29..32 y=7
+  soda        x=36 y=5
+  row choc    x=46..52 y=8 by=3
+  cookie      x=50 y=11
+  row cheezie x=105..110 y=8
+  row cheezie x=72..74 y=5
+  row choc    x=94..100 y=8 by=2
+  soda        x=125 y=9
+  row cheezie x=128..136 y=8 by=2
+  key-red     x=132 y=13
+  row choc    x=146..152 y=5 by=3
+  cookie      x=157 y=7
+  row cheezie x=175..181 y=7 by=2
+  pogo-cache  x=8..10 rise=7   // a snack ledge for a pogo bounce, after the other treats
+
+enemies
+  gloop  x=35,62,85
+  hopper x=97,148
+  marsh  x=115
+  pod    x=136
+  drone  x=88.5,165.5 y=7.5

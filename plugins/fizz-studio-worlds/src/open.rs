@@ -10,17 +10,19 @@ use std::sync::mpsc::RecvTimeoutError;
 use std::sync::{Arc, Mutex, MutexGuard};
 use std::time::{Duration, Instant, UNIX_EPOCH};
 
-use fizz_studio_level::{open_level_text, AnyLevelDocument};
+use fizz_studio_level::{
+    locked_layers, open_level_text, sidecar_path, sidecar_with_locks, AnyLevelDocument, LAYER_ORDER,
+};
 use fizz_studio_protocol::{LevelError, LevelSnapshot, RecoveryEntry};
-use fizz_studio_session::{Author, Session, SessionError, WriterToken};
+use fizz_studio_session::{Author, DocumentError, Session, SessionError, WriterToken};
 use fizz_studio_world::{
-    reconcile, Autosave, Change, ChangeKind, DiskState, FolderWatcher, RecoveryCopy, RecoveryFile,
-    RecoveryStore, Resolution, DEFAULT_DEBOUNCE,
+    Autosave, Change, ChangeKind, DiskState, FolderWatcher, RecoveryCopy, RecoveryFile,
+    RecoveryStore, DEFAULT_DEBOUNCE,
 };
 use tauri::{AppHandle, Emitter, Manager, Runtime};
 
 use crate::recovery::{recovery_id, start_autosave, AutosaveHandle, RecoveryConfig, COPY_FILE};
-use crate::{LevelConflict, CHANGED_EVENT, CONFLICT_EVENT};
+use crate::{LevelConflict, LevelLayers, CHANGED_EVENT, CONFLICT_EVENT, LAYERS_EVENT};
 
 /// How often a watcher thread looks up from waiting for a change to see whether its level closed.
 const STOP_POLL: Duration = Duration::from_millis(50);
@@ -48,9 +50,11 @@ impl std::fmt::Debug for Worlds {
 pub(crate) struct OpenLevel {
     id: String,
     path: PathBuf,
+    /// The `<level>.studio.json` beside the level, where `layers.locked` is kept.
+    sidecar: PathBuf,
     pub(crate) session: Session<AnyLevelDocument>,
     pub(crate) writer: WriterToken,
-    /// What the studio last wrote to the file or read from it; the base of an outside-edit merge.
+    /// What the studio last wrote to the file or read from it; the file's last known text.
     disk_text: String,
     /// What the watcher thread compares against, shared with the thread's [`FolderWatcher`], which
     /// lives on that thread and stops when `stop` is set.
@@ -84,6 +88,8 @@ pub(crate) fn session_error(error: SessionError) -> LevelError {
             based_on: requested,
             current,
         },
+        SessionError::Locked { layers } => LevelError::Locked { layers },
+        SessionError::Document(DocumentError::Gone { line }) => LevelError::Gone { line },
         other => LevelError::Invalid {
             message: other.to_string(),
         },
@@ -126,6 +132,73 @@ impl OpenLevel {
             edited_outside: session.outside_revision() == Some(session.revision()),
             target: session.document().target(),
             banner: session.document().banner(),
+        }
+    }
+
+    /// The locked layers, by id in panel order.
+    pub(crate) fn layers(&self) -> LevelLayers {
+        LevelLayers {
+            id: self.id.clone(),
+            locked: LAYER_ORDER
+                .into_iter()
+                .filter(|id| self.session.locks().contains(*id))
+                .map(str::to_owned)
+                .collect(),
+        }
+    }
+
+    /// Locks or unlocks a layer: written to the sidecar first (the studio is the only writer of that
+    /// key; every other key stays), then held by the session. A sidecar that cannot be rewritten
+    /// leaves the lock as it was.
+    pub(crate) fn set_layer_locked(
+        &mut self,
+        layer: &str,
+        locked: bool,
+    ) -> Result<LevelLayers, LevelError> {
+        if !LAYER_ORDER.contains(&layer) {
+            return Err(LevelError::Invalid {
+                message: format!("`{layer}` is not a layer"),
+            });
+        }
+        let mut next = self.session.locks().clone();
+        if locked {
+            next.insert(layer.to_owned());
+        } else {
+            next.remove(layer);
+        }
+        if next != *self.session.locks() {
+            self.write_locks(&next.iter().cloned().collect::<Vec<_>>())?;
+            self.session.set_locks(next);
+        }
+        Ok(self.layers())
+    }
+
+    /// Rewrites the sidecar's lock key to `locked`, keeping the file's other keys.
+    fn write_locks(&self, locked: &[String]) -> Result<(), LevelError> {
+        let existing = match std::fs::read_to_string(&self.sidecar) {
+            Ok(text) => Some(text),
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => None,
+            Err(e) => return Err(io_error(e)),
+        };
+        let Some(text) = sidecar_with_locks(existing.as_deref(), locked).map_err(io_error)? else {
+            return Ok(());
+        };
+        self.disk
+            .write(&self.sidecar, text.as_bytes())
+            .map_err(io_error)
+    }
+
+    /// Puts the lock key back in the sidecar if something else rewrote the file without it, so the
+    /// lock the session enforces is the lock the file says.
+    fn reassert_locks(&self) {
+        let held = self.layers().locked;
+        let on_disk = std::fs::read_to_string(&self.sidecar)
+            .map(|text| locked_layers(&text))
+            .unwrap_or_default();
+        if on_disk != held {
+            if let Err(error) = self.write_locks(&held) {
+                log::warn!("could not put the layer locks back in the sidecar: {error:?}");
+            }
         }
     }
 
@@ -192,6 +265,11 @@ impl OpenLevel {
 
     /// Decides what a change to the file means for the session.
     fn hear(&mut self, change: Change) -> Heard {
+        if change.path == self.sidecar {
+            // Claude's server rewrites the sidecar too; the studio is the writer of the lock key.
+            self.reassert_locks();
+            return Heard::Nothing;
+        }
         if change.path != self.path {
             return Heard::Nothing;
         }
@@ -209,39 +287,40 @@ impl OpenLevel {
         if disk == self.disk_text {
             return Heard::Nothing;
         }
-        let resolution = reconcile(&self.disk_text, self.session.text(), &disk);
-        let brought_in = match resolution {
-            Resolution::Unchanged => {
-                // The session already holds the file's text, so there is nothing left unsaved.
-                self.disk_text = disk;
-                self.session.mark_saved();
-                self.settle();
-                return Heard::Changed(Box::new(self.snapshot()));
-            }
-            Resolution::Conflict { marked } => {
-                return Heard::Conflict(LevelConflict {
-                    id: self.id.clone(),
-                    marked,
-                });
-            }
-            Resolution::EditedOutside { text } => (text, true),
-            Resolution::Merged { text } => (text, false),
-        };
-        let (text, clean) = brought_in;
+        if disk == self.session.text() {
+            // The session already holds the file's text, so there is nothing left unsaved.
+            self.disk_text = disk;
+            self.session.mark_saved();
+            self.settle();
+            return Heard::Changed(Box::new(self.snapshot()));
+        }
+        // D68 (3): a change from outside always comes in whole, as one undoable step, over any
+        // unsaved changes. Undo returns to the text the studio held, so nothing is lost and there
+        // is no merge to resolve. Only a locked layer turns it into a conflict (D71).
+        let text = disk.clone();
         let revision = self.session.revision();
-        if let Err(error) = self
+        match self
             .session
             .apply_outside_edit(&self.writer, revision, &text)
         {
-            log::warn!("an outside edit could not be brought in: {error}");
-            return Heard::Nothing;
+            Ok(_) => {}
+            // The studio keeps its text; the person is told which locked layers the change touched.
+            Err(SessionError::Locked { layers }) => {
+                return Heard::Conflict(LevelConflict {
+                    id: self.id.clone(),
+                    marked: text,
+                    locked: layers,
+                });
+            }
+            Err(error) => {
+                log::warn!("an outside edit could not be brought in: {error}");
+                return Heard::Nothing;
+            }
         }
         self.disk_text = disk;
-        if clean {
-            // The session now holds exactly what is on disk.
-            self.session.mark_saved();
-            self.settle();
-        }
+        // The session now holds exactly what is on disk.
+        self.session.mark_saved();
+        self.settle();
         self.last_author = Author::Outside;
         Heard::Changed(Box::new(self.snapshot()))
     }
@@ -374,6 +453,11 @@ impl Worlds {
             Some(kept) => Session::recovered(open_level_text(kept.clone())),
             None => Session::new(open_level_text(text.clone())),
         };
+        // The locks the level was left with travel in its sidecar.
+        let sidecar = PathBuf::from(sidecar_path(&path.to_string_lossy()));
+        if let Ok(json) = std::fs::read_to_string(&sidecar) {
+            session.set_locks(locked_layers(&json));
+        }
         let writer = session.claim_writer(WRITER_NAME).map_err(session_error)?;
         let id = format!("level-{}", self.next.fetch_add(1, Ordering::Relaxed) + 1);
         let stop = Arc::new(AtomicBool::new(false));
@@ -381,6 +465,7 @@ impl Worlds {
         let level = OpenLevel {
             id: id.clone(),
             path,
+            sidecar,
             recovered_revision: recovered.is_some().then(|| session.revision()),
             session,
             writer,
@@ -457,6 +542,13 @@ fn resolve(path: &Path) -> std::io::Result<PathBuf> {
 pub(crate) fn announce<R: Runtime>(app: &AppHandle<R>, snapshot: &LevelSnapshot) {
     if let Err(error) = app.emit(CHANGED_EVENT, snapshot) {
         log::warn!("could not announce a level change: {error}");
+    }
+}
+
+/// Sends a level's locked layers to every window.
+pub(crate) fn announce_layers<R: Runtime>(app: &AppHandle<R>, layers: &LevelLayers) {
+    if let Err(error) = app.emit(LAYERS_EVENT, layers) {
+        log::warn!("could not announce a change to the locked layers: {error}");
     }
 }
 

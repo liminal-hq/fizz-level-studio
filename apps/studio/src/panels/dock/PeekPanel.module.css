@@ -1,5 +1,7 @@
 /* Laid over the level, beside its rail, and above the floating panels. */
 .peek {
+	--fls-editor-bg: var(--fls-editor-docks-bg);
+	--fls-editor-gutter-bg: var(--fls-editor-docks-gutter-bg);
 	position: absolute;
 	z-index: 100000;
 	display: flex;

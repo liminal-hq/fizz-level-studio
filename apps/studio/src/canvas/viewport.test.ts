@@ -9,9 +9,12 @@ import {
 	cellPx,
 	clampScroll,
 	clampZoom,
+	fitCamera,
+	fitZoom,
 	frameViewport,
 	moveCursor,
 	NO_INSETS,
+	panBy,
 	pixelToCell,
 	revealCell,
 	uncoveredRect,
@@ -61,6 +64,26 @@ describe('scroll', () => {
 		expect(moved.scrollX).toBe(15 * 32 + 32 - 200);
 		expect(moved.scrollY).toBe(0);
 		expect(revealCell(moved, { x: 15, y: 9 }, window, level)).toEqual(moved);
+	});
+});
+
+describe('panBy', () => {
+	// Zoom 8 is 32 px a cell: the 20 by 10 level is 640 by 320 px in a 200 by 100 window.
+	it('moves the map with the pointer, whatever the zoom', () => {
+		expect(panBy(at(8, 100, 50), 30, 10, window, level)).toEqual(at(8, 70, 40));
+		expect(panBy(at(8, 100, 50), -30, -10, window, level)).toEqual(at(8, 130, 60));
+		// At 4x the level is 320 by 160, so the same drag shows the same pixels of it.
+		expect(panBy(at(4, 100, 50), 30, 10, window, level)).toEqual(at(4, 70, 40));
+	});
+
+	it('stops at each edge of the level', () => {
+		expect(panBy(at(8, 10, 10), 500, 500, window, level)).toEqual(at(8, 0, 0));
+		expect(panBy(at(8, 430, 210), -500, -500, window, level)).toEqual(at(8, 440, 220));
+	});
+
+	it('leaves a level that fits centred', () => {
+		const fits = at(1, -60, -30);
+		expect(panBy(fits, 80, -80, window, level)).toEqual(fits);
 	});
 });
 
@@ -168,5 +191,39 @@ describe('covered margins', () => {
 		const cell = pixelToCell(px, py, frameViewport(before, visible), level);
 		const after = zoomAt(before, 8, px - visible.x, py - visible.y, seen, level);
 		expect(pixelToCell(px, py, frameViewport(after, visible), level)).toEqual(cell);
+	});
+});
+
+describe('fitZoom', () => {
+	const cells = { width: 12, height: 8 };
+
+	it('is the largest whole zoom at which the level fits the window', () => {
+		// 4 px a cell at 1x: each zoom step adds 48 by 32 px to a 12 by 8 level.
+		expect(fitZoom(cells, { width: 640, height: 384 })).toBe(12);
+		expect(fitZoom(cells, { width: 48, height: 32 })).toBe(1);
+		expect(fitZoom(cells, { width: 96, height: 32 })).toBe(1);
+		expect(fitZoom(cells, { width: 96, height: 64 })).toBe(2);
+	});
+
+	it('stops at 16x however much room there is', () => {
+		expect(fitZoom(cells, { width: 5000, height: 5000 })).toBe(16);
+	});
+
+	it('is 1x for a level too big for the window, and for an empty one', () => {
+		expect(fitZoom(cells, { width: 10, height: 10 })).toBe(1);
+		expect(fitZoom({ width: 0, height: 0 }, { width: 640, height: 384 })).toBe(1);
+	});
+
+	it('centres the fitted level, and the middle of a level that is too big', () => {
+		const fit = fitCamera(cells, { width: 640, height: 384 });
+		expect(fit.zoom).toBe(12);
+		expect(fit.scrollX).toBe((12 * 48 - 640) / 2);
+		// Clamping leaves a fitted camera where it is (it is already centred).
+		const clamped = clampScroll(fit, { width: 640, height: 384 }, cells);
+		expect(clamped.scrollX).toBe(fit.scrollX);
+		expect(Math.abs(clamped.scrollY - fit.scrollY)).toBe(0);
+		const big = fitCamera({ width: 400, height: 300 }, { width: 640, height: 384 });
+		expect(big.zoom).toBe(1);
+		expect(big.scrollX).toBe((400 * 4 - 640) / 2);
 	});
 });

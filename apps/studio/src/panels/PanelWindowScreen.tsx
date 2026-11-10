@@ -3,17 +3,34 @@
 // (c) Copyright 2026 Liminal HQ, Scott Morris
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
-import { useMemo } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { AppWindow } from '../app/AppWindow';
+import { useSurfaceMenu } from '../app/useSurfaceMenu';
+import {
+	CommandBridgeContext,
+	createCommandBridge,
+	perPanel,
+	useCommandBridge,
+} from '../commands/commandBridge';
+import { dockBackCommandId } from '../commands/registry';
+import type { ThingEditApi, ThingEditResult } from '../inspector/thingEdit';
 import { panelContent } from '../app/panelContent';
 import { ownerOfPanel, panelFromLabel } from '../app/windowKind';
 import { t } from '../i18n/messages';
 import { panelWindowClient, type PanelWindowClient } from '../services/panelWindowClient';
 import { PANEL_SPECS } from './float/panelSpecs';
+import { useLayerLocks } from './layers/useLayerLocks';
 import { createPanelBridge, type PanelBridge } from './windows/panelBridge';
+import { usePanelWindowDrag } from './windows/usePanelWindowDrag';
+import { tearoffClient } from '../services/tauriTearoffClient';
+import type { TearoffClient } from '../services/tearoffClient';
+import { PANEL_ICONS } from './dock/panelIcons';
 import { usePanelSession } from './windows/usePanelSession';
 import { TauriLevelClient } from '../worlds/tauriLevelClient';
 import type { LevelClient } from '../worlds/levelClient';
+import { isDirty } from '../worlds/tauriLevelClient';
+import { ScriptTabStrip } from './script/ScriptTabStrip';
+import { LEVEL_TAB, scriptTabsFor } from './script/scriptTabs';
 import styles from './PanelWindowScreen.module.css';
 
 export interface PanelWindowScreenProps {
@@ -24,6 +41,8 @@ export interface PanelWindowScreenProps {
 	levels?: LevelClient;
 	/** The channel to the main window; defaults to the app's events. */
 	bridge?: PanelBridge;
+	/** The tear-off plugin, for dragging the panel back to the main window; defaults to the app's. */
+	tearoff?: TearoffClient;
 }
 
 let sharedLevels: TauriLevelClient | null = null;
@@ -42,6 +61,7 @@ export function PanelWindowScreen({
 	client = panelWindowClient,
 	levels,
 	bridge,
+	tearoff = tearoffClient,
 }: PanelWindowScreenProps) {
 	const panel = panelFromLabel(windowLabel);
 	const spec = PANEL_SPECS.find((candidate) => candidate.id === panel);
@@ -53,6 +73,7 @@ export function PanelWindowScreen({
 			client={client}
 			levels={levels ?? defaultLevels()}
 			bridge={bridge}
+			tearoff={tearoff}
 		/>
 	);
 }
@@ -63,17 +84,111 @@ interface PanelWindowProps {
 	client: PanelWindowClient;
 	levels: LevelClient;
 	bridge: PanelBridge | undefined;
+	tearoff: TearoffClient;
 }
 
-function PanelWindow({ windowLabel, spec, client, levels, bridge: given }: PanelWindowProps) {
+function PanelWindow({
+	windowLabel,
+	spec,
+	client,
+	levels,
+	bridge: given,
+	tearoff,
+}: PanelWindowProps) {
 	const bridge = useMemo(() => given ?? createPanelBridge(windowLabel, true), [given, windowLabel]);
 	const owner = ownerOfPanel(windowLabel) ?? 'main-1';
 	const session = usePanelSession(windowLabel, bridge, levels);
 	const { share, snapshot } = session;
-	return (
+	const layerLocks = useLayerLocks(levels, share?.levelId ?? null);
+	// The Inspector here asks the main window to change the thing, which keeps every edit in its one
+	// queue, and hears what became of each request.
+	const requests = useRef(new Map<number, (result: ThingEditResult) => void>());
+	const serial = useRef(0);
+	useEffect(
+		() =>
+			bridge.on('inspector/result', (message) => {
+				if (!message || !Number.isInteger(message.serial)) return;
+				requests.current.get(message.serial)?.(message.result);
+				requests.current.delete(message.serial);
+			}),
+		[bridge],
+	);
+	const thingEdits = useMemo<ThingEditApi>(
+		() => ({
+			apply: (spec, mergeKey) =>
+				new Promise((resolve) => {
+					const id = (serial.current += 1);
+					requests.current.set(id, resolve);
+					bridge.send(owner, 'inspector/edit', { serial: id, spec, mergeKey });
+				}),
+			endStep: () => bridge.send(owner, 'inspector/endStep', null),
+		}),
+		[bridge, owner],
+	);
+	// Dragging the tab or the title back over the main window docks the panel where it is let go.
+	const drag = usePanelWindowDrag({
+		client: tearoff,
+		bridge,
+		owner,
+		label: windowLabel,
+		panel: spec.id,
+		title: t(spec.title),
+		dockBack: () => void client.dockBack(spec.id),
+	});
+	const Icon = PANEL_ICONS[spec.id];
+	// This window's own commands for the context menu: the window has no editor to run the rest, so
+	// the menu offers what it can do, which is Dock back (and the script's own editor commands, which
+	// the Script panel publishes here).
+	const inherited = useCommandBridge();
+	const [own] = useState(() => (inherited ? null : createCommandBridge()));
+	const commands = inherited ?? own!;
+	useEffect(() => {
+		commands.setFacts({
+			editorOpen: true,
+			hasLevel: true,
+			panels: { ...perPanel(false), [spec.id]: true },
+			away: { ...perPanel(false), [spec.id]: true },
+		});
+		return commands.setHandlers({
+			[dockBackCommandId(spec.id)]: () => void client.dockBack(spec.id),
+			// The script's tab closes the window, which docks the panel back.
+			'script.tab.level.close': () => void client.dockBack(spec.id),
+		});
+	}, [commands, client, spec.id]);
+	const barMenu = useSurfaceMenu<HTMLDivElement>(() => ({
+		kind: 'panel',
+		panel: spec.id,
+		where: 'header',
+	}));
+	const screen = (
 		<AppWindow titleId={spec.title}>
 			<main className={styles.panel}>
-				<div className={styles.bar}>
+				<div className={styles.bar} {...barMenu}>
+					{spec.id === 'script' && snapshot && (
+						// The window holds one script: its one tab. Closing the tab docks the panel back.
+						<ScriptTabStrip
+							tabs={scriptTabsFor({
+								path: snapshot.path,
+								dirty: isDirty(snapshot),
+								away: false,
+							})}
+							active={LEVEL_TAB}
+							controls="panel-window-body"
+							onActivate={() => {}}
+							onClose={() => void client.dockBack(spec.id)}
+							onTabDragStart={(event) => drag.onPointerDown(event, 'scriptTab')}
+						/>
+					)}
+					{spec.id !== 'script' && (
+						// The panel's name, the handle to drag it back to the main window by.
+						<h2
+							className={styles.title}
+							onPointerDown={(event) => drag.onPointerDown(event, 'header')}
+						>
+							<Icon />
+							<span>{t(spec.title)}</span>
+						</h2>
+					)}
 					<button
 						type="button"
 						className={styles.button}
@@ -82,7 +197,7 @@ function PanelWindow({ windowLabel, spec, client, levels, bridge: given }: Panel
 						{t('panel.dockBack')}
 					</button>
 				</div>
-				<div className={styles.body}>
+				<div className={styles.body} id="panel-window-body">
 					{share && snapshot ? (
 						panelContent(spec.id, {
 							snapshot,
@@ -92,6 +207,12 @@ function PanelWindow({ windowLabel, spec, client, levels, bridge: given }: Panel
 							spacing: share.spacing,
 							onSpacing: (spacing) => bridge.send(owner, 'palette/set', { spacing }),
 							onObjectChosen: (cell) => bridge.send(owner, 'objects/choose', cell),
+							onThingChosen: (thing) => bridge.send(owner, 'objects/select', thing),
+							selectedThing: share.selectedThing ?? null,
+							thingEdits,
+							deletedName: share.deletedName ?? null,
+							lookupCellLine: (x, y) =>
+								share.levelId ? levels.cellLine(share.levelId, x, y) : Promise.resolve(null),
 							showLine: (line) => bridge.send(owner, 'script/show', { line }),
 							undo: session.undo,
 							redo: session.redo,
@@ -101,6 +222,17 @@ function PanelWindow({ windowLabel, spec, client, levels, bridge: given }: Panel
 							onRefreshProposals: session.refreshProposals,
 							focusLine: share.focus?.line ?? null,
 							focusSerial: share.focus?.serial ?? 0,
+							hiddenLayers: share.hiddenLayers,
+							onToggleLayer: (id) =>
+								bridge.send(owner, 'layers/hidden', {
+									hidden: share.hiddenLayers.includes(id)
+										? share.hiddenLayers.filter((hidden) => hidden !== id)
+										: [...share.hiddenLayers, id],
+								}),
+							onShowAllLayers: () => bridge.send(owner, 'layers/hidden', { hidden: [] }),
+							lockedLayers: layerLocks.locked,
+							onToggleLock: layerLocks.toggle,
+							onUnlockAll: layerLocks.unlockAll,
 						})
 					) : (
 						<p className={styles.message}>{t('panelWindow.noLevel')}</p>
@@ -108,5 +240,10 @@ function PanelWindow({ windowLabel, spec, client, levels, bridge: given }: Panel
 				</div>
 			</main>
 		</AppWindow>
+	);
+	return own ? (
+		<CommandBridgeContext.Provider value={own}>{screen}</CommandBridgeContext.Provider>
+	) : (
+		screen
 	);
 }

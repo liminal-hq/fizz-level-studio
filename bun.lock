@@ -32,11 +32,13 @@
         "@liminal-hq/fizz-studio-plugin-settings": "workspace:*",
         "@liminal-hq/fizz-studio-plugin-worlds": "workspace:*",
         "@liminal-hq/fizz-studio-protocol": "workspace:*",
+        "@liminal-hq/fizz-studio-ribbon": "workspace:*",
         "@liminal-hq/plugin-system-appearance": "^0.1.0",
         "@liminal-hq/plugin-window-effects": "workspace:*",
         "@liminal-hq/plugin-window-manager": "^0.1.0",
         "@liminal-hq/plugin-window-tearoff": "workspace:*",
         "@tauri-apps/api": "^2.10.1",
+        "@tauri-apps/plugin-clipboard-manager": "^2.5.0",
         "@tauri-apps/plugin-dialog": "^2.8.4",
         "@tauri-apps/plugin-log": "^2.8.0",
         "@tauri-apps/plugin-os": "^2.3.2",
@@ -86,6 +88,32 @@
     "packages/protocol": {
       "name": "@liminal-hq/fizz-studio-protocol",
       "version": "0.0.0",
+    },
+    "packages/ribbon": {
+      "name": "@liminal-hq/fizz-studio-ribbon",
+      "version": "0.0.0",
+      "dependencies": {
+        "@liminal-hq/fizz-studio-chrome": "workspace:*",
+      },
+      "devDependencies": {
+        "@testing-library/jest-dom": "^6.9.1",
+        "@testing-library/react": "^16.3.2",
+        "@testing-library/user-event": "^14.6.1",
+        "@types/node": "^24.0.0",
+        "@types/react": "^19.1.8",
+        "@types/react-dom": "^19.1.6",
+        "@vitejs/plugin-react": "^4.6.0",
+        "happy-dom": "^20.8.4",
+        "react": "^19.1.0",
+        "react-dom": "^19.1.0",
+        "typescript": "~5.8.3",
+        "vite": "^7.0.4",
+        "vitest": "^4.1.9",
+      },
+      "peerDependencies": {
+        "react": "^19.1.0",
+        "react-dom": "^19.1.0",
+      },
     },
     "plugins/fizz-studio-host": {
       "name": "@liminal-hq/fizz-studio-plugin-host",
@@ -302,6 +330,8 @@
 
     "@liminal-hq/fizz-studio-protocol": ["@liminal-hq/fizz-studio-protocol@workspace:packages/protocol"],
 
+    "@liminal-hq/fizz-studio-ribbon": ["@liminal-hq/fizz-studio-ribbon@workspace:packages/ribbon"],
+
     "@liminal-hq/plugin-system-appearance": ["@liminal-hq/plugin-system-appearance@0.1.0", "", { "dependencies": { "@tauri-apps/api": "^2.10.0" } }, "sha512-UHv1VBWXbtpTPCvL37G5YVt2RJHD3+xDPx8ZU0s2pcjMv0ZpAEUIyp4avWPXpdjlft0+xcHrlvT0D5/7AzvraA=="],
 
     "@liminal-hq/plugin-window-effects": ["@liminal-hq/plugin-window-effects@workspace:plugins/window-effects"],
@@ -409,6 +439,8 @@
     "@tauri-apps/cli-win32-ia32-msvc": ["@tauri-apps/cli-win32-ia32-msvc@2.12.4", "", { "os": "win32", "cpu": "ia32" }, "sha512-ezl8sQIcjYsye3TUnTH5VcWmWzccZASlQm7hlZt0dYyj1XD0qpVW47u2xYVrIKui0F8uQv/7QGZixdWiClBsbg=="],
 
     "@tauri-apps/cli-win32-x64-msvc": ["@tauri-apps/cli-win32-x64-msvc@2.12.4", "", { "os": "win32", "cpu": "x64" }, "sha512-DJhDeCqjLDNMWYFy7ZS8cfeAHX2RK0RbQMLiA3bMVVkXRDJ4NBYiHriGqsUhsr9iG41aTb+dJGkFPmPw1gWwVw=="],
+
+    "@tauri-apps/plugin-clipboard-manager": ["@tauri-apps/plugin-clipboard-manager@2.5.0", "", { "dependencies": { "@tauri-apps/api": "^2.12.0" } }, "sha512-dibUy1nKURYDXRMvjNk4deAbTZ5jPQ8wCE4nolt5xniryWgXQ4sK2GkFXoXlHbRdPzfZptZj95BRLfalA7m/2Q=="],
 
     "@tauri-apps/plugin-dialog": ["@tauri-apps/plugin-dialog@2.8.4", "", { "dependencies": { "@tauri-apps/api": "^2.12.0" } }, "sha512-+6ZOiXenOaxXwb8qCbBPdT2jX2cFPaVVHGIskrpmJLpmWj+qKRTD6X/z9x7hTdSQn7NedcoXCkWGej4a7dC4lw=="],
 

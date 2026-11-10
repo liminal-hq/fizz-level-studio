@@ -116,11 +116,6 @@
 	color: var(--fls-text-primary);
 }
 
-.actions {
-	display: flex;
-	gap: 0.5rem;
-}
-
 .editorBody {
 	flex: 1;
 	min-height: 0;

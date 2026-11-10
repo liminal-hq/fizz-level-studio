@@ -17,6 +17,7 @@ import {
 	findRailEntry,
 	openDock,
 	queryRailEntry,
+	choosePanelMenu,
 	railEntry,
 	showFromRail,
 } from '../test/dockFixtures';
@@ -61,6 +62,8 @@ describe('tearing a panel off', () => {
 			const { windows } = await mount();
 			const title = {
 				palette: 'Palette',
+				layers: 'Layers',
+				inspector: 'Inspector',
 				objects: 'Objects',
 				history: 'History',
 				proposals: 'Proposals',
@@ -68,9 +71,7 @@ describe('tearing a panel off', () => {
 			}[id]!;
 			// Show the panel to tear off from its rail.
 			await showFromRail(user, title);
-			await user.click(
-				screen.getByRole('button', { name: `Tear off ${title} into its own window` }),
-			);
+			await choosePanelMenu(user, document.body, title, 'Tear off');
 			await waitFor(() => expect(windows.client.tearOff).toHaveBeenCalledWith(id, null));
 			expect(windows.open.has(`panel-${id}-1`)).toBe(true);
 			// The panel's tab stays, marked away, and its content is the notice with Dock back.
@@ -82,22 +83,38 @@ describe('tearing a panel off', () => {
 
 	it('docks a panel back from the notice and from its window closing', async () => {
 		const user = userEvent.setup();
-		const { windows, docks } = await mount({
-			dock: dockWithWindow('history'),
-			open: ['panel-history-1'],
-		});
+		const { windows, docks } = await mount();
 		const right = screen.getByRole('region', { name: 'Right dock' });
-		await user.click(railEntry('History (own window)', 'right'));
+		await showFromRail(user, 'History');
+		await choosePanelMenu(user, right, 'History', 'Tear off');
+		await findRailEntry('History (own window)', 'right');
 		await user.click(within(right).getByRole('button', { name: 'Dock back' }));
 		expect(windows.client.dockBack).toHaveBeenCalledWith('history');
 		await waitFor(() => expect(railEntry('History', 'right')).toBeVisible());
 
-		await user.click(
-			within(right).getByRole('button', { name: 'Tear off History into its own window' }),
-		);
+		await choosePanelMenu(user, right, 'History', 'Tear off');
 		await findRailEntry('History (own window)', 'right');
 		act(() => windows.close('panel-history-1'));
 		await waitFor(() => expect(railEntry('History', 'right')).toBeVisible());
+		expect(docks.save).toBeDefined();
+	});
+
+	it('docks a panel back to its place when its rail entry is chosen', async () => {
+		const user = userEvent.setup();
+		const { windows, docks } = await mount();
+		await showFromRail(user, 'Objects');
+		await choosePanelMenu(user, document.body, 'Objects', 'Tear off');
+		const away = await findRailEntry('Objects (own window)', 'right');
+		// The away entry sits where Objects left: between Inspector and History.
+		const order = () =>
+			[...document.querySelectorAll('[data-rail="right"] [data-rail-item]')].map((e) =>
+				(e.textContent ?? '').trim(),
+			);
+		expect(order()).toEqual(['Inspector', 'Objects (own window)', 'History']);
+		await user.click(away);
+		await waitFor(() => expect(windows.client.dockBack).toHaveBeenCalledWith('objects'));
+		await waitFor(() => expect(railEntry('Objects', 'right')).toBeVisible());
+		expect(order()).toEqual(['Inspector', 'Objects', 'History']);
 		expect(docks.save).toBeDefined();
 	});
 
@@ -118,12 +135,12 @@ describe('tearing a panel off', () => {
 
 	it('closes a panel’s window when the panel is docked elsewhere from its tab', async () => {
 		const user = userEvent.setup();
-		const { windows } = await mount({ dock: dockWithWindow('history'), open: ['panel-history-1'] });
+		const { windows } = await mount();
 		const right = screen.getByRole('region', { name: 'Right dock' });
-		await user.click(railEntry('History (own window)', 'right'));
-		await user.click(
-			within(right).getByRole('button', { name: 'Dock History (own window) bottom' }),
-		);
+		await showFromRail(user, 'History');
+		await choosePanelMenu(user, right, 'History', 'Tear off');
+		await findRailEntry('History (own window)', 'right');
+		await choosePanelMenu(user, right, 'History (own window)', 'Dock bottom');
 		await waitFor(() => expect(windows.client.dockBack).toHaveBeenCalledWith('history'));
 		expect(screen.getByRole('region', { name: 'Bottom dock' })).toBeInTheDocument();
 		expect(railEntry('History', 'bottom')).toBeVisible();
@@ -136,10 +153,8 @@ describe('tearing a panel off', () => {
 			throw new Error('refused');
 		};
 		const right = screen.getByRole('region', { name: 'Right dock' });
-		await user.click(
-			within(right).getByRole('button', { name: 'Tear off Objects into its own window' }),
-		);
-		expect(railEntry('Objects', 'right')).toBeVisible();
+		await choosePanelMenu(user, right, 'Inspector', 'Tear off');
+		expect(railEntry('Inspector', 'right')).toBeVisible();
 	});
 });
 
@@ -166,12 +181,10 @@ describe('a torn-off panel from floating', () => {
 		const user = userEvent.setup();
 		const { windows } = await mount({ dock: defaultDock() });
 		const left = await screen.findByRole('region', { name: 'Left dock' });
-		await user.click(within(left).getByRole('button', { name: 'Float Palette' }));
+		await choosePanelMenu(user, left, 'Palette', 'Float');
 		const floating = screen.getByRole('region', { name: 'Palette' });
 		const placed = rectOf(floating);
-		await user.click(
-			within(floating).getByRole('button', { name: 'Tear off Palette into its own window' }),
-		);
+		await choosePanelMenu(user, floating, 'Palette', 'Tear off');
 		await waitFor(() => expect(windows.open.has('panel-palette-1')).toBe(true));
 		// No floating panel over the level; the panel is an away entry in its home (left) dock.
 		await waitFor(() => expect(screen.queryByRole('region', { name: 'Palette' })).toBeNull());
@@ -189,12 +202,10 @@ describe('a torn-off panel from floating', () => {
 		const user = userEvent.setup();
 		const { windows } = await mount({ dock: defaultDock() });
 		const left = await screen.findByRole('region', { name: 'Left dock' });
-		await user.click(within(left).getByRole('button', { name: 'Float Palette' }));
+		await choosePanelMenu(user, left, 'Palette', 'Float');
 		const floating = screen.getByRole('region', { name: 'Palette' });
 		const placed = rectOf(floating);
-		await user.click(
-			within(floating).getByRole('button', { name: 'Tear off Palette into its own window' }),
-		);
+		await choosePanelMenu(user, floating, 'Palette', 'Tear off');
 		await findRailEntry('Palette (own window)');
 		act(() => windows.close('panel-palette-1'));
 		const back = await screen.findByRole('region', { name: 'Palette' });
@@ -245,6 +256,63 @@ describe('the bridge to the panel windows', () => {
 		await waitFor(() => expect(focus).toMatchObject({ line: 5 }));
 	});
 
+	it('selects the thing the torn-off Objects list chose, and shares it back', async () => {
+		const { hub } = await mount({ dock: dockWithWindow('objects'), open: ['panel-objects-1'] });
+		const panel = hub.bridgeFor('panel-objects-1');
+		let shared: unknown = 'unset';
+		panel.on('editor', (share) => (shared = share.selectedThing));
+		panel.send('main-1', 'hello', null);
+		expect(shared).toBeNull();
+		const thing = {
+			kind: 'start',
+			name: 'start',
+			x: 1,
+			y: 1,
+			layer: 'objects',
+			index: 0,
+			line: 2,
+		};
+		act(() => panel.send('main-1', 'objects/select', thing as never));
+		await waitFor(() => expect(shared).toEqual(thing));
+		// A message of the wrong shape selects nothing and changes nothing.
+		act(() => panel.send('main-1', 'objects/select', { kind: 'item', index: -3 } as never));
+		panel.send('main-1', 'hello', null);
+		expect(shared).toEqual(thing);
+	});
+
+	it('applies a change the torn-off Inspector asks for, answers it, and ends its step on request', async () => {
+		const { hub, client } = await mount({
+			dock: dockWithWindow('inspector'),
+			open: ['panel-inspector-1'],
+		});
+		const panel = hub.bridgeFor('panel-inspector-1');
+		const results: Array<{ serial: number; result: { ok: boolean } }> = [];
+		panel.on('inspector/result', (message) => results.push(message));
+		const endStep = vi.spyOn(client, 'endStep');
+		// Nothing is selected yet, so there is no thing for the request to name.
+		act(() =>
+			panel.send('main-1', 'inspector/edit', {
+				serial: 1,
+				spec: { op: 'move', x: 4, y: 1 },
+				mergeKey: 'thing:item:0:move:0',
+			}),
+		);
+		await waitFor(() => expect(results).toHaveLength(1));
+		expect(results[0]).toMatchObject({ serial: 1, result: { ok: false } });
+		expect(client.applied).toHaveLength(0);
+		// A request of the wrong shape is not answered at all.
+		act(() =>
+			panel.send('main-1', 'inspector/edit', {
+				serial: 2,
+				spec: { op: 'teleport' },
+				mergeKey: 'k',
+			} as never),
+		);
+		act(() => panel.send('main-1', 'inspector/endStep', null));
+		await waitFor(() => expect(endStep).toHaveBeenCalled());
+		expect(results).toHaveLength(1);
+	});
+
 	it('shares the proposals toggle both ways', async () => {
 		const { hub } = await mount({ dock: dockWithWindow('proposals'), open: ['panel-proposals-1'] });
 		const panel = hub.bridgeFor('panel-proposals-1');
@@ -254,6 +322,20 @@ describe('the bridge to the panel windows', () => {
 		expect(shown).toBe(true);
 		act(() => panel.send('main-1', 'proposals/shown', { shown: false }));
 		await waitFor(() => expect(shown).toBe(false));
+	});
+
+	it('shares the hidden layers both ways', async () => {
+		const { hub } = await mount({ dock: dockWithWindow('layers'), open: ['panel-layers-1'] });
+		const panel = hub.bridgeFor('panel-layers-1');
+		let hidden: unknown = null;
+		panel.on('editor', (share) => (hidden = share.hiddenLayers));
+		panel.send('main-1', 'hello', null);
+		expect(hidden).toEqual([]);
+		act(() => panel.send('main-1', 'layers/hidden', { hidden: ['treats'] }));
+		await waitFor(() => expect(hidden).toEqual(['treats']));
+		act(() => panel.send('main-1', 'layers/hidden', { hidden: 'nope' as never }));
+		act(() => panel.send('main-1', 'layers/hidden', { hidden: [] }));
+		await waitFor(() => expect(hidden).toEqual([]));
 	});
 });
 
@@ -268,40 +350,34 @@ describe('remembering where a torn-off window is', () => {
 		const user = userEvent.setup();
 		const { docks } = await mount();
 		const right = screen.getByRole('region', { name: 'Right dock' });
-		await user.click(
-			within(right).getByRole('button', { name: 'Tear off Objects into its own window' }),
-		);
+		await choosePanelMenu(user, right, 'Inspector', 'Tear off');
 		await waitFor(() => expect(docks.save).toHaveBeenCalled(), { timeout: 2000 });
-		expect(savedWindow(docks, 'objects')).toEqual({ x: 100, y: 120, w: 520, h: 720 });
+		expect(savedWindow(docks, 'inspector')).toEqual({ x: 100, y: 120, w: 520, h: 720 });
 	});
 
 	it('records a window that moves or resizes, and asks for it again where it was left', async () => {
 		const user = userEvent.setup();
 		const { docks, windows } = await mount();
 		const right = screen.getByRole('region', { name: 'Right dock' });
-		await user.click(
-			within(right).getByRole('button', { name: 'Tear off Objects into its own window' }),
-		);
-		await findRailEntry('Objects (own window)', 'right');
+		await choosePanelMenu(user, right, 'Inspector', 'Tear off');
+		await findRailEntry('Inspector (own window)', 'right');
 		act(() => {
-			windows.place('panel-objects-1', { x: 5, y: 6, w: 640, h: 480 });
-			windows.place('panel-objects-1', { x: 50, y: 60, w: 700, h: 500 });
+			windows.place('panel-inspector-1', { x: 5, y: 6, w: 640, h: 480 });
+			windows.place('panel-inspector-1', { x: 50, y: 60, w: 700, h: 500 });
 		});
 		await waitFor(
-			() => expect(savedWindow(docks, 'objects')).toEqual({ x: 50, y: 60, w: 700, h: 500 }),
+			() => expect(savedWindow(docks, 'inspector')).toEqual({ x: 50, y: 60, w: 700, h: 500 }),
 			{
 				timeout: 3000,
 			},
 		);
 		// Dock it back and tear it off again: the record is passed to Rust, not forgotten.
 		await user.click(within(right).getByRole('button', { name: 'Dock back' }));
-		await findRailEntry('Objects', 'right');
-		await user.click(
-			within(right).getByRole('button', { name: 'Tear off Objects into its own window' }),
-		);
+		await findRailEntry('Inspector', 'right');
+		await choosePanelMenu(user, right, 'Inspector', 'Tear off');
 		await waitFor(() =>
 			expect(windows.opened.at(-1)).toEqual({
-				panel: 'objects',
+				panel: 'inspector',
 				asked: { x: 50, y: 60, w: 700, h: 500 },
 			}),
 		);
@@ -311,13 +387,11 @@ describe('remembering where a torn-off window is', () => {
 		const user = userEvent.setup();
 		const { docks, windows } = await mount();
 		const right = screen.getByRole('region', { name: 'Right dock' });
-		await user.click(
-			within(right).getByRole('button', { name: 'Tear off Objects into its own window' }),
-		);
-		await findRailEntry('Objects (own window)', 'right');
-		act(() => windows.place('panel-objects-1', { x: 0, y: 0, w: 333, h: 444 }, false));
+		await choosePanelMenu(user, right, 'Inspector', 'Tear off');
+		await findRailEntry('Inspector (own window)', 'right');
+		act(() => windows.place('panel-inspector-1', { x: 0, y: 0, w: 333, h: 444 }, false));
 		await waitFor(
-			() => expect(savedWindow(docks, 'objects')).toEqual({ x: 100, y: 120, w: 333, h: 444 }),
+			() => expect(savedWindow(docks, 'inspector')).toEqual({ x: 100, y: 120, w: 333, h: 444 }),
 			{
 				timeout: 3000,
 			},

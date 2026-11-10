@@ -5,17 +5,16 @@
 
 use std::collections::HashMap;
 
+use fizz_studio_language::ast::Body;
 use fizz_studio_language::messages::message;
 use fizz_studio_language::parser::parse;
-use fizz_studio_language::raster::{rasterise, World};
+use fizz_studio_language::raster::{rasterise, rasterise_hiding, World};
 use fizz_studio_language::tables::{words, TILES};
 use fizz_studio_protocol::{LevelView, ViewDiagnostic, ViewItem, ViewMarker, ViewSpawn, ViewStart};
 use fizz_studio_session::Document;
 
+use crate::layers::{cell_sections, lines_in, sections, MARKER_TILES};
 use crate::LevelDocument;
-
-/// The tiles the objects list shows as things of their own.
-const MARKER_TILES: [&str; 4] = ["exit", "red-door", "blue-door", "green-door"];
 
 /// A rasteriser line as the view carries it: `None` for 0, which no statement has.
 fn line(line: usize) -> Option<u32> {
@@ -59,6 +58,14 @@ impl LevelDocument {
     /// still gives its diagnostics, with an empty grid. The palette is every tile word in the
     /// language's order, `empty` first, so a cell's index means the same after every edit.
     pub fn view(&self) -> LevelView {
+        self.view_without(&[])
+    }
+
+    /// The level as the canvas draws it with the statements of the `hidden` layers left out, as if
+    /// they were not in the script: the masked drawing behind a layer's eye. Nothing is saved and
+    /// the text is untouched. The rows (`sections`) still list every layer, so a hidden one can be
+    /// shown again. With nothing hidden this is exactly [`LevelDocument::view`].
+    pub fn view_without(&self, hidden: &[String]) -> LevelView {
         let parsed = parse(self.text());
         let diagnostics = parsed
             .errors
@@ -70,7 +77,9 @@ impl LevelDocument {
             })
             .collect();
         let mut palette: Vec<String> = words(TILES).into_iter().map(String::from).collect();
-        let Some(world) = rasterise(&parsed.ast) else {
+        let hidden_lines = lines_in(&parsed.ast, hidden);
+        let Some(world) = rasterise_hiding(&parsed.ast, |node| hidden_lines.contains(&node.line))
+        else {
             return LevelView {
                 width: 0,
                 height: 0,
@@ -81,6 +90,8 @@ impl LevelDocument {
                 spawns: Vec::new(),
                 start: None,
                 markers: Vec::new(),
+                sections: Vec::new(),
+                cell_sections: Vec::new(),
                 diagnostics,
             };
         };
@@ -89,6 +100,21 @@ impl LevelDocument {
             .enumerate()
             .map(|(i, word)| (word.clone(), i as u16))
             .collect();
+        // What the rasteriser does not say: which lines generate items, and which spawns the script
+        // gave no `y=`.
+        let mut generators: HashMap<usize, &str> = HashMap::new();
+        let mut on_ground: std::collections::HashSet<usize> = std::collections::HashSet::new();
+        for node in &parsed.ast.nodes {
+            match &node.body {
+                Body::PogoCache { .. } => {
+                    generators.insert(node.line, "pogo-cache");
+                }
+                Body::Spawn { y: None, .. } => {
+                    on_ground.insert(node.line);
+                }
+                _ => {}
+            }
+        }
         let cells = world
             .tiles
             .iter()
@@ -100,6 +126,21 @@ impl LevelDocument {
             })
             .collect();
         let markers = markers(&world);
+        // The rows count what the whole script builds, so a hidden layer keeps its count and can be
+        // read as what it would show.
+        let counted = if hidden_lines.is_empty() {
+            None
+        } else {
+            rasterise(&parsed.ast)
+        };
+        let counted = counted.as_ref().unwrap_or(&world);
+        let sections = sections(
+            &parsed.ast,
+            counted.items.len(),
+            counted.spawns.len(),
+            self::markers(counted).len(),
+        );
+        let cell_sections = cell_sections(&parsed.ast, &world, &sections);
         LevelView {
             width: world.w as u32,
             height: world.h as u32,
@@ -114,6 +155,7 @@ impl LevelDocument {
                     x: i.x,
                     y: i.y,
                     line: line(i.line),
+                    generator: generators.get(&i.line).map(|word| (*word).to_string()),
                 })
                 .collect(),
             spawns: world
@@ -125,6 +167,7 @@ impl LevelDocument {
                     y: s.y,
                     dir: s.dir,
                     ride: s.ride,
+                    on_ground: on_ground.contains(&s.line),
                     line: line(s.line),
                 })
                 .collect(),
@@ -134,6 +177,8 @@ impl LevelDocument {
                 line: line(s.line),
             }),
             markers,
+            sections,
+            cell_sections,
             diagnostics,
         }
     }

@@ -5,13 +5,17 @@
 
 import { invoke } from '@tauri-apps/api/core';
 import { listen, type UnlistenFn } from '@tauri-apps/api/event';
+import type { Facing } from '@liminal-hq/fizz-studio-protocol/generated/Facing';
 import type { GhostProposal } from '@liminal-hq/fizz-studio-protocol/generated/GhostProposal';
 import type { LevelEdit } from '@liminal-hq/fizz-studio-protocol/generated/LevelEdit';
 import type { LevelError } from '@liminal-hq/fizz-studio-protocol/generated/LevelError';
 import type { LevelSnapshot } from '@liminal-hq/fizz-studio-protocol/generated/LevelSnapshot';
+import type { LevelView } from '@liminal-hq/fizz-studio-protocol/generated/LevelView';
 import type { NewLevelRequest } from '@liminal-hq/fizz-studio-protocol/generated/NewLevelRequest';
 import type { ProjectInfo } from '@liminal-hq/fizz-studio-protocol/generated/ProjectInfo';
 import type { RecoveryEntry } from '@liminal-hq/fizz-studio-protocol/generated/RecoveryEntry';
+import type { ThingKind } from '@liminal-hq/fizz-studio-protocol/generated/ThingKind';
+import type { ThingRef } from '@liminal-hq/fizz-studio-protocol/generated/ThingRef';
 import type { WordDoc } from '@liminal-hq/fizz-studio-protocol/generated/WordDoc';
 
 const PREFIX = 'plugin:fizz-studio-worlds|';
@@ -28,6 +32,20 @@ export interface LevelConflict {
 	id: string;
 	/** The text with conflict markers where both sides changed the same lines. */
 	marked: string;
+	/**
+	 * The locked layers the outside change would have altered, when the studio refused it for that
+	 * reason (the studio kept its own text and `marked` is the outside text). Empty otherwise.
+	 */
+	locked?: string[];
+}
+
+/** Sent to every window when a level's locked layers change; the payload is a `LevelLayers`. */
+export const LEVEL_LAYERS_EVENT = 'level://layers';
+
+/** The locked layers of one open level, as layer ids in panel order. */
+export interface LevelLayers {
+	id: string;
+	locked: string[];
 }
 
 function cmd<T>(name: string, args?: Record<string, unknown>): Promise<T> {
@@ -143,6 +161,29 @@ export function levelSnapshot(id: string): Promise<LevelSnapshot> {
 }
 
 /**
+ * The level drawn without the statements of the `hidden` layers, as if they were not in the script:
+ * the drawing behind a layer's eye. Read-only; nothing is saved and the level is untouched.
+ */
+export function levelViewMasked(id: string, hidden: string[]): Promise<LevelView> {
+	return cmd<LevelView>('level_view_masked', { id, hidden });
+}
+
+/** The layers of an open level that are locked. */
+export function levelLayers(id: string): Promise<LevelLayers> {
+	return cmd<LevelLayers>('level_layers', { id });
+}
+
+/**
+ * Locks or unlocks a layer of an open level, and keeps the choice in the level's sidecar. A locked
+ * layer refuses every change to it, from the person and from Claude alike. Rejects with a
+ * `LevelError` of kind `invalid` for a word that is not a layer, and `io` when the sidecar cannot be
+ * rewritten (the lock is then left as it was).
+ */
+export function setLayerLocked(id: string, layer: string, locked: boolean): Promise<LevelLayers> {
+	return cmd<LevelLayers>('level_set_layer_locked', { id, layer, locked });
+}
+
+/**
  * Wraps `listener` so it hears only snapshots newer than what it has applied for that level.
  * Events can arrive out of order or twice (a window's own edit comes back as an event), and a
  * revision at or below the one already applied for the same level id is older news: it is ignored.
@@ -179,13 +220,22 @@ export function onLevelConflict(listener: (conflict: LevelConflict) => void): Pr
 	return listen<LevelConflict>(LEVEL_CONFLICT_EVENT, (event) => listener(event.payload));
 }
 
+/** Hears when a level's locked layers change, whichever window changed them. */
+export function onLevelLayers(listener: (layers: LevelLayers) => void): Promise<UnlistenFn> {
+	return listen<LevelLayers>(LEVEL_LAYERS_EVENT, (event) => listener(event.payload));
+}
+
 export type {
+	Facing,
 	GhostProposal,
 	LevelEdit,
 	LevelError,
 	LevelSnapshot,
+	LevelView,
 	NewLevelRequest,
 	ProjectInfo,
 	RecoveryEntry,
+	ThingKind,
+	ThingRef,
 	WordDoc,
 };

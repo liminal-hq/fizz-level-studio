@@ -21,6 +21,7 @@ function word(name: string, kind: string): WordDoc {
 		syntax: `${name} SYNTAX`,
 		example: `${name} EXAMPLE`,
 		note: `${name} does a thing.`,
+		group: '',
 	};
 }
 

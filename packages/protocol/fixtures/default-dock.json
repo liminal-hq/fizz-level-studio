@@ -23,7 +23,40 @@
 					"z": 1
 				},
 				"window": null,
-				"window_from": "docked"
+				"window_from": "docked",
+				"home_spot": null
+			},
+			"layers": {
+				"place": "docked",
+				"home": "left",
+				"float": {
+					"x": 336,
+					"y": 434,
+					"w": 260,
+					"h": 240,
+					"collapsed": false,
+					"visible": true,
+					"z": 6
+				},
+				"window": null,
+				"window_from": "docked",
+				"home_spot": null
+			},
+			"inspector": {
+				"place": "docked",
+				"home": "right",
+				"float": {
+					"x": 812,
+					"y": 436,
+					"w": 300,
+					"h": 256,
+					"collapsed": false,
+					"visible": true,
+					"z": 7
+				},
+				"window": null,
+				"window_from": "docked",
+				"home_spot": null
 			},
 			"objects": {
 				"place": "docked",
@@ -38,7 +71,8 @@
 					"z": 2
 				},
 				"window": null,
-				"window_from": "docked"
+				"window_from": "docked",
+				"home_spot": null
 			},
 			"history": {
 				"place": "docked",
@@ -53,7 +87,8 @@
 					"z": 3
 				},
 				"window": null,
-				"window_from": "docked"
+				"window_from": "docked",
+				"home_spot": null
 			},
 			"proposals": {
 				"place": "docked",
@@ -68,7 +103,8 @@
 					"z": 4
 				},
 				"window": null,
-				"window_from": "docked"
+				"window_from": "docked",
+				"home_spot": null
 			},
 			"script": {
 				"place": "docked",
@@ -83,7 +119,8 @@
 					"z": 5
 				},
 				"window": null,
-				"window_from": "docked"
+				"window_from": "docked",
+				"home_spot": null
 			}
 		},
 		"zones": {
@@ -93,7 +130,8 @@
 				"groups": [
 					{
 						"tabs": [
-							"palette"
+							"palette",
+							"layers"
 						],
 						"active": "palette"
 					}
@@ -105,10 +143,11 @@
 				"groups": [
 					{
 						"tabs": [
+							"inspector",
 							"objects",
 							"history"
 						],
-						"active": "objects"
+						"active": "inspector"
 					}
 				]
 			},
@@ -144,7 +183,40 @@
 						"z": 1
 					},
 					"window": null,
-					"window_from": "docked"
+					"window_from": "docked",
+					"home_spot": null
+				},
+				"layers": {
+					"place": "docked",
+					"home": "left",
+					"float": {
+						"x": 336,
+						"y": 434,
+						"w": 260,
+						"h": 240,
+						"collapsed": false,
+						"visible": true,
+						"z": 6
+					},
+					"window": null,
+					"window_from": "docked",
+					"home_spot": null
+				},
+				"inspector": {
+					"place": "docked",
+					"home": "right",
+					"float": {
+						"x": 812,
+						"y": 436,
+						"w": 300,
+						"h": 256,
+						"collapsed": false,
+						"visible": true,
+						"z": 7
+					},
+					"window": null,
+					"window_from": "docked",
+					"home_spot": null
 				},
 				"objects": {
 					"place": "docked",
@@ -159,7 +231,8 @@
 						"z": 2
 					},
 					"window": null,
-					"window_from": "docked"
+					"window_from": "docked",
+					"home_spot": null
 				},
 				"history": {
 					"place": "docked",
@@ -174,7 +247,8 @@
 						"z": 3
 					},
 					"window": null,
-					"window_from": "docked"
+					"window_from": "docked",
+					"home_spot": null
 				},
 				"proposals": {
 					"place": "docked",
@@ -189,7 +263,8 @@
 						"z": 4
 					},
 					"window": null,
-					"window_from": "docked"
+					"window_from": "docked",
+					"home_spot": null
 				},
 				"script": {
 					"place": "docked",
@@ -204,7 +279,8 @@
 						"z": 5
 					},
 					"window": null,
-					"window_from": "docked"
+					"window_from": "docked",
+					"home_spot": null
 				}
 			},
 			"zones": {
@@ -214,7 +290,8 @@
 					"groups": [
 						{
 							"tabs": [
-								"palette"
+								"palette",
+								"layers"
 							],
 							"active": "palette"
 						}
@@ -226,10 +303,11 @@
 					"groups": [
 						{
 							"tabs": [
+								"inspector",
 								"objects",
 								"history"
 							],
-							"active": "objects"
+							"active": "inspector"
 						}
 					]
 				},
@@ -264,7 +342,40 @@
 						"z": 1
 					},
 					"window": null,
-					"window_from": "docked"
+					"window_from": "docked",
+					"home_spot": null
+				},
+				"layers": {
+					"place": "docked",
+					"home": "left",
+					"float": {
+						"x": 336,
+						"y": 434,
+						"w": 260,
+						"h": 240,
+						"collapsed": false,
+						"visible": true,
+						"z": 6
+					},
+					"window": null,
+					"window_from": "docked",
+					"home_spot": null
+				},
+				"inspector": {
+					"place": "docked",
+					"home": "right",
+					"float": {
+						"x": 812,
+						"y": 436,
+						"w": 300,
+						"h": 256,
+						"collapsed": false,
+						"visible": true,
+						"z": 7
+					},
+					"window": null,
+					"window_from": "docked",
+					"home_spot": null
 				},
 				"objects": {
 					"place": "docked",
@@ -279,7 +390,8 @@
 						"z": 2
 					},
 					"window": null,
-					"window_from": "docked"
+					"window_from": "docked",
+					"home_spot": null
 				},
 				"history": {
 					"place": "docked",
@@ -294,7 +406,8 @@
 						"z": 3
 					},
 					"window": null,
-					"window_from": "docked"
+					"window_from": "docked",
+					"home_spot": null
 				},
 				"proposals": {
 					"place": "docked",
@@ -309,7 +422,8 @@
 						"z": 4
 					},
 					"window": null,
-					"window_from": "docked"
+					"window_from": "docked",
+					"home_spot": null
 				},
 				"script": {
 					"place": "docked",
@@ -324,7 +438,8 @@
 						"z": 5
 					},
 					"window": null,
-					"window_from": "docked"
+					"window_from": "docked",
+					"home_spot": null
 				}
 			},
 			"zones": {
@@ -334,7 +449,8 @@
 					"groups": [
 						{
 							"tabs": [
-								"palette"
+								"palette",
+								"layers"
 							],
 							"active": "palette"
 						}
@@ -347,6 +463,7 @@
 						{
 							"tabs": [
 								"proposals",
+								"inspector",
 								"objects",
 								"history"
 							],
@@ -384,7 +501,40 @@
 						"z": 1
 					},
 					"window": null,
-					"window_from": "docked"
+					"window_from": "docked",
+					"home_spot": null
+				},
+				"layers": {
+					"place": "docked",
+					"home": "left",
+					"float": {
+						"x": 336,
+						"y": 434,
+						"w": 260,
+						"h": 240,
+						"collapsed": false,
+						"visible": true,
+						"z": 6
+					},
+					"window": null,
+					"window_from": "docked",
+					"home_spot": null
+				},
+				"inspector": {
+					"place": "docked",
+					"home": "right",
+					"float": {
+						"x": 812,
+						"y": 436,
+						"w": 300,
+						"h": 256,
+						"collapsed": false,
+						"visible": true,
+						"z": 7
+					},
+					"window": null,
+					"window_from": "docked",
+					"home_spot": null
 				},
 				"objects": {
 					"place": "docked",
@@ -399,7 +549,8 @@
 						"z": 2
 					},
 					"window": null,
-					"window_from": "docked"
+					"window_from": "docked",
+					"home_spot": null
 				},
 				"history": {
 					"place": "docked",
@@ -414,7 +565,8 @@
 						"z": 3
 					},
 					"window": null,
-					"window_from": "docked"
+					"window_from": "docked",
+					"home_spot": null
 				},
 				"proposals": {
 					"place": "docked",
@@ -429,7 +581,8 @@
 						"z": 4
 					},
 					"window": null,
-					"window_from": "docked"
+					"window_from": "docked",
+					"home_spot": null
 				},
 				"script": {
 					"place": "docked",
@@ -444,7 +597,8 @@
 						"z": 5
 					},
 					"window": null,
-					"window_from": "docked"
+					"window_from": "docked",
+					"home_spot": null
 				}
 			},
 			"zones": {
@@ -454,7 +608,8 @@
 					"groups": [
 						{
 							"tabs": [
-								"palette"
+								"palette",
+								"layers"
 							],
 							"active": "palette"
 						}
@@ -466,10 +621,11 @@
 					"groups": [
 						{
 							"tabs": [
+								"inspector",
 								"objects",
 								"history"
 							],
-							"active": "objects"
+							"active": "inspector"
 						}
 					]
 				},

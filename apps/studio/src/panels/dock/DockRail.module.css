@@ -9,6 +9,8 @@
 	padding: 0.3rem 0.15rem;
 	overflow: auto;
 	scrollbar-width: none;
+	/* A press in a gap between entries must not select the page's text on its way. */
+	user-select: none;
 	color: var(--fls-text-secondary);
 	background: var(--fls-glass-docks-bg);
 	-webkit-backdrop-filter: var(--fls-glass-docks-filter);
@@ -59,6 +61,25 @@
 /* The entry being dragged stays where it is, dimmed, until the drop. */
 .item[data-dragging] {
 	opacity: 0.5;
+}
+
+/* The entry of the panel that has just landed from a drag back out of its own window. */
+.item[data-landed] {
+	outline: 2px solid var(--fls-accent);
+	outline-offset: -2px;
+	animation: landed 1.6s ease-out forwards;
+}
+
+@keyframes landed {
+	to {
+		outline-color: transparent;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.item[data-landed] {
+		animation: none;
+	}
 }
 
 .rail[data-rail='bottom'] .item {

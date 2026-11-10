@@ -1,0 +1,46 @@
+/* The card the tear-off ghost draws: solid, so it reads over any window or the desktop */
+.card {
+	display: flex;
+	box-sizing: border-box;
+	width: 220px;
+	height: 56px;
+	align-items: center;
+	gap: 0.6rem;
+	padding: 0 0.75rem;
+	border: 1px solid var(--fls-accent);
+	border-radius: 8px;
+	background: var(--fls-bg-menu);
+	color: var(--fls-text-primary);
+	box-shadow: var(--fls-glass-shadow);
+	pointer-events: none;
+	user-select: none;
+}
+
+.icon {
+	display: grid;
+	flex: none;
+	place-items: center;
+	color: var(--fls-accent-text);
+}
+
+.text {
+	display: flex;
+	min-width: 0;
+	flex-direction: column;
+}
+
+.title {
+	overflow: hidden;
+	font-size: 0.95rem;
+	font-weight: 600;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.label {
+	overflow: hidden;
+	color: var(--fls-text-secondary);
+	font-size: 0.78rem;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}

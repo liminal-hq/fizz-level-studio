@@ -9,6 +9,7 @@
 // saved workspace is never changed.
 
 import type { Workspace } from '@liminal-hq/fizz-studio-protocol/generated/Workspace';
+import { slotIn } from '../dock/dockHome';
 import { PANEL_IDS } from '../dock/dockModel';
 
 /** The ids of the panels in a window of their own, in the Panels menu's order. */
@@ -17,8 +18,8 @@ export function awayPanels(workspace: Workspace): string[] {
 }
 
 /**
- * `workspace` with each panel away in a window added as the last tab of the last group of its home
- * zone (a group of its own when the zone has none), whether it came from a dock or from floating:
+ * `workspace` with each panel away in a window added as a tab in its home zone, at the place it left
+ * (the end of the last group when none is remembered; a group of its own when the zone has none), whether it came from a dock or from floating:
  * a torn-off panel never leaves a floating panel over the level, and a floating panel's remembered
  * rectangle stays in the saved workspace for when it comes back. An away panel named in `shown` is
  * the showing tab of its group, since the saved workspace cannot say which tab an away panel had.
@@ -28,12 +29,9 @@ export function withAwayTabs(workspace: Workspace, shown: readonly string[] = []
 	if (away.length === 0) return workspace;
 	const next = structuredClone(workspace);
 	for (const id of away) {
-		const zone = next.zones[workspace.panels[id]!.home];
-		const group = zone.groups[zone.groups.length - 1];
-		if (group) {
-			group.tabs.push(id);
-			if (shown.includes(id)) group.active = id;
-		} else zone.groups.push({ tabs: [id], active: id });
+		const entry = workspace.panels[id]!;
+		const spot = entry.home_spot && entry.home_spot.zone === entry.home ? entry.home_spot : null;
+		slotIn(next.zones[entry.home], id, spot, shown.includes(id));
 	}
 	return next;
 }

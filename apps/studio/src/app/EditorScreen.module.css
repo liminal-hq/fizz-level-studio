@@ -26,25 +26,11 @@
 	position: relative;
 	flex: 1;
 	min-height: 0;
-	overflow: hidden;
+	overflow: clip;
 }
 
 /* The level fills the editor area; every panel floats over it. */
 .canvas {
 	position: absolute;
 	inset: 0;
-}
-
-/* The tool bar takes the row; the Panels menu sits at its end. */
-.bar {
-	display: flex;
-	align-items: center;
-	padding-right: 0.75rem;
-	background: var(--fls-bg-raised);
-	border-bottom: 1px solid var(--fls-border-subtle);
-}
-
-.bar > :first-child {
-	flex: 1;
-	border-bottom: 0;
 }

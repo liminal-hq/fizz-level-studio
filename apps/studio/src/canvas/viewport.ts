@@ -80,6 +80,33 @@ export function frameViewport(viewport: Viewport, uncovered: FrameRect): Viewpor
 	};
 }
 
+/**
+ * The largest whole zoom, from 1 to 16, at which the whole level fits in `window` (in pixels). A level
+ * too large for the window even at 1x is shown at 1x (and centred by `fitCamera`).
+ */
+export function fitZoom(level: Size, window: Size): number {
+	if (level.width <= 0 || level.height <= 0) return MIN_ZOOM;
+	for (let zoom = MAX_ZOOM; zoom > MIN_ZOOM; zoom -= 1) {
+		const world = worldSize(level, zoom);
+		if (world.width <= window.width && world.height <= window.height) return zoom;
+	}
+	return MIN_ZOOM;
+}
+
+/**
+ * The camera that fits the level: `fitZoom`, with the level centred in the window (a level too large
+ * for the window is centred too, so its middle is what shows).
+ */
+export function fitCamera(level: Size, window: Size): Viewport {
+	const zoom = fitZoom(level, window);
+	const world = worldSize(level, zoom);
+	return {
+		zoom,
+		scrollX: (world.width - window.width) / 2 || 0,
+		scrollY: (world.height - window.height) / 2 || 0,
+	};
+}
+
 export function clampZoom(zoom: number): number {
 	return Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, Math.round(zoom)));
 }
@@ -107,6 +134,21 @@ export function clampScroll(
 		scrollX: clamp(viewport.scrollX, window.width, world.width),
 		scrollY: clamp(viewport.scrollY, window.height, world.height),
 	};
+}
+
+/**
+ * Drags the map by `(dx, dy)` pixels as a hand does: the map follows the pointer, so a drag to the
+ * right shows more of the left. Clamped as the wheel's pan is (a level that fits stays centred).
+ */
+export function panBy(
+	viewport: Viewport,
+	dx: number,
+	dy: number,
+	window: Size,
+	level: Size,
+): Viewport {
+	const moved = { ...viewport, scrollX: viewport.scrollX - dx, scrollY: viewport.scrollY - dy };
+	return { ...moved, ...clampScroll(moved, window, level) };
 }
 
 /** The cell under a pixel of the canvas (row 0 is the bottom); it may lie outside the level. */

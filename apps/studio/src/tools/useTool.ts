@@ -43,6 +43,18 @@ export interface ToolHandle {
 	 * (empty until a stroke ends) so the caller can apply them as one merge group.
 	 */
 	pointer: (phase: PointerPhase, cell: Cell) => LevelEdit[];
+	/** Like `pointer`, and also the cells an Erase stroke covered when this event ended it. */
+	stroke: (phase: PointerPhase, cell: Cell) => { edits: LevelEdit[]; erased: readonly Cell[] };
+	/**
+	 * One press and release of `tool` on `cell`, whatever the current tool is, as a menu's Paint here,
+	 * Erase here and Pick this tile do. It reads the brush and settings as they are, leaves the
+	 * current tool and any stroke in progress alone, and returns what the stroke would: the edits to
+	 * send, the cells an Erase covered, and the brush a Pick read (null for the other tools).
+	 */
+	once: (
+		tool: ToolId,
+		cell: Cell,
+	) => { edits: LevelEdit[]; erased: readonly Cell[]; pick: Brush | null };
 }
 
 export function useTool(view: LevelView): ToolHandle {
@@ -77,16 +89,34 @@ export function useTool(view: LevelView): ToolHandle {
 
 	const setSpacing = useCallback((next: number) => setSpacingState(clampSpacing(next)), []);
 
-	const pointer = useCallback(
-		(phase: PointerPhase, cell: Cell): LevelEdit[] => {
+	const stroke = useCallback(
+		(phase: PointerPhase, cell: Cell) => {
 			const result = reduceTool(tool, latest.current, phase, cell, { view, brush, spacing, clip });
 			latest.current = result.state;
 			setState(result.state);
 			if (result.pick !== null) setBrushChoice(result.pick);
 			if (tool === 'pick' && phase === 'up') setToolState('paint');
-			return result.edits;
+			return { edits: result.edits, erased: result.erased ?? [] };
 		},
 		[tool, view, brush, spacing, clip],
+	);
+	const once = useCallback(
+		(id: ToolId, cell: Cell) => {
+			const context = { view, brush, spacing, clip };
+			const fresh = { ...initialToolState, selection: latest.current.selection };
+			const down = reduceTool(id, fresh, 'down', cell, context);
+			const up = reduceTool(id, down.state, 'up', cell, context);
+			return {
+				edits: [...down.edits, ...up.edits],
+				erased: [...(down.erased ?? []), ...(up.erased ?? [])],
+				pick: down.pick ?? up.pick,
+			};
+		},
+		[view, brush, spacing, clip],
+	);
+	const pointer = useCallback(
+		(phase: PointerPhase, cell: Cell): LevelEdit[] => stroke(phase, cell).edits,
+		[stroke],
 	);
 
 	const preview = useMemo(() => {
@@ -107,5 +137,7 @@ export function useTool(view: LevelView): ToolHandle {
 		preview,
 		selection: toolState.selection,
 		pointer,
+		stroke,
+		once,
 	};
 }

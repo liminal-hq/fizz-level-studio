@@ -1,0 +1,13 @@
+{
+  "kind": "move-thing",
+  "thing": {
+    "kind": "spawn",
+    "index": 1,
+    "line": 43,
+    "expect": "  gloop  x=35,62,85",
+    "x": 62.0,
+    "y": 6.0
+  },
+  "x": 62.0,
+  "y": 9.0
+}

@@ -80,12 +80,17 @@
  * The places a dragged panel can land, one for each dock, its rail included. They are always there
  * (a dock that is empty or folded still offers itself, as a strip along its edge) and show only
  * during a drag. The hit test reads their rectangles, so they never take the pointer themselves.
+ *
+ * Stacking, bottom to top, in the editor area: the level (0), the docks and rails (`.slot`, 1), these
+ * hints (2), then every floating panel (its own `--fls-float-z` plus 3, in FloatingPanel.module.css).
+ * The hints sit above the docks they mark and under any floating panel, so the panel being dragged
+ * is never covered by an outline or a wash. They once had `z-index: 20`, above every floating panel.
  */
 .drop {
 	--fls-drop-min: 72px;
 	--fls-drop-bottom: max(var(--fls-dock-cover-bottom), var(--fls-drop-min));
 	position: absolute;
-	z-index: 20;
+	z-index: 2;
 	box-sizing: border-box;
 	display: none;
 	pointer-events: none;
@@ -164,6 +169,8 @@
 }
 
 .shell[data-has-maximised] [data-panel-maximised] {
+	--fls-editor-bg: var(--fls-bg-content);
+	--fls-editor-gutter-bg: var(--fls-bg-window);
 	position: absolute;
 	inset: 0;
 	z-index: 30;

@@ -3,6 +3,8 @@
 // (c) Copyright 2026 Liminal HQ, Scott Morris
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
+import type { UiSettings } from '@liminal-hq/fizz-studio-protocol/generated/UiSettings';
+import type { SettingsPatch } from '@liminal-hq/fizz-studio-plugin-settings';
 import type { Settings } from '@liminal-hq/fizz-studio-protocol/generated/Settings';
 import type { SettingsSnapshot } from '@liminal-hq/fizz-studio-protocol/generated/SettingsSnapshot';
 import type { LevelSnapshot } from '@liminal-hq/fizz-studio-protocol/generated/LevelSnapshot';
@@ -153,17 +155,25 @@ class FakeQuit implements QuitClient {
 }
 
 /** The settings document as far as the main window reads it: the menu bar choice, changeable. */
-class FakeSettings implements Pick<SettingsClient, 'get' | 'onChanged'> {
+class FakeSettings implements Pick<SettingsClient, 'get' | 'onChanged' | 'update'> {
 	revision = 0;
+	/** The `ui` values the chrome saved, in order. */
+	updates: UiSettings[] = [];
 	menuBar: boolean;
+	toolbar: UiSettings['toolbar'];
+	ribbonFolded = false;
 	private listener: ((snapshot: SettingsSnapshot) => void) | null = null;
-	constructor(menuBar: boolean) {
+	constructor(menuBar: boolean, toolbar: UiSettings['toolbar'] = 'classic') {
 		this.menuBar = menuBar;
+		this.toolbar = toolbar;
 	}
 	private snapshot(): SettingsSnapshot {
 		return {
 			revision: this.revision,
-			settings: { ...DEFAULT_SETTINGS, ui: { menu_bar: this.menuBar } },
+			settings: {
+				...DEFAULT_SETTINGS,
+				ui: { menu_bar: this.menuBar, toolbar: this.toolbar, ribbon_folded: this.ribbonFolded },
+			},
 		};
 	}
 	async get() {
@@ -174,6 +184,16 @@ class FakeSettings implements Pick<SettingsClient, 'get' | 'onChanged'> {
 		return () => {
 			this.listener = null;
 		};
+	}
+	async update(patch: SettingsPatch, basedOn: number) {
+		if (basedOn !== this.revision) throw new Error('stale');
+		this.updates.push(patch.ui!);
+		this.menuBar = patch.ui!.menu_bar;
+		this.toolbar = patch.ui!.toolbar;
+		this.ribbonFolded = patch.ui!.ribbon_folded;
+		this.revision += 1;
+		this.listener?.(this.snapshot());
+		return this.snapshot();
 	}
 	set(menuBar: boolean) {
 		this.menuBar = menuBar;
@@ -188,7 +208,7 @@ const DEFAULT_SETTINGS: Settings = {
 	glass: 'system',
 	transparency: TRANSPARENCY_DEFAULTS,
 	larger_controls: false,
-	ui: { menu_bar: false },
+	ui: { menu_bar: false, toolbar: 'classic', ribbon_folded: false },
 	locale: 'en-CA',
 	recent_worlds: [],
 	layout: {},
@@ -198,6 +218,7 @@ const DEFAULT_SETTINGS: Settings = {
 function setup(
 	options: {
 		menuBar?: boolean;
+		toolbar?: UiSettings['toolbar'];
 		recent?: string[];
 		launchPaths?: string[];
 		pick?: string | null;
@@ -220,7 +241,7 @@ function setup(
 	);
 	const recovery = options.recovery ?? new FakeRecoveryClient();
 	const quit = new FakeQuit();
-	const settings = new FakeSettings(options.menuBar ?? false);
+	const settings = new FakeSettings(options.menuBar ?? false, options.toolbar);
 	render(
 		<MainScreen
 			client={client}
@@ -378,32 +399,115 @@ describe('opening', () => {
 });
 
 describe('the dirty marker, saving and closing', () => {
-	it('puts Save and Close level at the start of the row above the level, and the tools over the map', async () => {
+	it('shows the classic toolbar under the title bar: files, history, the brush chip, then the panels', async () => {
 		const user = userEvent.setup();
-		setup();
+		const { client } = setup();
+		// The start screen has no commands row: there is no level to run them on.
+		expect(screen.queryByRole('toolbar', { name: 'Commands' })).toBeNull();
 		await openFromDialog(user);
-		const row = screen.getByRole('group', { name: 'Editor toolbar' });
-		const save = screen.getByRole('button', { name: 'Save' });
-		const close = screen.getByRole('button', { name: 'Close level' });
-		expect(row).toContainElement(save);
-		expect(row).toContainElement(close);
-		expect(save.compareDocumentPosition(close) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-		// The brush chip follows them on the same row; the tools are not in it.
-		expect(
-			close.compareDocumentPosition(within(row).getByText(/Brush:/)) &
-				Node.DOCUMENT_POSITION_FOLLOWING,
-		).toBeTruthy();
-		expect(within(row).queryByRole('button', { name: 'Paint' })).toBeNull();
+		const row = await screen.findByRole('toolbar', { name: 'Commands' });
+		const names = within(row)
+			.getAllByRole('button')
+			.map((button) => button.getAttribute('aria-label') ?? button.textContent?.trim());
+		expect(names.slice(0, 6)).toEqual([
+			'New level…',
+			'Open level…',
+			'Save',
+			'Close level',
+			'Undo',
+			'Redo',
+		]);
+		// The brush chip follows the history, and the panel toggles are at the far end.
+		expect(names[6]).toMatch(/Brush:/);
+		expect(names.slice(7, 14)).toEqual([
+			'Palette',
+			'Layers',
+			'Inspector',
+			'Objects',
+			'History',
+			'Proposals',
+			'Script',
+		]);
+		// With no menu bar the command search and the workspace switcher end the row.
+		expect(names[14]).toMatch(/^Search commands/);
+		expect(names.slice(15)).toEqual(['Paint', 'Script', 'Review']);
+		// The tools are not on it: they float over the map.
+		expect(within(row).queryByRole('button', { name: 'Erase' })).toBeNull();
 		const tools = screen.getByRole('group', { name: 'Tools' });
-		expect(tools).toContainElement(screen.getByRole('button', { name: 'Paint' }));
 		expect(tools.closest('[data-map]')?.parentElement).toContainElement(
 			screen.getByRole('application'),
 		);
-		// The Panels menu stays at the end of the same row.
-		expect(row.parentElement).toContainElement(screen.getByRole('button', { name: /Panels/ }));
+		// Its buttons run the commands: Save saves, and the panel toggles show their state.
+		await user.click(within(row).getByRole('button', { name: 'Save' }));
+		await waitFor(() => expect(client.saves).toBe(1));
+		const panels = within(within(row).getByRole('group', { name: 'Panels' }));
+		expect(panels.getByRole('button', { name: 'Script' })).toHaveAttribute('aria-pressed', 'true');
+		expect(within(row).getByRole('button', { name: 'Undo' })).toBeDisabled();
+	});
+
+	it('hides and shows a panel from its toggle on the toolbar', async () => {
+		const user = userEvent.setup();
+		setup();
+		await openFromDialog(user);
+		const row = await screen.findByRole('toolbar', { name: 'Commands' });
+		const history = within(row).getByRole('button', { name: 'History' });
+		expect(history).toHaveAttribute('aria-pressed', 'true');
+		await user.click(history);
+		await waitFor(() =>
+			expect(within(row).getByRole('button', { name: 'History' })).toHaveAttribute(
+				'aria-pressed',
+				'false',
+			),
+		);
+		await user.click(within(row).getByRole('button', { name: 'History' }));
+		await waitFor(() =>
+			expect(within(row).getByRole('button', { name: 'History' })).toHaveAttribute(
+				'aria-pressed',
+				'true',
+			),
+		);
+	});
+
+	it('closes the level from the toolbar, and opens the Palette from the brush chip', async () => {
+		const user = userEvent.setup();
+		const { client } = setup();
+		await openFromDialog(user);
+		const row = await screen.findByRole('toolbar', { name: 'Commands' });
+		await user.click(within(row).getByRole('button', { name: /Brush:/ }));
+		expect(await screen.findByRole('heading', { name: 'Palette' })).toBeInTheDocument();
+		await user.click(within(row).getByRole('button', { name: 'Close level' }));
+		await waitFor(() => expect(client.closed.length).toBe(1));
+		await screen.findByRole('heading', { name: 'Fizz Level Studio' });
+		expect(screen.queryByRole('toolbar', { name: 'Commands' })).toBeNull();
+	});
+
+	it('shows no commands row with the toolbar hidden', async () => {
+		const user = userEvent.setup();
+		setup({ toolbar: 'hidden' });
+		await openFromDialog(user);
+		await screen.findByRole('application');
+		expect(screen.queryByRole('toolbar', { name: 'Commands' })).toBeNull();
+		expect(screen.queryByRole('group', { name: 'Ribbon' })).toBeNull();
+	});
+
+	it('shows the ribbon in place of the toolbar when the setting says so, and folds it from its button', async () => {
+		const user = userEvent.setup();
+		const { settings } = setup({ toolbar: 'ribbon' });
+		await openFromDialog(user);
+		const ribbon = await screen.findByRole('group', { name: 'Ribbon' });
+		expect(screen.queryByRole('toolbar', { name: 'Commands' })).toBeNull();
 		expect(
-			screen.getByRole('toolbar', { name: 'Level actions' }).parentElement?.parentElement,
-		).toBe(row);
+			within(ribbon)
+				.getAllByRole('tab')
+				.map((tab) => tab.textContent),
+		).toEqual(['Home', 'Level', 'View']);
+		await user.click(within(ribbon).getByRole('button', { name: 'Save' }));
+		await waitFor(() => expect(settings.updates).toEqual([]));
+		await user.click(within(ribbon).getByRole('button', { name: 'Fold the ribbon to its tabs' }));
+		await waitFor(() => expect(settings.ribbonFolded).toBe(true));
+		expect(
+			await within(ribbon).findByRole('button', { name: 'Open the ribbon' }),
+		).toBeInTheDocument();
 	});
 
 	it('marks the title with a bullet while there are unsaved changes, and Save clears it', async () => {
@@ -502,6 +606,19 @@ describe('conflicts', () => {
 		expect(screen.getByLabelText('Text with conflict markers')).toHaveTextContent('<<<<<<< mine');
 		await user.click(screen.getByRole('button', { name: 'Dismiss' }));
 		expect(screen.queryByLabelText('Text with conflict markers')).toBeNull();
+	});
+
+	it('says which locked layer made the studio keep its own text', async () => {
+		const user = userEvent.setup();
+		const { client } = setup();
+		await openFromDialog(user);
+		act(() =>
+			client.conflictListener?.({ id: 'level-1', marked: 'outside text', locked: ['treats'] }),
+		);
+		expect(
+			await screen.findByText(/changed outside the studio in Treats, which is locked/),
+		).toBeVisible();
+		expect(screen.getByLabelText('Text with conflict markers')).toHaveTextContent('outside text');
 	});
 
 	it('ignores a conflict for another level', async () => {
@@ -638,22 +755,21 @@ describe('recovered changes', () => {
 });
 
 describe('the application menu', () => {
-	/** Opens a menu from the title bar's app menu, the primary menu while there is no bar. */
-	const openMenu = async (user: ReturnType<typeof userEvent.setup>, menu: string) => {
+	/** Opens the title bar's flat app menu, the primary menu while there is no bar. */
+	const openMenu = async (user: ReturnType<typeof userEvent.setup>) => {
 		if (!screen.queryByRole('menu')) {
 			await user.click(await screen.findByRole('button', { name: 'Fizz Level Studio' }));
 		}
-		await user.click(screen.getByRole('menuitem', { name: menu }));
 	};
 
-	it('opens New level from File and Preferences from File on the start screen', async () => {
+	it('opens New level and Preferences from the flat menu on the start screen', async () => {
 		const user = userEvent.setup();
 		setup();
-		await openMenu(user, 'File');
+		await openMenu(user);
 		expect(screen.getByRole('menuitem', { name: /Save/ })).toHaveAttribute('aria-disabled', 'true');
 		await user.click(screen.getByRole('menuitem', { name: /New level/ }));
 		expect(openWindow).toHaveBeenCalledWith({ kind: 'new-world' });
-		await openMenu(user, 'File');
+		await openMenu(user);
 		await user.click(screen.getByRole('menuitem', { name: /Preferences/ }));
 		expect(openWindow).toHaveBeenCalledWith({ kind: 'preferences' });
 	});
@@ -666,45 +782,48 @@ describe('the application menu', () => {
 		expect(openWindow).toHaveBeenCalledWith({ kind: 'preferences' });
 	});
 
-	it('saves, toggles a panel, resets the layout and closes the level from the menus', async () => {
+	it('saves, toggles a panel and closes the level from the flat menu', async () => {
 		const user = userEvent.setup();
 		const { client } = setup();
 		await openFromDialog(user);
-		await openMenu(user, 'File');
+		await openMenu(user);
 		await user.click(screen.getByRole('menuitem', { name: /Save/ }));
 		await waitFor(() => expect(client.saves).toBe(1));
-		await openMenu(user, 'View');
+		await openMenu(user);
+		await user.click(screen.getByRole('menuitem', { name: 'Panels' }));
 		const palette = screen.getByRole('menuitemcheckbox', { name: /Palette/ });
 		expect(palette).toHaveAttribute('aria-checked', 'true');
 		await user.click(palette);
-		await openMenu(user, 'View');
+		await openMenu(user);
+		await user.click(screen.getByRole('menuitem', { name: 'Panels' }));
 		expect(screen.getByRole('menuitemcheckbox', { name: /Palette/ })).toHaveAttribute(
 			'aria-checked',
 			'false',
 		);
-		await user.click(screen.getByRole('menuitem', { name: /Reset layout/ }));
-		await openMenu(user, 'File');
+		await user.keyboard('{Escape}{Escape}');
+		await openMenu(user);
 		await user.click(screen.getByRole('menuitem', { name: /Close level/ }));
 		await waitFor(() => expect(client.closed.length).toBe(1));
 		await screen.findByRole('heading', { name: 'Fizz Level Studio' });
 	});
 
-	it('has no menu bar by default, and the title bar button carries the five menus', async () => {
+	it('has no menu bar by default, and the title bar button carries the one flat menu', async () => {
 		const user = userEvent.setup();
 		setup();
 		expect(screen.queryByRole('menubar')).toBeNull();
 		await user.click(await screen.findByRole('button', { name: 'Fizz Level Studio' }));
-		for (const name of ['File', 'Edit', 'View', 'Help']) {
+		for (const name of [/New level/, /Open level/, /Preferences/, /^Help/, /Quit/]) {
 			expect(screen.getByRole('menuitem', { name })).toBeInTheDocument();
 		}
-		// The Window menu has only panel rows, so it is left out with no level open.
-		expect(screen.queryByRole('menuitem', { name: 'Window' })).toBeNull();
-		await user.click(screen.getByRole('menuitem', { name: 'Help' }));
+		// No headings, and the Window rows are left out with no level open.
+		for (const name of ['File', 'Edit', 'View', 'Window']) {
+			expect(screen.queryByRole('menuitem', { name })).toBeNull();
+		}
 		await user.click(screen.getByRole('menuitem', { name: 'About Fizz Level Studio…' }));
 		expect(openWindow).toHaveBeenCalledWith({ kind: 'about' });
 	});
 
-	it('opens the app menu on F10 and on Alt+H with Help out, when there is no bar', async () => {
+	it('opens the flat app menu on F10, and has no letter keys, when there is no bar', async () => {
 		setup();
 		await screen.findByRole('button', { name: 'Fizz Level Studio' });
 		fireEvent.keyDown(window, { key: 'F10' });
@@ -712,7 +831,7 @@ describe('the application menu', () => {
 		fireEvent.keyDown(window, { key: 'F10' });
 		expect(screen.queryByRole('menu')).toBeNull();
 		fireEvent.keyDown(window, { key: 'h', altKey: true });
-		expect(await screen.findByRole('menuitem', { name: /About/ })).toBeInTheDocument();
+		expect(screen.queryByRole('menu')).toBeNull();
 	});
 
 	it('shows the bar with the setting on, and the title bar button becomes plain text', async () => {
@@ -741,6 +860,96 @@ describe('the application menu', () => {
 		settings.set(false);
 		await waitFor(() => expect(screen.queryByRole('menubar')).toBeNull());
 		expect(screen.getByRole('button', { name: 'Fizz Level Studio' })).toBeInTheDocument();
+	});
+
+	it('switches the menu bar on from the flat menu, through the settings', async () => {
+		const user = userEvent.setup();
+		const { settings } = setup();
+		await openMenu(user);
+		await user.click(await screen.findByRole('menuitemcheckbox', { name: 'Menu bar' }));
+		await waitFor(() =>
+			expect(settings.updates).toContainEqual({
+				menu_bar: true,
+				toolbar: 'classic',
+				ribbon_folded: false,
+			}),
+		);
+		expect(await screen.findByRole('menubar', { name: 'Application menu' })).toBeInTheDocument();
+	});
+
+	it('has Toolbar and Ribbon switches in the app menu: choosing the one that shows hides the row', async () => {
+		const user = userEvent.setup();
+		const { settings } = setup();
+		await openFromDialog(user);
+		await screen.findByRole('toolbar', { name: 'Commands' });
+		await openMenu(user);
+		expect(screen.getByRole('menuitemcheckbox', { name: 'Toolbar' })).toHaveAttribute(
+			'aria-checked',
+			'true',
+		);
+		expect(screen.getByRole('menuitemcheckbox', { name: 'Ribbon' })).toHaveAttribute(
+			'aria-checked',
+			'false',
+		);
+		await user.click(screen.getByRole('menuitemcheckbox', { name: 'Toolbar' }));
+		await waitFor(() => expect(settings.toolbar).toBe('hidden'));
+		await waitFor(() => expect(screen.queryByRole('toolbar', { name: 'Commands' })).toBeNull());
+		await openMenu(user);
+		await user.click(screen.getByRole('menuitemcheckbox', { name: 'Toolbar' }));
+		await waitFor(() => expect(settings.toolbar).toBe('classic'));
+		expect(await screen.findByRole('toolbar', { name: 'Commands' })).toBeInTheDocument();
+		await openMenu(user);
+		await user.click(screen.getByRole('menuitemcheckbox', { name: 'Ribbon' }));
+		await waitFor(() => expect(settings.toolbar).toBe('ribbon'));
+	});
+
+	it('puts the command search and the workspace switcher at the right end of the menu row when the bar is on', async () => {
+		const user = userEvent.setup();
+		setup({ menuBar: true });
+		await openFromDialog(user);
+		const bar = await screen.findByRole('menubar', { name: 'Application menu' });
+		const row = bar.parentElement!.parentElement!;
+		const switcher = within(row).getByRole('group', { name: 'Workspace' });
+		const search = within(row).getByRole('button', { name: /Search commands/ });
+		expect(bar.compareDocumentPosition(switcher) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+		expect(
+			search.compareDocumentPosition(switcher) & Node.DOCUMENT_POSITION_FOLLOWING,
+		).toBeTruthy();
+		// The toolbar below no longer carries them.
+		const toolbar = await screen.findByRole('toolbar', { name: 'Commands' });
+		expect(within(toolbar).queryByRole('group', { name: 'Workspace' })).toBeNull();
+		expect(within(toolbar).queryByRole('button', { name: /Search commands/ })).toBeNull();
+	});
+
+	it('switches workspace from the switcher and opens the palette from the search button', async () => {
+		const user = userEvent.setup();
+		setup();
+		await openFromDialog(user);
+		const toolbar = await screen.findByRole('toolbar', { name: 'Commands' });
+		const group = within(toolbar).getByRole('group', { name: 'Workspace' });
+		await user.click(within(group).getByRole('button', { name: 'Script' }));
+		await waitFor(() =>
+			expect(within(group).getByRole('button', { name: 'Script' })).toHaveAttribute(
+				'aria-pressed',
+				'true',
+			),
+		);
+		expect(within(group).getByRole('button', { name: 'Paint' })).toHaveAttribute(
+			'aria-pressed',
+			'false',
+		);
+		await user.click(within(toolbar).getByRole('button', { name: /Search commands/ }));
+		expect(await screen.findByRole('dialog', { name: 'Command palette' })).toBeInTheDocument();
+	});
+
+	it('resets the layout from the bar’s View menu', async () => {
+		const user = userEvent.setup();
+		setup({ menuBar: true });
+		await openFromDialog(user);
+		const bar = await screen.findByRole('menubar', { name: 'Application menu' });
+		await user.click(within(bar).getByRole('menuitem', { name: 'View' }));
+		await user.click(screen.getByRole('menuitem', { name: /Reset layout/ }));
+		expect(screen.queryByRole('menu')).toBeNull();
 	});
 
 	it('shows the same menus with a level open, bar on or off', async () => {
@@ -788,11 +997,10 @@ describe('the command palette', () => {
 		field.remove();
 	});
 
-	it('is offered by the View menu with its keys', async () => {
+	it('is offered by the app menu with its keys', async () => {
 		const user = userEvent.setup();
 		setup();
 		await user.click(await screen.findByRole('button', { name: 'Fizz Level Studio' }));
-		await user.click(screen.getByRole('menuitem', { name: 'View' }));
 		const row = screen.getByRole('menuitem', { name: /Command palette…/ });
 		expect(row).toHaveTextContent('Ctrl+Shift+P');
 		await user.click(row);
@@ -824,7 +1032,10 @@ describe('the command palette', () => {
 		pressShortcut();
 		await user.type(screen.getByRole('combobox'), 'brush: gloop{Enter}');
 		await waitFor(() => expect(screen.getByText('Brush: gloop')).toBeInTheDocument());
-		expect(screen.getByRole('button', { name: /^Paint/ })).toHaveAttribute('aria-pressed', 'true');
+		// Paint is also a workspace's name, so read the tool from its own group.
+		expect(
+			within(screen.getByRole('group', { name: 'Tools' })).getByRole('button', { name: /^Paint/ }),
+		).toHaveAttribute('aria-pressed', 'true');
 	});
 
 	it('hides a panel from the palette', async () => {
@@ -919,11 +1130,10 @@ describe('the file and help keys', () => {
 		expect(screen.queryByRole('dialog', { name: 'Keyboard shortcuts' })).toBeNull();
 	});
 
-	it('opens Keyboard shortcuts from the Help menu', async () => {
+	it('opens Keyboard shortcuts from the app menu', async () => {
 		const user = userEvent.setup();
 		setup();
 		await user.click(await screen.findByRole('button', { name: 'Fizz Level Studio' }));
-		await user.click(screen.getByRole('menuitem', { name: 'Help' }));
 		await user.click(screen.getByRole('menuitem', { name: /^Keyboard shortcuts…/ }));
 		expect(await screen.findByRole('dialog', { name: 'Keyboard shortcuts' })).toBeInTheDocument();
 		await user.click(
@@ -938,7 +1148,6 @@ describe('the file and help keys', () => {
 		const user = userEvent.setup();
 		setup();
 		await user.click(await screen.findByRole('button', { name: 'Fizz Level Studio' }));
-		await user.click(screen.getByRole('menuitem', { name: 'Edit' }));
 		await user.click(screen.getByRole('menuitem', { name: 'Undo history' }));
 		expect(
 			await screen.findByRole('menuitem', { name: 'Nothing in the history yet' }),

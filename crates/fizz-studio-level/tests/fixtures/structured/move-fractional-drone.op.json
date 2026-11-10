@@ -1,0 +1,13 @@
+{
+  "kind": "move-thing",
+  "thing": {
+    "kind": "spawn",
+    "index": 7,
+    "line": 47,
+    "expect": "  drone  x=88.5,165.5 y=7.5",
+    "x": 88.5,
+    "y": 7.5
+  },
+  "x": 89.5,
+  "y": 7.5
+}

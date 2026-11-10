@@ -20,6 +20,8 @@ export function levelView(width = 12, height = 8, overrides: Partial<LevelView> 
 		spawns: [],
 		start: { x: 1, y: 1, line: 2 },
 		markers: [],
+		sections: [],
+		cell_sections: [],
 		diagnostics: [],
 		...overrides,
 	};
@@ -46,4 +48,50 @@ export function levelSnapshot(
 		banner: null,
 		...overrides,
 	};
+}
+
+/** The layers of a typical Fizz 1 level, for panel tests. */
+export function levelSections(): LevelView['sections'] {
+	return [
+		{
+			id: 'terrain',
+			label: 'Terrain',
+			kind: 'tiles',
+			affects: 'cells',
+			lines: [[6, 8]],
+			count: 3,
+		},
+		{
+			id: 'blocks',
+			label: 'Blocks',
+			kind: 'tiles',
+			affects: 'cells',
+			lines: [[10, 12]],
+			count: 2,
+		},
+		{
+			id: 'markers',
+			label: 'Markers',
+			kind: 'derived',
+			affects: 'things',
+			lines: [[13, 13]],
+			count: 1,
+		},
+		{
+			id: 'treats',
+			label: 'Treats',
+			kind: 'things',
+			affects: 'things',
+			lines: [[15, 17]],
+			count: 4,
+		},
+		{
+			id: 'enemies',
+			label: 'Enemies',
+			kind: 'things',
+			affects: 'things',
+			lines: [[19, 20]],
+			count: 2,
+		},
+	];
 }

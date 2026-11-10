@@ -32,9 +32,9 @@
 		"tauri": "bun run --cwd apps/studio tauri",
 		"tauri:dev": "bun run --cwd apps/studio tauri:dev",
 		"build": "bun run --cwd apps/studio build",
-		"typecheck": "bun run --cwd packages/chrome typecheck && bun run --cwd plugins/fizz-studio-settings typecheck && bun run --cwd plugins/fizz-studio-host typecheck && bun run --cwd plugins/fizz-studio-worlds typecheck && bun run --cwd plugins/window-tearoff typecheck && bun run --cwd plugins/window-effects typecheck && bun run --cwd apps/studio typecheck",
-		"test:js": "bun run --cwd packages/chrome test && bun run --cwd plugins/fizz-studio-settings test && bun run --cwd plugins/fizz-studio-host test && bun run --cwd plugins/fizz-studio-worlds test && bun run --cwd apps/studio test",
-		"test:js:ci": "bun run --cwd packages/chrome test:ci && bun run --cwd plugins/fizz-studio-settings test:ci && bun run --cwd plugins/fizz-studio-host test:ci && bun run --cwd plugins/fizz-studio-worlds test:ci && bun run --cwd apps/studio test:ci",
+		"typecheck": "bun run --cwd packages/chrome typecheck && bun run --cwd packages/ribbon typecheck && bun run --cwd plugins/fizz-studio-settings typecheck && bun run --cwd plugins/fizz-studio-host typecheck && bun run --cwd plugins/fizz-studio-worlds typecheck && bun run --cwd plugins/window-tearoff typecheck && bun run --cwd plugins/window-effects typecheck && bun run --cwd apps/studio typecheck",
+		"test:js": "bun run --cwd packages/chrome test && bun run --cwd packages/ribbon test && bun run --cwd plugins/fizz-studio-settings test && bun run --cwd plugins/fizz-studio-host test && bun run --cwd plugins/fizz-studio-worlds test && bun run --cwd apps/studio test",
+		"test:js:ci": "bun run --cwd packages/chrome test:ci && bun run --cwd packages/ribbon test:ci && bun run --cwd plugins/fizz-studio-settings test:ci && bun run --cwd plugins/fizz-studio-host test:ci && bun run --cwd plugins/fizz-studio-worlds test:ci && bun run --cwd apps/studio test:ci",
 		"bindings": "bash scripts/generate-protocol-bindings.sh",
 		"check:bindings": "bash scripts/check-bindings-drift.sh",
 		"check:bundles": "bash scripts/check-plugin-bundles.sh",
@@ -61,6 +61,7 @@
 	"workspaces": [
 		"apps/*",
 		"packages/chrome",
+		"packages/ribbon",
 		"packages/protocol",
 		"plugins/*"
 	]

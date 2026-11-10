@@ -66,6 +66,7 @@ Nothing here is started, and much of it waits on the Fizz 2 repository: its gram
 - **In the editor:** map painting, the Objects window with ids and indices, snap to floor, the Exit and Head room lenses, the dump view, the Sprites window and objects drawn with their sprites (R-F2-06, R-F2-07, R-F2-14, R-F2-18, R-SPR-01 to R-SPR-04), and the Game view as the canvas once F5 exists, drawn natively by the game host and streamed over a `Channel`, with the flat fallback until then (R-F2-20).
 - **The Fizz 1 export** with its lossy check (R-F2-05, R-F2-16).
 - **MCP:** `get_target`, the Fizz 2 object tools, `check_export`, `get_budget`, `get_dump`, the read-only sprite tools (R-F2-23).
+- **Decided 2026-11-07, planned here** (D73, [LEVEL-MODEL.md](LEVEL-MODEL.md)): a level's size as a byte budget in New level (with the Run, Cave, Tower, Deep, and Wide presets), Resize, and the Budget window in place of the 1024 × 128 caps (Q46), its numbers firmed up by measuring before this milestone starts (compressed sizes of the real levels, DOS memory for a 96 KB level, the canvas at about 90,000 cells); the dialect version with `front`, `fade room`, and `plane`; front and back layers and fade rooms as Layers rows to paint, a Fizz 2 Room tool, and plane tabs (Q44, Q45, Q48; the bytes are F26 to F28, requested of Fizz 2). **Proposed:** a lens for depth bands and named regions.
 
 **Exit criteria:**
 
@@ -87,6 +88,8 @@ Nothing here is started, and much of it waits on the Fizz 2 repository: its gram
 - A level whose states the Fizz 1 export cannot say reports E120 or E121 for each, and a standard-lock level exports exactly.
 
 **Depends on:** M2, and F6, F11 and F18 from the Fizz 2 repository. Until F11 is built, the inputs and actions beyond today's locks are "accepted" (W106).
+
+**Proposed, awaiting the owner** (D73): the Checks window and the Reach lens report the game's own solvability check (F25) through the game host; which rules are errors and which become gates is still open (Q47).
 
 ## M4 — Claude in the studio
 
@@ -111,6 +114,8 @@ Nothing here is started, and much of it waits on the Fizz 2 repository: its gram
 - The light and panel meters show the game's own cost figures, or say "not run".
 
 **Depends on:** M2, and F3, F5, F12, F13, F19 and F22.
+
+**Decided 2026-11-07, planned here** (D73): the Game view draws the front and back layers and fades a room while Ben is inside, with the DOS dither steps (F28, Q48; the DOS fade's method is Q52).
 
 ## M6 — Pixel editor
 

@@ -78,6 +78,7 @@ RULES=(
   'shared/*;app;shared/rollup.config.js'
   'tools/app-checks/*;app;tools/app-checks/run.ts'
   'packages/chrome/*;frontend;packages/chrome/src/TitleBar/TitleBar.tsx'
+  'packages/ribbon/*;frontend;packages/ribbon/src/Ribbon.tsx'
   'packages/protocol/*;frontend,app;packages/protocol/src/generated/WindowId.ts'
   'apps/studio/src-tauri/*;rust,app;apps/studio/src-tauri/src/lib.rs'
   'apps/studio/*;frontend;apps/studio/src/main.tsx'
@@ -168,6 +169,7 @@ self_test() {
   expect all docs/QUESTIONS.md some/new/file.rs # one unknown path among docs is enough
   expect base,language,rust crates/fizz-studio-language/src/raster.rs fixtures/fizz1/raster/crater.json
   expect base,frontend apps/studio/src/app/App.tsx packages/chrome/src/tokens.css
+  expect base,frontend packages/ribbon/src/Ribbon.tsx
   expect base,rust,frontend,app plugins/fizz-studio-host/src/lib.rs
   expect base,rust,frontend,app crates/fizz-studio-protocol/src/level.rs
   expect base,rust crates/fizz-studio-session/src/session.rs

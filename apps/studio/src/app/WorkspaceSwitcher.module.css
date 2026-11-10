@@ -1,0 +1,78 @@
+/* The workspace switcher: a segmented group, the active workspace lit. */
+.group {
+	display: inline-flex;
+	flex: none;
+	align-items: center;
+	padding: 2px;
+	background: var(--fls-control-bg);
+	border-radius: 6px;
+}
+
+.option {
+	height: 22px;
+	padding: 0 10px;
+	color: var(--fls-text-secondary);
+	background: transparent;
+	border: 0;
+	border-radius: 4px;
+	font: inherit;
+	font-size: 0.8rem;
+	cursor: default;
+}
+
+.option:hover:not([aria-pressed='true']) {
+	color: var(--fls-text-primary);
+	background: var(--fls-control-bg-hover);
+}
+
+.option[aria-pressed='true'] {
+	color: var(--fls-text-primary);
+	background: var(--fls-bg-raised);
+	box-shadow: 0 0 0 1px var(--fls-border-subtle);
+	font-weight: 700;
+}
+
+.option:focus-visible,
+.search:focus-visible {
+	outline: 2px solid var(--fls-focus-ring);
+	outline-offset: -2px;
+}
+
+/* The search button: a field-like pill that opens the command palette. */
+.search {
+	display: inline-flex;
+	flex: none;
+	align-items: center;
+	gap: 0.4rem;
+	width: 15rem;
+	max-width: 30vw;
+	height: 24px;
+	padding: 0 0.5rem;
+	color: var(--fls-text-muted);
+	background: var(--fls-field-bg, var(--fls-control-bg));
+	border: 1px solid var(--fls-border-subtle);
+	border-radius: 6px;
+	font: inherit;
+	font-size: 0.8rem;
+	cursor: default;
+}
+
+.search:hover {
+	color: var(--fls-text-primary);
+}
+
+.searchLabel {
+	flex: 1;
+	min-width: 0;
+	overflow: hidden;
+	text-align: left;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.keys {
+	flex: none;
+	color: var(--fls-text-muted);
+	font-family: var(--fls-font-mono);
+	font-size: 0.7rem;
+}

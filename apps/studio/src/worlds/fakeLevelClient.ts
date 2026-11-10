@@ -1,10 +1,12 @@
-// An in-memory LevelClient for tests and development: it applies paint, clear and place edits
+// An in-memory LevelClient for tests and development: it applies the append edits and, as a test double, the thing edits
 //
 // (c) Copyright 2026 Liminal HQ, Scott Morris
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
 import type { GhostProposal } from '@liminal-hq/fizz-studio-protocol/generated/GhostProposal';
+import type { LevelError } from '@liminal-hq/fizz-studio-protocol/generated/LevelError';
 import type { LevelEdit } from '@liminal-hq/fizz-studio-protocol/generated/LevelEdit';
+import type { LevelView } from '@liminal-hq/fizz-studio-protocol/generated/LevelView';
 import type { LevelSnapshot } from '@liminal-hq/fizz-studio-protocol/generated/LevelSnapshot';
 import type { WordDoc } from '@liminal-hq/fizz-studio-protocol/generated/WordDoc';
 import type { LevelClient } from './levelClient';
@@ -19,7 +21,17 @@ function rangeText(ranges: Array<[number, number]>): string {
 	return ranges.map(([from, to]) => (from === to ? `${from}` : `${from}..${to}`)).join(',');
 }
 
-function editLine(edit: LevelEdit): string {
+/** The edits that append a line. */
+type AppendEdit = Exclude<LevelEdit, ThingEdit>;
+
+/** The edits that change one placed thing in place. */
+type ThingEdit = Extract<LevelEdit, { kind: 'move-thing' | 'face-thing' | 'delete-thing' }>;
+
+function isThingEdit(edit: LevelEdit): edit is ThingEdit {
+	return edit.kind === 'move-thing' || edit.kind === 'face-thing' || edit.kind === 'delete-thing';
+}
+
+function editLine(edit: AppendEdit): string {
 	if (edit.kind === 'row') {
 		const by = edit.by > 1 ? ` by=${edit.by}` : '';
 		return `row ${edit.item} x=${edit.x[0]}..${edit.x[1]} y=${edit.y}${by}`;
@@ -31,7 +43,7 @@ function editLine(edit: LevelEdit): string {
 	return `place ${edit.item} ${where}`;
 }
 
-function editName(edit: LevelEdit): string {
+function editName(edit: AppendEdit): string {
 	if (edit.kind === 'row') {
 		return `Place ${Math.floor((edit.x[1] - edit.x[0]) / Math.max(edit.by, 1)) + 1} ${edit.item}`;
 	}
@@ -51,6 +63,11 @@ function cloneSnapshot(snapshot: LevelSnapshot): LevelSnapshot {
 			items: snapshot.view.items.map((item) => ({ ...item })),
 			spawns: snapshot.view.spawns.map((spawn) => ({ ...spawn })),
 			markers: snapshot.view.markers.map((marker) => ({ ...marker })),
+			cell_sections: [...snapshot.view.cell_sections],
+			sections: snapshot.view.sections.map((section) => ({
+				...section,
+				lines: section.lines.map((run) => [...run] as [number, number]),
+			})),
 		},
 	};
 }
@@ -74,6 +91,11 @@ export class FakeLevelClient implements LevelClient {
 	wordDocs: WordDoc[] = [];
 	/** The line `cellLine()` answers for a cell, keyed `x,y`; a test sets them. */
 	readonly cellLines = new Map<string, number>();
+	/** The refusal every `applyEdit` throws while a test has set it, such as a `locked` error. */
+	refuseEdits: LevelError | null = null;
+	/** The locked layers; a test may set them, and `setLayerLocked` changes them. */
+	locked: string[] = [];
+	private layerListeners = new Set<(id: string, locked: string[]) => void>();
 	/** What `ghosts()` answers; a test sets it. */
 	ghostProposals: GhostProposal[] = [];
 
@@ -98,7 +120,9 @@ export class FakeLevelClient implements LevelClient {
 		mergeKey?: string,
 	): Promise<LevelSnapshot> {
 		this.check(id, basedOn);
+		if (this.refuseEdits) throw this.refuseEdits;
 		this.applied.push({ edit, basedOn, mergeKey });
+		if (isThingEdit(edit)) return this.applyThing(edit, mergeKey);
 		const joins = mergeKey !== undefined && this.openKey === mergeKey && this.undoStack.length > 0;
 		const before = this.current;
 		const next = cloneSnapshot(before);
@@ -110,6 +134,67 @@ export class FakeLevelClient implements LevelClient {
 		next.can_redo = false;
 		next.redo_name = null;
 		if (!joins) this.undoStack.push({ before, name: editName(edit) });
+		this.redoStack = [];
+		this.openKey = mergeKey ?? null;
+		return this.settle(next);
+	}
+
+	/**
+	 * A test double for the three thing edits: it changes the view entry the edit names and never
+	 * writes script text, which only the real document does. A `ThingRef` that names no entry is
+	 * `gone`, as the real engine says it, and a rider or the start refuse what they cannot take.
+	 */
+	private applyThing(edit: ThingEdit, mergeKey?: string): LevelSnapshot {
+		const before = this.current;
+		const next = cloneSnapshot(before);
+		const { thing } = edit;
+		const view = next.view;
+		const gone = () => ({ kind: 'gone', line: thing.line }) as LevelError;
+		const invalid = (message: string) => ({ kind: 'invalid', message }) as LevelError;
+		let name: string;
+		if (thing.kind === 'start') {
+			if (!view.start) throw gone();
+			if (edit.kind === 'face-thing') throw invalid('the start has no facing');
+			if (edit.kind === 'delete-thing') throw invalid('a level needs a start');
+			view.start = { ...view.start, x: edit.x, y: edit.y ?? view.start.y };
+			name = `Move start to ${edit.x}, ${view.start.y}`;
+		} else if (thing.kind === 'item') {
+			const item = view.items[thing.index];
+			if (!item) throw gone();
+			if (edit.kind === 'face-thing') throw invalid('an item has no facing');
+			if (edit.kind === 'delete-thing') {
+				if (item.generator !== null) throw invalid('a generated item cannot be deleted');
+				view.items.splice(thing.index, 1);
+				name = `Delete ${item.kind}`;
+			} else {
+				item.x = edit.x;
+				item.y = edit.y ?? item.y;
+				name = `Move ${item.kind} to ${item.x}, ${item.y}`;
+			}
+		} else {
+			const spawn = view.spawns[thing.index];
+			if (!spawn) throw gone();
+			if (edit.kind === 'delete-thing') {
+				view.spawns.splice(thing.index, 1);
+				name = `Delete ${spawn.kind}`;
+			} else if (edit.kind === 'face-thing') {
+				if (spawn.ride) throw invalid('a rider has no facing');
+				spawn.dir = edit.facing === 'left' ? -1 : 1;
+				name = `Turn ${spawn.kind} to face ${edit.facing}`;
+			} else {
+				spawn.x = edit.x;
+				spawn.y = edit.y;
+				spawn.on_ground = edit.y === null;
+				name = `Move ${spawn.kind} to ${edit.x}, ${edit.y ?? 'the ground'}`;
+			}
+		}
+		const joins = mergeKey !== undefined && this.openKey === mergeKey && this.undoStack.length > 0;
+		next.revision = before.revision + 1n;
+		next.author = 'person';
+		next.can_redo = false;
+		next.redo_name = null;
+		if (joins) this.undoStack[this.undoStack.length - 1]!.name = name;
+		else this.undoStack.push({ before, name });
 		this.redoStack = [];
 		this.openKey = mergeKey ?? null;
 		return this.settle(next);
@@ -162,6 +247,37 @@ export class FakeLevelClient implements LevelClient {
 		return this.ghostProposals.map((proposal) => ({ ...proposal }));
 	}
 
+	/** Every `viewMasked` call, for tests to inspect. */
+	readonly masked: Array<{ id: string; hidden: string[] }> = [];
+
+	/** Answers the view with every cell empty when anything is hidden, so a test can tell it apart. */
+	async viewMasked(id: string, hidden: string[]): Promise<LevelView> {
+		this.check(id);
+		this.masked.push({ id, hidden: [...hidden] });
+		const view = this.snapshot().view;
+		return hidden.length === 0 ? view : { ...view, cells: view.cells.map(() => 0) };
+	}
+
+	async layers(id: string): Promise<string[]> {
+		this.check(id);
+		return [...this.locked];
+	}
+
+	async setLayerLocked(id: string, layer: string, locked: boolean): Promise<string[]> {
+		this.check(id);
+		this.locked = this.locked.filter((held) => held !== layer);
+		if (locked) this.locked.push(layer);
+		for (const listener of this.layerListeners) listener(id, [...this.locked]);
+		return [...this.locked];
+	}
+
+	onLayersChanged(listener: (id: string, locked: string[]) => void): () => void {
+		this.layerListeners.add(listener);
+		return () => {
+			this.layerListeners.delete(listener);
+		};
+	}
+
 	onChanged(listener: (snapshot: LevelSnapshot) => void): () => void {
 		this.listeners.add(listener);
 		return () => {
@@ -187,12 +303,12 @@ export class FakeLevelClient implements LevelClient {
 		return this.snapshot();
 	}
 
-	private apply(snapshot: LevelSnapshot, edit: LevelEdit, line: number): void {
+	private apply(snapshot: LevelSnapshot, edit: AppendEdit, line: number): void {
 		const { view } = snapshot;
 		if (edit.kind === 'row') {
 			for (let x = edit.x[0]; x <= edit.x[1]; x += Math.max(edit.by, 1)) {
 				if (x >= 0 && x < view.width && edit.y < view.height) {
-					view.items.push({ kind: edit.item, x, y: edit.y, line });
+					view.items.push({ kind: edit.item, x, y: edit.y, generator: null, line });
 				}
 			}
 			return;
@@ -204,6 +320,7 @@ export class FakeLevelClient implements LevelClient {
 				y: edit.y,
 				dir: null,
 				ride: false,
+				on_ground: false,
 				line,
 			});
 			return;
@@ -214,7 +331,7 @@ export class FakeLevelClient implements LevelClient {
 		if (edit.kind === 'place') {
 			for (const y of rows) {
 				for (const x of columns) {
-					if (inside(x, y)) view.items.push({ kind: edit.item, x, y, line });
+					if (inside(x, y)) view.items.push({ kind: edit.item, x, y, generator: null, line });
 				}
 			}
 			return;

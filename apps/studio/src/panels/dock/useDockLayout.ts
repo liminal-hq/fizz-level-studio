@@ -29,7 +29,7 @@ import {
 	closePeek,
 	maximiseDocked,
 	restorePanel,
-	dockPanel,
+	dockToZone,
 	floatPanel,
 	peekPanel,
 	placeWindow,
@@ -102,6 +102,12 @@ export interface DockLayoutHandle {
 	toolPicker: ToolPickerPlacement | null;
 	/** Records where the tool picker was moved to, in whole pixels from the map's top-left corner. */
 	placeToolPicker(at: ToolPickerPlacement): void;
+	/** The name of the active workspace. */
+	active: string;
+	/** The names of every workspace, in the saved order. */
+	workspaceNames: string[];
+	/** Makes another workspace the active one (nothing happens for a name that is not saved). */
+	switchWorkspace(name: string): void;
 	/** Writes a change waiting on its pause now; resolves when Rust has it. */
 	flush(): Promise<void>;
 }
@@ -198,7 +204,7 @@ export function useDockLayout(client: DockClient, windowSize: Size, area: Size):
 
 	const activate = useCallback((id: string) => edit((ws) => activateTab(ws, id)), [edit]);
 	const dockTo = useCallback(
-		(id: string, zone: ZoneId) => edit((ws) => dockPanel(ws, id, zone)),
+		(id: string, zone: ZoneId) => edit((ws) => dockToZone(ws, id, zone)),
 		[edit],
 	);
 	const toWindow = useCallback(
@@ -291,6 +297,16 @@ export function useDockLayout(client: DockClient, windowSize: Size, area: Size):
 	);
 	const restore = useCallback(() => setRawSession((s) => restorePanel(s)), []);
 
+	const switchWorkspace = useCallback(
+		(name: string) => {
+			const old = latest.current;
+			if (old.active === name || !old.workspaces[name]) return;
+			commit({ ...old, active: name });
+		},
+		[commit],
+	);
+	const workspaceNames = useMemo(() => Object.keys(dock.workspaces), [dock.workspaces]);
+
 	const reset = useCallback(() => {
 		if (timer.current) clearTimeout(timer.current);
 		timer.current = null;
@@ -369,6 +385,9 @@ export function useDockLayout(client: DockClient, windowSize: Size, area: Size):
 		placeWindow: record,
 		toolPicker: workspace.tool_picker ?? null,
 		placeToolPicker,
+		active: dock.active,
+		workspaceNames,
+		switchWorkspace,
 		flush,
 	};
 }

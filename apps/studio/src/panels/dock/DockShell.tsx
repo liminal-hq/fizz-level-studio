@@ -16,7 +16,9 @@ import {
 import { t } from '../../i18n/messages';
 import type { Size } from '../float/panelGeometry';
 import { DockRail, type PeekCause } from './DockRail';
-import { DockZone } from './DockZone';
+import { DockZone, type HeaderWidth } from './DockZone';
+import type { RailPlaceholders } from './railPlaceholders';
+import type { PanelMenu } from './PanelMenuButton';
 import { DragGhost } from './DragGhost';
 import type { DockDrag } from './useDockDrag';
 import { PeekPanel } from './PeekPanel';
@@ -31,8 +33,6 @@ export interface DockActions {
 	activate(id: string): void;
 	dockTo(id: string, zone: ZoneId): void;
 	floatPanel(id: string): void;
-	/** Tears a panel off into a window of its own; the dock shows no Tear off button without it. */
-	tearOff?(id: string): void;
 	toggleZone(zone: ZoneId): void;
 	peek(id: string): void;
 	closePeek(): void;
@@ -41,6 +41,11 @@ export interface DockActions {
 	resetZoneSize(zone: ZoneId): void;
 	/** Moves a docked panel to a place among its group's tabs. */
 	reorder(id: string, index: number): void;
+	/**
+	 * Choosing a panel's entry on a rail when the panel is away (in a window of its own): returns
+	 * true when it took the choice, as docking the panel back where it left does.
+	 */
+	chooseAway?(id: string): boolean;
 	/** Makes an expandable panel fill the workspace. */
 	maximise(id: string): void;
 	/** Puts the maximised panel back. */
@@ -58,6 +63,12 @@ export interface DockShellProps {
 	/** The real content of a panel. Only the showing panel of each group is asked for. */
 	renderPanel: (id: string) => ReactNode;
 	actions: DockActions;
+	/** The rows of a panel's own ⋮ menu and what choosing one does; headers show no menu button without it. */
+	panelMenu?: (id: string) => PanelMenu;
+	/** What a panel's header shows in place of its title text, such as the Script's tab strip. */
+	headerExtra?: (id: string, width: HeaderWidth) => ReactNode;
+	/** Dimmed rail entries for panels that are to come, such as Assets. */
+	railPlaceholders?: RailPlaceholders;
 	/** The drag controller; without one, panels cannot be dragged. */
 	drag?: DockDrag;
 	/** Whether a panel offers the maximise button. */
@@ -67,6 +78,8 @@ export interface DockShellProps {
 	 * whose group is laid over the workspace by the stylesheet while everything else is hidden.
 	 */
 	maximised?: string | null;
+	/** The panel that has just landed from a drag (back from its own window, say): its header and rail entry are marked for a moment. */
+	landed?: string | null;
 	/** What the last drag did, for the screen reader. */
 	announcement?: string;
 	/**
@@ -94,8 +107,12 @@ export function DockShell({
 	titleOf,
 	renderPanel,
 	actions,
+	panelMenu,
+	headerExtra,
+	railPlaceholders,
 	drag,
 	announcement = '',
+	landed = null,
 	expandable,
 	maximised = null,
 	children,
@@ -128,6 +145,7 @@ export function DockShell({
 
 	// A rail entry shows its panel, opening a folded dock on it, or folds the dock it is showing in.
 	const choose = (id: string) => {
+		if (actions.chooseAway?.(id)) return;
 		const zone = zoneOf(view, id);
 		const choice = railChoice(view, id);
 		if (zone === null || choice === null) return;
@@ -199,10 +217,11 @@ export function DockShell({
 					disabled={session.levelFirst}
 					onChoose={choose}
 					onPeek={onPeek}
-					onUnfold={() => actions.toggleZone(id)}
 					onReorder={reorder}
 					onDragStart={drag?.begin}
 					dragging={dragging?.id ?? null}
+					landed={landed}
+					placeholders={railPlaceholders?.[id]}
 				/>
 			</div>
 		);
@@ -226,12 +245,11 @@ export function DockShell({
 					groups={z.groups}
 					titleOf={titleOf}
 					renderPanel={renderPanel}
-					onDock={actions.dockTo}
-					onFloat={actions.floatPanel}
-					onTearOff={actions.tearOff}
-					onFold={() => actions.toggleZone(id)}
+					panelMenu={panelMenu}
+					headerExtra={headerExtra}
 					onDragStart={drag?.begin}
 					dragging={dragging?.id ?? null}
+					landed={landed}
 					expandable={expandable}
 					onMaximise={actions.maximise}
 					maximised={maximised}

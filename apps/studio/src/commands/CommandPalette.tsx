@@ -32,18 +32,6 @@ export interface CommandPaletteProps {
 	recents?: RecentCommands;
 }
 
-/** Opens the palette with Ctrl+Shift+P (Cmd+Shift+P on a Mac). */
-export function isCommandPaletteShortcut(
-	event: Pick<KeyboardEvent, 'key' | 'ctrlKey' | 'metaKey' | 'shiftKey' | 'altKey'>,
-): boolean {
-	return (
-		(event.ctrlKey || event.metaKey) &&
-		event.shiftKey &&
-		!event.altKey &&
-		event.key.toLowerCase() === 'p'
-	);
-}
-
 interface Section {
 	key: string;
 	heading: string | null;

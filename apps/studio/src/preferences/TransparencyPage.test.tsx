@@ -40,7 +40,7 @@ const BASE: Settings = {
 	locale: 'en-CA',
 	recent_worlds: [],
 	layout: {},
-	ui: { menu_bar: false },
+	ui: { menu_bar: false, toolbar: 'classic', ribbon_folded: false },
 	dock: { active: '', workspaces: {} },
 };
 
@@ -176,6 +176,25 @@ describe('the Transparency page', () => {
 		// The native change event is the release.
 		slider('Blur').dispatchEvent(new Event('change', { bubbles: false }));
 		await waitFor(() => expect(lastTransparency(client)?.blur).toBe(30));
+	});
+
+	it('keeps the preview, and the slider, at the saved value after a slider is let go', async () => {
+		const user = userEvent.setup();
+		const client = setup();
+		await openTransparency(user);
+		const preview = screen.getByTestId('transparency-preview');
+		const panel = slider('Panel opacity');
+		fireEvent.input(panel, { target: { value: '73' } });
+		expect(preview.style.getPropertyValue('--fls-preview-alpha')).toBe('0.73');
+		panel.dispatchEvent(new Event('change', { bubbles: false }));
+		await waitFor(() => expect(lastTransparency(client)?.panel_opacity).toBe(73));
+		await new Promise((resolve) => setTimeout(resolve, 20));
+		expect(preview.style.getPropertyValue('--fls-preview-alpha')).toBe('0.73');
+		expect(preview.style.getPropertyValue('--fls-preview-window-alpha')).not.toMatch(
+			/NaN|undefined/,
+		);
+		expect(preview.style.getPropertyValue('--fls-preview-blur')).toBe('16px');
+		expect((slider('Panel opacity') as HTMLInputElement).value).toBe('73');
 	});
 
 	it('follows the surface switches in the preview, and draws it solid while glass is off', async () => {

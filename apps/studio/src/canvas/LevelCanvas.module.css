@@ -47,6 +47,12 @@
 	touch-action: none;
 }
 
+.note {
+	flex: 1;
+	color: var(--fls-text-secondary);
+	text-align: right;
+}
+
 .canvas:focus-visible {
 	outline: 2px solid var(--fls-focus-ring);
 	outline-offset: -2px;
@@ -72,12 +78,7 @@
 	border-top: 1px solid var(--fls-glass-border);
 }
 
-.zoom {
-	display: inline-flex;
-	align-items: center;
-	gap: 0.5rem;
-}
-
-.button {
-	composes: keycap from '@liminal-hq/fizz-studio-chrome/Keycap/keycap.module.css';
+/* The map is in hand while the middle button drags it. */
+.canvas.panning {
+	cursor: grabbing;
 }

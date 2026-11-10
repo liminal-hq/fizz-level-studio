@@ -9,6 +9,7 @@
 // within the caps. It keeps every value that is usable and takes the default for the rest.
 
 import type { DockSettings } from '@liminal-hq/fizz-studio-protocol/generated/DockSettings';
+import type { HomeSpot } from '@liminal-hq/fizz-studio-protocol/generated/HomeSpot';
 import type { PanelEntry } from '@liminal-hq/fizz-studio-protocol/generated/PanelEntry';
 import type { PlaceKind } from '@liminal-hq/fizz-studio-protocol/generated/PlaceKind';
 import type { WindowPlacement } from '@liminal-hq/fizz-studio-protocol/generated/WindowPlacement';
@@ -162,7 +163,26 @@ function normalisePicker(value: unknown): ToolPickerPlacement | null {
 	return { x: int(value.x, 0, 0, MAX_EXTENT), y: int(value.y, 0, 0, MAX_EXTENT) };
 }
 
-function normaliseEntry(value: unknown, fallback: PanelEntry): PanelEntry {
+/** A remembered place for the panel `own` whose home is `home`, or null for anything unusable. */
+function normaliseSpot(value: unknown, home: ZoneId, own: string): HomeSpot | null {
+	if (!isPlain(value) || value.zone !== home) return null;
+	const neighbour = (n: unknown): string | null =>
+		typeof n === 'string' && n !== own && (PANEL_IDS as readonly string[]).includes(n) ? n : null;
+	return {
+		zone: home,
+		group: int(value.group, 0, 0, 64),
+		after: neighbour(value.after),
+		before: neighbour(value.before),
+		active: value.active === true,
+		folded: value.folded === true,
+		size:
+			typeof value.size === 'number' && Number.isFinite(value.size)
+				? int(value.size, zoneMin(home), zoneMin(home), ZONE_MAX)
+				: null,
+	};
+}
+
+function normaliseEntry(id: string, value: unknown, fallback: PanelEntry): PanelEntry {
 	const v = isPlain(value) ? value : {};
 	const float = normaliseFloat(v.float, fallback.float);
 	let window = normaliseWindow(v.window);
@@ -170,12 +190,14 @@ function normaliseEntry(value: unknown, fallback: PanelEntry): PanelEntry {
 	// A panel marked as in its own window with no window to show it in floats instead.
 	if (place === 'window' && !window) window = { x: float.x, y: float.y, w: float.w, h: float.h };
 	const from = placeKind(v.window_from, 'docked');
+	const home = zoneId(v.home, fallback.home);
 	return {
 		place,
-		home: zoneId(v.home, fallback.home),
+		home,
 		float,
 		window,
 		window_from: from === 'floating' ? 'floating' : 'docked',
+		home_spot: normaliseSpot(v.home_spot, home, id),
 	};
 }
 
@@ -190,7 +212,7 @@ export function normaliseWorkspace(input: unknown, window?: Size): Workspace {
 	const defaults = defaultWorkspace();
 
 	const panels: Workspace['panels'] = {};
-	for (const id of PANEL_IDS) panels[id] = normaliseEntry(rawPanels[id], defaults.panels[id]!);
+	for (const id of PANEL_IDS) panels[id] = normaliseEntry(id, rawPanels[id], defaults.panels[id]!);
 
 	const zones = {} as Workspace['zones'];
 	const placed = new Set<string>();

@@ -6,6 +6,8 @@
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
+import { CommandBridgeContext, createCommandBridge } from '../commands/commandBridge';
+import { runCommand } from '../commands/registry';
 import { setPanelVisible } from '../panels/dock/dockLayout';
 import type { DockClient } from '../services/dockClient';
 import { fakeDockClient, floatingDock } from '../test/dockFixtures';
@@ -17,8 +19,13 @@ function mount(dock = floatingDock()) {
 	const snapshot = levelSnapshot();
 	const client = new FakeLevelClient(snapshot);
 	const docks: DockClient = fakeDockClient(dock);
-	render(<EditorScreen snapshot={snapshot} client={client} docks={docks} />);
-	return { docks };
+	const bridge = createCommandBridge();
+	render(
+		<CommandBridgeContext.Provider value={bridge}>
+			<EditorScreen snapshot={snapshot} client={client} docks={docks} />
+		</CommandBridgeContext.Provider>,
+	);
+	return { docks, bridge };
 }
 
 describe('the editor’s floating panels', () => {
@@ -95,27 +102,26 @@ describe('the editor’s floating panels', () => {
 		await waitFor(() => expect(screen.queryByRole('region', { name: 'Proposals' })).toBeNull());
 	});
 
-	it('hides and shows a panel from the Panels menu, and saves the choice', async () => {
-		const user = userEvent.setup();
-		const { docks } = mount();
+	it('hides and shows a panel with its command, and saves the choice', async () => {
+		const { docks, bridge } = mount();
 		await screen.findByRole('region', { name: 'History' });
-		await user.click(screen.getByRole('button', { name: 'Panels' }));
-		await user.click(screen.getByRole('menuitemcheckbox', { name: 'History' }));
-		expect(screen.queryByRole('region', { name: 'History' })).toBeNull();
+		await waitFor(() => expect(bridge.getSnapshot().facts.editorOpen).toBe(true));
+		runCommand('view.panel.history', bridge.getSnapshot());
+		await waitFor(() => expect(screen.queryByRole('region', { name: 'History' })).toBeNull());
 		await waitFor(() => expect(docks.save).toHaveBeenCalled(), { timeout: 2000 });
 		const saved = vi.mocked(docks.save).mock.calls.at(-1)![0];
 		expect(saved.workspaces[saved.active]!.panels.history!.float.visible).toBe(false);
-		await user.click(screen.getByRole('menuitemcheckbox', { name: 'History' }));
-		expect(screen.getByRole('region', { name: 'History' })).toBeInTheDocument();
+		await waitFor(() => expect(bridge.getSnapshot().facts.panels.history).toBe(false));
+		runCommand('view.panel.history', bridge.getSnapshot());
+		expect(await screen.findByRole('region', { name: 'History' })).toBeInTheDocument();
 	});
 
-	it('resets from the Panels menu to the docked default', async () => {
-		const user = userEvent.setup();
-		const { docks } = mount();
+	it('resets with its command to the docked default', async () => {
+		const { docks, bridge } = mount();
 		await screen.findByRole('region', { name: 'History' });
-		await user.click(screen.getByRole('button', { name: 'Panels' }));
-		await user.click(screen.getByRole('menuitem', { name: 'Reset layout' }));
-		expect(screen.queryByRole('region', { name: 'History' })).toBeNull();
+		await waitFor(() => expect(bridge.getSnapshot().facts.editorOpen).toBe(true));
+		runCommand('view.resetLayout', bridge.getSnapshot());
+		await waitFor(() => expect(screen.queryByRole('region', { name: 'History' })).toBeNull());
 		expect(screen.getByRole('region', { name: 'Left dock' })).toBeInTheDocument();
 		await waitFor(() => expect(docks.save).toHaveBeenCalled(), { timeout: 2000 });
 		const saved = vi.mocked(docks.save).mock.calls.at(-1)![0];

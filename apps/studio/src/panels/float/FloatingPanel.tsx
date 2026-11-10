@@ -11,7 +11,9 @@ import {
 	type PointerEvent,
 	type ReactNode,
 } from 'react';
+import { useSurfaceMenu } from '../../app/useSurfaceMenu';
 import { t } from '../../i18n/messages';
+import { Tooltip } from '../../ui/Tooltip';
 import styles from './FloatingPanel.module.css';
 import {
 	isMeasured,
@@ -23,7 +25,9 @@ import {
 	type ResizeHandle,
 	type Size,
 } from './panelGeometry';
+import type { PanelId } from './panelSpecs';
 import { snapMoveWithin, snapResize, type Guide } from './snap';
+import type { LeaveWindowInfo, WindowExit } from '../dock/useDockDrag';
 
 export interface FloatingPanelProps {
 	/** A stable name, such as `script`; it keys the panel's saved place. */
@@ -55,12 +59,21 @@ export interface FloatingPanelProps {
 	onDockHover?: (point: { x: number; y: number } | null) => void;
 	/** The header was let go at this point: return true when that docked the panel (it is then not placed). */
 	onDockDrop?: (point: { x: number; y: number }) => boolean;
+	/**
+	 * The header's pointer left the window mid-move (called once per exit). The exit it returns
+	 * takes the drag over while the pointer is outside, as for a docked panel's drag
+	 * (`useDockDrag`'s `onLeaveWindow`), which is how the panel is torn off into a window. A
+	 * callback that returns nothing leaves the move as the panel's own.
+	 */
+	onLeaveWindow?: (info: LeaveWindowInfo) => WindowExit | void;
 	/** The panel fills the workspace: its header offers only `actions`, and it cannot be moved. */
 	maximised?: boolean;
 	/** Another panel is maximised: this one stays mounted, hidden. */
 	suppressed?: boolean;
-	/** Extra controls in the header, such as a Tear off button. */
+	/** Extra controls in the header, such as Maximise and the ⋮ menu. */
 	actions?: ReactNode;
+	/** Shown in the header in place of the title text, such as the Script's tab strip. */
+	headerExtra?: ReactNode;
 	children: ReactNode;
 }
 
@@ -73,6 +86,16 @@ interface Gesture {
 	y: number;
 	start: Rect;
 	handle: ResizeHandle;
+	/** Where in the header the press was, in logical pixels from its top-left. */
+	grab: { x: number; y: number };
+	/** Whether the pointer is outside the window (a move only). */
+	outside: boolean;
+	/** What took the drag over while the pointer was outside. */
+	exit: WindowExit | null;
+}
+
+function outsideWindow(x: number, y: number): boolean {
+	return x < 0 || y < 0 || x > window.innerWidth || y > window.innerHeight;
 }
 
 /** The handles that only a pointer uses; the corner grip is the one a keyboard reaches. */
@@ -100,14 +123,22 @@ export function FloatingPanel({
 	onGuides,
 	onDockHover,
 	onDockDrop,
+	onLeaveWindow,
 	maximised = false,
 	suppressed = false,
 	actions,
+	headerExtra,
 	children,
 }: FloatingPanelProps) {
 	// Until the area has been laid out it has no edges to keep a panel inside.
 	const area = isMeasured(measured) ? measured : UNBOUNDED;
 	const gesture = useRef<Gesture | null>(null);
+	// A right-click, the Menu key or Shift+F10 on the header opens the panel's menu.
+	const headerMenu = useSurfaceMenu<HTMLElement>(() => ({
+		kind: 'panel',
+		panel: id as PanelId,
+		where: 'header',
+	}));
 	// Where the panel was when a key gesture began, so Escape can put it back.
 	const keyOrigin = useRef<Rect | null>(null);
 	const live = useRef(rect);
@@ -119,6 +150,8 @@ export function FloatingPanel({
 	onGuidesRef.current = onGuides;
 	const onDockHoverRef = useRef(onDockHover);
 	onDockHoverRef.current = onDockHover;
+	const onLeaveRef = useRef(onLeaveWindow);
+	onLeaveRef.current = onLeaveWindow;
 	const stopEscape = useRef<(() => void) | null>(null);
 
 	// Escape ends a pointer drag wherever the keyboard focus is, putting the panel back.
@@ -128,6 +161,7 @@ export function FloatingPanel({
 			if (event.key !== 'Escape' || !g) return;
 			gesture.current = null;
 			stopEscape.current?.();
+			g.exit?.cancel();
 			onGuidesRef.current?.([]);
 			onDockHoverRef.current?.(null);
 			onChangeRef.current(g.start, true);
@@ -138,17 +172,24 @@ export function FloatingPanel({
 			stopEscape.current = null;
 		};
 	};
+	// The exit is not cancelled here: a panel that is torn off leaves the floating layer mid-drag (it
+	// is recorded as away as soon as its window opens), which unmounts this component while the
+	// compositor is dragging that window. The exit's own route ends the drag, or cancels it.
 	useEffect(() => () => stopEscape.current?.(), []);
 
 	const begin = (event: PointerEvent<HTMLElement>, handle: ResizeHandle = 'se') => {
 		if (event.button !== 0 || maximised) return;
 		watchEscape();
+		const box = event.currentTarget.getBoundingClientRect();
 		gesture.current = {
 			pointer: event.pointerId,
 			x: event.clientX,
 			y: event.clientY,
 			start: live.current,
 			handle,
+			grab: { x: Math.max(0, event.clientX - box.left), y: Math.max(0, event.clientY - box.top) },
+			outside: false,
+			exit: null,
 		};
 		// Capture keeps the drag going outside the handle; it throws for a pointer that is no
 		// longer active, and the gesture still works from the events the handle receives.
@@ -181,7 +222,37 @@ export function FloatingPanel({
 		const dy = event.clientY - g.y;
 		const { rect: next, guides } = drag(g, dx, dy, kind);
 		onGuides?.(guides);
-		if (kind === 'move') onDockHover?.({ x: event.clientX, y: event.clientY });
+		if (kind === 'move') {
+			const point = { x: event.clientX, y: event.clientY };
+			const out = outsideWindow(point.x, point.y);
+			if (out && !g.outside) {
+				// Past the window's edge: a window exit may take the drag over (tearing the panel off).
+				g.exit =
+					onLeaveRef.current?.({
+						id,
+						point,
+						source: 'header',
+						start: { x: g.x, y: g.y },
+						grab: g.grab,
+						// An exit that handed the drag to the compositor ends this one with the panel put back.
+						finish: () => {
+							if (gesture.current !== g) return;
+							gesture.current = null;
+							stopEscape.current?.();
+							onGuidesRef.current?.([]);
+							onDockHoverRef.current?.(null);
+							onChangeRef.current(g.start, true);
+						},
+					}) ?? null;
+			} else if (!out && g.outside) {
+				// Back inside: the panel's own drag again.
+				g.exit?.cancel();
+				g.exit = null;
+			}
+			g.outside = out;
+			if (out) g.exit?.move?.(point);
+			onDockHover?.(out ? null : point);
+		}
 		onChange(next, false);
 	};
 
@@ -198,7 +269,15 @@ export function FloatingPanel({
 		onGuides?.([]);
 		if (kind === 'move') onDockHover?.(null);
 		if (cancelled) {
+			g.exit?.cancel();
 			onChange(g.start, true);
+			return;
+		}
+		if (kind === 'move' && g.outside && g.exit) {
+			// Let go outside the window: the exit places it (a window opens there), so the panel
+			// stays where it was pressed for the way back.
+			onChange(g.start, true);
+			g.exit.drop({ x: event.clientX, y: event.clientY });
 			return;
 		}
 		if (kind === 'move' && onDockDrop?.({ x: event.clientX, y: event.clientY })) return;
@@ -214,6 +293,7 @@ export function FloatingPanel({
 		if (!origin) return false;
 		gesture.current = null;
 		keyOrigin.current = null;
+		g?.exit?.cancel();
 		event.preventDefault();
 		onDockHover?.(null);
 		onChange(origin, true);
@@ -261,6 +341,7 @@ export function FloatingPanel({
 			<div className={styles.frame}>
 				<header
 					className={styles.header}
+					{...headerMenu}
 					onPointerDown={(event) => {
 						const button = (event.target as HTMLElement).closest('button');
 						if (button && !button.hasAttribute('data-grip')) return;
@@ -287,34 +368,37 @@ export function FloatingPanel({
 							<circle cx="9" cy="9" r="1.2" />
 						</svg>
 					</button>
-					<h2 id={titleId} className={styles.title}>
+					<h2 id={titleId} className={headerExtra ? styles.hiddenTitle : styles.title}>
 						{title}
 					</h2>
-					{subtitle && <span className={styles.subtitle}>{subtitle}</span>}
-					<span className={styles.spacer} />
+					{subtitle && !headerExtra && <span className={styles.subtitle}>{subtitle}</span>}
+					{headerExtra ?? <span className={styles.spacer} />}
 					{actions}
-					<button
-						type="button"
-						className={styles.chevron}
-						aria-expanded={!collapsed}
-						aria-label={t(label, { title })}
-						title={t(label, { title })}
-						onClick={onToggleCollapsed}
-					>
-						<svg
-							aria-hidden="true"
-							width="14"
-							height="14"
-							viewBox="0 0 16 16"
-							fill="none"
-							stroke="currentColor"
-							strokeWidth="1.5"
+					<Tooltip label={t(label, { title })}>
+						<button
+							type="button"
+							className={styles.chevron}
+							aria-expanded={!collapsed}
+							aria-label={t(label, { title })}
+							onClick={onToggleCollapsed}
 						>
-							<path d={collapsed ? 'M4 6l4 4 4-4' : 'M4 10l4-4 4 4'} />
-						</svg>
-					</button>
+							<svg
+								aria-hidden="true"
+								width="14"
+								height="14"
+								viewBox="0 0 16 16"
+								fill="none"
+								stroke="currentColor"
+								strokeWidth="1.5"
+							>
+								<path d={collapsed ? 'M4 6l4 4 4-4' : 'M4 10l4-4 4 4'} />
+							</svg>
+						</button>
+					</Tooltip>
 				</header>
-				<div className={styles.body}>{children}</div>
+				<div className={styles.body} id={`panel-body-${id}`}>
+					{children}
+				</div>
 			</div>
 			{!collapsed &&
 				!maximised &&

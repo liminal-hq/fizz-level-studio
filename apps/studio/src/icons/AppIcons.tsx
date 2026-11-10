@@ -10,7 +10,7 @@
 
 import type { ComponentType, ReactNode, SVGProps } from 'react';
 import { PANEL_SPECS, type PanelId } from '../panels/float/panelSpecs';
-import { PANEL_ICONS, TearOffIcon } from '../panels/dock/panelIcons';
+import { FloatIcon, PANEL_ICONS, TearOffIcon, ZoneIcon } from '../panels/dock/panelIcons';
 import type { ToolId } from '../tools/tool';
 
 export type IconComponent = ComponentType<{ size?: number }>;
@@ -152,6 +152,116 @@ export const HelpIcon: IconComponent = ({ size }) => (
 );
 
 /** A keyboard: the Keyboard shortcuts row (Waypoint's keyboard). */
+/** A magnifier with a plus: Zoom in. */
+export const ZoomInIcon: IconComponent = ({ size }) => (
+	<Svg size={size}>
+		<circle cx="7" cy="7" r="4.5" />
+		<path d="M10.4 10.4 14 14M7 5v4M5 7h4" />
+	</Svg>
+);
+
+/** A magnifier with a minus: Zoom out. */
+export const ZoomOutIcon: IconComponent = ({ size }) => (
+	<Svg size={size}>
+		<circle cx="7" cy="7" r="4.5" />
+		<path d="M10.4 10.4 14 14M5 7h4" />
+	</Svg>
+);
+
+/** Four corners: Fit the level to the room. */
+export const ZoomFitIcon: IconComponent = ({ size }) => (
+	<Svg size={size}>
+		<path d="M2 5.5V3a1 1 0 0 1 1-1h2.5M10.5 2H13a1 1 0 0 1 1 1v2.5M14 10.5V13a1 1 0 0 1-1 1h-2.5M5.5 14H3a1 1 0 0 1-1-1v-2.5" />
+	</Svg>
+);
+
+/** A window with a row of menus along its top: the menu bar. */
+export const MenuBarIcon: IconComponent = ({ size }) => (
+	<Svg size={size}>
+		<rect x="1.5" y="2.5" width="13" height="11" rx="1.4" />
+		<path d="M1.5 6h13M3.8 4.3h.1M6 4.3h.1M8.2 4.3h.1" />
+	</Svg>
+);
+
+/** Three bars side by side: a workspace. */
+export const WorkspaceIcon: IconComponent = ({ size }) => (
+	<Svg size={size}>
+		<rect x="1.5" y="2.5" width="13" height="11" rx="1.4" />
+		<path d="M5.8 2.5v11M10.2 2.5v11" />
+	</Svg>
+);
+
+/** Three dots one above another: a panel's menu. */
+export const MoreIcon: IconComponent = ({ size }) => (
+	<Svg size={size}>
+		<circle cx="8" cy="3.5" r="0.9" />
+		<circle cx="8" cy="8" r="0.9" />
+		<circle cx="8" cy="12.5" r="0.9" />
+	</Svg>
+);
+
+/** A window with a row of buttons across its top: the classic toolbar. */
+export const ToolbarIcon: IconComponent = ({ size }) => (
+	<Svg size={size}>
+		<rect x="1.5" y="2.5" width="13" height="11" rx="1.4" />
+		<path d="M1.5 6.5h13M4 4.6h.1M6.2 4.6h.1M8.4 4.6h.1" />
+	</Svg>
+);
+
+/** A window with tabs along its top and a panel under them: the ribbon. */
+export const RibbonIcon: IconComponent = ({ size }) => (
+	<Svg size={size}>
+		<rect x="1.5" y="2.5" width="13" height="11" rx="1.4" />
+		<path d="M1.5 5.5h13M5 2.5v3M9 2.5v3M3.5 8.5h4M3.5 10.8h2.5" />
+	</Svg>
+);
+
+/** A chevron pointing up: fold the ribbon to its tabs. */
+export const ChevronUpIcon: IconComponent = ({ size }) => (
+	<Svg size={size}>
+		<path d="M4 10l4-4 4 4" />
+	</Svg>
+);
+
+/** A chevron pointing down: open the folded ribbon. */
+export const ChevronDownIcon: IconComponent = ({ size }) => (
+	<Svg size={size}>
+		<path d="M4 6l4 4 4-4" />
+	</Svg>
+);
+
+/** A magnifier: searching the commands. */
+export const SearchIcon: IconComponent = ({ size }) => (
+	<Svg size={size}>
+		<circle cx="7" cy="7" r="4.5" />
+		<path d="M10.4 10.4 14 14" />
+	</Svg>
+);
+
+/** An open eye: Show all layers. */
+export const ShowAllLayersIcon: IconComponent = ({ size }) => (
+	<Svg size={size}>
+		<path d="M1.5 8S4 3.5 8 3.5 14.5 8 14.5 8 12 12.5 8 12.5 1.5 8 1.5 8z" />
+		<circle cx="8" cy="8" r="2" />
+	</Svg>
+);
+
+/** An open padlock: Unlock all layers. */
+export const UnlockAllLayersIcon: IconComponent = ({ size }) => (
+	<Svg size={size}>
+		<rect x="3.5" y="7" width="9" height="6.5" rx="1.4" />
+		<path d="M5.5 7V5.3a2.5 2.5 0 0 1 4.8-1" />
+	</Svg>
+);
+
+/** Two small frames, one over the other: Assets. */
+export const AssetsIcon: IconComponent = ({ size }) => (
+	<Svg size={size}>
+		<rect x="1.5" y="2.5" width="7" height="6" rx="1.2" />
+		<rect x="7.5" y="7.5" width="7" height="6" rx="1.2" />
+	</Svg>
+);
+
 export const KeyboardIcon: IconComponent = ({ size }) => (
 	<Svg size={size}>
 		<rect x="1.5" y="4" width="13" height="8" rx="1.4" />
@@ -293,6 +403,38 @@ export type IconId =
 	| 'help'
 	| 'shortcuts'
 	| 'history'
+	| 'dock.left'
+	| 'dock.right'
+	| 'dock.bottom'
+	| 'float'
+	| 'zoomIn'
+	| 'zoomOut'
+	| 'zoomFit'
+	| 'menuBar'
+	| 'workspace'
+	| 'more'
+	| 'assets'
+	| 'toolbar'
+	| 'ribbon'
+	| 'search'
+	| 'layers.showAll'
+	| 'layers.unlockAll'
+	| 'selection.delete'
+	| 'selection.flip'
+	| 'selection.showInScript'
+	| 'selection.reveal'
+	| 'contextMenu'
+	| 'copy'
+	| 'cut'
+	| 'paste'
+	| 'selectAll'
+	| 'foldAll'
+	| 'unfoldAll'
+	| 'layers.hide'
+	| 'layers.show'
+	| 'layers.only'
+	| 'layers.lock'
+	| 'layers.unlock'
 	| `panel.${PanelId}`
 	| `tool.${ToolId}`
 	| 'menu.file'
@@ -306,6 +448,111 @@ const PANEL_ICON_ENTRIES = PANEL_SPECS.map(
 );
 const TOOL_ICON_ENTRIES = (Object.keys(TOOL_ICONS) as ToolId[]).map(
 	(id) => [`tool.${id}`, TOOL_ICONS[id]] as const,
+);
+
+/** A bin: delete the selected thing. */
+export const DeleteIcon: IconComponent = ({ size }) => (
+	<Svg size={size}>
+		<path d="M2.5 4.5h11M6 4.5v-2h4v2M4 4.5l.6 8.5h6.8l.6-8.5M6.8 7v4M9.2 7v4" />
+	</Svg>
+);
+
+/** Two arrowheads either side of a line: turn the selected enemy round. */
+export const FlipIcon: IconComponent = ({ size }) => (
+	<Svg size={size}>
+		<path d="M8 2v12M5.5 4.5 2 8l3.5 3.5zM10.5 4.5 14 8l-3.5 3.5z" />
+	</Svg>
+);
+
+/** Angle brackets with a slash: show the line in the script. */
+export const ShowInScriptIcon: IconComponent = ({ size }) => (
+	<Svg size={size}>
+		<path d="M5.5 4.5 2 8l3.5 3.5M10.5 4.5 14 8l-3.5 3.5M9 3.5 7 12.5" />
+	</Svg>
+);
+
+/** A target: bring the selected thing into view on the canvas. */
+export const RevealOnCanvasIcon: IconComponent = ({ size }) => (
+	<Svg size={size}>
+		<circle cx="8" cy="8" r="3" />
+		<path d="M8 1.5v3M8 11.5v3M1.5 8h3M11.5 8h3" />
+	</Svg>
+);
+
+/** A small menu with a pointer: open the context menu. */
+export const ContextMenuIcon: IconComponent = ({ size }) => (
+	<Svg size={size}>
+		<path d="M2.5 2.5h8v8h-8zM4.5 5h4M4.5 7.5h2.5M10 9.5l3.5 1.2-1.6.9 1.3 2.2" />
+	</Svg>
+);
+
+/** Two sheets, one over the other: copy. */
+export const CopyIcon: IconComponent = ({ size }) => (
+	<Svg size={size}>
+		<path d="M5.5 5.5h7v8h-7zM3.5 10.5v-8h7" />
+	</Svg>
+);
+
+/** Open scissors: cut. */
+export const CutIcon: IconComponent = ({ size }) => (
+	<Svg size={size}>
+		<circle cx="4.5" cy="12" r="1.6" />
+		<circle cx="11.5" cy="12" r="1.6" />
+		<path d="M5.5 10.6 11 2.5M10.5 10.6 5 2.5" />
+	</Svg>
+);
+
+/** A clipboard: paste. */
+export const PasteIcon: IconComponent = ({ size }) => (
+	<Svg size={size}>
+		<path d="M5.5 3H3.5v10.5h9V3h-2M5.5 2h5v2h-5z" />
+	</Svg>
+);
+
+/** A square with its corners marked and a smaller one inside: select all. */
+export const SelectAllIcon: IconComponent = ({ size }) => (
+	<Svg size={size}>
+		<path d="M2.5 5.5v-3h3M10.5 2.5h3v3M13.5 10.5v3h-3M5.5 13.5h-3v-3M6 6h4v4H6z" />
+	</Svg>
+);
+
+/** Chevrons closing in on the middle: fold all. */
+export const FoldAllIcon: IconComponent = ({ size }) => (
+	<Svg size={size}>
+		<path d="M4 2.5 8 6l4-3.5M4 13.5 8 10l4 3.5" />
+	</Svg>
+);
+
+/** Chevrons opening away from the middle: unfold all. */
+export const UnfoldAllIcon: IconComponent = ({ size }) => (
+	<Svg size={size}>
+		<path d="M4 6 8 2.5 12 6M4 10l4 3.5 4-3.5" />
+	</Svg>
+);
+
+/** An eye crossed out: hide a layer. */
+export const HideLayerIcon: IconComponent = ({ size }) => (
+	<Svg size={size}>
+		<path d="M1.5 8S4 3.5 8 3.5 14.5 8 14.5 8 12 12.5 8 12.5 1.5 8 1.5 8z" />
+		<circle cx="8" cy="8" r="2" />
+		<path d="M3 13 13 3" />
+	</Svg>
+);
+
+/** A ring round a dot: show only this layer. */
+export const OnlyLayerIcon: IconComponent = ({ size }) => (
+	<Svg size={size}>
+		<circle cx="8" cy="8" r="5.5" />
+		<circle cx="8" cy="8" r="1.8" />
+	</Svg>
+);
+
+/** A closed padlock: lock a layer. */
+export const LockLayerIcon: IconComponent = ({ size }) => (
+	<Svg size={size}>
+		<rect x="3.5" y="7" width="9" height="6.5" rx="1.4" />
+		<path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2" />
+	</Svg>
 );
 
 export const APP_ICONS: Record<IconId, IconComponent> = {
@@ -328,6 +575,38 @@ export const APP_ICONS: Record<IconId, IconComponent> = {
 	help: HelpIcon,
 	shortcuts: KeyboardIcon,
 	history: HistoryIcon,
+	'dock.left': ({ size }) => <ZoneIcon zone="left" size={size} />,
+	'dock.right': ({ size }) => <ZoneIcon zone="right" size={size} />,
+	'dock.bottom': ({ size }) => <ZoneIcon zone="bottom" size={size} />,
+	float: FloatIcon,
+	zoomIn: ZoomInIcon,
+	zoomOut: ZoomOutIcon,
+	zoomFit: ZoomFitIcon,
+	menuBar: MenuBarIcon,
+	workspace: WorkspaceIcon,
+	more: MoreIcon,
+	assets: AssetsIcon,
+	toolbar: ToolbarIcon,
+	ribbon: RibbonIcon,
+	search: SearchIcon,
+	'layers.showAll': ShowAllLayersIcon,
+	'layers.unlockAll': UnlockAllLayersIcon,
+	'selection.delete': DeleteIcon,
+	'selection.flip': FlipIcon,
+	'selection.showInScript': ShowInScriptIcon,
+	'selection.reveal': RevealOnCanvasIcon,
+	contextMenu: ContextMenuIcon,
+	copy: CopyIcon,
+	cut: CutIcon,
+	paste: PasteIcon,
+	selectAll: SelectAllIcon,
+	foldAll: FoldAllIcon,
+	unfoldAll: UnfoldAllIcon,
+	'layers.hide': HideLayerIcon,
+	'layers.show': ShowAllLayersIcon,
+	'layers.only': OnlyLayerIcon,
+	'layers.lock': LockLayerIcon,
+	'layers.unlock': UnlockAllLayersIcon,
 	...(Object.fromEntries(PANEL_ICON_ENTRIES) as Record<`panel.${PanelId}`, IconComponent>),
 	...(Object.fromEntries(TOOL_ICON_ENTRIES) as Record<`tool.${ToolId}`, IconComponent>),
 	'menu.file': FileMenuIcon,

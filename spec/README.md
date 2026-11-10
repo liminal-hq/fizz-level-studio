@@ -18,6 +18,7 @@ This document is the main spec. The companion documents go deeper:
 | [docs/DECISIONS.md](../docs/DECISIONS.md)           | The decisions taken, with reasons and the alternatives set aside                                                                                   |
 | [spec/LANGUAGE.md](LANGUAGE.md)                     | The language reference: grammar, Builder equivalents, errors, the Fizz 2 dialect and the target profiles                                           |
 | [docs/FIZZ2-COVERAGE.md](../docs/FIZZ2-COVERAGE.md) | Every Fizz 2 feature an author controls, against the document that handles it                                                                      |
+| [docs/LEVEL-MODEL.md](../docs/LEVEL-MODEL.md)       | The level model: planes and overlay layers in `LEVL` 2, size as a byte budget, cutaways and fades, solvability, and the schedule (D73)             |
 | [spec/WORLD.md](WORLD.md)                           | World projects: a world's levels, definitions, sprites, panels, sounds and strings, built into one world pack; the retro art set                   |
 | [spec/SCRIPTING.md](SCRIPTING.md)                   | Custom enemies and items with behaviour scripts compiled to bytecode, the step budget, the behaviour editor and debugger                           |
 

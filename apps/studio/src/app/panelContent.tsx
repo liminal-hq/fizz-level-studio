@@ -14,10 +14,13 @@ import { ObjectList } from '../canvas/ObjectList';
 import { GhostsPanel } from '../panels/GhostsPanel';
 import type { PanelId } from '../panels/float/panelSpecs';
 import { HistoryPanel } from '../panels/HistoryPanel';
+import { LayersPanel } from '../panels/layers/LayersPanel';
 import { PalettePanel } from '../panels/PalettePanel';
 import { ScriptPanel } from '../panels/ScriptPanel';
 import type { Brush } from '../tools/brush';
-import type { Cell } from '../tools/tool';
+import { InspectorPanel } from '../inspector/InspectorPanel';
+import type { ThingEditApi } from '../inspector/thingEdit';
+import type { Cell, Thing } from '../tools/tool';
 
 export interface PanelContentContext {
 	snapshot: LevelSnapshot;
@@ -27,6 +30,16 @@ export interface PanelContentContext {
 	spacing: number;
 	onSpacing: (spacing: number) => void;
 	onObjectChosen: (cell: Cell) => void;
+	/** The thing chosen in the Objects list, to select it. */
+	onThingChosen: (thing: Thing) => void;
+	/** What Inspect or the Objects list selected, or null. */
+	selectedThing: Thing | null;
+	/** The script line that last set a cell, for a selected cell. */
+	lookupCellLine?: (x: number, y: number) => Promise<number | null>;
+	/** Changes the selected thing, for the Inspector. */
+	thingEdits?: ThingEditApi;
+	/** The word of the thing deleted last, for the Inspector to say how to undo it. */
+	deletedName?: string | null;
 	showLine: (line: number) => void;
 	undo: () => void;
 	redo: () => void;
@@ -36,6 +49,14 @@ export interface PanelContentContext {
 	onRefreshProposals: () => void;
 	focusLine: number | null;
 	focusSerial: number;
+	/** The ids of the layers hidden on the canvas; hiding is this person's view only. */
+	hiddenLayers: readonly string[];
+	onToggleLayer: (id: string) => void;
+	onShowAllLayers: () => void;
+	/** The ids of the locked layers, from Rust. */
+	lockedLayers: readonly string[];
+	onToggleLock: (id: string) => void;
+	onUnlockAll: () => void;
 }
 
 /**
@@ -56,11 +77,42 @@ export function panelContent(id: PanelId, ctx: PanelContentContext): ReactNode {
 					onSpacing={ctx.onSpacing}
 				/>
 			);
+		case 'layers':
+			return (
+				<LayersPanel
+					sections={snapshot.view.sections}
+					hidden={ctx.hiddenLayers}
+					target={snapshot.target}
+					onToggleHidden={ctx.onToggleLayer}
+					onShowAll={ctx.onShowAllLayers}
+					locked={ctx.lockedLayers}
+					onToggleLocked={ctx.onToggleLock}
+					onUnlockAll={ctx.onUnlockAll}
+					onReveal={ctx.showLine}
+				/>
+			);
+		case 'inspector':
+			return (
+				<InspectorPanel
+					snapshot={snapshot}
+					thing={ctx.selectedThing}
+					words={ctx.words}
+					onShowLine={ctx.showLine}
+					lookupCellLine={ctx.lookupCellLine}
+					edit={ctx.thingEdits}
+					deleted={ctx.deletedName}
+					lockedLayers={ctx.lockedLayers}
+					hiddenLayers={ctx.hiddenLayers}
+					onBrush={ctx.onBrush}
+				/>
+			);
 		case 'objects':
 			return (
 				<ObjectList
 					view={snapshot.view}
 					onSelectCell={ctx.onObjectChosen}
+					onSelectThing={ctx.onThingChosen}
+					selected={ctx.selectedThing}
 					onSelectLine={ctx.showLine}
 				/>
 			);
@@ -82,6 +134,7 @@ export function panelContent(id: PanelId, ctx: PanelContentContext): ReactNode {
 					shown={ctx.showGhosts}
 					onToggle={ctx.onToggleGhosts}
 					onRefresh={ctx.onRefreshProposals}
+					locked={ctx.lockedLayers}
 				/>
 			);
 		case 'script':

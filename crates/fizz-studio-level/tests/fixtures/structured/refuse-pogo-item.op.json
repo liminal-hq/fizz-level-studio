@@ -1,0 +1,11 @@
+{
+  "kind": "delete-thing",
+  "thing": {
+    "kind": "item",
+    "index": 41,
+    "line": 40,
+    "expect": "  pogo-cache  x=8..10 rise=7   // a snack ledge for a pogo bounce, after the other treats",
+    "x": 9.0,
+    "y": 11.0
+  }
+}

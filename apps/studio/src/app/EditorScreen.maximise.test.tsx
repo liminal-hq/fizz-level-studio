@@ -7,7 +7,7 @@ import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 import { CommandBridgeContext, createCommandBridge } from '../commands/commandBridge';
-import { appMenuItems } from '../commands/appMenuModel';
+import { buildMenuBar } from '../commands/appMenuModel';
 import { paletteEntries } from '../commands/paletteModel';
 import { runCommand } from '../commands/registry';
 import { setZoneCollapsed } from '../panels/dock/dockLayout';
@@ -126,7 +126,7 @@ describe('maximising a panel', () => {
 	it('lists one Maximise or Restore row at a time in the View menu and the palette', async () => {
 		const { bridge } = await mount();
 		const labels = () => {
-			const view = appMenuItems(bridge.getSnapshot()).find((item) => item.id === 'menu:view')!;
+			const view = buildMenuBar(bridge.getSnapshot()).find((item) => item.id === 'menu:view')!;
 			return (view as { items: { label?: string; shortcut?: string }[] }).items;
 		};
 		expect(

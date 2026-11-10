@@ -5,7 +5,7 @@
 
 import type { GhostProposal } from '@liminal-hq/fizz-studio-protocol/generated/GhostProposal';
 import type { WordDoc } from '@liminal-hq/fizz-studio-protocol/generated/WordDoc';
-import { render, screen, within } from '@testing-library/react';
+import { act, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { GhostsPanel } from './GhostsPanel';
@@ -17,6 +17,7 @@ const doc = (word: string, kind: string, note = ''): WordDoc => ({
 	syntax: `${word} <args>`,
 	example: word,
 	note,
+	group: '',
 });
 
 const words = [
@@ -45,10 +46,10 @@ describe('PalettePanel', () => {
 		const headings = screen.getAllByRole('heading').map((h) => h.textContent);
 		expect(headings).toEqual(['Terrain', 'Hazards', 'Treats', 'Enemies', 'Markers'].slice(0, 4));
 		const terrain = within(section('Terrain')).getByRole('listbox', { name: 'Terrain' });
-		expect(within(terrain).getByRole('option', { name: 'grass' })).toHaveAttribute(
-			'title',
-			'Grassy ground',
-		);
+		const grass = within(terrain).getByRole('option', { name: 'grass' });
+		expect(grass).not.toHaveAttribute('title');
+		act(() => grass.focus());
+		expect(screen.getByRole('tooltip')).toHaveTextContent('grassGrassy ground');
 		expect(within(terrain).queryByRole('option', { name: 'empty' })).toBeNull();
 		expect(within(terrain).queryByRole('option', { name: 'spike' })).toBeNull();
 		expect(within(section('Hazards')).getByRole('option', { name: 'spike' })).toBeInTheDocument();
@@ -157,8 +158,9 @@ describe('GhostsPanel', () => {
 			why: 'for a jump',
 			lines: ['paint grass x=1 y=1'],
 			cells: [{ x: 1, y: 1, op: 'paint', word: 'grass' }],
+			layers: ['edits'],
 		},
-		{ id: 'h2', title: 'Two', why: null, lines: [], cells: [] },
+		{ id: 'h2', title: 'Two', why: null, lines: [], cells: [], layers: ['treats', 'edits'] },
 	];
 
 	it('lists the proposals with their cell counts and reasons, and offers no accept or reject', () => {
@@ -168,6 +170,23 @@ describe('GhostsPanel', () => {
 		expect(screen.getByText('0 cells')).toBeInTheDocument();
 		expect(screen.getByText('for a jump')).toBeInTheDocument();
 		expect(screen.queryByRole('button', { name: /accept|reject/i })).toBeNull();
+	});
+
+	it('says which lock blocks a proposal, and only when a layer it touches is locked', () => {
+		const { rerender } = render(
+			<GhostsPanel proposals={proposals} shown onToggle={vi.fn()} onRefresh={vi.fn()} />,
+		);
+		expect(screen.queryByRole('note')).toBeNull();
+		rerender(
+			<GhostsPanel
+				proposals={proposals}
+				shown
+				onToggle={vi.fn()}
+				onRefresh={vi.fn()}
+				locked={['treats', 'enemies']}
+			/>,
+		);
+		expect(screen.getByRole('note')).toHaveTextContent('Blocked by a lock: Treats.');
 	});
 
 	it('toggles the lens and refreshes on request', async () => {

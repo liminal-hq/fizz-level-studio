@@ -1,0 +1,13 @@
+{
+  "kind": "move-thing",
+  "thing": {
+    "kind": "item",
+    "index": 8,
+    "line": 28,
+    "expect": "  soda        x=36 y=5",
+    "x": 36.0,
+    "y": 5.0
+  },
+  "x": 37.0,
+  "y": 5.0
+}

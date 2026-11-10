@@ -15,15 +15,19 @@ describe('visibleWorkspace', () => {
 	});
 
 	it('drops the tab of a hidden panel and moves the showing tab on', () => {
-		const ws = setPanelVisible(defaultWorkspace(), 'objects', false);
+		const ws = setPanelVisible(defaultWorkspace(), 'inspector', false);
 		const view = visibleWorkspace(ws);
-		expect(dockedIn(view, 'right')).toEqual(['history']);
-		expect(view.zones.right.groups[0]!.active).toBe('history');
-		expect(dockedIn(ws, 'right')).toEqual(['objects', 'history']);
+		expect(dockedIn(view, 'right')).toEqual(['objects', 'history']);
+		expect(view.zones.right.groups[0]!.active).toBe('objects');
+		expect(dockedIn(ws, 'right')).toEqual(['inspector', 'objects', 'history']);
 	});
 
 	it('drops a group and a zone with nothing showing', () => {
-		const ws = setPanelVisible(defaultWorkspace(), 'palette', false);
+		const ws = setPanelVisible(
+			setPanelVisible(defaultWorkspace(), 'palette', false),
+			'layers',
+			false,
+		);
 		expect(visibleWorkspace(ws).zones.left.groups).toEqual([]);
 	});
 
@@ -33,8 +37,8 @@ describe('visibleWorkspace', () => {
 		for (const zone of ['left', 'right', 'bottom'] as const) {
 			expect(view.zones[zone].collapsed).toBe(true);
 		}
-		expect(dockedIn(view, 'left')).toEqual(['palette']);
-		expect(dockedIn(view, 'right')).toEqual(['objects', 'history']);
+		expect(dockedIn(view, 'left')).toEqual(['palette', 'layers']);
+		expect(dockedIn(view, 'right')).toEqual(['inspector', 'objects', 'history']);
 		expect(dockedIn(view, 'bottom')).toEqual(['script', 'proposals']);
 		expect(ws.zones.left.collapsed).toBe(false);
 	});
@@ -47,7 +51,7 @@ describe('railChoice', () => {
 
 	it('folds the zone when its showing panel is chosen', () => {
 		const view = visibleWorkspace(defaultWorkspace());
-		expect(railChoice(view, 'objects')).toBe('fold');
+		expect(railChoice(view, 'inspector')).toBe('fold');
 		expect(railChoice(view, 'palette')).toBe('fold');
 		expect(railChoice(view, 'script')).toBe('fold');
 	});
@@ -59,9 +63,9 @@ describe('railChoice', () => {
 	});
 
 	it('reads the panel drawn in place of a hidden active one as the showing one', () => {
-		const view = visibleWorkspace(setPanelVisible(defaultWorkspace(), 'objects', false));
-		expect(railChoice(view, 'history')).toBe('fold');
-		expect(railChoice(view, 'objects')).toBeNull();
+		const view = visibleWorkspace(setPanelVisible(defaultWorkspace(), 'inspector', false));
+		expect(railChoice(view, 'objects')).toBe('fold');
+		expect(railChoice(view, 'inspector')).toBeNull();
 	});
 
 	it('has nothing to do for a panel that is not docked', () => {

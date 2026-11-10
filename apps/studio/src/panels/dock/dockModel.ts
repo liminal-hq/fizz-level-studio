@@ -21,6 +21,8 @@ import type { PanelId } from '../float/panelSpecs';
 /** The panel ids in the order the Panels menu lists them. */
 export const PANEL_IDS: readonly PanelId[] = [
 	'palette',
+	'layers',
+	'inspector',
 	'objects',
 	'history',
 	'proposals',
@@ -69,7 +71,7 @@ export function zoneMin(zone: ZoneId): number {
 	return zone === 'bottom' ? BOTTOM_MIN : SIDE_MIN;
 }
 
-/** The fixed default arrangement (Palette left; Objects and History right; Script and Proposals below). */
+/** The fixed default arrangement (Palette and Layers left; Objects and History right; Script and Proposals below). */
 export function defaultWorkspace(): Workspace {
 	return structuredClone(fixture.default);
 }

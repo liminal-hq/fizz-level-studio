@@ -4,16 +4,17 @@
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
 import type { LevelSnapshot } from '@liminal-hq/fizz-studio-protocol/generated/LevelSnapshot';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { layerList } from '../panels/layers/lockedNote';
+import { useCallback, useContext, useEffect, useRef, useState } from 'react';
 import {
 	CommandBridgeContext,
 	createCommandBridge,
 	useBridgeSnapshot,
 	type CommandBridge,
 } from '../commands/commandBridge';
-import { commandForKey } from '../commands/appShortcuts';
-import { CommandPalette, isCommandPaletteShortcut } from '../commands/CommandPalette';
-import { runCommand } from '../commands/registry';
+import { commandForKey, type KeyPhase } from '../commands/appShortcuts';
+import { CommandPalette } from '../commands/CommandPalette';
+import { allCommands, runCommand } from '../commands/registry';
 import { t, type MessageId } from '../i18n/messages';
 import { launchClient, type LaunchClient } from '../services/launchClient';
 import { flushPendingWrites } from '../services/pendingWrites';
@@ -21,7 +22,7 @@ import { quitClient, type QuitClient } from '../services/quitClient';
 import { pickLevelFile, type PickLevelFile } from '../services/filePicker';
 import { openWindow } from '../services/windowsClient';
 import { recentClient, type RecentClient } from '../services/recentClient';
-import { settingsClient, type SettingsClient } from '../services/settingsClient';
+import { settingsClient } from '../services/settingsClient';
 import type { LevelClient } from '../worlds/levelClient';
 import { recoveryClient, type RecoveryClient, type RecoveryEntry } from '../worlds/recoveryClient';
 import {
@@ -32,16 +33,20 @@ import {
 } from '../worlds/tauriLevelClient';
 import { AppMenu } from './AppMenu';
 import { AppMenuBar } from './AppMenuBar';
+import { AppRibbon } from './AppRibbon';
+import { AppToolbar } from './AppToolbar';
 import { AppWindow } from './AppWindow';
 import type { DockClient } from '../services/dockClient';
 import type { PanelBridge } from '../panels/windows/panelBridge';
+import type { TearoffClient } from '../services/tearoffClient';
 import { CloseLevelDialog } from './CloseLevelDialog';
 import { EditorScreen } from './EditorScreen';
 import { KeyboardShortcutsDialog } from './KeyboardShortcutsDialog';
 import styles from './MainScreen.module.css';
 import { RecoverySection } from './RecoverySection';
 import { newerSnapshot } from './snapshotRule';
-import { useMenuBar } from './useMenuBar';
+import { CommandSearchButton, WorkspaceSwitcher } from './WorkspaceSwitcher';
+import { useUiSettings, type UiSettingsClient } from './useUiSettings';
 
 export interface MainScreenProps {
 	/** The level backend; defaults to the worlds plugin. */
@@ -59,9 +64,11 @@ export interface MainScreenProps {
 	/** Quitting the app; defaults to the app's commands. */
 	quit?: QuitClient;
 	/** The settings document, read for the menu bar choice; defaults to the settings plugin. */
-	settings?: Pick<SettingsClient, 'get' | 'onChanged'>;
+	settings?: UiSettingsClient;
 	/** The channel to panels torn off into their own windows. */
 	panelBridge?: PanelBridge;
+	/** The tear-off plugin for dragging panels out and back; the app passes the real one. */
+	tearoff?: TearoffClient;
 }
 
 // One client for the app: it remembers each level's latest snapshot between calls.
@@ -87,24 +94,15 @@ export function levelName(snapshot: Pick<LevelSnapshot, 'view' | 'path'>): strin
 	return snapshot.view.name.trim() || baseName(snapshot.path);
 }
 
-/** True for the keys that mean Save: Ctrl+S, or Cmd+S on a Mac. */
-function isSaveShortcut(event: KeyboardEvent): boolean {
-	return (event.ctrlKey || event.metaKey) && !event.altKey && event.key.toLowerCase() === 's';
-}
-
-/** True for the keys that mean Preferences: Ctrl+, or Cmd+,. */
-function isPreferencesShortcut(event: KeyboardEvent): boolean {
-	return (event.ctrlKey || event.metaKey) && !event.altKey && event.key === ',';
-}
-
-/** True for the keys that mean Quit: Ctrl+Q. */
-function isQuitShortcut(event: KeyboardEvent): boolean {
-	return event.ctrlKey && !event.metaKey && !event.altKey && event.key.toLowerCase() === 'q';
-}
-
-/** The main window: provides the command bridge the application menu reads, then the screen. */
+/**
+ * The main window: provides the command bridge the application menu reads, then the screen. The
+ * window's root (`App`) makes the bridge so its context menu reads the same one; a screen drawn
+ * without a root (a test) makes its own.
+ */
 export function MainScreen(props: MainScreenProps) {
-	const [bridge] = useState(createCommandBridge);
+	const inherited = useContext(CommandBridgeContext);
+	const [own] = useState(() => (inherited ? null : createCommandBridge()));
+	const bridge = inherited ?? own!;
 	return (
 		<CommandBridgeContext.Provider value={bridge}>
 			<MainScreenBody {...props} bridge={bridge} />
@@ -123,6 +121,7 @@ function MainScreenBody({
 	quit = quitClient,
 	settings = settingsClient,
 	panelBridge,
+	tearoff,
 }: MainScreenProps & { bridge: CommandBridge }) {
 	/** The snapshot the level was opened from; the editor takes later ones from `level`. */
 	const [level, setLevel] = useState<LevelSnapshot | null>(null);
@@ -141,7 +140,8 @@ function MainScreenBody({
 	const [paletteOpen, setPaletteOpen] = useState(false);
 	const [shortcutsOpen, setShortcutsOpen] = useState(false);
 	const bridgeSnapshot = useBridgeSnapshot();
-	const menuBar = useMenuBar(settings);
+	const { ui, setUi } = useUiSettings(settings);
+	const menuBar = ui.menu_bar;
 
 	const follow = useCallback((snapshot: LevelSnapshot) => {
 		const kept = levelRef.current ? newerSnapshot(levelRef.current, snapshot) : snapshot;
@@ -410,68 +410,34 @@ function MainScreenBody({
 		[quit, client, save, dropLevel],
 	);
 
+	// One dispatcher for the app-wide keys: each command lists its own `keys`, so a key does exactly
+	// what its menu row does, and nothing while the row is disabled. Chords marked `capture` (the
+	// command palette) run ahead of the script editor, which never sees them; the rest run once the
+	// focused control has had its say. Ctrl+W closes the level, never the window, and the zoom
+	// chords are always taken so the webview's own page zoom never moves.
 	useEffect(() => {
-		const onKey = (event: KeyboardEvent) => {
-			if (!isQuitShortcut(event)) return;
-			event.preventDefault();
-			void quit.request().catch(() => {});
-		};
-		document.addEventListener('keydown', onKey);
-		return () => document.removeEventListener('keydown', onKey);
-	}, [quit]);
-
-	useEffect(() => {
-		if (!level) return;
-		const onKey = (event: KeyboardEvent) => {
-			if (!isSaveShortcut(event)) return;
-			event.preventDefault();
-			void save();
-		};
-		document.addEventListener('keydown', onKey);
-		return () => document.removeEventListener('keydown', onKey);
-	}, [level?.id, save]);
-
-	useEffect(() => {
-		const onKey = (event: KeyboardEvent) => {
-			if (!isPreferencesShortcut(event)) return;
-			event.preventDefault();
-			void openWindow({ kind: 'preferences' });
-		};
-		document.addEventListener('keydown', onKey);
-		return () => document.removeEventListener('keydown', onKey);
-	}, []);
-
-	// Ctrl+Shift+P toggles the command palette on every screen. It is handled at the window in the
-	// capture phase, so it works with focus in the script editor, which never sees the key.
-	useEffect(() => {
-		const onKey = (event: KeyboardEvent) => {
-			if (!isCommandPaletteShortcut(event)) return;
-			event.preventDefault();
-			event.stopPropagation();
-			setPaletteOpen((was) => !was);
-		};
-		window.addEventListener('keydown', onKey, true);
-		return () => window.removeEventListener('keydown', onKey, true);
-	}, []);
-
-	// New level, Open level and Close level (Ctrl+N, Ctrl+O and Ctrl+W), Help (F1) and Keyboard
-	// shortcuts (?) run their menu commands, so a key does exactly what its row does and nothing
-	// while the row is disabled. Ctrl+W closes the level through the same path as Close level, and
-	// never the window.
-	useEffect(() => {
-		const onKey = (event: KeyboardEvent) => {
-			const id = commandForKey(event);
+		const dispatcher = (phase: KeyPhase) => (event: KeyboardEvent) => {
+			const snapshot = bridge.getSnapshot();
+			const id = commandForKey(event, allCommands(snapshot.facts), phase);
 			if (!id) return;
 			event.preventDefault();
-			runCommand(id, bridge.getSnapshot());
+			if (phase === 'capture') event.stopPropagation();
+			runCommand(id, snapshot);
 		};
-		document.addEventListener('keydown', onKey);
-		return () => document.removeEventListener('keydown', onKey);
+		const capture = dispatcher('capture');
+		const bubble = dispatcher('bubble');
+		window.addEventListener('keydown', capture, true);
+		document.addEventListener('keydown', bubble);
+		return () => {
+			window.removeEventListener('keydown', capture, true);
+			document.removeEventListener('keydown', bubble);
+		};
 	}, [bridge]);
 
 	// The application menu runs these through the bridge; the latest closures are read at call time.
-	const live = useRef({ choose, save, requestClose });
-	live.current = { choose, save, requestClose };
+	const requestQuit = () => quit.request().catch(() => {});
+	const live = useRef({ choose, save, requestClose, quit: requestQuit });
+	live.current = { choose, save, requestClose, quit: requestQuit };
 	useEffect(
 		() =>
 			bridge.setHandlers({
@@ -479,11 +445,30 @@ function MainScreenBody({
 				'file.open': () => void live.current.choose(),
 				'file.save': () => void live.current.save(),
 				'file.close': () => live.current.requestClose(),
-				'view.commandPalette': () => setPaletteOpen(true),
+				'file.quit': () => void live.current.quit(),
+				'view.commandPalette': () => setPaletteOpen((was) => !was),
 				'help.shortcuts': () => setShortcutsOpen((was) => !was),
 			}),
 		[bridge],
 	);
+	// The menu bar switch writes the setting, so every Main window follows; it is absent where settings cannot be written.
+	const menuBarOn = menuBar;
+	const { toolbar, ribbon_folded: ribbonFolded } = ui;
+	useEffect(() => {
+		if (!setUi) return;
+		// Toolbar and Ribbon are switches: choosing the one that is showing hides the commands row.
+		return bridge.setHandlers({
+			'view.menuBar': () => setUi({ menu_bar: !menuBarOn }),
+			'view.toolbar.classic': () =>
+				setUi({ toolbar: toolbar === 'classic' ? 'hidden' : 'classic' }),
+			'view.toolbar.ribbon': () => setUi({ toolbar: toolbar === 'ribbon' ? 'hidden' : 'ribbon' }),
+			'view.toolbar.hidden': () => setUi({ toolbar: 'hidden' }),
+			'view.ribbon.fold': () => setUi({ ribbon_folded: !ribbonFolded }),
+		});
+	}, [bridge, setUi, menuBarOn, toolbar, ribbonFolded]);
+	useEffect(() => {
+		bridge.setFacts({ menuBar, toolbar, ribbonFolded });
+	}, [bridge, menuBar, toolbar, ribbonFolded]);
 	const hasLevel = level !== null;
 	useEffect(() => {
 		bridge.setFacts({ hasLevel });
@@ -584,12 +569,27 @@ function MainScreenBody({
 	}
 
 	const name = levelName(level);
+	// The command search and the workspace switcher sit at the right end of the menu row, or of the
+	// commands row while there is no menu bar.
+	const editorEnd = (
+		<>
+			<CommandSearchButton />
+			<WorkspaceSwitcher />
+		</>
+	);
 	return (
 		<AppWindow
 			documentName={name}
 			dirty={isDirty(level)}
 			start={<AppMenu menuBar={menuBar} />}
-			menuBar={menuBar ? <AppMenuBar /> : undefined}
+			menuBar={menuBar ? <AppMenuBar end={editorEnd} /> : undefined}
+			toolbar={
+				ui.toolbar === 'classic' ? (
+					<AppToolbar end={menuBar ? undefined : editorEnd} />
+				) : ui.toolbar === 'ribbon' ? (
+					<AppRibbon end={menuBar ? undefined : editorEnd} />
+				) : undefined
+			}
 		>
 			<div className={styles.editor}>
 				{bannerView}
@@ -604,7 +604,13 @@ function MainScreenBody({
 				{conflict && (
 					<section className={styles.conflict}>
 						<p className={styles.warning} role="alert">
-							<span>{t('main.conflict')}</span>
+							<span>
+								{conflict.locked && conflict.locked.length > 0
+									? t('main.conflictLocked', {
+											layers: layerList(conflict.locked, level?.view.sections ?? []),
+										})
+									: t('main.conflict')}
+							</span>
 							<button type="button" className={styles.button} onClick={() => setConflict(null)}>
 								{t('main.dismiss')}
 							</button>
@@ -622,16 +628,7 @@ function MainScreenBody({
 						onSnapshot={follow}
 						docks={docks}
 						panelBridge={panelBridge}
-						toolLead={
-							<div className={styles.actions} role="toolbar" aria-label={t('main.levelActions')}>
-								<button type="button" className={styles.button} onClick={() => void save()}>
-									{t('main.save')}
-								</button>
-								<button type="button" className={styles.button} onClick={requestClose}>
-									{t('main.closeLevel')}
-								</button>
-							</div>
-						}
+						tearoff={tearoff}
 					/>
 				</div>
 			</div>

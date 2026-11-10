@@ -6,11 +6,14 @@
 import type { TabGroup } from '@liminal-hq/fizz-studio-protocol/generated/TabGroup';
 import type { ZoneId } from '@liminal-hq/fizz-studio-protocol/generated/ZoneId';
 import { useEffect, useLayoutEffect, useRef, type KeyboardEvent, type PointerEvent } from 'react';
+import { useSurfaceMenu } from '../../app/useSurfaceMenu';
 import { t, type MessageId } from '../../i18n/messages';
-import { FoldButton } from './FoldButton';
+import { APP_ICONS } from '../../icons/AppIcons';
 import { PANEL_ICONS } from './panelIcons';
 import type { PanelId } from '../float/panelSpecs';
+import type { RailPlaceholder } from './railPlaceholders';
 import type { DragSource } from './useDockDrag';
+import { Tooltip } from '../../ui/Tooltip';
 import styles from './DockRail.module.css';
 
 /** How long the pointer rests on an entry of a folded rail before its panel peeks. */
@@ -32,13 +35,16 @@ export interface DockRailProps {
 	/** An entry chosen: it shows its panel (opening a folded zone), or folds the zone when showing. */
 	onChoose: (id: string) => void;
 	onPeek: (id: string, cause: PeekCause) => void;
-	onUnfold: () => void;
 	/** Moves a panel to a place among its group's panels (the keyboard's way of reordering). */
 	onReorder?: (id: string, index: number) => void;
 	/** A press on an entry that may become a drag. */
 	onDragStart?: (event: PointerEvent<HTMLElement>, id: string, source: DragSource) => void;
 	/** The panel being dragged, dimmed where it sits. */
 	dragging?: string | null;
+	/** The panel that just landed from a drag: its entry is marked for a moment. */
+	landed?: string | null;
+	/** Entries for panels that do not exist yet, drawn dimmed after the real ones. */
+	placeholders?: readonly RailPlaceholder[];
 }
 
 const RAIL_LABELS: Record<ZoneId, MessageId> = {
@@ -71,12 +77,20 @@ export function DockRail({
 	disabled,
 	onChoose,
 	onPeek,
-	onUnfold,
 	onReorder,
 	onDragStart,
 	dragging = null,
+	landed = null,
+	placeholders = [],
 }: DockRailProps) {
 	const rail = useRef<HTMLDivElement>(null);
+	// A right-click, the Menu key or Shift+F10 on an entry opens its panel's menu; the gaps open none.
+	const entryMenu = useSurfaceMenu<HTMLDivElement>((event) => {
+		const entry = (event.target as Element).closest<HTMLElement>('[data-rail-item]');
+		return entry
+			? { kind: 'panel', panel: entry.dataset.railItem as PanelId, where: 'rail' }
+			: null;
+	});
 	const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const cancel = () => {
 		if (timer.current) clearTimeout(timer.current);
@@ -133,48 +147,79 @@ export function DockRail({
 			data-folded={collapsed || undefined}
 			role="group"
 			aria-label={t(RAIL_LABELS[zone])}
-			onKeyDown={onKeyDown}
+			onContextMenu={entryMenu.onContextMenu}
+			onKeyDown={(event) => {
+				entryMenu.onKeyDown(event);
+				if (!event.defaultPrevented) onKeyDown(event);
+			}}
 		>
-			{collapsed && <FoldButton zone={zone} folded onClick={onUnfold} disabled={disabled} />}
 			{groups.flatMap((group, index) =>
 				group.tabs.map((id) => {
 					const Icon = PANEL_ICONS[id as PanelId];
 					const active = group.active === id;
 					const title = titleOf(id);
 					return (
-						<button
-							key={id}
-							type="button"
-							className={styles.item}
-							data-rail-item={id}
-							data-rail-group={index}
-							data-active={active || undefined}
-							data-peeking={peeking === id || undefined}
-							data-dragging={dragging === id || undefined}
-							aria-pressed={active && !collapsed}
-							title={title}
-							disabled={disabled}
-							onPointerEnter={(event) => {
-								if (!canPeek || event.pointerType === 'touch' || peeking === id) return;
-								cancel();
-								timer.current = setTimeout(() => onPeek(id, 'hover'), PEEK_DELAY_MS);
-							}}
-							onPointerLeave={cancel}
-							onPointerDown={(event) => {
-								cancel();
-								onDragStart?.(event, id, 'tab');
-							}}
-							onClick={() => {
-								cancel();
-								onChoose(id);
-							}}
-						>
-							{Icon && <Icon size={16} />}
-							<span className={styles.title}>{title}</span>
-						</button>
+						<Tooltip key={id} label={hintOf(title, active, collapsed)}>
+							<button
+								type="button"
+								className={styles.item}
+								data-rail-item={id}
+								data-rail-group={index}
+								data-active={active || undefined}
+								data-peeking={peeking === id || undefined}
+								data-dragging={dragging === id || undefined}
+								data-landed={landed === id || undefined}
+								aria-pressed={active && !collapsed}
+								disabled={disabled}
+								onPointerEnter={(event) => {
+									if (!canPeek || event.pointerType === 'touch' || peeking === id) return;
+									cancel();
+									timer.current = setTimeout(() => onPeek(id, 'hover'), PEEK_DELAY_MS);
+								}}
+								onPointerLeave={cancel}
+								onPointerDown={(event) => {
+									cancel();
+									onDragStart?.(event, id, 'tab');
+								}}
+								onClick={() => {
+									cancel();
+									onChoose(id);
+								}}
+							>
+								{Icon && <Icon size={16} />}
+								<span className={styles.title}>{title}</span>
+							</button>
+						</Tooltip>
 					);
 				}),
 			)}
+			{placeholders.map((entry) => {
+				const Icon = APP_ICONS[entry.icon];
+				return (
+					<Tooltip key={entry.id} label={entry.title} reason={entry.reason}>
+						<button
+							type="button"
+							className={styles.item}
+							data-rail-placeholder={entry.id}
+							data-keycap-exempt=""
+							disabled
+						>
+							<Icon size={16} />
+							<span className={styles.title}>{entry.title}</span>
+						</button>
+					</Tooltip>
+				);
+			})}
 		</div>
 	);
+}
+
+/**
+ * The hint on an entry. The showing entry of an open dock says that choosing it again folds the dock;
+ * on a folded dock the entry that opens with it says choosing it opens the dock again; the others
+ * are named only, since choosing one just shows it.
+ */
+function hintOf(title: string, active: boolean, collapsed: boolean): string {
+	if (!active) return title;
+	return t(collapsed ? 'dock.rail.hintFolded' : 'dock.rail.hintOpen', { title });
 }

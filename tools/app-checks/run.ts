@@ -17,6 +17,7 @@ import {
 	writeFileSync,
 } from 'node:fs';
 import { join } from 'node:path';
+import defaultTransparency from '../../packages/protocol/fixtures/default-transparency.json';
 import {
 	App,
 	Bridge,
@@ -28,6 +29,8 @@ import {
 	within,
 	type Profile,
 } from './driver';
+import { contextMenuChromeChecks } from './contextMenuChromeChecks';
+import { contextMenuLevelChecks } from './contextMenuLevelChecks';
 
 const failures: string[] = [];
 
@@ -137,8 +140,426 @@ function railClipping(bridge: Bridge): Promise<string[]> {
 	);
 }
 
-/** The accessible name of the Script panel's Tear off button. */
-const TEAR_OFF_SCRIPT = 'Tear off Script into its own window';
+/**
+ * Opens the ⋮ menu in a panel's header (its button is named "<title> menu") and presses the row
+ * with this label, with the events a mouse click makes.
+ */
+async function choosePanelMenu(
+	bridge: Bridge,
+	title: string,
+	row: string,
+	windowId = 'main-1',
+): Promise<boolean> {
+	const opened = await bridge.js<boolean>(
+		`const b = document.querySelector('button[aria-label=' + JSON.stringify(${JSON.stringify(`${title} menu`)}) + ']');
+		 if (!b) return false;
+		 b.click();
+		 return true;`,
+		windowId,
+	);
+	if (!opened) return false;
+	const pressed = await within(3000, () =>
+		bridge.js<boolean>(
+			`const menu = document.querySelector('[role=menu]');
+			 const el = menu && [...menu.querySelectorAll('[role^=menuitem]')].find((x) => x.textContent.trim().startsWith(${JSON.stringify(row)}));
+			 if (!el || el.getAttribute('aria-disabled') === 'true') return false;
+			 for (const type of ['pointerdown', 'mousedown', 'pointerup', 'mouseup', 'click']) el.dispatchEvent(new MouseEvent(type, { bubbles: true, cancelable: true }));
+			 return true;`,
+			windowId,
+		),
+	);
+	return pressed !== null;
+}
+
+/** Whether a panel's ⋮ menu lists an enabled row with this label; the menu is closed again. */
+async function panelMenuOffers(bridge: Bridge, title: string, row: string): Promise<boolean> {
+	const opened = await bridge.js<boolean>(
+		`const b = document.querySelector('button[aria-label=' + JSON.stringify(${JSON.stringify(`${title} menu`)}) + ']');
+		 if (!b) return false;
+		 b.click();
+		 return true;`,
+	);
+	if (!opened) return false;
+	const offered = await within(3000, () =>
+		bridge.js<boolean>(
+			`const menu = document.querySelector('[role=menu]');
+			 return !!menu && [...menu.querySelectorAll('[role^=menuitem]')].some((x) => x.textContent.trim().startsWith(${JSON.stringify(row)}) && x.getAttribute('aria-disabled') !== 'true');`,
+		),
+	);
+	await bridge.js(
+		`document.querySelector('[role=menu]')?.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true })); return true;`,
+	);
+	await sleep(150);
+	return offered !== null;
+}
+
+/**
+ * Every panel's ⋮ button keeps its place while its menu is open and once it is closed. The menu's
+ * wrapper once sat in the header's flex row as one more item, and the header's gap pushed the
+ * button left by 6.4 px as the menu opened (only a layout engine shows it, so only this check can).
+ */
+async function panelMenuStaysPutChecks(bridge: Bridge): Promise<void> {
+	const labels = await bridge.js<string[]>(
+		`return [...document.querySelectorAll('[data-panel-menu]')].map((b) => b.getAttribute('aria-label'));`,
+	);
+	check('every panel in the window has a ⋮ button to measure', labels.length >= 2, labels.join());
+	for (const label of labels) {
+		const x = () =>
+			bridge.js<number | null>(
+				`const b = document.querySelector('button[aria-label=' + JSON.stringify(${JSON.stringify(label)}) + ']');
+				 return b ? b.getBoundingClientRect().left : null;`,
+			);
+		const before = await x();
+		await bridge.js(
+			`document.querySelector('button[aria-label=' + JSON.stringify(${JSON.stringify(label)}) + ']').click(); return true;`,
+		);
+		await within(3000, () => bridge.js<boolean>(`return !!document.querySelector('[role=menu]');`));
+		await sleep(200);
+		const during = await x();
+		await bridge.js(
+			`document.querySelector('[role=menu]')?.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true })); return true;`,
+		);
+		await within(3000, () => bridge.js<boolean>(`return !document.querySelector('[role=menu]');`));
+		await sleep(150);
+		const after = await x();
+		check(
+			`${label}: the ⋮ button does not move while its menu is open or after it closes`,
+			before !== null && during === before && after === before,
+			JSON.stringify({ before, during, after }),
+		);
+	}
+}
+
+/**
+ * Hovers the word `crystal` in the script editor of `windowId` and measures the documentation popup:
+ * it must be a child of the page's `body`, lie wholly inside the window, have no ancestor that clips
+ * it or makes a containing block for it, and be the element on top at its own centre.
+ */
+async function measureScriptPopup(
+	bridge: Bridge,
+	windowId = 'main-1',
+): Promise<{
+	found: boolean;
+	inWindow: boolean;
+	inBody: boolean;
+	clippedBy: string[];
+	onTop: boolean;
+	box: number[];
+} | null> {
+	const hovered = await bridge.js<boolean>(
+		`const content = document.querySelector('.cm-content');
+		 if (!content) return false;
+		 const scroller = document.querySelector('.cm-scroller');
+		 const find = () => {
+			 const walker = document.createTreeWalker(content, NodeFilter.SHOW_TEXT);
+			 for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+				 const i = n.textContent.indexOf('crystal');
+				 if (i >= 0) { const r = document.createRange(); r.setStart(n, i + 2); r.setEnd(n, i + 4); return r.getBoundingClientRect(); }
+			 }
+			 return null;
+		 };
+		 // The editor draws lines beyond the ones in view; the word must be one the person can see.
+		 const view = scroller.getBoundingClientRect();
+		 let rect = find();
+		 for (let tries = 0; tries < 12 && rect && (rect.top < view.top || rect.bottom > view.bottom); tries++) {
+			 scroller.scrollTop += rect.top - (view.top + view.height / 2);
+			 await new Promise((r) => setTimeout(r, 120));
+			 rect = find();
+		 }
+		 if (!rect || rect.top < view.top || rect.bottom > view.bottom) return false;
+		 const x = rect.left + rect.width / 2, y = rect.top + rect.height / 2;
+		 for (const type of ['mousemove', 'mouseover']) content.dispatchEvent(new MouseEvent(type, { bubbles: true, clientX: x, clientY: y }));
+		 return true;`,
+		windowId,
+	);
+	if (!hovered) return null;
+	const shown = await within(4000, () =>
+		bridge.js<boolean>(`return !!document.querySelector('.cm-tooltip .fls-doc');`, windowId),
+	);
+	if (shown === null) return null;
+	// The library measures a popup before it places it; until then it is parked far off screen.
+	await within(3000, () =>
+		bridge.js<boolean>(
+			`const tip = document.querySelector('.cm-tooltip .fls-doc')?.closest('.cm-tooltip'); return !!tip && tip.getBoundingClientRect().top > -1000;`,
+			windowId,
+		),
+	);
+	return bridge.js(
+		`const tip = document.querySelector('.cm-tooltip .fls-doc').closest('.cm-tooltip');
+		 const r = tip.getBoundingClientRect();
+		 const clippedBy = [];
+		 for (let e = tip.parentElement; e && e !== document.documentElement && e !== document.body; e = e.parentElement) {
+			 const cs = getComputedStyle(e);
+			 if (cs.overflowX !== 'visible' || cs.overflowY !== 'visible' || cs.transform !== 'none' || cs.filter !== 'none' || cs.backdropFilter !== 'none' || cs.contain !== 'none') clippedBy.push(e.tagName + '.' + e.className.toString().slice(0, 30));
+		 }
+		 // The popup is for reading and ignores the pointer, so ask who is on top with it listening.
+		 const was = tip.style.pointerEvents;
+		 tip.style.pointerEvents = 'auto';
+		 const top = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+		 tip.style.pointerEvents = was;
+		 return {
+			 found: true,
+			 inWindow: r.left >= 0 && r.top >= 0 && r.right <= innerWidth && r.bottom <= innerHeight && r.width > 40,
+			 inBody: tip.closest('#fls-popup-layer')?.parentElement === document.body,
+			 clippedBy,
+			 onTop: !!top && tip.contains(top),
+			 box: [r.left, r.top, r.width, r.height].map(Math.round),
+		 };`,
+		windowId,
+	);
+}
+
+/**
+ * How far the page of `windowId` can scroll, after a reveal has been forced: the shell must never move.
+ * It scrolls the first script line and the last into view, asks the window to scroll, and reads the
+ * document's scrolling element and the shell's own boxes. `scrollHeight === innerHeight` is the
+ * measure that failed when the popup layer doubled the page's height.
+ */
+async function shellScroll(
+	bridge: Bridge,
+	windowId = 'main-1',
+): Promise<{
+	top: number;
+	left: number;
+	height: number;
+	inner: number;
+	width: number;
+	innerW: number;
+	moved: string[];
+}> {
+	return bridge.js(
+		`const lines = [...document.querySelectorAll('.cm-line')];
+		 lines.at(-1)?.scrollIntoView({ block: 'end' });
+		 lines[0]?.scrollIntoView({ block: 'start' });
+		 document.querySelector('.cm-revealedLine')?.scrollIntoView({ block: 'center' });
+		 window.scrollTo(0, 500);
+		 await new Promise((r) => setTimeout(r, 150));
+		 const se = document.scrollingElement;
+		 const moved = [document.documentElement, document.body, document.getElementById('root'), ...document.querySelectorAll('[data-maximised] > div, main, [data-app-toolbar]')]
+			 .filter((e) => e && (e.scrollTop !== 0 || e.scrollLeft !== 0))
+			 .map((e) => e.tagName + '.' + String(e.className).slice(0, 20));
+		 return { top: se.scrollTop, left: se.scrollLeft, height: se.scrollHeight, inner: innerHeight, width: se.scrollWidth, innerW: innerWidth, moved };`,
+		windowId,
+	);
+}
+
+function shellStill(m: Awaited<ReturnType<typeof shellScroll>>): boolean {
+	return (
+		m.top === 0 &&
+		m.left === 0 &&
+		m.height === m.inner &&
+		m.width === m.innerW &&
+		m.moved.length === 0
+	);
+}
+
+/** The first Objects row, clicked, which reveals its cell and its script line. */
+function clickFirstObject(bridge: Bridge, windowId = 'main-1'): Promise<boolean> {
+	return bridge.js<boolean>(
+		`const b = [...document.querySelectorAll('[role=list][aria-label=Objects] button')].find((e) => /^Item /.test(e.textContent.trim())) ?? [...document.querySelectorAll('button')].find((x) => x.textContent.startsWith('Item '));
+		 if (!b) return false; b.click(); return true;`,
+		windowId,
+	);
+}
+
+/** The app shell stays put after a hover, a reveal, and a forced scroll: the main window and a floating Script. */
+async function shellScrollChecks(bridge: Bridge, where: string): Promise<void> {
+	const hovered = await measureScriptPopup(bridge);
+	check(`${where}: a hover popup is shown`, !!hovered?.found);
+	const afterHover = await shellScroll(bridge);
+	check(
+		`${where}: the shell does not scroll after a hover`,
+		shellStill(afterHover),
+		JSON.stringify(afterHover),
+	);
+	await showFromRail(bridge, 'Objects');
+	const clicked = await clickFirstObject(bridge);
+	await sleep(400);
+	const afterReveal = await shellScroll(bridge);
+	check(
+		`${where}: the shell does not scroll after an Objects row reveals its line`,
+		clicked && shellStill(afterReveal),
+		JSON.stringify({ clicked, ...afterReveal }),
+	);
+}
+
+/** The popup over the editor in the docked and the floating Script panel (a torn-off window runs the same code). */
+async function scriptPopupChecks(bridge: Bridge): Promise<void> {
+	const run = async (where: string) => {
+		const m = await measureScriptPopup(bridge);
+		check(
+			`${where}: the hover documentation is a popover above the UI, whole and not clipped`,
+			!!m && m.inWindow && m.inBody && m.clippedBy.length === 0 && m.onTop,
+			JSON.stringify(m),
+		);
+		await bridge.js(
+			`document.querySelector('.cm-content')?.dispatchEvent(new MouseEvent('mouseleave', { bubbles: false })); document.body.dispatchEvent(new MouseEvent('mousemove', { bubbles: true, clientX: 2, clientY: 2 })); return true;`,
+		);
+		await within(3000, () =>
+			bridge.js<boolean>(`return !document.querySelector('.cm-tooltip .fls-doc');`),
+		);
+	};
+	await showFromRail(bridge, 'Script');
+	await run('docked Script');
+	await shellScrollChecks(bridge, 'docked Script');
+	check('floating: Script floats', await choosePanelMenu(bridge, 'Script', 'Float'));
+	await within(3000, () =>
+		bridge.js<boolean>(`return !!document.querySelector('section[data-panel="script"]');`),
+	);
+	await run('floating Script');
+	await showFromRail(bridge, 'Script');
+	await shellScrollChecks(bridge, 'floating Script');
+	check(
+		'floating: the layout is reset, so Script is back in the bottom dock',
+		await choosePanelMenu(bridge, 'Script', 'Reset layout'),
+	);
+	await sleep(300);
+}
+
+/** The alpha of the computed `background-color` of the first element matching each selector (null when absent). */
+function backgroundAlphas(bridge: Bridge, selectors: string[]): Promise<(number | null)[]> {
+	return bridge.js<(number | null)[]>(
+		`const alpha = (colour) => {
+			 const slash = colour.match(/\\/\\s*([\\d.]+%?)\\s*\\)/);
+			 if (slash) return slash[1].endsWith('%') ? parseFloat(slash[1]) / 100 : parseFloat(slash[1]);
+			 const rgba = colour.match(/^rgba\\(([^)]*)\\)$/);
+			 return rgba ? parseFloat(rgba[1].split(',')[3]) : 1;
+		 };
+		 return ${JSON.stringify(selectors)}.map((s) => { const e = document.querySelector(s); return e ? alpha(getComputedStyle(e).backgroundColor) : null; });`,
+	);
+}
+
+/**
+ * The script editor follows the panel transparency switches of its host: with the docked (or
+ * floating) panels' glass on, the editor and its gutters are translucent so the glass shows; with it
+ * off they are the solid colours; and the setting applies live.
+ */
+async function transparentEditorChecks(bridge: Bridge): Promise<void> {
+	const setSwitch = (key: 'docks' | 'floating', on: boolean) =>
+		bridge.js<boolean>(
+			// The app writes its settings too (the window effects, the layout), so a write built on a
+			// revision that has moved on is refused: read again and retry.
+			`let last = null;
+			 for (let attempt = 0; attempt < 8; attempt++) {
+				 try {
+					 const cur = await window.__TAURI_INTERNALS__.invoke('plugin:fizz-studio-settings|settings_get');
+					 await window.__TAURI_INTERNALS__.invoke('plugin:fizz-studio-settings|settings_update', { patch: { transparency: { ...cur.settings.transparency, ${key}: ${on} } }, basedOn: cur.revision });
+					 return true;
+				 } catch (e) { last = e; await new Promise((r) => setTimeout(r, 150)); }
+			 }
+			 return JSON.stringify(last);`,
+		);
+	const selectors = ['.cm-editor', '.cm-gutters'];
+	const run = async (where: string, key: 'docks' | 'floating') => {
+		await setSwitch(key, true);
+		await within(5000, async () => {
+			const [editor] = await backgroundAlphas(bridge, selectors);
+			return editor !== null && editor !== undefined && editor < 0.5;
+		});
+		const on = await backgroundAlphas(bridge, selectors);
+		check(
+			`${where}: with glass on, the editor and its gutters are translucent`,
+			on.every((a) => a !== null && a < 0.5),
+			JSON.stringify(on),
+		);
+		await setSwitch(key, false);
+		await within(5000, async () => {
+			const [editor] = await backgroundAlphas(bridge, selectors);
+			return editor !== null && editor !== undefined && editor >= 0.5;
+		});
+		const off = await backgroundAlphas(bridge, selectors);
+		check(
+			`${where}: with glass off, the editor and its gutters are solid`,
+			off.every((a) => a !== null && a >= 0.99),
+			JSON.stringify(off),
+		);
+		await setSwitch(key, true);
+	};
+	await showFromRail(bridge, 'Script');
+	await run('docked Script', 'docks');
+	check('transparency: Script floats', await choosePanelMenu(bridge, 'Script', 'Float'));
+	await within(3000, () =>
+		bridge.js<boolean>(`return !!document.querySelector('section[data-panel="script"]');`),
+	);
+	await run('floating Script', 'floating');
+	check(
+		'transparency: the layout is reset, so Script is back in the bottom dock',
+		await choosePanelMenu(bridge, 'Script', 'Reset layout'),
+	);
+	await sleep(300);
+}
+
+/**
+ * A rail entry dragged around inside the window is the page's own drag: no ghost window is shown,
+ * no panel window is opened, the webview's text selection and native drag are refused while it runs,
+ * and nothing is left behind when it ends. (A drag that leaves the window needs the real pointer
+ * and compositor, which only a person on that desktop can give.)
+ */
+async function inWindowDragChecks(bridge: Bridge): Promise<void> {
+	const windows = async () => {
+		const parsed = JSON.parse(await bridge.call('manage_window', { action: 'list' })) as {
+			windows: { label: string; visible: boolean }[];
+		};
+		return parsed.windows;
+	};
+	const shape = (list: { label: string; visible: boolean }[]) =>
+		list.map((w) => `${w.label}:${w.visible}`).sort();
+	const before = shape(await windows());
+	const during = await bridge.js<{
+		selectRefused: boolean;
+		dragRefused: boolean;
+		zones: number;
+	} | null>(
+		`const src = [...document.querySelectorAll('[data-rail-item]')].find((x) => x.textContent.trim() === 'Palette');
+		 if (!src) return null;
+		 const r = src.getBoundingClientRect();
+		 const p = { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+		 const wait = () => new Promise((res) => setTimeout(res, 80));
+		 const fire = (type, x, y) => src.dispatchEvent(new PointerEvent(type, { bubbles: true, cancelable: true, pointerId: 31, button: 0, buttons: type === 'pointerup' ? 0 : 1, clientX: x, clientY: y }));
+		 src.setPointerCapture = () => {};
+		 fire('pointerdown', p.x, p.y);
+		 await wait();
+		 for (const [dx, dy] of [[12, 40], [40, 90], [80, 130]]) { fire('pointermove', p.x + dx, p.y + dy); await wait(); }
+		 const refused = (type) => { const e = new Event(type, { bubbles: true, cancelable: true }); document.body.dispatchEvent(e); return e.defaultPrevented; };
+		 const result = {
+			 selectRefused: refused('selectstart'),
+			 dragRefused: refused('dragstart'),
+			 zones: [...document.querySelectorAll('[data-drop-zone]')].filter((e) => getComputedStyle(e).display !== 'none').length,
+		 };
+		 window.__fizzDragProbe = { x: p.x + 80, y: p.y + 130 };
+		 return result;`,
+	);
+	const midWindows = shape(await windows());
+	check(
+		'in-window drag: no ghost or panel window appears while a rail entry is dragged inside the window',
+		JSON.stringify(midWindows) === JSON.stringify(before),
+		JSON.stringify({ before, midWindows }),
+	);
+	check(
+		'in-window drag: the webview’s text selection and native drag are refused while it runs',
+		during?.selectRefused === true && during.dragRefused === true,
+		JSON.stringify(during),
+	);
+	check(
+		'in-window drag: the drop zones are shown during the drag',
+		(during?.zones ?? 0) >= 1,
+		JSON.stringify(during),
+	);
+	// Escape puts everything back, and the zones go away.
+	await bridge.js<boolean>(
+		`document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true })); return true;`,
+	);
+	await sleep(300);
+	const after = shape(await windows());
+	const left = await bridge.js<number>(
+		`return [...document.querySelectorAll('[data-drop-zone]')].filter((e) => getComputedStyle(e).display !== 'none').length;`,
+	);
+	check(
+		'in-window drag: Escape leaves no window and no drop zone behind',
+		JSON.stringify(after) === JSON.stringify(before) && left === 0,
+		JSON.stringify({ after, left }),
+	);
+}
 
 /** Clicks the button with this accessible name. */
 function clickLabelled(bridge: Bridge, label: string): Promise<boolean> {
@@ -299,14 +720,20 @@ async function dockChecks(bridge: Bridge): Promise<void> {
 	check(
 		'the rails mark the showing panels and not the others',
 		(await railItemPressed(bridge, 'Palette')) === true &&
-			(await railItemPressed(bridge, 'Objects')) === true &&
+			(await railItemPressed(bridge, 'Inspector')) === true &&
 			(await railItemPressed(bridge, 'History')) === false,
+		JSON.stringify(
+			await bridge.js<string[]>(
+				`return [...document.querySelectorAll('[data-rail-item]')].map((x) => x.textContent.trim() + ':' + x.getAttribute('aria-pressed'));`,
+			),
+		),
 	);
 	check(
-		'an open dock names its panel once, with no tab strip beside the rail',
+		'an open dock names its panel once, and only the Script header has tabs (the rail is the switch)',
 		await bridge.js<boolean>(
 			`const headers = [...document.querySelectorAll('section[aria-label$=" dock"] [data-strip]')];
-			 return headers.length === 3 && headers.every((h) => h.querySelector('[role=tab], [role=tablist]') === null && h.querySelectorAll('h2').length === 1);`,
+			 const panelOf = (h) => h.parentElement.querySelector('[data-panel-id]')?.dataset.panelId;
+			 return headers.length === 3 && headers.every((h) => h.querySelectorAll('h2').length === 1 && (h.querySelector('[role=tablist]') !== null) === (panelOf(h) === 'script'));`,
 		),
 	);
 	const share = m.map ? Math.round(((m.map.w * m.map.h) / (m.window.w * m.window.h)) * 100) : 0;
@@ -341,7 +768,7 @@ async function dockChecks(bridge: Bridge): Promise<void> {
 		 if (onDock) { fire(onDock, 'pointerdown', at); fire(onDock, 'pointerup', at); }
 		 await new Promise((r) => setTimeout(r, 150));
 		 const dockCell = cell();
-		 const onMap = document.elementFromPoint(m.right - 24, m.bottom - 24);
+		 const onMap = document.elementFromPoint(m.right - 24, m.top + 24);
 		 return { dock: onDock ? onDock.tagName : null, inDock: !!onDock && zone.contains(onDock), dockCell, map: onMap ? onMap.tagName : null, startCell };`,
 	);
 	check(
@@ -395,7 +822,7 @@ async function dockChecks(bridge: Bridge): Promise<void> {
 	const picked = pickedAt.kind;
 	const enemyChip = await within(3000, () =>
 		bridge.js<boolean>(
-			`return [...document.querySelectorAll('[role=status]')].some((e) => e.textContent.includes('Brush: ' + ${JSON.stringify(picked)}));`,
+			`return [...document.querySelectorAll('[data-app-toolbar], [data-app-ribbon]')].some((e) => e.textContent.includes('Brush: ' + ${JSON.stringify(picked)}));`,
 		),
 	);
 	check(
@@ -465,7 +892,7 @@ async function dockChecks(bridge: Bridge): Promise<void> {
 
 	// Choosing the showing panel on its rail folds the dock; choosing it again opens it.
 	const beforeFold = m.map!.w;
-	check('the right rail offers Objects', await clickRailItem(bridge, 'Objects'));
+	check('the right rail offers the Inspector', await clickRailItem(bridge, 'Inspector'));
 	await sleep(300);
 	m = await measureLayout(bridge);
 	check(
@@ -473,7 +900,7 @@ async function dockChecks(bridge: Bridge): Promise<void> {
 		!m.right && !!m.rightRail && m.map!.w > beforeFold && overlaid(m),
 		JSON.stringify([m.right, m.rightRail, m.map?.w]),
 	);
-	check('the folded rail offers Objects', await clickRailItem(bridge, 'Objects'));
+	check('the folded rail offers the Inspector', await clickRailItem(bridge, 'Inspector'));
 	await sleep(300);
 	m = await measureLayout(bridge);
 	check(
@@ -481,14 +908,14 @@ async function dockChecks(bridge: Bridge): Promise<void> {
 		!!m.right &&
 			!!m.rightRail &&
 			Math.abs(m.map!.w - beforeFold) < 1.5 &&
-			(await railItemPressed(bridge, 'Objects')) === true,
+			(await railItemPressed(bridge, 'Inspector')) === true,
 		JSON.stringify([m.right, m.map?.w]),
 	);
 
 	// Folding shows the rail and gives the room back to the map; the folded rail still lies over
 	// the level.
 	const wide = m.map!.w;
-	check('the left dock folds', await clickLabelled(bridge, 'Fold the left dock'));
+	check('the left dock folds', await clickRailItem(bridge, 'Palette'));
 	await sleep(300);
 	m = await measureLayout(bridge);
 	check(
@@ -501,7 +928,7 @@ async function dockChecks(bridge: Bridge): Promise<void> {
 			overlaid(m),
 		JSON.stringify([m.leftRail, m.map]),
 	);
-	check('the left dock opens again', await clickLabelled(bridge, 'Unfold the left dock'));
+	check('the left dock opens again', await clickRailItem(bridge, 'Palette'));
 	await sleep(300);
 
 	// Level-first hides every dock and brings the same set back.
@@ -670,6 +1097,297 @@ function pickerOffset(l: PickerLayout): { x: number; y: number } {
 }
 
 /**
+ * The ⋮ menu is a menu button: ArrowDown opens it with the first row focused, and Escape closes it
+ * and returns the focus to the button. The Script panel's header holds its tabs, which are narrow
+ * in a side dock and wide in the bottom one.
+ */
+async function panelHeaderChecks(bridge: Bridge): Promise<void> {
+	const key = (selector: string, name: string) =>
+		bridge.js<boolean>(
+			`const el = document.querySelector(${JSON.stringify(selector)}); if (!el) return false;
+			 el.dispatchEvent(new KeyboardEvent('keydown', { key: ${JSON.stringify(name)}, bubbles: true, cancelable: true })); return true;`,
+		);
+	const state = () =>
+		bridge.js<{ open: string | null; menu: boolean; first: boolean; focusOnButton: boolean }>(
+			`const b = document.querySelector('button[aria-label="Objects menu"]');
+			 const menu = document.querySelector('[role=menu]');
+			 return { open: b?.getAttribute('aria-expanded') ?? null, menu: !!menu,
+			   first: !!menu && document.activeElement === menu.querySelector('[role^=menuitem]'),
+			   focusOnButton: !!b && document.activeElement === b };`,
+		);
+	await bridge.js<boolean>(
+		`document.querySelector('button[aria-label="Objects menu"]')?.focus(); return true;`,
+	);
+	check(
+		'header: the ⋮ button is a menu button',
+		await bridge.js<boolean>(
+			`const b = document.querySelector('button[aria-label="Objects menu"]'); return !!b && b.getAttribute('aria-haspopup') === 'menu' && b.getAttribute('aria-expanded') === 'false';`,
+		),
+	);
+	await key('button[aria-label="Objects menu"]', 'ArrowDown');
+	const opened = await within(3000, async () => (await state()).menu);
+	const afterOpen = await state();
+	check(
+		'header: ArrowDown opens the menu with the first row focused',
+		opened !== null && afterOpen.open === 'true' && afterOpen.first,
+		JSON.stringify(afterOpen),
+	);
+	await key('[role=menu]', 'Escape');
+	const closed = await within(3000, async () => !(await state()).menu);
+	const afterClose = await state();
+	check(
+		'header: Escape closes the menu and returns the focus to the button',
+		closed !== null && afterClose.focusOnButton,
+		JSON.stringify(afterClose),
+	);
+	check(
+		'header: no header holds dock, float, tear-off or fold buttons',
+		await bridge.js<boolean>(
+			`return ![...document.querySelectorAll('button')].some((b) => /^(Dock |Float |Tear off |Fold |Unfold )/.test(b.getAttribute('aria-label') ?? ''));`,
+		),
+	);
+	// The Script tabs.
+	const tabs = () =>
+		bridge.js<{
+			label: string;
+			selected: string;
+			controls: boolean;
+			narrow: boolean;
+			zone: string;
+			close: string;
+		} | null>(
+			`const list = document.querySelector('[role=tablist][aria-label="Scripts"]'); if (!list) return null;
+			 const tab = list.querySelector('[role=tab]');
+			 return { label: tab?.textContent.trim() ?? '', selected: tab?.getAttribute('aria-selected') ?? '',
+			   controls: !!document.getElementById(tab?.getAttribute('aria-controls') ?? ''),
+			   narrow: list.parentElement.hasAttribute('data-narrow'),
+			   zone: list.closest('[data-zone]')?.getAttribute('data-zone') ?? '',
+			   close: list.querySelector('button[aria-label^="Close "]')?.getAttribute('aria-label') ?? '' };`,
+		);
+	await showFromRail(bridge, 'Script');
+	const wide = await within(3000, async () => (await tabs()) !== null);
+	const w = await tabs();
+	check(
+		'tabs: the Script header holds one selected tab named after the level file, wide in the bottom dock',
+		wide !== null &&
+			w !== null &&
+			/\.fizz$/.test(w.label) &&
+			w.selected === 'true' &&
+			w.controls &&
+			!w.narrow &&
+			w.zone === 'bottom' &&
+			w.close === `Close ${w.label}`,
+		JSON.stringify(w),
+	);
+	check(
+		'tabs: Script docks right from its menu',
+		await choosePanelMenu(bridge, 'Script', 'Dock right'),
+	);
+	const narrow = await within(3000, async () => (await tabs())?.narrow === true);
+	check('tabs: the strip is narrow in a side dock', narrow !== null, JSON.stringify(await tabs()));
+	check(
+		'tabs: Script docks back to the bottom',
+		await choosePanelMenu(bridge, 'Script', 'Dock bottom'),
+	);
+	const back = await within(3000, async () => (await tabs())?.zone === 'bottom');
+	check(
+		'tabs: the strip is wide again in the bottom dock',
+		back !== null,
+		JSON.stringify(await tabs()),
+	);
+}
+
+/** The floating zoom control, the map it floats over, the tool picker and the docks, as drawn. */
+interface ZoomLayout {
+	pill: Box;
+	map: Box;
+	picker: Box | null;
+	docks: Box[];
+	status: Box | null;
+	readout: string;
+	statusZoomButtons: number;
+}
+
+function measureZoom(bridge: Bridge): Promise<ZoomLayout | null> {
+	return bridge.js<ZoomLayout | null>(
+		`const box = (e) => { if (!e) return null; const r = e.getBoundingClientRect(); return { x: r.left, y: r.top, w: r.width, h: r.height }; };
+		 const pill = document.querySelector('[data-zoom-control]');
+		 const map = document.querySelector('[data-map]');
+		 if (!pill || !map) return null;
+		 const bar = document.querySelector('[data-canvas-bar]');
+		 return { pill: box(pill), map: box(map), picker: box(document.querySelector('[data-tool-picker]')),
+		   docks: ['Left dock', 'Right dock', 'Bottom dock'].map((n) => box(document.querySelector('[aria-label="' + n + '"]'))).filter(Boolean),
+		   status: box(bar), readout: pill.querySelector('[role=status] [aria-hidden=true]')?.textContent ?? '',
+		   statusZoomButtons: bar ? bar.querySelectorAll('button').length : -1 };`,
+	);
+}
+
+/** Presses a key chord on the page the way the app-wide dispatcher hears it. */
+function pressChord(bridge: Bridge, key: string, init = 'ctrlKey: true') {
+	return bridge.js<boolean>(
+		`document.body.dispatchEvent(new KeyboardEvent('keydown', { key: ${JSON.stringify(key)}, ${init}, bubbles: true, cancelable: true })); return true;`,
+	);
+}
+
+/**
+ * The floating zoom pill lies in the bottom-right corner of the part of the level no dock covers,
+ * clear of the docks, the tool picker and the status line; the status line has no zoom buttons; and
+ * Ctrl+=, Ctrl+- and Ctrl+0 zoom in, out and to fit.
+ */
+async function zoomPillChecks(bridge: Bridge): Promise<void> {
+	const found = await within(5000, async () => (await measureZoom(bridge)) !== null);
+	const m = await measureZoom(bridge);
+	check('zoom: the floating zoom control is on screen', found !== null && m !== null);
+	if (!m) return;
+	const rightGap = m.map.x + m.map.w - (m.pill.x + m.pill.w);
+	const bottomGap = m.map.y + m.map.h - (m.pill.y + m.pill.h);
+	check(
+		'zoom: the control sits at the bottom-right of the map, inside it',
+		m.pill.x >= m.map.x &&
+			m.pill.y >= m.map.y &&
+			rightGap >= 0 &&
+			rightGap < 40 &&
+			bottomGap >= 0 &&
+			bottomGap < 40,
+		JSON.stringify({ pill: m.pill, map: m.map }),
+	);
+	check(
+		'zoom: the control is clear of every dock, the tool picker and the status line',
+		m.docks.every((d) => apart(d, m.pill)) &&
+			(m.picker === null || apart(m.picker, m.pill)) &&
+			(m.status === null || m.pill.y + m.pill.h <= m.status.y + 1),
+		JSON.stringify(m),
+	);
+	check(
+		'zoom: the status line has no zoom buttons',
+		m.statusZoomButtons === 0,
+		String(m.statusZoomButtons),
+	);
+	check(
+		'zoom: the control shows the factor, not a percentage',
+		/^\d+×$/.test(m.readout),
+		m.readout,
+	);
+	const readout = async () => (await measureZoom(bridge))?.readout ?? '';
+	const start = Number.parseInt(m.readout, 10);
+	await pressChord(bridge, '=');
+	const zoomedIn = await within(
+		3000,
+		async () => Number.parseInt(await readout(), 10) === start + 1,
+	);
+	check('zoom: Ctrl+= zooms in', zoomedIn !== null, await readout());
+	await pressChord(bridge, '-');
+	const zoomedOut = await within(3000, async () => Number.parseInt(await readout(), 10) === start);
+	check('zoom: Ctrl+- zooms out', zoomedOut !== null, await readout());
+	await pressChord(bridge, '0');
+	const fitted = await within(3000, async () => Number.parseInt(await readout(), 10) !== start);
+	const fit = Number.parseInt(await readout(), 10);
+	check('zoom: Ctrl+0 fits the level', fitted !== null && fit >= 1 && fit <= 16, await readout());
+	const after = await measureZoom(bridge);
+	check(
+		'zoom: the page itself did not zoom',
+		await bridge.js<boolean>(
+			`return Math.abs(window.visualViewport.scale - 1) < 0.001 && window.devicePixelRatio === ${await bridge.js<number>('return window.devicePixelRatio;')};`,
+		),
+	);
+	// The Fit button does the same as the key, and Zoom in is reachable from the pill.
+	await bridge.js<boolean>(
+		`document.querySelector('[data-zoom-control] button[aria-label="Zoom in"]')?.click(); return true;`,
+	);
+	const buttoned = await within(
+		3000,
+		async () => Number.parseInt(await readout(), 10) === Math.min(16, fit + 1),
+	);
+	check('zoom: the Zoom in button zooms in', buttoned !== null || fit === 16, await readout());
+	await bridge.js<boolean>(
+		`document.querySelector('[data-zoom-control] button[aria-label="Fit level"]')?.click(); return true;`,
+	);
+	const refit = await within(3000, async () => Number.parseInt(await readout(), 10) === fit);
+	check('zoom: the Fit button fits the level', refit !== null, await readout());
+	void after;
+	// Put the default zoom back for the checks that follow.
+	for (let i = 0; i < 20; i++) await pressChord(bridge, '-');
+	await sleep(200);
+	for (let i = 0; i < 3; i++) await pressChord(bridge, '=');
+	await sleep(300);
+}
+
+/**
+ * A drag with the middle button pans the map by as much as the pointer moved, paints nothing and
+ * does not leave the grabbing cursor behind. The canvas's own pixels are compared before and after:
+ * what was `dx` pixels to the right is now where it was dragged to. (The crater level is wider than
+ * the window and shorter, so only the sideways pan has room to show.)
+ */
+async function middleDragPanChecks(bridge: Bridge): Promise<void> {
+	const strips = `
+		const canvas = document.querySelector('canvas');
+		const ctx = canvas.getContext('2d');
+		const ratio = window.devicePixelRatio || 1;
+		const rows = [];
+		for (let y = 0; y < canvas.height; y += Math.round(16 * ratio)) rows.push(Array.from(ctx.getImageData(0, y, canvas.width, 1).data));
+		return rows;`;
+	const state = () =>
+		bridge.js<{ text: string; canUndo: boolean }>(
+			`const content = document.querySelector('.cm-content');
+			 const undo = document.querySelector('button[aria-label="Undo"]');
+			 return { text: content?.cmView?.view?.state.doc.toString() ?? '', canUndo: !!undo && !undo.disabled };`,
+		);
+	const before = await bridge.js<number[][]>(strips);
+	const stateBefore = await state();
+	const drag = -80;
+	const fired = await bridge.js<{ grabbing: boolean }>(
+		`const canvas = document.querySelector('canvas');
+		 const r = canvas.getBoundingClientRect();
+		 const x = r.left + r.width / 2, y = r.top + r.height / 2;
+		 const fire = (type, button, buttons, dx) => canvas.dispatchEvent(new PointerEvent(type, { bubbles: true, cancelable: true, pointerId: 7, pointerType: 'mouse', button, buttons, clientX: x + dx, clientY: y }));
+		 fire('pointerdown', 1, 4, 0);
+		 await new Promise((r) => setTimeout(r, 50));
+		 for (const dx of [-20, -45, ${drag}]) { fire('pointermove', -1, 4, dx); await new Promise((r) => setTimeout(r, 30)); }
+		 const grabbing = getComputedStyle(canvas).cursor === 'grabbing';
+		 fire('pointerup', 1, 0, ${drag});
+		 await new Promise((r) => setTimeout(r, 200));
+		 return { grabbing };`,
+	);
+	const after = await bridge.js<number[][]>(strips);
+	const stateAfter = await state();
+	const ratio = await bridge.js<number>('return window.devicePixelRatio || 1;');
+	const shift = Math.round(-drag * ratio);
+	// Share of the pixels in the middle of each row that match with the map moved by `by` pixels.
+	const matching = (by: number) => {
+		let same = 0;
+		let all = 0;
+		for (let r = 0; r < before.length; r++) {
+			const a = before[r]!;
+			const b = after[r]!;
+			for (let x = 400; x < 1000; x++) {
+				all++;
+				const i = (x + by) * 4;
+				const j = x * 4;
+				if (a[i] === b[j] && a[i + 1] === b[j + 1] && a[i + 2] === b[j + 2]) same++;
+			}
+		}
+		return same / Math.max(1, all);
+	};
+	const moved = matching(shift);
+	const stayed = matching(0);
+	check('middle drag: the cursor is a grabbing hand while panning', fired.grabbing);
+	check(
+		'middle drag: the map moves left by as much as the pointer did',
+		moved > 0.97 && stayed < moved,
+		JSON.stringify({ moved, stayed, shift }),
+	);
+	check(
+		'middle drag: nothing is painted, so the script and the undo history are as they were',
+		stateAfter.text === stateBefore.text && stateAfter.canUndo === stateBefore.canUndo,
+		JSON.stringify({ before: stateBefore.canUndo, after: stateAfter.canUndo }),
+	);
+	const cursor = await bridge.js<string>(
+		`return JSON.stringify(getComputedStyle(document.querySelector('canvas')).cursor);`,
+	);
+	check('middle drag: the crosshair is back once the button is up', cursor === 'crosshair', cursor);
+}
+
+/**
  * The tools float over the map in a glass pill: it starts at the map's top-left, its keys are
  * square, named and lit for the current tool, a click on one chooses that tool, a drag of its
  * grip moves it and is saved in the workspace, and it never leaves the uncovered map, slides under
@@ -696,10 +1414,10 @@ async function toolPickerChecks(bridge: Bridge): Promise<void> {
 		JSON.stringify({ offset: at0, saved0 }),
 	);
 	check(
-		'picker: it has the six square tool keys, named, with the shortcut in the tooltip',
+		'picker: it has the six square tool keys, named, with no native title (the in-app tooltip shows the shortcut)',
 		m.keys.map((k) => k.name).join() === 'Paint,Erase,Pick,Select,Stamp,Inspect' &&
 			m.keys.every((k) => Math.abs(k.w - k.h) <= 1 && k.w >= 28) &&
-			m.keys[0]!.title === 'Paint (B)',
+			m.keys.every((k) => k.title === null),
 		JSON.stringify(m.keys),
 	);
 	const pressed = async () =>
@@ -720,24 +1438,24 @@ async function toolPickerChecks(bridge: Bridge): Promise<void> {
 	await checkKeycaps(bridge, 'the tool picker');
 	await inspectChecks(bridge, pressed);
 
-	// The row above the level: no tools in it, and every key in it has its whole bottom edge.
+	// The toolbar above the level: no tools in it, and every button in it has its whole bottom edge.
 	const row = await bridge.js<{ names: string[]; clipped: string[] } | null>(
-		`const g = document.querySelector('[role=group][aria-label="Editor toolbar"]');
+		`const g = document.querySelector('[data-app-toolbar] [role=toolbar]');
 		 if (!g) return null;
-		 const bar = g.parentElement.getBoundingClientRect();
-		 const keys = [...g.parentElement.querySelectorAll('button, [role=status]')];
+		 const bar = g.getBoundingClientRect();
+		 const keys = [...g.querySelectorAll('button')];
 		 const clipped = keys.filter((k) => { const r = k.getBoundingClientRect(); return r.bottom > bar.bottom - 1 || r.top < bar.top; })
 		   .map((k) => (k.getAttribute('aria-label') || k.textContent.trim()) + ' ' + Math.round(k.getBoundingClientRect().bottom) + '>' + Math.round(bar.bottom));
 		 return { names: [...g.querySelectorAll('button')].map((b) => b.getAttribute('aria-label') || b.textContent.trim()), clipped };`,
 	);
 	check(
-		'picker: the row above the level holds no tool keys',
+		'picker: the toolbar above the level holds no tool keys',
 		row !== null &&
-			!row.names.some((n) => ['Paint', 'Erase', 'Pick', 'Select', 'Stamp', 'Inspect'].includes(n)),
+			!row.names.some((n) => ['Erase', 'Pick', 'Select', 'Stamp', 'Inspect'].includes(n)),
 		JSON.stringify(row?.names),
 	);
 	check(
-		"the row above the level shows every key's whole bottom edge",
+		"the toolbar above the level shows every button's whole bottom edge",
 		row !== null && row.clipped.length === 0,
 		JSON.stringify(row?.clipped),
 	);
@@ -906,14 +1624,15 @@ async function dragAndMaximiseChecks(bridge: Bridge): Promise<void> {
 	// A panel dragged from one dock into another.
 	let m = await measureLayout(bridge);
 	check(
-		'drag: the Palette starts on the left rail',
-		(await tabsIn(bridge, 'Left dock')).join() === 'Palette',
+		'drag: the Palette starts on the left rail beside Layers',
+		(await tabsIn(bridge, 'Left dock')).join() === 'Palette,Layers',
+		JSON.stringify(await tabsIn(bridge, 'Left dock')),
 	);
 	check(
 		'drag: a synthetic drag starts on the Palette rail entry',
 		await syntheticDrag(bridge, '[data-rail="left"] [data-rail-item="palette"]', {
-			// The top of the right rail's first entry: the place before Objects.
-			selector: '[data-rail="right"] [data-rail-item="objects"]',
+			// The top of the right rail's first entry: the place before the Inspector.
+			selector: '[data-rail="right"] [data-rail-item="inspector"]',
 			fx: 0.5,
 			fy: 0.1,
 		}),
@@ -921,8 +1640,25 @@ async function dragAndMaximiseChecks(bridge: Bridge): Promise<void> {
 	await sleep(300);
 	m = await measureLayout(bridge);
 	check(
-		'drag: the Palette moves to the right rail where it was let go and the left dock and rail go',
-		(await tabsIn(bridge, 'Right dock')).join() === 'Palette,Objects,History' &&
+		'drag: the Palette moves to the right rail where it was let go and Layers stays on the left',
+		(await tabsIn(bridge, 'Right dock')).join() === 'Palette,Inspector,Objects,History' &&
+			(await tabsIn(bridge, 'Left dock')).join() === 'Layers',
+		JSON.stringify([await tabsIn(bridge, 'Right dock'), await tabsIn(bridge, 'Left dock')]),
+	);
+	// Layers follows it, which empties the left dock: its rail goes with it.
+	check(
+		'drag: a synthetic drag starts on the Layers rail entry',
+		await syntheticDrag(bridge, '[data-rail="left"] [data-rail-item="layers"]', {
+			selector: '[data-rail="right"] [data-rail-item="inspector"]',
+			fx: 0.5,
+			fy: 0.1,
+		}),
+	);
+	await sleep(300);
+	m = await measureLayout(bridge);
+	check(
+		'drag: with both panels gone the left dock and rail go',
+		(await tabsIn(bridge, 'Right dock')).join() === 'Palette,Layers,Inspector,Objects,History' &&
 			!m.left &&
 			!m.leftRail,
 		JSON.stringify(await tabsIn(bridge, 'Right dock')),
@@ -947,9 +1683,22 @@ async function dragAndMaximiseChecks(bridge: Bridge): Promise<void> {
 	check(
 		'drag: an empty dock takes the panel back and the sizes are sane',
 		(await tabsIn(bridge, 'Left dock')).join() === 'Palette' &&
-			(await tabsIn(bridge, 'Right dock')).join() === 'Objects,History' &&
+			(await tabsIn(bridge, 'Right dock')).join() === 'Layers,Inspector,Objects,History' &&
 			sane(m),
 		JSON.stringify([m.left, m.right, m.bottom, m.canvas, m.map]),
+	);
+	// Layers goes back beside the Palette.
+	await syntheticDrag(bridge, '[data-rail="right"] [data-rail-item="layers"]', {
+		selector: '[data-rail="left"] [data-rail-item="palette"]',
+		fx: 0.5,
+		fy: 0.9,
+	});
+	await sleep(300);
+	check(
+		'drag: Layers goes back beside the Palette',
+		(await tabsIn(bridge, 'Left dock')).join() === 'Palette,Layers' &&
+			(await tabsIn(bridge, 'Right dock')).join() === 'Inspector,Objects,History',
+		JSON.stringify([await tabsIn(bridge, 'Left dock'), await tabsIn(bridge, 'Right dock')]),
 	);
 
 	// Escape during a drag puts everything back.
@@ -962,8 +1711,8 @@ async function dragAndMaximiseChecks(bridge: Bridge): Promise<void> {
 	await sleep(300);
 	check(
 		'drag: Escape during a drag cancels it',
-		(await tabsIn(bridge, 'Left dock')).join() === 'Palette' &&
-			(await tabsIn(bridge, 'Right dock')).join() === 'Objects,History',
+		(await tabsIn(bridge, 'Left dock')).join() === 'Palette,Layers' &&
+			(await tabsIn(bridge, 'Right dock')).join() === 'Inspector,Objects,History',
 	);
 
 	// A panel dragged onto the level floats where it was let go.
@@ -985,10 +1734,65 @@ async function dragAndMaximiseChecks(bridge: Bridge): Promise<void> {
 		'drag: a panel dragged onto the level floats where it was let go',
 		floated !== null &&
 			Math.abs(floated.x - target.x) < 40 &&
-			(await tabsIn(bridge, 'Right dock')).join() === 'History' &&
+			(await tabsIn(bridge, 'Right dock')).join() === 'Inspector,History' &&
 			sane(m),
 		JSON.stringify([floated, target]),
 	);
+
+	// While a floating panel is dragged over the docks, their drop hints (outlines and washes) lie
+	// under it: the element on top at its centre is inside the panel, and the hints' computed
+	// stacking is below the panel's. (The hints never take the pointer, so the stacking is the proof.)
+	const hintsUnder = await bridge.js<{
+		shown: number;
+		overlapping: number;
+		panelZ: number;
+		hintZ: number[];
+		topInside: boolean;
+		topOfCentre: string;
+	} | null>(
+		`const panel = document.querySelector('section[data-panel="objects"]');
+		 const grip = panel?.querySelector('[data-grip]');
+		 const rail = document.querySelector('[data-rail="left"]');
+		 if (!panel || !grip || !rail) return null;
+		 const g = grip.getBoundingClientRect(), t = rail.getBoundingClientRect();
+		 const start = { x: g.left + g.width / 2, y: g.top + g.height / 2 };
+		 const end = { x: t.left + t.width / 2 + 60, y: t.top + t.height / 2 };
+		 const wait = () => new Promise((res) => setTimeout(res, 80));
+		 const fire = (type, p) => grip.dispatchEvent(new PointerEvent(type, { bubbles: true, cancelable: true, pointerId: 43, button: 0, clientX: p.x, clientY: p.y }));
+		 fire('pointerdown', start);
+		 await wait();
+		 fire('pointermove', { x: start.x - 12, y: start.y + 12 });
+		 await wait();
+		 fire('pointermove', end);
+		 await wait();
+		 const hints = [...document.querySelectorAll('[data-drop-zone]')].filter((e) => getComputedStyle(e).display !== 'none');
+		 const pr = panel.getBoundingClientRect();
+		 const overlapping = hints.filter((h) => { const r = h.getBoundingClientRect(); return r.left < pr.right && r.right > pr.left && r.top < pr.bottom && r.bottom > pr.top; }).length;
+		 const top = document.elementFromPoint(pr.left + pr.width / 2, pr.top + pr.height / 2);
+		 const out = {
+			 shown: hints.length,
+			 overlapping,
+			 panelZ: Number(getComputedStyle(panel).zIndex),
+			 hintZ: hints.map((h) => Number(getComputedStyle(h).zIndex)),
+			 topInside: !!top && panel.contains(top),
+			 topOfCentre: top ? top.tagName + '.' + String(top.className).slice(0, 30) : 'none',
+		 };
+		 document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+		 await wait();
+		 fire('pointerup', end);
+		 await wait();
+		 return out;`,
+	);
+	check(
+		'drag: the dock drop hints lie under the dragged floating panel, never over its content',
+		!!hintsUnder &&
+			hintsUnder.shown >= 3 &&
+			hintsUnder.overlapping >= 1 &&
+			hintsUnder.topInside &&
+			hintsUnder.hintZ.every((z) => z < hintsUnder.panelZ),
+		JSON.stringify(hintsUnder),
+	);
+	await sleep(200);
 
 	// A floating panel resizes from every edge and corner: the opposite edges stay where they are,
 	// the panel stays inside the area and above its minimum size, and the size is saved.
@@ -1123,13 +1927,20 @@ async function dragAndMaximiseChecks(bridge: Bridge): Promise<void> {
 		JSON.stringify([saved, efull]),
 	);
 
-	// Docking it back puts it at the end; Alt+ArrowUp on its rail entry reorders it, with an announcement.
-	check('drag: the floating panel docks back', await clickLabelled(bridge, 'Dock Objects right'));
+	// Dock right, the zone it left, returns it between Inspector and History (it no longer goes to
+	// the end: dock back to where it left, spec/EDITOR.md); the entry is shown again and Alt+ArrowUp
+	// on its rail entry reorders it, with an announcement.
+	check(
+		'drag: the floating panel docks back',
+		await choosePanelMenu(bridge, 'Objects', 'Dock right'),
+	);
 	await sleep(300);
 	check(
-		'drag: it sits after History until moved',
-		(await tabsIn(bridge, 'Right dock')).join() === 'History,Objects',
+		'drag: it sits where it left, between Inspector and History',
+		(await tabsIn(bridge, 'Right dock')).join() === 'Inspector,Objects,History',
 	);
+	await showFromRail(bridge, 'Objects');
+	await sleep(200);
 	const moved = await bridge.js<{ tabs: string[]; note: string }>(
 		`const tab = [...document.querySelectorAll('[data-rail="right"] [data-rail-item]')].find((t) => t.textContent.trim() === 'Objects');
 		 tab.focus();
@@ -1142,9 +1953,17 @@ async function dragAndMaximiseChecks(bridge: Bridge): Promise<void> {
 	);
 	check(
 		'drag: Alt+ArrowUp moves a rail entry and announces its new place',
-		moved.tabs.join() === 'Objects,History' &&
-			moved.note.includes('Objects moved to position 1 of 2'),
+		moved.tabs.join() === 'Objects,Inspector,History' &&
+			moved.note.includes('Objects moved to position 1 of 3'),
 		JSON.stringify(moved),
+	);
+	// Put it back between them for what follows.
+	await bridge.js<boolean>(
+		`const tab = [...document.querySelectorAll('[data-rail="right"] [data-rail-item]')].find((t) => t.textContent.trim() === 'Objects');
+		 tab.focus();
+		 tab.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', altKey: true, bubbles: true, cancelable: true }));
+		 await new Promise((res) => setTimeout(res, 300));
+		 return true;`,
 	);
 
 	// Maximise: Script fills the area under the tool bar, hides the level, and keeps its editor.
@@ -1261,7 +2080,7 @@ async function dragAndMaximiseChecks(bridge: Bridge): Promise<void> {
 	check('maximise: Ctrl+Shift+M maximises and Escape restores', keyed && escaped);
 
 	// A folded dock: Ctrl+Shift+M unfolds it and maximises the Script, which mounts once.
-	check('maximise: the bottom dock folds', await clickLabelled(bridge, 'Fold the bottom dock'));
+	check('maximise: the bottom dock folds', await clickRailItem(bridge, 'Script'));
 	await sleep(300);
 	const foldedAway = await bridge.js<boolean>(
 		`return !document.querySelector('.cm-content') && !document.querySelector('[aria-label="Bottom dock"]');`,
@@ -1291,7 +2110,7 @@ async function dragAndMaximiseChecks(bridge: Bridge): Promise<void> {
 	check('maximise: Restore after a folded start', await clickLabelled(bridge, 'Restore Script'));
 	await sleep(400);
 	const foldedBack = await bridge.js<{ open: boolean; same: boolean; rail: boolean }>(
-		`return { open: !!document.querySelector('[aria-label="Bottom dock"]'), same: document.querySelector('.cm-content') === window.__foldedNode, rail: !!document.querySelector('button[aria-label="Unfold the bottom dock"]') };`,
+		`return { open: !!document.querySelector('[aria-label="Bottom dock"]'), same: document.querySelector('.cm-content') === window.__foldedNode, rail: !!document.querySelector('[data-rail="bottom"][data-folded]') };`,
 	);
 	check(
 		'maximise: the dock is left open after Restore and the Script editor node survived',
@@ -1333,6 +2152,11 @@ const PANEL_WINDOWS = [
 		probe: `return [...document.querySelectorAll('h3')].some((h) => h.textContent.trim() === 'Terrain');`,
 	},
 	{
+		id: 'inspector',
+		title: 'Inspector',
+		probe: `return document.body.innerText.includes('Nothing selected') || !!document.querySelector('[role=group][aria-label="Selected thing"]');`,
+	},
+	{
 		id: 'objects',
 		title: 'Objects',
 		probe: `return [...document.querySelectorAll('button')].some((b) => b.textContent.startsWith('Item '));`,
@@ -1353,8 +2177,6 @@ const PANEL_WINDOWS = [
 		probe: `return !!document.querySelector('[aria-label="Script text"]');`,
 	},
 ] as const;
-
-const tearOffLabel = (title: string) => `Tear off ${title} into its own window`;
 
 /** The width and height a `manage_window` info answer holds, wherever it nests them. */
 function sizeIn(value: unknown): { w: number; h: number } | null {
@@ -1543,10 +2365,486 @@ async function transparencyChecks(bridge: Bridge): Promise<void> {
 	check('reset puts the default blur back on the main window', restored !== null);
 }
 
+/** Sets some of the Transparency settings through the settings command, trying again when the revision has moved on. */
+function setTransparency(
+	bridge: Bridge,
+	patch: Record<string, unknown>,
+): Promise<boolean | string> {
+	return bridge.js<boolean | string>(
+		`let last = null;
+		 for (let attempt = 0; attempt < 8; attempt++) {
+			 try {
+				 const cur = await window.__TAURI_INTERNALS__.invoke('plugin:fizz-studio-settings|settings_get');
+				 await window.__TAURI_INTERNALS__.invoke('plugin:fizz-studio-settings|settings_update', { patch: { transparency: { ...cur.settings.transparency, ...${JSON.stringify(patch)} } }, basedOn: cur.revision });
+				 return true;
+			 } catch (e) { last = e; await new Promise((r) => setTimeout(r, 150)); }
+		 }
+		 return JSON.stringify(last);`,
+	);
+}
+
+/** What a surface paints: the alpha of its glass fill (the first stop of its gradient, else its colour) and its backdrop filter. */
+interface Fill {
+	alpha: number;
+	filter: string;
+}
+
+/** The fills of the main window's surfaces by name (`null` where one is not on screen). */
+function surfaceFills(
+	bridge: Bridge,
+	selectors: Record<string, string>,
+): Promise<Record<string, Fill | null>> {
+	return bridge.js<Record<string, Fill | null>>(
+		`const alphaOf = (colour) => {
+			 const slash = colour.match(/\\/\\s*([\\d.]+%?)\\s*\\)/);
+			 if (slash) return slash[1].endsWith('%') ? parseFloat(slash[1]) / 100 : parseFloat(slash[1]);
+			 const rgba = colour.match(/^rgba\\(([^)]*)\\)$/);
+			 return rgba ? parseFloat(rgba[1].split(',')[3]) : 1;
+		 };
+		 const out = {};
+		 for (const [name, selector] of Object.entries(${JSON.stringify(selectors)})) {
+			 const [base, pseudo] = selector.split('::');
+			 const e = document.querySelector(base);
+			 if (!e) { out[name] = null; continue; }
+			 const c = getComputedStyle(e, pseudo ? '::' + pseudo : null);
+			 const stop = c.backgroundImage.match(/color\\([^)]*\\)|rgba?\\([^)]*\\)/);
+			 out[name] = { alpha: alphaOf(stop ? stop[0] : c.backgroundColor), filter: c.backdropFilter || c.webkitBackdropFilter || 'none' };
+		 }
+		 return out;`,
+	);
+}
+
+/** The settings file the store wrote in this run's profile, as JSON. */
+function savedFile(profile: Profile): Record<string, unknown> | null {
+	for (const path of new Bun.Glob('**/settings.json').scanSync({
+		cwd: profile.dir,
+		absolute: true,
+	})) {
+		try {
+			return JSON.parse(readFileSync(path, 'utf8')) as Record<string, unknown>;
+		} catch {
+			return null;
+		}
+	}
+	return null;
+}
+
+/**
+ * Every glass surface of the main window follows its own switch and the opacity (one table, in
+ * `theme/glassSurfaces.ts` and `spec/DESKTOP.md`): with the switches on, each surface's fill has the
+ * opacity the setting names (panel opacity for the title bar, the commands row, the docks, the rails,
+ * the status line, the tool picker and the zoom pill; menu opacity for an open menu) and a blur; with
+ * them off it is solid and has none; at 40, 73 and 100, applied live. (Dialogs need a level with
+ * unsaved changes, so their tokens are covered by the unit tests alone.)
+ */
+async function glassSurfaceChecks(bridge: Bridge): Promise<void> {
+	const root = await rootGlass(bridge, 'main-1');
+	if (root.reduced) {
+		console.log('SKIP glass surfaces: the system asks for reduced transparency');
+		return;
+	}
+	const surfaces = {
+		'title bar': '[data-title-align]',
+		'commands row': '[data-app-toolbar] > [data-ribbon]',
+		dock: 'section[data-zone]',
+		rail: '[data-rail]',
+		'status line': '[data-canvas-bar]',
+		'tool picker': '[data-tool-picker]',
+		'zoom pill': '[data-zoom-control]',
+	};
+	const menuOpened = () =>
+		bridge.js<boolean>(
+			`const b = document.querySelector('button[aria-label="Script menu"]'); if (!b) return false; b.click(); return true;`,
+		);
+	const closeMenu = async () => {
+		await bridge.js(
+			`document.querySelector('[role=menu]')?.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true })); return true;`,
+		);
+		await sleep(150);
+	};
+	await setUi(bridge, { toolbar: 'classic' });
+	await showFromRail(bridge, 'Script');
+	for (const on of [true, false]) {
+		for (const panel of [40, 73, 100]) {
+			const menu = Math.max(60, panel);
+			await setTransparency(bridge, {
+				blur: 12,
+				saturation: 120,
+				panel_opacity: panel,
+				menu_opacity: menu,
+				docks: on,
+				floating: on,
+				menus: on,
+				dialogs: on,
+				title_bar: on,
+			});
+			const where = `glass ${on ? 'on' : 'off'} at ${panel}%`;
+			const applied = await within(5000, async () => {
+				const s = await bridge.js<{ alpha: string; docks: string | undefined }>(
+					`const r = document.documentElement; return { alpha: r.style.getPropertyValue('--fls-glass-alpha'), docks: r.dataset.flsGlassDocks };`,
+				);
+				return s.alpha === String(panel / 100) && s.docks === (on ? 'on' : 'off');
+			});
+			check(`${where}: the main window's root has the setting`, applied !== null);
+			// The title bar fades its background, so let a change finish before reading it.
+			await sleep(800);
+			const fills = await surfaceFills(bridge, surfaces);
+			for (const [name, fill] of Object.entries(fills)) {
+				if (fill === null) {
+					check(`${where}: the ${name} is on screen`, false);
+					continue;
+				}
+				const detail = JSON.stringify(fill);
+				if (on) {
+					check(
+						`${where}: the ${name} draws ${panel}% with a blur`,
+						Math.abs(fill.alpha - panel / 100) < 0.015 && fill.filter.includes('blur('),
+						detail,
+					);
+				} else {
+					check(
+						`${where}: the ${name} is solid, with no blur`,
+						fill.alpha >= 0.99 && !fill.filter.includes('blur('),
+						detail,
+					);
+				}
+			}
+			const editor = (await backgroundAlphas(bridge, ['.cm-editor']))[0] ?? null;
+			check(
+				`${where}: the Script editor ${on ? 'is clear over the glass' : 'is solid'}`,
+				editor !== null && (on ? editor < 0.5 : editor >= 0.99),
+				String(editor),
+			);
+			if (await menuOpened()) {
+				await within(3000, () =>
+					bridge.js<boolean>(`return !!document.querySelector('[role=menu]');`),
+				);
+				const menus = await surfaceFills(bridge, { menu: '[role=menu]::before' });
+				const m = menus.menu;
+				check(
+					`${where}: an open menu ${on ? `draws ${menu}% with a blur` : 'is solid, with no blur'}`,
+					m !== null &&
+						(on
+							? Math.abs(m.alpha - menu / 100) < 0.015 && m.filter.includes('blur(')
+							: m.alpha >= 0.99 && !m.filter.includes('blur(')),
+					JSON.stringify(m),
+				);
+				await closeMenu();
+			} else {
+				check(`${where}: the Script menu opens`, false);
+			}
+			// A right-click menu is the same menu: it follows the Menus switch and the menu opacity too.
+			const rightClicked = await bridge.js<boolean>(
+				`const el = document.querySelector('[data-zoom-control]'); if (!el) return false; const r = el.getBoundingClientRect(); el.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true, button: 2, buttons: 2, clientX: r.left + r.width / 2, clientY: r.top + r.height / 2 })); return true;`,
+			);
+			const contextMenuShown =
+				rightClicked &&
+				(await within(3000, () =>
+					bridge.js<boolean>(`return !!document.querySelector('[role=menu]');`),
+				)) !== null;
+			if (contextMenuShown) {
+				const m = (await surfaceFills(bridge, { menu: '[role=menu]::before' })).menu;
+				check(
+					`${where}: a right-click menu ${on ? `draws ${menu}% with a blur` : 'is solid, with no blur'}`,
+					m !== null &&
+						(on
+							? Math.abs(m.alpha - menu / 100) < 0.015 && m.filter.includes('blur(')
+							: m.alpha >= 0.99 && !m.filter.includes('blur(')),
+					JSON.stringify(m),
+				);
+				await closeMenu();
+			} else {
+				check(`${where}: the zoom pill's right-click menu opens`, false);
+			}
+		}
+	}
+	await setTransparency(bridge, defaultTransparency);
+	await within(5000, async () => (await rootGlass(bridge, 'main-1')).inline === '16px');
+}
+
+/**
+ * The Panel opacity slider in the Preferences window: moved as a person moves it (a run of input
+ * events, then the release), it stays where it was left, the settings file, the store, the main
+ * window's `--fls-glass-alpha` and the slider all name the same number, the preview draws it (never
+ * NaN), and it is the same after the window is closed and opened again.
+ */
+async function opacitySliderChecks(bridge: Bridge, profile: Profile): Promise<void> {
+	const slider = (windowId: string) =>
+		bridge.js<{ value: string; preview: string; window: string } | null>(
+			`const name = (el) => document.getElementById(el.getAttribute('aria-labelledby') ?? '')?.textContent?.trim();
+			 const el = [...document.querySelectorAll('input[type=range]')].find((x) => name(x) === 'Panel opacity');
+			 if (!el) return null;
+			 const p = document.querySelector('[data-testid=transparency-preview]');
+			 return { value: el.value, preview: p ? p.style.getPropertyValue('--fls-preview-alpha') + '|' + p.style.getPropertyValue('--fls-preview-window-alpha') : '', window: document.documentElement.style.getPropertyValue('--fls-glass-alpha') };`,
+			windowId,
+		);
+	const openTransparencyPage = async () => {
+		await bridge.js(
+			`await window.__TAURI_INTERNALS__.invoke('open_window', { id: { kind: 'preferences' } }); return true;`,
+		);
+		await bridge.ready('preferences');
+		// A window that has only just opened may not have drawn its page list yet: press again until the slider is there.
+		await within(20_000, async () => {
+			await bridge.js<boolean>(
+				`const b = [...document.querySelectorAll('button[data-section]')].find((x) => x.textContent.trim() === 'Transparency'); if (!b) return false; b.click(); return true;`,
+				'preferences',
+			);
+			return (await slider('preferences')) !== null;
+		});
+	};
+	await setTransparency(bridge, { panel_opacity: 100 });
+	await openTransparencyPage();
+	const moved = await bridge.js<boolean>(
+		`const name = (el) => document.getElementById(el.getAttribute('aria-labelledby') ?? '')?.textContent?.trim();
+		 const el = [...document.querySelectorAll('input[type=range]')].find((x) => name(x) === 'Panel opacity');
+		 if (!el) return false;
+		 const set = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set;
+		 for (const v of ['95', '88', '80', '73']) { set.call(el, v); el.dispatchEvent(new Event('input', { bubbles: true })); await new Promise((r) => setTimeout(r, 30)); }
+		 el.dispatchEvent(new Event('change', { bubbles: true }));
+		 return true;`,
+		'preferences',
+	);
+	check('opacity: the Panel opacity slider can be dragged and released', moved);
+	const stored = await within(
+		5000,
+		async () => (await savedTransparency(bridge)).panel_opacity === 73,
+	);
+	check('opacity: the store holds 73 once the slider is released', stored !== null);
+	// Give any late write-back time to land before reading everything.
+	await sleep(1500);
+	const file = savedFile(profile) as {
+		settings?: { transparency?: { panel_opacity?: number } };
+	} | null;
+	check(
+		'opacity: the settings file holds 73',
+		file?.settings?.transparency?.panel_opacity === 73,
+		JSON.stringify(file?.settings?.transparency),
+	);
+	const main = (
+		await bridge.js<{ v: string }>(
+			`return { v: document.documentElement.style.getPropertyValue('--fls-glass-alpha').trim() };`,
+		)
+	).v;
+	check('opacity: the main window draws 0.73', main === '0.73', main);
+	const prefs = await slider('preferences');
+	check(
+		'opacity: the slider still reads 73 after the release',
+		prefs?.value === '73',
+		JSON.stringify(prefs),
+	);
+	check(
+		'opacity: the preview draws 0.73 (a number, never NaN)',
+		prefs !== null && prefs.preview.startsWith('0.73|') && !/NaN/.test(prefs.preview),
+		JSON.stringify(prefs),
+	);
+	await bridge.js(
+		`await window.__TAURI_INTERNALS__.invoke('plugin:window|close', { label: 'preferences' }); return true;`,
+	);
+	await within(10_000, async () => !(await bridge.windows()).includes('preferences'));
+	await openTransparencyPage();
+	const again = await slider('preferences');
+	check(
+		'opacity: reopened, the slider reads 73 and the window draws 0.73',
+		again?.value === '73' && again.window.trim() === '0.73' && !/NaN/.test(again.preview),
+		JSON.stringify(again),
+	);
+	await setTransparency(bridge, { panel_opacity: 88 });
+}
+
 /** Changes the menu bar setting through the settings command, as the Preferences switch does. */
 function setMenuBar(bridge: Bridge, on: boolean): Promise<unknown> {
 	return bridge.js(
 		`const cur = await window.__TAURI_INTERNALS__.invoke('plugin:fizz-studio-settings|settings_get'); await window.__TAURI_INTERNALS__.invoke('plugin:fizz-studio-settings|settings_update', { patch: { ui: { menu_bar: ${on} } }, basedOn: cur.revision }); return true;`,
+	);
+}
+
+/** Changes some of the `ui` settings through the settings command, as the Preferences page and the menus do. */
+function setUi(bridge: Bridge, patch: Record<string, unknown>): Promise<unknown> {
+	return bridge.js(
+		`const cur = await window.__TAURI_INTERNALS__.invoke('plugin:fizz-studio-settings|settings_get'); await window.__TAURI_INTERNALS__.invoke('plugin:fizz-studio-settings|settings_update', { patch: { ui: { ...cur.settings.ui, ...${JSON.stringify(patch)} } }, basedOn: cur.revision }); return true;`,
+	);
+}
+
+/** The height of the commands row (the classic toolbar or the ribbon) under the title bar, or null when there is none. */
+function commandsRowHeight(bridge: Bridge): Promise<{ kind: string; h: number } | null> {
+	return bridge.js<{ kind: string; h: number } | null>(
+		`const bar = document.querySelector('[data-app-toolbar]');
+		 const ribbon = document.querySelector('[data-app-ribbon]');
+		 const el = bar ?? ribbon; if (!el) return null;
+		 return { kind: bar ? 'toolbar' : 'ribbon', h: el.getBoundingClientRect().height };`,
+	);
+}
+
+/** The active workspace as the settings document has it. */
+async function activeWorkspace(bridge: Bridge): Promise<string> {
+	const found = await bridge.js<{ v: string }>(
+		`const s = await window.__TAURI_INTERNALS__.invoke('plugin:fizz-studio-settings|settings_get'); return { v: s.settings.dock.active };`,
+	);
+	return found.v;
+}
+
+/**
+ * The workspace switcher (Paint, Script, Review) and the command search sit at the right end of the
+ * commands row while there is no menu bar, and at the right end of the menu row while there is one.
+ * Choosing a workspace switches it (and saves it); the search button opens the command palette.
+ */
+async function workspaceChecks(bridge: Bridge): Promise<void> {
+	const switcher = () =>
+		bridge.js<{
+			names: string[];
+			pressed: string;
+			inToolbar: boolean;
+			right: number;
+			barRight: number;
+		} | null>(
+			`const g = document.querySelector('[role=group][aria-label="Workspace"]'); if (!g) return null;
+			 const bar = g.closest('[data-app-toolbar]') ?? g.closest('[role=menubar]')?.parentElement?.parentElement ?? g.parentElement.parentElement;
+			 return { names: [...g.querySelectorAll('button')].map((b) => b.textContent.trim()),
+			   pressed: g.querySelector('[aria-pressed=true]')?.textContent.trim() ?? '',
+			   inToolbar: !!g.closest('[data-app-toolbar]'),
+			   right: g.getBoundingClientRect().right, barRight: bar.getBoundingClientRect().right };`,
+		);
+	const found = await within(5000, async () => (await switcher()) !== null);
+	const off = await switcher();
+	check(
+		'workspaces: with no menu bar the switcher is at the right end of the toolbar, Paint pressed',
+		found !== null &&
+			off !== null &&
+			off.names.join('|') === 'Paint|Script|Review' &&
+			off.pressed === 'Paint' &&
+			off.inToolbar &&
+			off.barRight - off.right < 40,
+		JSON.stringify(off),
+	);
+	const click = (name: string) =>
+		bridge.js<boolean>(
+			`const b = [...document.querySelectorAll('[role=group][aria-label="Workspace"] button')].find((x) => x.textContent.trim() === ${JSON.stringify(name)}); if (!b) return false; b.click(); return true;`,
+		);
+	await click('Script');
+	const switched = await within(5000, async () => (await switcher())?.pressed === 'Script');
+	check(
+		'workspaces: choosing Script switches to it',
+		switched !== null,
+		JSON.stringify(await switcher()),
+	);
+	await sleep(600);
+	check(
+		'workspaces: the choice is saved in the settings document',
+		(await activeWorkspace(bridge)) === 'Script',
+	);
+	await click('Paint');
+	await within(5000, async () => (await switcher())?.pressed === 'Paint');
+	await sleep(600);
+	check('workspaces: choosing Paint switches back', (await activeWorkspace(bridge)) === 'Paint');
+	await setMenuBar(bridge, true);
+	await within(5000, async () => {
+		const now = await switcher();
+		return now !== null && !now.inToolbar;
+	});
+	const bar = await switcher();
+	check(
+		'workspaces: with the menu bar on the switcher is at the right end of the menu row',
+		bar !== null && bar.barRight - bar.right < 40 && bar.right > 700,
+		JSON.stringify(bar),
+	);
+	await setMenuBar(bridge, false);
+	await within(5000, async () => (await switcher())?.inToolbar === true);
+	check(
+		'workspaces: the search button opens the command palette, and Escape closes it',
+		await (async () => {
+			await bridge.js<boolean>(
+				`[...document.querySelectorAll('[data-app-toolbar] button')].find((b) => b.textContent.includes('Search commands'))?.click(); return true;`,
+			);
+			const open = await within(3000, () =>
+				bridge.js<boolean>(
+					`return !!document.querySelector('[role=dialog][aria-modal=true], dialog[open]');`,
+				),
+			);
+			await bridge.js<boolean>(
+				`document.querySelector('dialog[open], [role=dialog] input')?.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true })); return true;`,
+			);
+			const closed = await within(
+				3000,
+				async () =>
+					!(await bridge.js<boolean>(
+						`return !!document.querySelector('[role=dialog][aria-modal=true], dialog[open]');`,
+					)),
+			);
+			return open !== null && closed !== null;
+		})(),
+	);
+}
+
+/**
+ * The commands row follows the `ui.toolbar` setting: the classic toolbar at 40 px by default, the
+ * ribbon at 124 px open and 34 px folded, and nothing when hidden. The ribbon has Home, Level and
+ * View, runs a command from a button, and gains a Script tab while the Script panel is in use.
+ */
+async function commandsRowChecks(bridge: Bridge): Promise<void> {
+	const row = async (kind: string | null) => {
+		await within(5000, async () => ((await commandsRowHeight(bridge))?.kind ?? null) === kind);
+		return commandsRowHeight(bridge);
+	};
+	await workspaceChecks(bridge);
+	const first = await row('toolbar');
+	check(
+		'commands: the classic toolbar is the default, 40 px high',
+		Math.abs((first?.h ?? 0) - 40) < 1.5,
+		JSON.stringify(first),
+	);
+	await setUi(bridge, { toolbar: 'hidden' });
+	check(
+		'commands: hidden shows no commands row',
+		(await row(null)) === null && (await commandsRowHeight(bridge)) === null,
+	);
+	await setUi(bridge, { toolbar: 'ribbon', ribbon_folded: false });
+	const open = await row('ribbon');
+	check(
+		'commands: the ribbon is 124 px high open',
+		Math.abs((open?.h ?? 0) - 124) < 2.5,
+		JSON.stringify(open),
+	);
+	const tabs = await bridge.js<string[]>(
+		`return [...document.querySelectorAll('[data-app-ribbon] [role=tab]')].map((t) => t.textContent.trim());`,
+	);
+	check(
+		'commands: the ribbon has Home, Level and View',
+		tabs.join('|') === 'Home|Level|View',
+		JSON.stringify(tabs),
+	);
+	check(
+		'commands: a ribbon button runs its command (Paint lights Paint)',
+		await bridge.js<boolean>(
+			`const b = [...document.querySelectorAll('[data-app-ribbon] button')].find((x) => x.getAttribute('aria-label') === 'Erase'); if (!b) return false; b.click(); await new Promise((r) => setTimeout(r, 200));
+			 const lit = document.querySelector('[data-app-ribbon] button[aria-label="Erase"]')?.getAttribute('aria-pressed') === 'true';
+			 [...document.querySelectorAll('[data-app-ribbon] button')].find((x) => x.getAttribute('aria-label') === 'Paint')?.click();
+			 return lit;`,
+		),
+	);
+	await bridge.js<boolean>(`document.querySelector('.cm-content')?.focus(); return true;`);
+	const scriptTab = await within(3000, async () =>
+		bridge.js<boolean>(
+			`return [...document.querySelectorAll('[data-app-ribbon] [role=tab]')].some((t) => t.textContent.trim() === 'Script');`,
+		),
+	);
+	check('commands: a Script tab appears while the Script panel is in use', scriptTab !== null);
+	await setUi(bridge, { ribbon_folded: true });
+	await within(5000, async () => {
+		const now = await commandsRowHeight(bridge);
+		return now !== null && now.h < 60;
+	});
+	const folded = await commandsRowHeight(bridge);
+	check(
+		'commands: the ribbon is 34 px high folded',
+		Math.abs((folded?.h ?? 0) - 34) < 2.5,
+		JSON.stringify(folded),
+	);
+	await setUi(bridge, { toolbar: 'classic', ribbon_folded: false });
+	const back = await row('toolbar');
+	check(
+		'commands: the classic toolbar comes back at 40 px',
+		Math.abs((back?.h ?? 0) - 40) < 1.5,
+		JSON.stringify(back),
 	);
 }
 
@@ -1575,11 +2873,11 @@ async function appMenuIconChecks(bridge: Bridge) {
 		`${rowsJs} return slots(document.querySelector('[role=menu]'));`,
 	);
 	check(
-		'each top-level menu has an icon in a 16 px slot',
-		top.length === 5 && top.every((r) => r.svg && r.w === 16 && r.h === 16),
-		JSON.stringify(top),
+		'each top-level row of the flat menu has an icon in a 16 px slot',
+		top.length >= 10 && top.every((r) => r.svg && r.w === 16 && r.h === 16),
+		JSON.stringify(top.filter((r) => !r.svg || r.w !== 16 || r.h !== 16)),
 	);
-	for (const menu of ['Edit', 'View', 'Window', 'Help', 'File']) {
+	for (const menu of ['Undo history', 'Panels', 'Window']) {
 		await pressByRole(bridge, 'menuitem', menu);
 		const read = () =>
 			bridge.js<{ name: string; svg: boolean; w: number; h: number }[]>(
@@ -1592,21 +2890,6 @@ async function appMenuIconChecks(bridge: Bridge) {
 			rows.length > 0 && rows.every((r) => r.svg && r.w === 16 && r.h === 16),
 			JSON.stringify(rows.filter((r) => !r.svg || r.w !== 16 || r.h !== 16)),
 		);
-		// The rows are written as groups with the ellipsis on every row that opens a dialog or a
-		// window and the keys beside them; each row's text is its label then its keys.
-		const expected: Record<string, string[]> = {
-			File: ['New level\u2026Ctrl+N', 'Open level\u2026Ctrl+O', 'SaveCtrl+S', 'Close levelCtrl+W'],
-			Edit: ['Undo history'],
-			Help: ['HelpF1', 'Keyboard shortcuts\u2026?', 'About Fizz Level Studio\u2026'],
-		};
-		const wanted = expected[menu];
-		if (wanted) {
-			check(
-				`the ${menu} menu lists ${wanted.join(', ')}`,
-				wanted.every((text) => rows.some((r) => r.name === text)),
-				JSON.stringify(rows.map((r) => r.name)),
-			);
-		}
 	}
 }
 
@@ -1663,6 +2946,228 @@ async function dockBackWindow(bridge: Bridge, panel: string): Promise<boolean> {
 	return gone !== null;
 }
 
+// Dock back to where it left (docs/DECISIONS.md D63 and D65; spec/EDITOR.md, "Docking back")
+
+/** The rails as drawn: each zone's folded flag and its entries as `Title:group`, `*` marking the showing tab. */
+function railState(bridge: Bridge): Promise<string> {
+	return bridge
+		.js<unknown>(
+			`const out = {};
+			 for (const zone of ['left', 'right', 'bottom']) {
+			   const rail = document.querySelector('[data-rail="' + zone + '"]');
+			   out[zone] = rail ? { folded: rail.hasAttribute('data-folded'), items: [...rail.querySelectorAll('[data-rail-item]')].map((i) => i.textContent.trim() + ':' + i.dataset.railGroup + (i.dataset.active !== undefined ? '*' : '')) } : null;
+			 }
+			 return out;`,
+		)
+		.then((state) => JSON.stringify(state));
+}
+
+async function checkDockBackHome(
+	bridge: Bridge,
+	profile: Profile,
+	levelPath: string,
+	currentApp: () => App,
+	replaceApp: (app: App) => void,
+): Promise<void> {
+	const railHas = (title: string) =>
+		bridge.js<boolean>(
+			`return [...document.querySelectorAll('[data-rail-item]')].some((x) => x.textContent.trim() === ${JSON.stringify(title)});`,
+		);
+	const gone = async (title: string) =>
+		(await within(5000, async () => !(await railHas(title)))) !== null;
+	const back = async (title: string) => (await within(5000, () => railHas(title))) !== null;
+	/** A tab sits in its dock, then the state is read once the rails have settled. */
+	const settled = async (title: string) => {
+		await back(title);
+		await sleep(250);
+		return railState(bridge);
+	};
+	const leaveAndReturn = async (
+		label: string,
+		title: string,
+		leave: 'Float' | 'Tear off',
+		zoneRow: 'Dock left' | 'Dock right',
+		via: 'menu' | 'window' | 'rail',
+	) => {
+		await showFromRail(bridge, title);
+		await sleep(200);
+		const before = await railState(bridge);
+		check(`${label}: ${title} offers ${leave}`, await choosePanelMenu(bridge, title, leave));
+		if (leave === 'Float') {
+			check(`${label}: ${title} has left its dock`, await gone(title));
+		} else {
+			const id = title.toLowerCase();
+			await within(10_000, async () => (await bridge.windows()).includes(`panel-${id}-1`));
+			await bridge.ready(`panel-${id}-1`);
+		}
+		if (via === 'menu') {
+			check(
+				`${label}: ${title} docks back from its menu`,
+				leave === 'Float'
+					? await choosePanelMenu(bridge, title, zoneRow)
+					: await choosePanelMenu(bridge, `${title} (own window)`, zoneRow),
+			);
+		} else if (via === 'window') {
+			check(
+				`${label}: ${title}'s window Dock back`,
+				await dockBackWindow(bridge, title.toLowerCase()),
+			);
+		} else {
+			check(
+				`${label}: ${title}'s away rail entry returns it`,
+				await clickRailItem(bridge, `${title} (own window)`),
+			);
+		}
+		const after = await settled(title);
+		check(
+			`${label}: ${title} is back in the same dock, group, place and showing tab`,
+			after === before,
+			JSON.stringify({ before, after }),
+		);
+	};
+
+	// The Paint workspace's left dock holds Palette beside Layers: Palette first and showing.
+	await leaveAndReturn('dock back', 'Palette', 'Float', 'Dock left', 'menu');
+	await leaveAndReturn('dock back', 'Palette', 'Tear off', 'Dock left', 'window');
+	await leaveAndReturn('dock back', 'Palette', 'Tear off', 'Dock left', 'rail');
+	await leaveAndReturn('dock back', 'Layers', 'Float', 'Dock left', 'menu');
+	// The right dock: Inspector, Objects and History, each as the showing tab in turn.
+	for (const title of ['Inspector', 'Objects', 'History']) {
+		await leaveAndReturn('dock back', title, 'Float', 'Dock right', 'menu');
+		await leaveAndReturn('dock back', title, 'Tear off', 'Dock right', 'window');
+		await leaveAndReturn('dock back', title, 'Tear off', 'Dock right', 'rail');
+	}
+
+	// Floated, then another tab shows while it is away: it still returns as the showing tab.
+	await showFromRail(bridge, 'Objects');
+	await sleep(200);
+	const objectsBefore = await railState(bridge);
+	await choosePanelMenu(bridge, 'Objects', 'Float');
+	await gone('Objects');
+	await showFromRail(bridge, 'History');
+	await sleep(200);
+	const dockedWhileHistoryShows = await choosePanelMenu(bridge, 'Objects', 'Dock right');
+	const objectsAfter = await settled('Objects');
+	check(
+		'dock back: Objects returns as the showing tab although History showed meanwhile',
+		objectsAfter === objectsBefore,
+		JSON.stringify({ dockedWhileHistoryShows, objectsBefore, objectsAfter }),
+	);
+
+	// It survives a restart: Objects floats, the app quits and starts again, and Dock right still
+	// returns it between Inspector and History.
+	await showFromRail(bridge, 'Objects');
+	await sleep(200);
+	const beforeRestart = await railState(bridge);
+	await choosePanelMenu(bridge, 'Objects', 'Float');
+	await gone('Objects');
+	await sleep(600);
+	await bridge.js<boolean>(
+		`document.dispatchEvent(new KeyboardEvent('keydown', { key: 'q', ctrlKey: true, bubbles: true })); return true;`,
+	);
+	const exited = await within(10_000, () => !currentApp().alive);
+	check('dock back: the app quits with Objects floating', exited !== null);
+	await bridge.stop();
+	replaceApp(new App(profile, [levelPath]));
+	await bridge.start();
+	check('dock back: the app restarts', await bridge.ready());
+	const editorBack = await within(20_000, () => railHas('History'));
+	check('dock back: the editor is drawn again after the restart', editorBack !== null);
+	const floatingAgain = await within(10_000, async () => !(await railHas('Objects')));
+	check('dock back: Objects is still floating after the restart', floatingAgain !== null);
+	const saved = await bridge.js<{
+		zone: string;
+		after: string | null;
+		before: string | null;
+	} | null>(
+		`const s = await window.__TAURI_INTERNALS__.invoke('plugin:fizz-studio-settings|settings_get');
+		 const ws = s.settings.dock.workspaces[s.settings.dock.active];
+		 return ws.panels.objects.home_spot;`,
+	);
+	check(
+		'dock back: the remembered place is saved with the workspace',
+		saved?.after === 'inspector' && saved?.before === 'history',
+		JSON.stringify(saved),
+	);
+	check(
+		'dock back: the floating Objects offers Dock right',
+		await choosePanelMenu(bridge, 'Objects', 'Dock right'),
+	);
+	const afterRestart = await settled('Objects');
+	check(
+		'dock back: after the restart Objects returns to the same place and showing tab',
+		afterRestart === beforeRestart,
+		JSON.stringify({ beforeRestart, afterRestart }),
+	);
+}
+
+/**
+ * Dragging a floating panel by its header out of the window tears it off, as for a docked panel.
+ * Synthetic events stay inside the page, so this plays the page's side only (the press, the moves
+ * past the edge, the release); the plugin and the cursor are real. Which route the desktop gives is
+ * the plugin's to say, so the check holds for either answer: the panel's window opens and Dock back
+ * floats it again at the same rectangle, or the page says why not and the panel keeps floating. A
+ * real compositor drag is only checked by hand.
+ */
+async function floatingDragOutChecks(bridge: Bridge): Promise<void> {
+	const floatRect = () =>
+		bridge.js<{ x: number; y: number; w: number; h: number } | null>(
+			`const e = document.querySelector('section[data-panel="objects"]'); if (!e) return null; const r = e.getBoundingClientRect(); return { x: r.left, y: r.top, w: r.width, h: r.height };`,
+		);
+	await showFromRail(bridge, 'Objects');
+	check('float drag-out: Objects floats', await choosePanelMenu(bridge, 'Objects', 'Float'));
+	await within(3000, async () => (await floatRect()) !== null);
+	const before = await floatRect();
+	await bridge.js(
+		`const header = document.querySelector('section[data-panel="objects"] header');
+		 const r = header.getBoundingClientRect();
+		 const at = (target, type, x, y) => target.dispatchEvent(new PointerEvent(type, { bubbles: true, pointerId: 43, button: 0, clientX: x, clientY: y }));
+		 at(header, 'pointerdown', r.left + 40, r.top + 10);
+		 for (const x of [r.left - 20, -60, -120]) at(header, 'pointermove', x, r.top + 10);
+		 await new Promise((go) => setTimeout(go, 400));
+		 at(header, 'pointerup', -120, r.top + 10);
+		 return true;`,
+	);
+	const dragged = await within(8000, async () => {
+		if ((await bridge.windows()).includes('panel-objects-1')) return 'window';
+		const said = await bridge.js<boolean>(
+			`return [...document.querySelectorAll('[role=status]')].some((n) => /Tear off|cancelled|Move cancelled/.test(n.textContent ?? ''));`,
+		);
+		return said ? 'note' : null;
+	});
+	check(
+		'float drag-out: dragging a floating panel out of the window opens its window, or says why it cannot',
+		dragged !== null,
+		String(dragged),
+	);
+	if (dragged === 'window') {
+		check('float drag-out: its window opens', true);
+		check('float drag-out: Dock back closes the window', await dockBackWindow(bridge, 'objects'));
+		await within(3000, async () => (await floatRect()) !== null);
+		const after = await floatRect();
+		check(
+			'float drag-out: it floats again at the same rectangle',
+			!!before &&
+				!!after &&
+				(['x', 'y', 'w', 'h'] as const).every((k) => Math.abs(before[k] - after[k]) <= 1),
+			JSON.stringify({ before, after }),
+		);
+	} else {
+		const after = await floatRect();
+		check(
+			'float drag-out: with no route the panel keeps floating where it was',
+			!!before &&
+				!!after &&
+				(['x', 'y', 'w', 'h'] as const).every((k) => Math.abs(before[k] - after[k]) <= 1),
+			JSON.stringify({ before, after }),
+		);
+	}
+	check(
+		'float drag-out: Objects docks right again',
+		await choosePanelMenu(bridge, 'Objects', 'Dock right'),
+	);
+}
+
 async function checkPanelWindows(
 	bridge: Bridge,
 	profile: Profile,
@@ -1683,7 +3188,10 @@ async function checkPanelWindows(
 	for (const panel of PANEL_WINDOWS) {
 		const label = `panel-${panel.id}-1`;
 		await showFromRail(bridge, panel.title);
-		check(`the ${panel.title} panel offers Tear off`, await clickLabel(tearOffLabel(panel.title)));
+		check(
+			`the ${panel.title} panel offers Tear off`,
+			await choosePanelMenu(bridge, panel.title, 'Tear off'),
+		);
 		const opened = await within(10_000, async () => (await bridge.windows()).includes(label));
 		check(`tearing off ${panel.title} opens ${label}`, opened !== null);
 		await bridge.ready(label);
@@ -1716,13 +3224,54 @@ async function checkPanelWindows(
 			),
 		);
 		check(`docking ${panel.title} back closes ${label}`, await dockBackWindow(bridge, panel.id));
-		const back = await within(5000, () => clickLabelOnly(bridge, tearOffLabel(panel.title)));
+		const back = await within(5000, () => panelMenuOffers(bridge, panel.title, 'Tear off'));
 		check(`the ${panel.title} panel is back in the main window`, back !== null);
 	}
 
+	// Dragging a panel out of the window by its rail entry. Synthetic events stay inside the page, so
+	// this plays the page's side only (the press, the moves past the edge, the release); the plugin,
+	// the ghost and the cursor are real. Which route the desktop gives is the plugin's to say, so the
+	// check holds for either answer: the panel's window opens (a route exists), or the page says why
+	// not and the panel stays where it was (none does). The panel menu's Tear off is checked above.
+	await showFromRail(bridge, 'Objects');
+	await bridge.js(
+		`const item = [...document.querySelectorAll('[data-rail-item]')].find((t) => t.dataset.railItem === 'objects');
+		 const r = item.getBoundingClientRect();
+		 const at = (type, x, y) => item.dispatchEvent(new PointerEvent(type, { bubbles: true, pointerId: 41, button: 0, clientX: x, clientY: y }));
+		 at('pointerdown', r.left + 5, r.top + 5);
+		 for (const x of [r.left - 40, -60, -120]) document.dispatchEvent(new PointerEvent('pointermove', { bubbles: true, pointerId: 41, clientX: x, clientY: r.top + 5 }));
+		 await new Promise((go) => setTimeout(go, 400));
+		 document.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, pointerId: 41, clientX: -120, clientY: r.top + 5 }));
+		 return true;`,
+	);
+	const dragged = await within(8000, async () => {
+		if ((await bridge.windows()).includes('panel-objects-1')) return 'window';
+		const said = await bridge.js<boolean>(
+			`return [...document.querySelectorAll('[role=status]')].some((n) => /Tear off|cancelled|Move cancelled/.test(n.textContent ?? ''));`,
+		);
+		return said ? 'note' : null;
+	});
+	check(
+		'dragging a rail entry out of the window opens its window, or says why it cannot',
+		dragged !== null,
+		String(dragged),
+	);
+	if (dragged === 'window') {
+		check(
+			'docking the dragged-out Objects panel back closes its window',
+			await dockBackWindow(bridge, 'objects'),
+		);
+	} else {
+		check(
+			'a drag that found no route leaves the panel in the main window',
+			!(await bridge.windows()).includes('panel-objects-1'),
+		);
+	}
+	await within(5000, () => panelMenuOffers(bridge, 'Objects', 'Tear off'));
+
 	// An action in a torn-off window reaches the main window: a brush chosen in the Palette window.
 	await showFromRail(bridge, 'Palette');
-	await clickLabel(tearOffLabel('Palette'));
+	await choosePanelMenu(bridge, 'Palette', 'Tear off');
 	await bridge.ready('panel-palette-1');
 	await within(20_000, async () =>
 		bridge.js<boolean>(PANEL_WINDOWS[0].probe, 'panel-palette-1').catch(() => false),
@@ -1743,7 +3292,7 @@ async function checkPanelWindows(
 	check('a brush is chosen in the torn-off Palette window', chosen !== null, String(kind));
 	const chip = await within(5000, () =>
 		bridge.js<boolean>(
-			`return [...document.querySelectorAll('[role=status]')].some((e) => e.textContent.includes('Brush: ' + ${JSON.stringify(kind)}));`,
+			`return [...document.querySelectorAll('[data-app-toolbar], [data-app-ribbon]')].some((e) => e.textContent.includes('Brush: ' + ${JSON.stringify(kind)}));`,
 		),
 	);
 	check("the main window's brush chip follows the torn-off Palette", chip !== null, String(kind));
@@ -1751,7 +3300,7 @@ async function checkPanelWindows(
 
 	// An object chosen in the Objects window reveals its cell and script line in the main window.
 	await showFromRail(bridge, 'Objects');
-	await clickLabel(tearOffLabel('Objects'));
+	await choosePanelMenu(bridge, 'Objects', 'Tear off');
 	await bridge.ready('panel-objects-1');
 	const picked = await within(20_000, async () => {
 		try {
@@ -1793,7 +3342,7 @@ async function checkPanelWindows(
 	);
 	check('docking the Objects panel back', await dockBackWindow(bridge, 'objects'));
 	await showFromRail(bridge, 'Objects');
-	await clickLabel(tearOffLabel('Objects'));
+	await choosePanelMenu(bridge, 'Objects', 'Tear off');
 	await bridge.ready('panel-objects-1');
 	const again = await within(10_000, async () => {
 		const size = await windowSize(bridge, 'panel-objects-1');
@@ -1849,7 +3398,7 @@ async function checkPanelWindows(
 		JSON.stringify(await windowSize(bridge, 'panel-objects-1')),
 	);
 	check('docking back after the restart', await dockBackWindow(bridge, 'objects'));
-	const finalBack = await within(5000, () => clickLabelOnly(bridge, tearOffLabel('Objects')));
+	const finalBack = await within(5000, () => panelMenuOffers(bridge, 'Objects', 'Tear off'));
 	check('the Objects panel is docked again at the end', finalBack !== null);
 
 	// A panel torn off from floating leaves nothing floating over the level: it is an away tab in
@@ -1859,11 +3408,11 @@ async function checkPanelWindows(
 			`const e = document.querySelector('section[data-panel="objects"]'); if (!e) return null; const r = e.getBoundingClientRect(); return { x: r.left, y: r.top, w: r.width, h: r.height };`,
 		);
 	await showFromRail(bridge, 'Objects');
-	check('floating: Objects floats', await clickLabel('Float Objects'));
+	check('floating: Objects floats', await choosePanelMenu(bridge, 'Objects', 'Float'));
 	const floated = await within(3000, async () => (await floatRect()) !== null);
 	const before = await floatRect();
 	check('floating: the floating Objects panel is drawn', floated !== null && before !== null);
-	check('floating: it offers Tear off', await clickLabel(tearOffLabel('Objects')));
+	check('floating: it offers Tear off', await choosePanelMenu(bridge, 'Objects', 'Tear off'));
 	const away = await within(10_000, async () =>
 		(await bridge.windows()).includes('panel-objects-1'),
 	);
@@ -1898,13 +3447,9 @@ async function checkPanelWindows(
 			(['x', 'y', 'w', 'h'] as const).every((k) => Math.abs(before[k] - after[k]) <= 1),
 		JSON.stringify({ before, after }),
 	);
-	check('floating: Objects docks right again', await clickLabel('Dock Objects right'));
-}
-
-/** Whether a button with this accessible name exists in the main window. */
-function clickLabelOnly(bridge: Bridge, label: string): Promise<boolean> {
-	return bridge.js<boolean>(
-		`return !!document.querySelector('button[aria-label=' + JSON.stringify(${JSON.stringify(label)}) + ']');`,
+	check(
+		'floating: Objects docks right again',
+		await choosePanelMenu(bridge, 'Objects', 'Dock right'),
 	);
 }
 
@@ -1917,7 +3462,7 @@ function clickLabelOnly(bridge: Bridge, label: string): Promise<boolean> {
  */
 function keycapOffenders(bridge: Bridge, windowLabel = 'main-1'): Promise<string[]> {
 	return bridge.js<string[]>(
-		`const skip = '[role=menuitem], [role=menuitemradio], [role=menuitemcheckbox], [role=menubar] *, [role=menu] *, [data-tauri-drag-region] *, [role=tab], [role=option], [role=listbox] *, [role=switch], [role=checkbox], [role=separator], [role=slider], [data-rail-item], [class*=_entry_], [class*=_navItem_], [data-grip], [class*=_grip_], [class*=_chevron_], [class*=_fold_], [data-keycap-exempt]';
+		`const skip = '[role=menuitem], [role=menuitemradio], [role=menuitemcheckbox], [role=menubar] *, [role=menu] *, [data-tauri-drag-region] *, [role=tab], [role=option], [role=listbox] *, [role=switch], [role=checkbox], [role=separator], [role=slider], [data-rail-item], [data-ribbon] *, [data-app-toolbar] *, [data-app-ribbon] *, [data-keycap-exempt], [class*=_entry_], [class*=_navItem_], [data-grip], [class*=_grip_], [class*=_chevron_], [class*=_fold_], [data-keycap-exempt]';
 		 const visible = (e) => { const r = e.getBoundingClientRect(); const c = getComputedStyle(e); return r.width > 0 && r.height > 0 && c.visibility !== 'hidden' && c.display !== 'none'; };
 		 const bad = [];
 		 for (const e of document.querySelectorAll('button, [role=button]')) {
@@ -1977,6 +3522,1190 @@ async function checkKeycaps(bridge: Bridge, where: string, windowLabel = 'main-1
 	);
 }
 
+/** Lets the page tell whether the Layers panel's rows are there, by name, with their toggles. */
+function layerRows(
+	bridge: Bridge,
+): Promise<{ name: string; hidden: string | null; locked: string | null }[]> {
+	return bridge.js(
+		`const list = document.querySelector('ul[aria-label=Layers]');
+		 if (!list) return [];
+		 return [...list.querySelectorAll('li')].map((li) => {
+			 const buttons = [...li.querySelectorAll('button')];
+			 const eye = buttons.find((b) => (b.getAttribute('aria-label') || '').startsWith('Hide '));
+			 const lock = buttons.find((b) => (b.getAttribute('aria-label') || '').startsWith('Lock '));
+			 return {
+				 name: (li.querySelector('span')?.textContent ?? '').trim(),
+				 hidden: eye ? eye.getAttribute('aria-pressed') : null,
+				 locked: lock ? lock.getAttribute('aria-pressed') : null,
+			 };
+		 });`,
+	);
+}
+
+/**
+ * Pans the map to its right end with a middle-button drag (the drag is clamped, so any long one
+ * lands on the edge), then reads the canvas pixels of the cell block of the exit door of
+ * `levels/crater.fizz` (x 186, y 6 to 7, ground-relative neighbours around it) and of an empty
+ * sky block above it. Null when the level is not the crater or the map has no room to show it.
+ */
+async function exitPixels(
+	bridge: Bridge,
+): Promise<{ exit: number[]; crystal: number[]; sky: number[] } | null> {
+	return bridge.js<{ exit: number[]; crystal: number[]; sky: number[] } | null>(
+		`const canvas = document.querySelector('canvas');
+		 const map = document.querySelector('[data-map]').getBoundingClientRect();
+		 const box = canvas.getBoundingClientRect();
+		 const fire = (type, button, buttons, dx) => canvas.dispatchEvent(new PointerEvent(type, { bubbles: true, cancelable: true, pointerId: 11, pointerType: 'mouse', button, buttons, clientX: map.left + map.width / 2 + dx, clientY: map.top + map.height / 2 }));
+		 fire('pointerdown', 1, 4, 0);
+		 for (const dx of [-2000, -4000, -6000]) { fire('pointermove', -1, 4, dx); await new Promise((r) => setTimeout(r, 30)); }
+		 fire('pointerup', 1, 0, -6000);
+		 await new Promise((r) => setTimeout(r, 300));
+		 // Zoom 4: 16 px a cell; the crater is 192 by 28 cells. At the right end the map's right edge is the level's.
+		 const cell = 16, width = 192, height = 28;
+		 if (map.height < height * cell + 40) return null;
+		 const left = map.left - box.left, top = map.top - box.top;
+		 const scrollX = width * cell - map.width;
+		 const originY = top + (map.height - height * cell) / 2;
+		 const ratio = window.devicePixelRatio || 1;
+		 const ctx = canvas.getContext('2d');
+		 const block = (x, yTop, yBottom) => {
+			 // Inset by 2 px: the edge of a cell is drawn against its neighbours, which hiding changes.
+			 const inset = 2;
+			 const px = Math.round((left + x * cell - scrollX + inset) * ratio), py = Math.round((originY + (height - 1 - yBottom) * cell + inset) * ratio);
+			 const w = Math.round((cell - 2 * inset) * ratio), h = Math.round(((yBottom - yTop + 1) * cell - 2 * inset) * ratio);
+			 return Array.from(ctx.getImageData(px, py, w, h).data);
+		 };
+		 // The crystal at x 178 has no y: it sits on the ground surface, so it is where the terrain says.
+		 const view = await window.__TAURI_INTERNALS__.invoke('plugin:fizz-studio-worlds|level_view_masked', { id: 'level-1', hidden: [] });
+		 const crystal = view.palette.indexOf('crystal-tile');
+		 let y = -1;
+		 for (let row = 0; row < height; row++) if (view.cells[row * width + 178] === crystal) y = row;
+		 if (y < 0) return null;
+		 const found = { exit: block(186, 6, 7), crystal: block(178, y, y), sky: block(180, 20, 21) };
+		 // Put the camera back at the left end, where the checks that follow expect it.
+		 fire('pointerdown', 1, 4, 0);
+		 for (const dx of [2000, 4000, 6000]) { fire('pointermove', -1, 4, dx); await new Promise((r) => setTimeout(r, 30)); }
+		 fire('pointerup', 1, 0, 6000);
+		 await new Promise((r) => setTimeout(r, 200));
+		 return found;`,
+	);
+}
+
+/** Presses a Layers toggle by its accessible name, such as `Hide Treats on the canvas`. */
+function pressLayerToggle(bridge: Bridge, label: string): Promise<boolean> {
+	return bridge.js<boolean>(
+		`const b = [...document.querySelectorAll('ul[aria-label=Layers] button')].find((x) => x.getAttribute('aria-label') === ${JSON.stringify(label)});
+		 if (!b || b.disabled) return false;
+		 b.click();
+		 return true;`,
+	);
+}
+
+/** A cheap fingerprint of what the level canvas shows now, to tell whether a drawing changed. */
+function canvasFingerprint(bridge: Bridge): Promise<string> {
+	return bridge.js<string>(
+		`const c = document.querySelector('canvas');
+		 const g = c.getContext('2d');
+		 const d = g.getImageData(0, 0, c.width, c.height).data;
+		 let h = 2166136261;
+		 for (let i = 0; i < d.length; i += 4) { h ^= d[i] + (d[i + 1] << 8) + (d[i + 2] << 16); h = Math.imul(h, 16777619); }
+		 return String(h >>> 0);`,
+	);
+}
+
+/** Runs the MCP server's own `edit_level` tool against a level file, as Claude's server would. */
+async function mcpEdit(
+	levelPath: string,
+	lines: string[],
+): Promise<{ isError?: boolean; structured: Record<string, unknown>; text: string }> {
+	const script = `import { Studio } from './packages/mcp/src/studio.ts'; import { callTool } from './packages/mcp/src/tools.ts'; console.log(JSON.stringify(callTool(new Studio(${JSON.stringify(levelPath)}), 'edit_level', { lines: ${JSON.stringify(lines)}, title: 'check' })));`;
+	const run = Bun.spawnSync(['bun', '-e', script], { cwd: root, stdout: 'pipe', stderr: 'pipe' });
+	return JSON.parse(run.stdout.toString().trim().split('\n').pop() ?? '{}');
+}
+
+/**
+ * The Layers panel and the peer lock, in the running app: the panel sits beside the Palette, hiding
+ * Treats changes only the drawing, a locked layer refuses a change from the canvas's own route and
+ * from Claude's server, and an outside write to a locked line is a conflict the studio does not
+ * take in. It leaves the level as it found it (revision 0, no sidecar).
+ */
+async function layerChecks(bridge: Bridge, path: string, original: string): Promise<void> {
+	const sidecar = path.replace(/\.fizz$/, '.studio.json');
+	const rail = await bridge.js<string[]>(
+		`return [...document.querySelectorAll('[role=group][aria-label="Left rail"] [data-rail-item]')].map((x) => x.textContent.trim());`,
+	);
+	check(
+		'the Layers panel sits beside the Palette on the left rail',
+		rail.join() === 'Palette,Layers',
+		JSON.stringify(rail),
+	);
+	await showFromRail(bridge, 'Layers');
+	await within(3000, async () => (await layerRows(bridge)).length >= 5);
+	const names = (await layerRows(bridge)).map((r) => r.name);
+	check(
+		'Layers lists the sections of the level script',
+		names.join() === 'Terrain,Walls,Blocks,Crystals,Markers,Treats,Enemies',
+		JSON.stringify(names),
+	);
+
+	// Hide is a view: it changes what is drawn and nothing else.
+	const drawn = await canvasFingerprint(bridge);
+	check(
+		'hiding Treats is pressed from its eye',
+		await pressLayerToggle(bridge, 'Hide Treats on the canvas'),
+	);
+	const hidden = await within(3000, async () =>
+		(await canvasFingerprint(bridge)) !== drawn ? true : null,
+	);
+	check('hiding Treats removes the treats from the drawing', hidden !== null);
+	check(
+		'hiding leaves the level text and revision alone',
+		(await levelCall(bridge, 'level_snapshot', { id: 'level-1' })).revision === 0,
+	);
+	await pressLayerToggle(bridge, 'Hide Enemies on the canvas');
+	await bridge.js<boolean>(
+		`const b = [...document.querySelectorAll('button')].find((x) => x.textContent.trim() === 'Show all'); b?.click(); return true;`,
+	);
+	const shownAgain = await within(3000, async () =>
+		(await canvasFingerprint(bridge)) === drawn ? true : null,
+	);
+	check('Show all brings the drawing back as it was', shownAgain !== null);
+	// Tile layers are drawn without too: Rust runs the level without their statements. What stays
+	// drawn must stay where it is: the exit door's pixels are the same with the ground hidden.
+	const exitShown = await exitPixels(bridge);
+	// The camera is at the level's left end now, so the drawing to come back to is this one.
+	const groundDrawn = await canvasFingerprint(bridge);
+	check(
+		'the exit door and a crystal are on screen and are not the sky',
+		exitShown !== null &&
+			JSON.stringify(exitShown.exit) !== JSON.stringify(exitShown.sky) &&
+			JSON.stringify(exitShown.crystal) !== JSON.stringify(exitShown.sky),
+	);
+	check(
+		'hiding Terrain is pressed from its eye',
+		await pressLayerToggle(bridge, 'Hide Terrain on the canvas'),
+	);
+	const noGround = await within(5000, async () =>
+		(await canvasFingerprint(bridge)) !== groundDrawn ? true : null,
+	);
+	check('hiding Terrain removes the ground from the drawing', noGround !== null);
+	const exitHidden = await exitPixels(bridge);
+	check(
+		'hiding Terrain leaves the exit door and a ground-relative crystal at the same pixels',
+		exitShown !== null &&
+			exitHidden !== null &&
+			JSON.stringify(exitHidden.exit) === JSON.stringify(exitShown.exit) &&
+			JSON.stringify(exitHidden.crystal) === JSON.stringify(exitShown.crystal),
+	);
+	check(
+		'hiding Terrain leaves the level text and revision alone',
+		(await levelCall(bridge, 'level_snapshot', { id: 'level-1' })).revision === 0,
+	);
+	await bridge.js<boolean>(
+		`const b = [...document.querySelectorAll('button')].find((x) => x.textContent.trim() === 'Show all'); b?.click(); return true;`,
+	);
+	const groundBack = await within(5000, async () =>
+		(await canvasFingerprint(bridge)) === groundDrawn ? true : null,
+	);
+	check('Show all brings the ground back', groundBack !== null);
+
+	// Lock Treats: every route refuses a change to it.
+	check(
+		'locking Treats is pressed from its padlock',
+		await pressLayerToggle(bridge, 'Lock Treats'),
+	);
+	const kept = await within(5000, async () => {
+		try {
+			return JSON.parse(readFileSync(sidecar, 'utf8')).layers?.locked?.includes('treats')
+				? true
+				: null;
+		} catch {
+			return null;
+		}
+	});
+	check('the lock is kept in the level sidecar', kept !== null);
+	const refused = await bridge.js<{ kind?: string; layers?: string[] } | null>(
+		`try { await window.__TAURI_INTERNALS__.invoke('plugin:fizz-studio-worlds|level_apply', { id: 'level-1', edit: { kind: 'place', item: 'cheezie', x: [[5, 5]], y: [[9, 9]] }, basedOn: 0, mergeKey: null }); return null; } catch (e) { return e; }`,
+	);
+	check(
+		'placing a treat while Treats is locked is refused by Rust',
+		refused?.kind === 'locked' && refused.layers?.join() === 'treats',
+		JSON.stringify(refused),
+	);
+	await showFromRail(bridge, 'Palette');
+	const chose = await within(3000, async () => {
+		await bridge.js<boolean>(
+			`const o = [...document.querySelectorAll('[role=option]')].find((x) => (x.getAttribute('aria-label') ?? x.textContent.trim().slice(1)) === 'cheezie'); o?.click(); return true;`,
+		);
+		return bridge.js<boolean>(`return document.body.innerText.includes('Brush: cheezie');`);
+	});
+	check('the Treat brush is chosen in the Palette', chose !== null);
+	const clicked =
+		chose !== null &&
+		(await bridge.js<boolean>(
+			`const m = document.querySelector('[data-map]').getBoundingClientRect();
+		 const c = document.querySelector('[role=application]');
+		 c.setPointerCapture = () => {}; // a synthetic pointer id has nothing to capture
+		 const at = { x: m.left + m.width / 2, y: m.top + m.height / 2 };
+		 for (const type of ['pointerdown', 'pointerup']) c.dispatchEvent(new PointerEvent(type, { bubbles: true, cancelable: true, pointerId: 9, button: 0, clientX: at.x, clientY: at.y }));
+		 return true;`,
+		));
+	const note = await within(3000, () =>
+		bridge.js<boolean>(
+			`return [...document.querySelectorAll('[role=alert]')].some((x) => x.textContent.includes('Treats is locked. Unlock it in Layers to change it.'));`,
+		),
+	);
+	check('painting a treat on the canvas shows the lock note', clicked && note !== null);
+	check(
+		'the refused edits changed nothing',
+		(await levelCall(bridge, 'level_snapshot', { id: 'level-1' })).revision === 0,
+	);
+	const claude = await mcpEdit(path, ['place cheezie x=5 y=9']);
+	check(
+		'edit_level through the MCP server is refused for the locked layer',
+		claude.isError === true &&
+			claude.text.includes('Treats is locked') &&
+			readFileSync(path, 'utf8') === original,
+		claude.text,
+	);
+
+	// A paint over the cells a locked tile layer wrote is refused too, and the sky is free.
+	await showFromRail(bridge, 'Layers');
+	check(
+		'locking Terrain is pressed from its padlock',
+		await pressLayerToggle(bridge, 'Lock Terrain'),
+	);
+	await within(3000, async () =>
+		(await layerRows(bridge)).some((r) => r.name === 'Terrain' && r.locked === 'true'),
+	);
+	const overGround = await bridge.js<{ kind?: string; layers?: string[] } | null>(
+		`try { await window.__TAURI_INTERNALS__.invoke('plugin:fizz-studio-worlds|level_apply', { id: 'level-1', edit: { kind: 'paint', tile: 'grass', x: [[5, 5]], y: [[1, 1]] }, basedOn: 0, mergeKey: null }); return null; } catch (e) { return e; }`,
+	);
+	check(
+		'painting over the ground while Terrain is locked is refused',
+		overGround?.kind === 'locked' && overGround.layers?.join() === 'terrain',
+		JSON.stringify(overGround),
+	);
+	await pressLayerToggle(bridge, 'Lock Terrain');
+	await within(3000, async () =>
+		(await layerRows(bridge)).every((r) => (r.name === 'Terrain' ? r.locked === 'false' : true)),
+	);
+
+	// An outside write to a line of a locked section is a conflict; the studio keeps its text.
+	const outside = original.replace('soda        x=36 y=5', 'soda        x=37 y=5');
+	writeFileSync(path, outside);
+	const conflict = await within(5000, () =>
+		bridge.js<boolean>(
+			`return document.body.innerText.includes('which is locked, so the studio kept its own text');`,
+		),
+	);
+	check('an outside write to a locked layer is a conflict that names it', conflict !== null);
+	check(
+		'the studio keeps its own text after the refused outside write',
+		(await levelCall(bridge, 'level_snapshot', { id: 'level-1' })).text === original,
+	);
+	writeFileSync(path, original);
+
+	// Leave everything as it was found.
+	await showFromRail(bridge, 'Layers');
+	await pressLayerToggle(bridge, 'Lock Treats');
+	await bridge.js<boolean>(
+		`const b = [...document.querySelectorAll('button')].find((x) => x.getAttribute('aria-label') === 'Dismiss' || x.textContent.trim() === 'Dismiss'); b?.click(); return true;`,
+	);
+	await within(5000, async () => {
+		try {
+			return JSON.parse(readFileSync(sidecar, 'utf8')).layers === undefined ? true : null;
+		} catch {
+			return true;
+		}
+	});
+	rmSync(sidecar, { force: true });
+	await showFromRail(bridge, 'Palette');
+	// The brush the first check chose goes back to the one a level opens with.
+	await bridge.js<boolean>(
+		`const o = [...document.querySelectorAll('[role=option]')].find((x) => (x.getAttribute('aria-label') ?? x.textContent.trim().slice(1)) === 'fill'); o?.click(); return true;`,
+	);
+}
+
+/** The text of the Inspector's fields in a window, or null when the panel is not showing there. */
+async function inspectorText(bridge: Bridge, windowId = 'main-1'): Promise<string | null> {
+	const found = await bridge.js<{ v: string | null }>(
+		`return { v: document.querySelector('[role=group][aria-label="Selected thing"]')?.innerText ?? null };`,
+		windowId,
+	);
+	return found.v;
+}
+
+/** Presses a button in the Inspector by its accessible name; false when it is absent or disabled. */
+function pressInInspector(bridge: Bridge, name: string, windowId = 'main-1'): Promise<boolean> {
+	return bridge.js<boolean>(
+		`const b = [...document.querySelectorAll('[role=group][aria-label="Selected thing"] button')].find((x) => (x.getAttribute('aria-label') ?? x.textContent.trim()) === ${JSON.stringify(name)});
+		 if (!b || b.disabled) return false;
+		 b.click();
+		 return true;`,
+		windowId,
+	);
+}
+
+/** Whether a button of the Inspector is disabled, or null when it is absent. */
+function inspectorButtonDisabled(bridge: Bridge, name: string): Promise<boolean | null> {
+	return bridge.js<boolean | null>(
+		`const b = [...document.querySelectorAll('[role=group][aria-label="Selected thing"] button')].find((x) => (x.getAttribute('aria-label') ?? x.textContent.trim()) === ${JSON.stringify(name)});
+		 return b ? b.disabled : null;`,
+	);
+}
+
+/** The value of one of the Inspector's number fields, by its label, or null. */
+function inspectorField(
+	bridge: Bridge,
+	label: string,
+	windowId = 'main-1',
+): Promise<number | null> {
+	return bridge.js<number | null>(
+		`const f = document.querySelector('[role=group][aria-label="Selected thing"] input[type=number][id]');
+		 const all = [...document.querySelectorAll('[role=group][aria-label="Selected thing"] label')];
+		 const l = all.find((x) => x.textContent.trim() === ${JSON.stringify(label)});
+		 const input = l ? document.getElementById(l.htmlFor) : f;
+		 return input ? Number(input.value) : null;`,
+		windowId,
+	);
+}
+
+/** Chooses a thing in the Objects list by the start of its row's text, which selects it for the Inspector. */
+async function chooseInObjects(bridge: Bridge, row: string): Promise<boolean> {
+	await showFromRail(bridge, 'Objects');
+	const chosen = await within(3000, () =>
+		bridge.js<boolean>(
+			`const b = [...document.querySelectorAll('[role=list][aria-label=Objects] button')].find((x) => x.textContent.trim().startsWith(${JSON.stringify(row)}));
+			 if (!b) return false;
+			 b.click();
+			 return true;`,
+		),
+	);
+	await showFromRail(bridge, 'Inspector');
+	return chosen !== null;
+}
+
+/** The lines of a script that differ between two texts, as `[line, before, after]`. */
+function changedLines(before: string, after: string): Array<[number, string, string]> {
+	const a = before.split('\n');
+	const b = after.split('\n');
+	const out: Array<[number, string, string]> = [];
+	for (let i = 0; i < Math.max(a.length, b.length); i++) {
+		if (a[i] !== b[i]) out.push([i + 1, a[i] ?? '', b[i] ?? '']);
+	}
+	return out;
+}
+
+/** The Ctrl+Z key as the editor sees it, sent from inside the Inspector. */
+function pressUndoKey(bridge: Bridge): Promise<boolean> {
+	return bridge.js<boolean>(
+		`const e = document.querySelector('[role=group][aria-label="Selected thing"]');
+		 if (!e) return false;
+		 e.dispatchEvent(new KeyboardEvent('keydown', { key: 'z', ctrlKey: true, bubbles: true, cancelable: true }));
+		 return true;`,
+	);
+}
+
+/**
+ * The Inspector in the running app, on the real engine: it shows the thing Inspect selects, its
+ * steppers change only that thing's line and keep its spacing, a run of presses is one undo step,
+ * Ctrl+Z restores the bytes, a turn splits the statement and names the step, Delete is undoable,
+ * a locked layer refuses with a note and changes nothing, Ctrl+J shows the line, a generated item
+ * and the start are read-only in the ways they should be, the arrows move the thing and Escape
+ * gives them back to the cursor, Erase takes the things it touches in one step, and a torn-off
+ * Inspector edits through the main window. It leaves the level's text as it found it.
+ */
+async function inspectorChecks(bridge: Bridge, path: string): Promise<void> {
+	const canvas = 'canvas[role=application]';
+	const level = () => levelCall(bridge, 'level_snapshot', { id: 'level-1' });
+	const original = (await level()).text;
+	const lines = original.split('\n');
+	const sodaLine = lines.findIndex((l) => l.trim().startsWith('soda        x=36 y=5')) + 1;
+	const sidecar = path.replace(/\.fizz$/, '.studio.json');
+	const undo = async (to: string, what: string) => {
+		check(`${what}: Ctrl+Z restores the text byte for byte`, await pressUndoKey(bridge));
+		const back = await within(3000, async () => (await level()).text === to);
+		check(`${what}: the text is back as it was`, back !== null);
+	};
+	const walkTo = async (target: { x: number; y: number }) => {
+		const from = await cursorCell(bridge);
+		if (!from) return;
+		const steps = [
+			...Array(Math.abs(target.x - from.x)).fill(target.x > from.x ? 'ArrowRight' : 'ArrowLeft'),
+			...Array(Math.abs(target.y - from.y)).fill(target.y > from.y ? 'ArrowUp' : 'ArrowDown'),
+		] as string[];
+		for (const key of steps) await pressKey(bridge, canvas, key);
+	};
+
+	// The empty state, then the soda chosen with Inspect on the canvas.
+	await showFromRail(bridge, 'Inspector');
+	check(
+		'inspector: with nothing selected it says how to select something',
+		(await within(3000, async () =>
+			((await inspectorText(bridge)) ?? '').includes('Nothing selected'),
+		)) !== null,
+		String(await inspectorText(bridge)),
+	);
+	await pressKey(bridge, canvas, 'q');
+	await walkTo({ x: 36, y: 5 });
+	await pressKey(bridge, canvas, ' ');
+	const shown = await within(3000, async () => {
+		const text = (await inspectorText(bridge)) ?? '';
+		return text.includes('Soda · treat') && text.includes(`Line ${sodaLine}`);
+	});
+	check(
+		'inspector: Inspect on the soda shows its name, kind and line',
+		shown !== null,
+		String(await inspectorText(bridge)),
+	);
+	check(
+		'inspector: it shows the soda’s x and y',
+		(await inspectorField(bridge, 'x')) === 36 && (await inspectorField(bridge, 'y')) === 5,
+	);
+
+	// One press of x+ changes that line and nothing else, and keeps the aligned columns.
+	const base = await level();
+	check(
+		'inspector: x+ is pressed from the Inspector',
+		await pressInInspector(bridge, 'Increase x'),
+	);
+	const moved = await within(3000, async () => (await level()).revision > base.revision);
+	const afterOne = await level();
+	const diff = changedLines(base.text, afterOne.text);
+	check(
+		'inspector: x+ changes only the soda’s line and keeps its alignment',
+		moved !== null &&
+			diff.length === 1 &&
+			diff[0]![0] === sodaLine &&
+			diff[0]![2].trim() === 'soda        x=37 y=5',
+		JSON.stringify(diff),
+	);
+	check(
+		'inspector: the step is named for the move',
+		afterOne.undoName === 'Move soda to 37, 5',
+		String(afterOne.undoName),
+	);
+	await undo(base.text, 'inspector: one press');
+
+	// A run of presses without leaving the Inspector is one undo step, named for where it ended.
+	for (let n = 0; n < 4; n++) await pressInInspector(bridge, 'Increase x');
+	const ran = await within(3000, async () => (await level()).text.includes('soda        x=40 y=5'));
+	const afterRun = await level();
+	check(
+		'inspector: four presses are one step named for where the run ended',
+		ran !== null && afterRun.undoName === 'Move soda to 40, 5',
+		JSON.stringify([afterRun.revision, afterRun.undoName]),
+	);
+	await undo(base.text, 'inspector: a run of presses');
+	check(
+		'inspector: only the earlier outside edit is left to undo after the run’s one step',
+		(await level()).undoName === 'Edit outside the studio',
+		String((await level()).undoName),
+	);
+
+	// Show in script reveals the line (Ctrl+J and the button).
+	check('inspector: Show in script is pressed', await pressInInspector(bridge, 'Show in script'));
+	const revealed = await within(3000, () =>
+		bridge.js<boolean>(
+			`return [...document.querySelectorAll('.cm-revealedLine')].some((e) => e.textContent.includes('soda'));`,
+		),
+	);
+	check('inspector: Show in script reveals the soda’s line', revealed !== null);
+	await pressKey(bridge, canvas, 'j'); // a bare J does nothing: it is Ctrl+J that shows the line
+	await bridge.js<boolean>(
+		`document.querySelector('${canvas}').dispatchEvent(new KeyboardEvent('keydown', { key: 'j', ctrlKey: true, bubbles: true, cancelable: true })); return true;`,
+	);
+	check(
+		'inspector: Ctrl+J reveals the line too',
+		(await within(3000, () =>
+			bridge.js<boolean>(
+				`return [...document.querySelectorAll('.cm-revealedLine')].some((e) => e.textContent.includes('soda'));`,
+			),
+		)) !== null,
+	);
+
+	// A locked layer refuses, with a note under the fields, and the text does not change.
+	await showFromRail(bridge, 'Layers');
+	check(
+		'inspector: Treats is locked from the Layers panel',
+		await pressLayerToggle(bridge, 'Lock Treats'),
+	);
+	await within(
+		3000,
+		async () => (await levelCall(bridge, 'level_snapshot', { id: 'level-1' })).revision >= 0,
+	);
+	await showFromRail(bridge, 'Inspector');
+	const lockedBase = await level();
+	await pressInInspector(bridge, 'Increase x');
+	const refused = await within(3000, async () =>
+		((await inspectorText(bridge)) ?? '').includes(
+			'Treats is locked. Unlock it in Layers to change it.',
+		),
+	);
+	check(
+		'inspector: a locked layer refuses with the note under the fields',
+		refused !== null,
+		String(await inspectorText(bridge)),
+	);
+	const lockedAfter = await level();
+	check(
+		'inspector: the refused change left the text and the revision alone',
+		lockedAfter.text === lockedBase.text && lockedAfter.revision === lockedBase.revision,
+	);
+	check(
+		'inspector: the refusal is an alert',
+		await bridge.js<boolean>(
+			`return [...document.querySelectorAll('[role=alert]')].some((e) => e.textContent.includes('is locked'));`,
+		),
+	);
+	await showFromRail(bridge, 'Layers');
+	await pressLayerToggle(bridge, 'Lock Treats');
+	await within(5000, async () => {
+		try {
+			return JSON.parse(readFileSync(sidecar, 'utf8')).layers === undefined ? true : null;
+		} catch {
+			return true;
+		}
+	});
+	rmSync(sidecar, { force: true });
+	await showFromRail(bridge, 'Inspector');
+
+	// The arrows move the thing, not the cursor; one Undo puts it back; Escape gives the arrows back.
+	const cursorBefore = await cursorCell(bridge);
+	await pressKey(bridge, canvas, 'ArrowRight');
+	const nudged = await within(3000, async () =>
+		(await level()).text.includes('soda        x=37 y=5'),
+	);
+	check('inspector: an arrow moves the selected thing one tile', nudged !== null);
+	check(
+		'inspector: the arrow left the cursor where it was',
+		JSON.stringify(await cursorCell(bridge)) === JSON.stringify(cursorBefore),
+		JSON.stringify([cursorBefore, await cursorCell(bridge)]),
+	);
+	await pressKey(bridge, canvas, 'ArrowRight');
+	await pressKey(bridge, canvas, 'ArrowUp');
+	const run = await within(3000, async () => (await level()).text.includes('soda        x=38 y=6'));
+	check('inspector: a run of arrows keeps moving it', run !== null);
+	await undo(base.text, 'inspector: a run of arrow nudges');
+	await pressKey(bridge, canvas, 'Escape');
+	await pressKey(bridge, canvas, 'ArrowRight');
+	const walked = await within(3000, async () => {
+		const at = await cursorCell(bridge);
+		return at !== null && cursorBefore !== null && at.x === cursorBefore.x + 1;
+	});
+	check(
+		'inspector: after Escape the arrows walk the cursor again and edit nothing',
+		walked !== null && (await level()).text === base.text,
+	);
+
+	// Turn a gloop: the statement splits in place, the step says so, and Undo restores the bytes.
+	const gloops = await bridge.js<Array<{ x: number; y: number | null }>>(
+		`const s = await window.__TAURI_INTERNALS__.invoke('plugin:fizz-studio-worlds|level_snapshot', { id: 'level-1' });
+		 return s.view.spawns.filter((w) => w.kind === 'gloop').map((w) => ({ x: w.x, y: w.y }));`,
+	);
+	const middle = gloops.find((w) => w.x === 62);
+	check(
+		'inspector: the middle gloop is chosen in Objects',
+		middle !== undefined &&
+			(await chooseInObjects(
+				bridge,
+				middle.y === null ? 'Spawn gloop at column 62' : `Spawn gloop at 62, ${middle.y}`,
+			)),
+		JSON.stringify(gloops),
+	);
+	check(
+		'inspector: it shows the gloop with its facing',
+		(await within(3000, async () => {
+			const text = (await inspectorText(bridge)) ?? '';
+			return (
+				text.includes('Gloop · enemy') &&
+				text.includes('Stands on the ground') &&
+				text.includes('Facing')
+			);
+		})) !== null,
+		String(await inspectorText(bridge)),
+	);
+	await checkKeycaps(bridge, 'inspector with an enemy selected');
+	const gloopBase = await level();
+	check('inspector: Right is pressed', await pressInInspector(bridge, 'Right'));
+	const turned = await within(3000, async () => (await level()).revision > gloopBase.revision);
+	const turnedAfter = await level();
+	const gl = turnedAfter.text.split('\n');
+	const at = gl.findIndex((l) => /^\s+gloop\s+x=62 y=\d+ dir=1$/.test(l));
+	check(
+		'inspector: turning the middle gloop splits its statement in three, in place',
+		turned !== null &&
+			at > 0 &&
+			/^\s+gloop\s+x=35$/.test(gl[at - 1] ?? '') &&
+			/^\s+gloop\s+x=85$/.test(gl[at + 1] ?? '') &&
+			changedLines(gloopBase.text, turnedAfter.text).length >= 2,
+		JSON.stringify(gl.slice(Math.max(at - 1, 0), at + 2)),
+	);
+	check(
+		'inspector: the step says it turned and split',
+		/^Turn gloop to face right/.test(turnedAfter.undoName ?? '') &&
+			/split/.test(turnedAfter.undoName ?? ''),
+		String(turnedAfter.undoName),
+	);
+	await showFromRail(bridge, 'History');
+	check(
+		'inspector: History offers the named undo',
+		(await within(3000, () =>
+			bridge.js<boolean>(`return document.body.innerText.includes('Undo Turn gloop');`),
+		)) !== null,
+	);
+	await showFromRail(bridge, 'Inspector');
+	await undo(gloopBase.text, 'inspector: the turn');
+
+	// Delete a cheezie: the note says how to undo, and undo brings the whole row back.
+	check(
+		'inspector: a cheezie is chosen in Objects',
+		await chooseInObjects(bridge, 'Item cheezie at 29, 7'),
+	);
+	const delBase = await level();
+	check('inspector: Delete is pressed', await pressInInspector(bridge, 'Delete'));
+	const deleted = await within(3000, async () => (await level()).revision > delBase.revision);
+	const delAfter = await level();
+	check(
+		'inspector: Delete removes the cheezie and the step is named for it',
+		deleted !== null && delAfter.undoName === 'Delete cheezie' && delAfter.text !== delBase.text,
+		String(delAfter.undoName),
+	);
+	check(
+		'inspector: it says Ctrl+Z puts it back, and nothing is selected',
+		(await within(3000, async () => {
+			const text = (await inspectorText(bridge)) ?? '';
+			return (
+				text.includes('Deleted cheezie. Ctrl+Z puts it back.') && text.includes('Nothing selected')
+			);
+		})) !== null,
+		String(await inspectorText(bridge)),
+	);
+	await undo(delBase.text, 'inspector: the delete');
+
+	// The start moves with the steppers but cannot be deleted; a generated item shows its reason only.
+	check(
+		'inspector: Ben’s start is chosen in Objects',
+		await chooseInObjects(bridge, 'Ben’s start at 3, 4'),
+	);
+	check(
+		'inspector: Delete is disabled for the start, with the reason',
+		(await inspectorButtonDisabled(bridge, 'Delete')) === true &&
+			((await inspectorText(bridge)) ?? '').includes('A level needs a start.'),
+		String(await inspectorText(bridge)),
+	);
+	const cacheItems = await bridge.js<Array<{ kind: string; x: number; y: number }>>(
+		`const s = await window.__TAURI_INTERNALS__.invoke('plugin:fizz-studio-worlds|level_snapshot', { id: 'level-1' });
+		 return s.view.items.filter((i) => i.generator === 'pogo-cache').map((i) => ({ kind: i.kind, x: i.x, y: i.y }));`,
+	);
+	const cached = cacheItems[0];
+	check('inspector: the level has items made by the pogo-cache', cached !== undefined);
+	if (cached) {
+		await chooseInObjects(bridge, `Item ${cached.kind} at ${cached.x}, ${cached.y}`);
+		check(
+			'inspector: a generated item shows the reason and Show in script, with no fields to change',
+			(await within(3000, async () =>
+				((await inspectorText(bridge)) ?? '').includes('Made by the pogo-cache'),
+			)) !== null &&
+				(await inspectorField(bridge, 'x')) === null &&
+				(await inspectorButtonDisabled(bridge, 'Delete')) === true &&
+				(await inspectorButtonDisabled(bridge, 'Show in script')) === false,
+			String(await inspectorText(bridge)),
+		);
+	}
+
+	// Erase takes the thing it touches along with the tiles it clears, in one step.
+	await pressKey(bridge, canvas, 'Escape');
+	await pressKey(bridge, canvas, 'e');
+	await walkTo({ x: 36, y: 5 });
+	const eraseBase = await level();
+	await pressKey(bridge, canvas, ' ');
+	const erased = await within(3000, async () => (await level()).revision > eraseBase.revision);
+	const eraseAfter = await within(
+		3000,
+		async () => !(await level()).text.includes('soda        x=36 y=5'),
+	);
+	check(
+		'erase: the Erase tool also deletes the soda it touches',
+		erased !== null && eraseAfter !== null && (await level()).text.includes('clear x=36 y=5'),
+	);
+	await undo(eraseBase.text, 'erase: its stroke');
+	await pressKey(bridge, canvas, 'b');
+
+	// The Delete key on the canvas deletes the selected thing, and Ctrl+Z brings it back.
+	await pressKey(bridge, canvas, 'q');
+	await pressKey(bridge, canvas, ' ');
+	await within(3000, async () => ((await inspectorText(bridge)) ?? '').includes('Soda · treat'));
+	await pressKey(bridge, canvas, 'Delete');
+	const keyed = await within(
+		3000,
+		async () => !(await level()).text.includes('soda        x=36 y=5'),
+	);
+	check('inspector: the Delete key on the canvas deletes the selected thing', keyed !== null);
+	await undo(eraseBase.text, 'inspector: the Delete key');
+
+	// A torn-off Inspector edits through the main window.
+	await pressKey(bridge, canvas, ' ');
+	await within(3000, async () => ((await inspectorText(bridge)) ?? '').includes('Soda · treat'));
+	await showFromRail(bridge, 'Inspector');
+	check(
+		'inspector: the panel offers Tear off',
+		await choosePanelMenu(bridge, 'Inspector', 'Tear off'),
+	);
+	const opened = await within(10_000, async () =>
+		(await bridge.windows()).includes('panel-inspector-1'),
+	);
+	check('inspector: tearing it off opens its window', opened !== null);
+	await bridge.ready('panel-inspector-1');
+	const tornShows = await within(20_000, async () => {
+		try {
+			return ((await inspectorText(bridge, 'panel-inspector-1')) ?? '').includes('Soda · treat');
+		} catch {
+			return false;
+		}
+	});
+	check('inspector: the torn-off window shows the selected soda', tornShows !== null);
+	await checkKeycaps(bridge, 'the torn-off Inspector', 'panel-inspector-1');
+	const tornBase = await level();
+	check(
+		'inspector: x+ is pressed in the torn-off window',
+		await pressInInspector(bridge, 'Increase x', 'panel-inspector-1'),
+	);
+	const tornMoved = await within(5000, async () =>
+		(await level()).text.includes('soda        x=37 y=5'),
+	);
+	check('inspector: a change in the torn-off window reaches the level', tornMoved !== null);
+	check(
+		'inspector: the torn-off window shows the new place',
+		(await within(
+			5000,
+			async () => (await inspectorField(bridge, 'x', 'panel-inspector-1')) === 37,
+		)) !== null,
+	);
+	check('inspector: docking the Inspector back', await dockBackWindow(bridge, 'inspector'));
+	await showFromRail(bridge, 'Inspector');
+	await within(5000, async () => (await inspectorText(bridge)) !== null);
+	await undo(tornBase.text, 'inspector: the torn-off change');
+
+	// Leave the selection, the tool and the level as they were found.
+	await pressKey(bridge, canvas, 'Escape');
+	check('inspector: the level ends as it began', (await level()).text === original);
+	// Save the way a person does, so the window's title loses its unsaved mark as well.
+	await bridge.js<boolean>(
+		`document.dispatchEvent(new KeyboardEvent('keydown', { key: 's', ctrlKey: true, bubbles: true })); return true;`,
+	);
+	const clean = await within(5000, async () => !((await titleBarText(bridge)) ?? '').includes('•'));
+	check('inspector: after Save the title shows no unsaved changes', clean !== null);
+}
+
+/**
+ * The Inspector's account of a selected cell, in the running app on `crater.fizz`: a terrain cell
+ * (name, the language's description, the line and its text, the layer, the brush button that
+ * chooses that brush) and a cell painted in the studio (the `edits` line), then an empty cell. It
+ * paints one cell and undoes it, and leaves Paint chosen with nothing inspected.
+ */
+async function tileInspectorChecks(bridge: Bridge): Promise<void> {
+	const canvas = 'canvas[role=application]';
+	const level = () => levelCall(bridge, 'level_snapshot', { id: 'level-1' });
+	const before = await level();
+	const textLines = before.text.split('\n');
+	const walkTo = async (target: { x: number; y: number }) => {
+		const from = await cursorCell(bridge);
+		if (!from) return false;
+		const keys = [
+			...Array(Math.abs(target.x - from.x)).fill(target.x > from.x ? 'ArrowRight' : 'ArrowLeft'),
+			...Array(Math.abs(target.y - from.y)).fill(target.y > from.y ? 'ArrowUp' : 'ArrowDown'),
+		] as string[];
+		await bridge.js<boolean>(
+			`const e = document.querySelector(${JSON.stringify(canvas)});
+			 e.focus();
+			 for (const key of ${JSON.stringify(keys)}) {
+			   e.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true }));
+			   await new Promise((r) => setTimeout(r, 0));
+			 }
+			 return true;`,
+		);
+		return (
+			(await within(3000, async () => {
+				const at = await cursorCell(bridge);
+				return at !== null && at.x === target.x && at.y === target.y;
+			})) !== null
+		);
+	};
+	const select = async (cell: { x: number; y: number }) => {
+		await pressKey(bridge, canvas, 'q');
+		const there = await walkTo(cell);
+		await pressKey(bridge, canvas, ' ');
+		return there;
+	};
+	const settled = (needle: string) =>
+		within(4000, async () => ((await inspectorText(bridge)) ?? '').includes(needle));
+
+	await showFromRail(bridge, 'Inspector');
+
+	// A terrain cell: the pool line of the Terrain layer wrote it.
+	const poolLine = textLines.findIndex((l) => l.trim().startsWith('pool 4, flat 8')) + 1;
+	check(
+		'tile inspector: Inspect walks to a terrain cell',
+		await select({ x: 64, y: 2 }),
+		JSON.stringify(await cursorCell(bridge)),
+	);
+	const terrain = await settled(`Terrain, line ${poolLine}`);
+	const text = (await inspectorText(bridge)) ?? '';
+	check('tile inspector: a terrain cell names its tile', text.includes('Cell 64, 2 · fill'), text);
+	check(
+		'tile inspector: it gives the language’s group and description',
+		text.includes('Ground and solids') &&
+			text.includes(
+				'Solid ground. The basic filler for terrain, and what fill-by-range lines write.',
+			),
+		text,
+	);
+	check(
+		'tile inspector: the group stands apart from the description',
+		!text.includes('Ground and solids: '),
+		text,
+	);
+	check(
+		'tile inspector: it names the layer and the line, with the line’s text',
+		terrain !== null && poolLine > 0 && text.includes(textLines[poolLine - 1]!.trim().slice(0, 30)),
+		text,
+	);
+	check('tile inspector: it names the Terrain layer', text.includes('Terrain'), text);
+	check(
+		'tile inspector: the brush button is there and Show in script is kept',
+		await bridge.js<boolean>(
+			`const bs = [...document.querySelectorAll('[role=group][aria-label="Selected thing"] button')].map((b) => b.textContent.trim());
+			 return bs.includes('Use the fill brush') && bs.includes('Show in script');`,
+		),
+		text,
+	);
+	check(
+		'tile inspector: the old one-line note alone is gone',
+		!text.includes('Tiles are painted, not edited here.'),
+	);
+	await checkKeycaps(bridge, 'tile inspector with a terrain cell');
+
+	// The brush button chooses that brush in the Palette and switches to Paint.
+	await pressKey(bridge, canvas, 'Escape');
+	await select({ x: 64, y: 2 });
+	await settled('Cell 64, 2');
+	check(
+		'tile inspector: the brush button is pressed',
+		await pressInInspector(bridge, 'Use the fill brush'),
+	);
+	await showFromRail(bridge, 'Palette');
+	check(
+		'tile inspector: that brush is chosen in the Palette',
+		(await within(3000, () =>
+			bridge.js<boolean>(
+				`return document.querySelector('[role=option][aria-selected=true]')?.getAttribute('data-kind') === 'fill';`,
+			),
+		)) !== null,
+	);
+	check(
+		'tile inspector: choosing it switched the tool to Paint',
+		await bridge.js<boolean>(
+			`return document.querySelector('[role=group][aria-label=Tools] button[aria-label=Paint]')?.getAttribute('aria-pressed') === 'true';`,
+		),
+	);
+	await showFromRail(bridge, 'Inspector');
+
+	// A painted cell: the Edits layer and its line.
+	const painted = await levelCall(bridge, 'level_apply', {
+		id: 'level-1',
+		edit: { kind: 'paint', tile: 'grass', x: [[5, 5]], y: [[9, 9]] },
+		basedOn: before.revision,
+		mergeKey: null,
+	});
+	const paintLines = painted.text.split('\n');
+	const paintLine = paintLines.findLastIndex((l: string) => l.includes('paint grass x=5 y=9')) + 1;
+	await select({ x: 5, y: 9 });
+	check(
+		'tile inspector: a painted cell shows the Edits layer and its line',
+		(await settled(`Edits, line ${paintLine}`)) !== null,
+		String(await inspectorText(bridge)),
+	);
+	const paintedText = (await inspectorText(bridge)) ?? '';
+	check(
+		'tile inspector: it shows the paint line’s text and the tile’s group',
+		paintedText.includes('paint grass x=5 y=9') && paintedText.includes('Cell 5, 9 · grass'),
+		paintedText,
+	);
+
+	// An empty cell: empty, what could be placed, and where a paint would be written.
+	await pressKey(bridge, canvas, 'Escape');
+	await select({ x: 6, y: 20 });
+	const empty = await settled('Empty: nothing is painted here.');
+	const emptyText = (await inspectorText(bridge)) ?? '';
+	check('tile inspector: an empty cell says it is empty', empty !== null, emptyText);
+	check(
+		'tile inspector: it lists the Palette sections and the layer a paint would write to',
+		emptyText.includes('Brushes you can place here, from the Palette:') &&
+			emptyText.includes('A paint here is added to Edits'),
+		emptyText,
+	);
+
+	// Put the level back as it was.
+	await pressKey(bridge, canvas, 'Escape');
+	check('tile inspector: the painted cell is undone', await pressUndoKeyOnCanvas(bridge, canvas));
+	check(
+		'tile inspector: the text is back as it was',
+		(await within(3000, async () => (await level()).text === before.text)) !== null,
+	);
+	await bridge.js<boolean>(
+		`const b = document.querySelector('[role=group][aria-label=Tools] button[aria-label=Paint]'); b?.click(); return true;`,
+	);
+	// Save the way a person does, so the window's title loses its unsaved mark as well.
+	await bridge.js<boolean>(
+		`document.dispatchEvent(new KeyboardEvent('keydown', { key: 's', ctrlKey: true, bubbles: true })); return true;`,
+	);
+	const clean = await within(5000, async () => !((await titleBarText(bridge)) ?? '').includes('•'));
+	check('tile inspector: after Save the title shows no unsaved changes', clean !== null);
+}
+
+/** Presses Ctrl+Z on the canvas. */
+function pressUndoKeyOnCanvas(bridge: Bridge, canvas: string): Promise<boolean> {
+	return bridge.js<boolean>(
+		`const e = document.querySelector(${JSON.stringify(canvas)});
+		 if (!e) return false;
+		 e.focus();
+		 e.dispatchEvent(new KeyboardEvent('keydown', { key: 'z', ctrlKey: true, bubbles: true, cancelable: true }));
+		 return true;`,
+	);
+}
+
+/** The Objects list's filter and line numbers, in the running app. It leaves nothing selected. */
+async function objectsFilterChecks(bridge: Bridge): Promise<void> {
+	await showFromRail(bridge, 'Objects');
+	const rows = () =>
+		bridge.js<string[]>(
+			`return [...document.querySelectorAll('[role=list][aria-label=Objects] li')].map((li) => li.textContent.trim());`,
+		);
+	const type = (text: string) =>
+		bridge.js<boolean>(
+			`const i = document.querySelector('input[type=search][aria-label="Filter things"]');
+			 if (!i) return false;
+			 Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(i, ${JSON.stringify(text)});
+			 i.dispatchEvent(new Event('input', { bubbles: true }));
+			 return true;`,
+		);
+	const all = await rows();
+	check(
+		'objects: each thing’s row ends with its script line',
+		all.some((r) => /^Item soda at 36, 5line \d+$/.test(r)),
+		JSON.stringify(all.slice(0, 4)),
+	);
+	check('objects: the filter is typed into', await type('soda'));
+	const narrowed = await within(3000, async () => {
+		const now = await rows();
+		return now.length === 2 && now.every((r) => r.startsWith('Item soda'));
+	});
+	check(
+		'objects: the filter narrows the list to the sodas',
+		narrowed !== null,
+		JSON.stringify(await rows()),
+	);
+	await type('line 5');
+	check(
+		'objects: the filter matches a line',
+		(await within(3000, async () => (await rows()).every((r) => /line 5\d?$|line 5$/.test(r)))) !==
+			null,
+	);
+	await type('qqq');
+	check(
+		'objects: a filter that matches nothing says so',
+		(await within(3000, async () => (await rows()).join().includes('Nothing matches'))) !== null,
+	);
+	await type('');
+	await checkKeycaps(bridge, 'the Objects list with its filter');
+	check(
+		'objects: the filter clears',
+		(await within(3000, async () => (await rows()).length === all.length)) !== null,
+	);
+	await chooseInObjects(bridge, 'Item soda at 36, 5');
+	await showFromRail(bridge, 'Objects');
+	check(
+		'objects: the chosen thing’s row is marked',
+		(await within(3000, () =>
+			bridge.js<boolean>(
+				`return [...document.querySelectorAll('[role=list][aria-label=Objects] button[aria-current=true]')].some((b) => b.textContent.startsWith('Item soda at 36, 5'));`,
+			),
+		)) !== null,
+	);
+	await pressKey(bridge, 'canvas[role=application]', 'Escape');
+	await showFromRail(bridge, 'Inspector');
+}
+
+// ---- Tooltips: the in-app tooltip on every icon button ----
+
+interface TipProbe {
+	count: number;
+	text: string;
+	keys: string[];
+	box: { l: number; t: number; r: number; b: number } | null;
+	pointerEvents: string;
+	describedBy: boolean;
+	scrollOk: boolean;
+	scrollTop: number;
+	layerInBody: boolean;
+}
+
+/** Fires the pointer events a mouse makes entering a control, waits past the delay and reads the tooltip. */
+function hoverAndRead(
+	bridge: Bridge,
+	selector: string,
+	index: number,
+	wait = 800,
+): Promise<TipProbe | null> {
+	return bridge.js<TipProbe | null>(
+		`const el = document.querySelectorAll(${JSON.stringify(selector)})[${index}];
+		 if (!el) return null;
+		 const fire = (type) => el.dispatchEvent(new PointerEvent(type, { bubbles: type === 'pointerover', pointerType: 'mouse', pointerId: 1 }));
+		 fire('pointerover'); fire('pointerenter');
+		 await new Promise((r) => setTimeout(r, ${wait}));
+		 const tips = [...document.querySelectorAll('[role=tooltip]')];
+		 const tip = tips[0];
+		 const r = tip ? tip.getBoundingClientRect() : null;
+		 const layer = document.getElementById('fls-tooltip-layer');
+		 const se = document.scrollingElement;
+		 return {
+		   count: tips.length,
+		   text: tip ? tip.textContent : '',
+		   keys: tip ? [...tip.querySelectorAll('kbd')].map((k) => k.textContent) : [],
+		   box: r ? { l: r.left, t: r.top, r: r.right, b: r.bottom } : null,
+		   pointerEvents: tip ? getComputedStyle(tip).pointerEvents : '',
+		   describedBy: !!tip && el.getAttribute('aria-describedby') === tip.id,
+		   scrollOk: se.scrollHeight === window.innerHeight && se.scrollWidth <= window.innerWidth,
+		   scrollTop: se.scrollTop,
+		   layerInBody: !!layer && layer.parentElement === document.body,
+		 };`,
+	);
+}
+
+/** Leaves the control the way a mouse does and reports how many tooltips are left. */
+function leaveAndCount(bridge: Bridge, selector: string, index: number): Promise<number> {
+	return bridge.js<number>(
+		`const el = document.querySelectorAll(${JSON.stringify(selector)})[${index}];
+		 if (el) { el.dispatchEvent(new PointerEvent('pointerout', { bubbles: true, pointerType: 'mouse', pointerId: 1 })); el.dispatchEvent(new PointerEvent('pointerleave', { pointerType: 'mouse', pointerId: 1 })); }
+		 await new Promise((r) => setTimeout(r, 100));
+		 return document.querySelectorAll('[role=tooltip]').length;`,
+	);
+}
+
+/**
+ * Every icon-only button shows exactly one in-app tooltip (its label, and its shortcut as keycaps) after
+ * a hover, keeps no native `title`, stays inside the window, and never makes the shell scroll.
+ */
+async function tooltipChecks(bridge: Bridge): Promise<void> {
+	await setUi(bridge, { toolbar: 'classic' });
+	const buttons = '[data-app-toolbar] button[aria-label]';
+	const rows = await bridge.js<{ label: string; title: string | null }[]>(
+		`return [...document.querySelectorAll(${JSON.stringify(buttons)})].map((b) => ({ label: b.getAttribute('aria-label') ?? b.textContent.trim(), title: b.getAttribute('title') }));`,
+	);
+	check(
+		'tooltips: the toolbar has its buttons',
+		rows.length >= 12,
+		JSON.stringify(rows.map((r) => r.label)),
+	);
+	check(
+		'tooltips: no toolbar button keeps a native title (two tooltips would show)',
+		rows.every((r) => r.title === null),
+		JSON.stringify(rows.filter((r) => r.title !== null)),
+	);
+	const SHORTCUTS: Record<string, string[]> = {
+		'New level…': ['Ctrl', 'N'],
+		'Open level…': ['Ctrl', 'O'],
+		Save: ['Ctrl', 'S'],
+		'Close level': ['Ctrl', 'W'],
+		Undo: ['Ctrl', 'Z'],
+		Redo: ['Ctrl', 'Shift', 'Z'],
+	};
+	for (const [i, row] of rows.entries()) {
+		const tip = await hoverAndRead(bridge, buttons, i);
+		const where = `tooltips: hovering "${row.label}"`;
+		check(
+			`${where} shows exactly one tooltip with its label`,
+			tip !== null && tip.count === 1 && tip.text.startsWith(row.label),
+			JSON.stringify(tip),
+		);
+		const keys = SHORTCUTS[row.label];
+		if (keys)
+			check(
+				`${where} shows its shortcut as keycaps`,
+				JSON.stringify(tip?.keys) === JSON.stringify(keys),
+				JSON.stringify(tip?.keys),
+			);
+		check(
+			`${where} stays inside the window, does not take the pointer and wires aria-describedby`,
+			tip?.box != null &&
+				tip.box.l >= 0 &&
+				tip.box.t >= 0 &&
+				tip.box.r <= 1e5 &&
+				tip.pointerEvents === 'none' &&
+				tip.describedBy,
+			JSON.stringify(tip),
+		);
+		check(
+			`${where} leaves no layout shift or scroll`,
+			tip?.scrollOk === true && tip.scrollTop === 0 && tip.layerInBody,
+			JSON.stringify(tip),
+		);
+		check(`${where} hides again on leaving`, (await leaveAndCount(bridge, buttons, i)) === 0);
+	}
+	const size = await bridge.js<{ w: number; h: number }>(
+		`return { w: window.innerWidth, h: window.innerHeight };`,
+	);
+	const edge = await hoverAndRead(bridge, buttons, rows.length - 1);
+	check(
+		'tooltips: the last toolbar button’s tooltip is shifted to stay inside the window',
+		edge?.box != null && edge.box.r <= size.w && edge.box.b <= size.h,
+		JSON.stringify({ edge, size }),
+	);
+	await leaveAndCount(bridge, buttons, rows.length - 1);
+	// A disabled button explains itself; Escape hides a shown tooltip.
+	const undo = rows.findIndex((r) => r.label === 'Undo');
+	const reason = await hoverAndRead(bridge, buttons, undo);
+	check(
+		'tooltips: a disabled button’s tooltip carries the reason under its label',
+		reason !== null && reason.count === 1 && reason.text.length > 'UndoCtrlZ'.length,
+		JSON.stringify(reason),
+	);
+	check(
+		'tooltips: Escape hides a shown tooltip',
+		await bridge.js<boolean>(
+			`document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); await new Promise((r) => setTimeout(r, 100)); return document.querySelectorAll('[role=tooltip]').length === 0;`,
+		),
+	);
+	await leaveAndCount(bridge, buttons, undo);
+	// The other icon-only controls: no native title, one in-app tooltip.
+	const others: [string, string][] = [
+		['the tool picker', '[data-tool-picker] button'],
+		['the zoom pill', '[data-zoom-control] button'],
+		['the rails', '[data-rail-item]'],
+		['a panel menu', 'button[data-panel-menu]'],
+		['a Maximise button', 'button[data-expand]'],
+	];
+	for (const [name, selector] of others) {
+		const n = await bridge.js<{ total: number; titled: number }>(
+			`const all = [...document.querySelectorAll(${JSON.stringify(selector)})]; return { total: all.length, titled: all.filter((e) => e.hasAttribute('title')).length };`,
+		);
+		check(
+			`tooltips: ${name} has buttons and none keeps a native title`,
+			n.total > 0 && n.titled === 0,
+			JSON.stringify(n),
+		);
+		const tip = await hoverAndRead(bridge, selector, 0);
+		check(
+			`tooltips: hovering the first of ${name} shows one tooltip`,
+			tip !== null && tip.count === 1 && tip.text.length > 0 && tip.scrollOk,
+			JSON.stringify(tip),
+		);
+		await leaveAndCount(bridge, selector, 0);
+	}
+}
+
 async function main(): Promise<void> {
 	if (!existsSync(binary)) {
 		console.error(`No debug build at ${binary}. Run \`bun run app:build\` first.`);
@@ -2022,9 +4751,9 @@ async function main(): Promise<void> {
 			laidOut.canvas > 300 && laidOut.map > 300 && laidOut.canvas >= laidOut.map,
 			JSON.stringify(laidOut),
 		);
-		// One row sits above the level: it holds Save, Close level, a divider, the brush chip and
-		// the Panels menu, in that order (the tools float over the map), and nothing sits between
-		// the title bar and it.
+		// One 40 px row sits above the level: the classic toolbar, with the file buttons, the history, the
+		// brush chip and (at its end) the panel toggles, in that order. The tools float over the map, and
+		// nothing sits between the title bar and the row.
 		const rowBox = await bridge.js<{
 			names: string[];
 			titleBottom: number;
@@ -2034,52 +4763,101 @@ async function main(): Promise<void> {
 			panelsMid: number;
 			canvasTop: number;
 			canvasHeight: number;
+			menuBar: boolean;
 		} | null>(
-			`const tools = document.querySelector('[role=group][aria-label="Editor toolbar"]');
+			`const tools = document.querySelector('[role=toolbar][aria-label="Commands"]');
 			 const region = document.querySelector('[role=group][aria-label="Level editor"]');
 			 const title = document.querySelector('[data-title-align]');
 			 const canvas = document.querySelector('canvas');
-			 const panels = [...document.querySelectorAll('button[aria-haspopup=menu]')].find((b) => b.textContent.trim() === 'Panels');
+			 const panels = tools && tools.querySelector('[role=group][aria-label="Panels"]');
 			 if (!tools || !region || !title || !canvas || !panels) return null;
 			 const row = tools.getBoundingClientRect();
 			 const p = panels.getBoundingClientRect();
 			 return {
-				 names: [...tools.querySelectorAll('button, [role=status]')].map((b) => b.getAttribute('aria-label') || b.textContent.trim()),
+				 names: [...tools.querySelectorAll('button')].map((b) => b.getAttribute('aria-label') || b.textContent.trim()),
 				 titleBottom: title.getBoundingClientRect().bottom,
 				 rowTop: row.top, rowBottom: row.bottom, regionTop: region.getBoundingClientRect().top,
 				 panelsMid: (p.top + p.bottom) / 2,
 				 canvasTop: canvas.getBoundingClientRect().top, canvasHeight: canvas.getBoundingClientRect().height,
+				 menuBar: !!document.querySelector('[role=menubar]'),
 			 };`,
 		);
-		check('the tool row is on screen', rowBox !== null);
+		check('the toolbar is on screen', rowBox !== null);
 		if (rowBox) {
 			check(
-				'the tool row holds Save, Close level and then the brush chip',
-				rowBox.names[0] === 'Save' &&
-					rowBox.names[1] === 'Close level' &&
-					rowBox.names[2]?.includes('Brush:') === true,
+				'the toolbar holds the file buttons, the history, the brush chip and then the panel toggles',
+				rowBox.names.slice(0, 6).join('|') ===
+					'New level…|Open level…|Save|Close level|Undo|Redo' &&
+					rowBox.names[6]?.includes('Brush:') === true &&
+					rowBox.names.slice(7, 14).join('|') ===
+						'Palette|Layers|Inspector|Objects|History|Proposals|Script' &&
+					rowBox.names[14]?.startsWith('Search commands') === true &&
+					rowBox.names.slice(15).join('|') === 'Paint|Script|Review',
 				JSON.stringify(rowBox.names),
 			);
 			check(
-				'the Panels menu sits on the same row, at its end',
+				'the panel toggles sit on the same row, at its end',
 				rowBox.panelsMid > rowBox.rowTop && rowBox.panelsMid < rowBox.rowBottom,
 				JSON.stringify(rowBox),
 			);
 			check(
-				'nothing sits between the title bar and the tool row',
-				Math.abs(rowBox.regionTop - rowBox.titleBottom) < 2 &&
-					Math.abs(rowBox.rowTop - rowBox.regionTop) < 2,
+				'the classic toolbar is 40 px high by default',
+				Math.abs(rowBox.rowBottom - rowBox.rowTop - 40) < 1.5,
 				JSON.stringify(rowBox),
 			);
 			check(
-				'the level starts straight under the one tool row',
-				rowBox.canvasTop - rowBox.rowBottom < 40 && rowBox.rowBottom - rowBox.rowTop < 70,
+				'nothing sits between the title bar and the toolbar',
+				Math.abs(rowBox.rowTop - rowBox.titleBottom) < 2,
+				JSON.stringify(rowBox),
+			);
+			check(
+				'the level starts straight under the one toolbar',
+				Math.abs(rowBox.regionTop - rowBox.rowBottom) < 2 &&
+					rowBox.canvasTop - rowBox.rowBottom < 40,
 				JSON.stringify(rowBox),
 			);
 		}
+		const toolbarState = await bridge.js<{ pressed: string[]; undoDisabled: boolean }>(
+			`const tools = document.querySelector('[role=toolbar][aria-label="Commands"]');
+			 return { pressed: [...tools.querySelectorAll('[role=group][aria-label="Panels"] [aria-pressed=true]')].map((b) => b.getAttribute('aria-label')),
+			   undoDisabled: tools.querySelector('button[aria-label="Undo"]').disabled };`,
+		);
+		check(
+			'the panel toggles show every panel pressed, and Undo is dim with nothing to undo',
+			toolbarState.pressed.length === 7 && toolbarState.undoDisabled,
+			JSON.stringify(toolbarState),
+		);
+		check(
+			'a panel toggle hides its panel and shows it again',
+			await (async () => {
+				const click = () =>
+					bridge.js<boolean>(
+						`document.querySelector('[role=toolbar][aria-label="Commands"] button[aria-label="History"]')?.click(); return true;`,
+					);
+				const pressed = () =>
+					bridge.js<boolean>(
+						`return document.querySelector('[role=toolbar][aria-label="Commands"] button[aria-label="History"]')?.getAttribute('aria-pressed') === 'true';`,
+					);
+				await click();
+				const hidden = await within(3000, async () => !(await pressed()));
+				await click();
+				const shown = await within(3000, async () => await pressed());
+				// Showing a panel again makes it the showing tab of its dock; put the Inspector back.
+				await showFromRail(bridge, 'Inspector');
+				await sleep(300);
+				return hidden !== null && shown !== null;
+			})(),
+		);
 		await dockChecks(bridge);
+		await panelMenuStaysPutChecks(bridge);
+		await scriptPopupChecks(bridge);
+		await transparentEditorChecks(bridge);
+		await inWindowDragChecks(bridge);
 		await dragAndMaximiseChecks(bridge);
 		await toolPickerChecks(bridge);
+		await zoomPillChecks(bridge);
+		await middleDragPanChecks(bridge);
+		await panelHeaderChecks(bridge);
 		// With the default settings there is no menu bar: the title bar's app menu button is the
 		// primary menu, and a real click on it opens File, Edit, View, Window and Help. Choosing
 		// File, then Preferences opens the Preferences window.
@@ -2103,16 +4881,54 @@ async function main(): Promise<void> {
 		const rowNames = await bridge.js<string[]>(
 			`return [...document.querySelectorAll('[role=menu] [role=menuitem]')].map((x) => x.textContent.trim());`,
 		);
+		// Menu bar off (the default): one flat, Folio-style list, with no File, Edit or View headings
+		// and no Zoom or Edit rows.
 		check(
-			'the app menu opens to File, Edit, View, Window and Help',
+			'the app menu opens to one flat list in the design’s order',
 			menuRows !== null &&
-				['File', 'Edit', 'View', 'Window', 'Help'].every((name) =>
-					rowNames.some((row) => row.startsWith(name)),
-				),
+				[
+					'New level',
+					'Open level',
+					'Save',
+					'Close level',
+					'Undo',
+					'Redo',
+					'Undo history',
+					'Panels',
+					'Window',
+					'Command palette',
+					'Preferences',
+					'Help',
+					'Keyboard shortcuts',
+					'About',
+					'Quit',
+				].every((name, i, all) => {
+					const at = rowNames.findIndex((row) => row.startsWith(name));
+					const before = i === 0 ? -1 : rowNames.findIndex((row) => row.startsWith(all[i - 1]!));
+					return at >= 0 && at > before;
+				}),
+			JSON.stringify(rowNames),
+		);
+		check(
+			'the flat menu has the Menu bar switch, off by default',
+			await bridge.js<boolean>(
+				`const row = [...document.querySelectorAll('[role=menu] [role=menuitemcheckbox]')].find((x) => x.textContent.trim() === 'Menu bar'); return !!row && row.getAttribute('aria-checked') === 'false';`,
+			),
+		);
+		check(
+			'the flat menu has no File, Edit or View headings, and no Zoom or Go to line rows',
+			!['File', 'Edit', 'View'].some((name) => rowNames.includes(name)) &&
+				!rowNames.some((row) => /^(Zoom|Fit|Go to line)/.test(row)),
+			JSON.stringify(rowNames),
+		);
+		check(
+			'its rows show their keys',
+			['New level\u2026Ctrl+N', 'Open level\u2026Ctrl+O', 'SaveCtrl+S', 'Close levelCtrl+W'].every(
+				(text) => rowNames.includes(text),
+			) && rowNames.includes('QuitCtrl+Q'),
 			JSON.stringify(rowNames),
 		);
 		await appMenuIconChecks(bridge);
-		check('the app menu offers File', await pressByRole(bridge, 'menuitem', 'File'));
 		const preferencesRow = await within(3000, async () =>
 			(await pressByRole(bridge, 'menuitem', 'Preferences')) ? true : null,
 		);
@@ -2191,6 +5007,8 @@ async function main(): Promise<void> {
 			),
 		);
 		check('turning the menu bar off puts the app menu button back live', barGone !== null);
+		await commandsRowChecks(bridge);
+		await tooltipChecks(bridge);
 
 		// The title bar shows the document's name and nothing else; the native title is the same text.
 		const barTitle = await titleBarText(bridge);
@@ -2299,6 +5117,7 @@ async function main(): Promise<void> {
 		const opened = await openLevel(bridge, path);
 		check('the open level has its 5,376 cells', opened.cells === 5376, String(opened.cells));
 		check('a fresh level has nothing to undo', !opened.canUndo && opened.revision === 0);
+		await layerChecks(bridge, path, original);
 
 		// 2. Paint, and the canvas and history show it.
 		const painted = await levelCall(bridge, 'level_apply', {
@@ -2359,6 +5178,13 @@ async function main(): Promise<void> {
 			took === null ? 'not heard' : `${Math.round(took)} ms`,
 		);
 		await levelCall(bridge, 'level_save', { id: 'level-1' });
+
+		// 5a. The Inspector, on the real engine; it leaves the text as it found it.
+		await inspectorChecks(bridge, path);
+		await objectsFilterChecks(bridge);
+		await tileInspectorChecks(bridge);
+		await contextMenuLevelChecks(bridge, check);
+		await contextMenuChromeChecks(bridge, check);
 
 		// 5b. The appearance and tear-off plugins answer, the theme follows the settings and the
 		// system, and the Script panel tears off into panel-script-1 and docks back.
@@ -2476,17 +5302,25 @@ async function main(): Promise<void> {
 			)
 		).v;
 		check('the Preferences window wears the saved accent', prefsAccent === '#ffaa40', prefsAccent);
+		const prefsScroll = await shellScroll(bridge, 'preferences');
+		check(
+			'the Preferences window does not scroll its shell',
+			shellStill(prefsScroll),
+			JSON.stringify(prefsScroll),
+		);
 		await bridge.js(
 			`const cur = await window.__TAURI_INTERNALS__.invoke('plugin:fizz-studio-settings|settings_get'); await window.__TAURI_INTERNALS__.invoke('plugin:fizz-studio-settings|settings_update', { patch: { accent: { kind: 'system' }, glass: 'system' }, basedOn: cur.revision });`,
 		);
 		await transparencyChecks(bridge);
+		await glassSurfaceChecks(bridge);
+		await opacitySliderChecks(bridge, profile);
 
 		const clickByText = (text: string, windowId = 'main-1') =>
 			bridge.js<boolean>(
 				`const b = [...document.querySelectorAll('button')].find((x) => x.textContent === ${JSON.stringify(text)}); if (!b) return false; b.click(); return true;`,
 				windowId,
 			);
-		check('the Script panel offers Tear off', await clickLabelled(bridge, TEAR_OFF_SCRIPT));
+		check('the Script panel offers Tear off', await choosePanelMenu(bridge, 'Script', 'Tear off'));
 		const tornOff = await within(10_000, async () =>
 			(await bridge.windows()).includes('panel-script-1'),
 		);
@@ -2498,6 +5332,19 @@ async function main(): Promise<void> {
 		);
 		check('the main window shows the panel is away', noticed !== null);
 		await bridge.ready('panel-script-1');
+		const tornPopup = await within(20_000, async () => {
+			try {
+				return (await measureScriptPopup(bridge, 'panel-script-1'))?.found ? true : null;
+			} catch {
+				return null;
+			}
+		});
+		const tornScroll = await shellScroll(bridge, 'panel-script-1');
+		check(
+			'torn-off Script: the shell does not scroll after a hover and a forced reveal',
+			tornPopup !== null && shellStill(tornScroll),
+			JSON.stringify(tornScroll),
+		);
 		// A slow runner can take a while to draw a new window, so wait generously, and when it still
 		// fails say what the window held so the cause is in the log rather than a bare FAIL.
 		let lastDockBackProblem = 'the button was not found';
@@ -2536,9 +5383,7 @@ async function main(): Promise<void> {
 		await bridge.stop();
 		await bridge.start();
 		const back = await within(3000, () =>
-			bridge.js<boolean>(
-				`return !!document.querySelector('button[aria-label=' + JSON.stringify(${JSON.stringify(TEAR_OFF_SCRIPT)}) + ']');`,
-			),
+			panelMenuOffers(bridge, 'Script', 'Tear off').then((offered) => offered || null),
 		);
 		check('the Script panel is back in the main window', back !== null);
 
@@ -2546,6 +5391,14 @@ async function main(): Promise<void> {
 		// window reaches the main window, closing the window docks the panel back, and the window's
 		// place is remembered per workspace.
 		await checkPanelWindows(
+			bridge,
+			profile,
+			path,
+			() => app!,
+			(next) => (app = next),
+		);
+		await floatingDragOutChecks(bridge);
+		await checkDockBackHome(
 			bridge,
 			profile,
 			path,
@@ -2608,8 +5461,10 @@ async function main(): Promise<void> {
 		await within(3000, async () => (await startMenuRows(bridge)).length > 0);
 		const startMenu = await startMenuRows(bridge);
 		check(
-			'on the start screen the app menu offers File, Edit, View and Help, without Window',
-			startMenu.join('|') === 'File|Edit|View|Help',
+			'on the start screen the flat app menu offers New level, Preferences and Quit, without Panels or Window',
+			['New level', 'Open level', 'Preferences', 'Help', 'Quit'].every((name) =>
+				startMenu.some((row) => row.startsWith(name)),
+			) && !startMenu.some((row) => /^(Panels|Window|File|Edit|View)/.test(row)),
 			JSON.stringify(startMenu),
 		);
 		await bridge.js<boolean>(
@@ -2763,7 +5618,7 @@ async function main(): Promise<void> {
 		);
 		check('closing the Preferences window leaves the app up', prefsGone !== null && app.alive);
 
-		await clickLabelled(bridge, TEAR_OFF_SCRIPT);
+		await choosePanelMenu(bridge, 'Script', 'Tear off');
 		const tornAgain = await within(10_000, async () =>
 			(await bridge.windows()).includes('panel-script-1') ? true : null,
 		);
@@ -2778,9 +5633,7 @@ async function main(): Promise<void> {
 		await bridge.stop();
 		await bridge.start();
 		const redocked = await within(5000, () =>
-			bridge.js<boolean>(
-				`return !!document.querySelector('button[aria-label=' + JSON.stringify(${JSON.stringify(TEAR_OFF_SCRIPT)}) + ']');`,
-			),
+			panelMenuOffers(bridge, 'Script', 'Tear off').then((offered) => offered || null),
 		);
 		if (redocked === null)
 			console.error(

@@ -45,7 +45,7 @@ describe('raiseFloat', () => {
 		const ws = defaultWorkspace();
 		ws.panels.script!.float.z = 1_000_000;
 		const next = raiseFloat(ws, 'palette');
-		expect(next.panels.palette!.float.z).toBe(5);
-		expect(next.panels.script!.float.z).toBe(4);
+		expect(next.panels.palette!.float.z).toBe(7);
+		expect(next.panels.script!.float.z).toBe(6);
 	});
 });

@@ -25,6 +25,7 @@ import { keyDelta, type Size } from '../panels/float/panelGeometry';
 import { DEFAULT_PICKER, clampPicker } from './pickerPlace';
 import { TOOL_KEYS } from './shortcuts';
 import { TOOL_IDS, type ToolId } from './tool';
+import { Tooltip } from '../ui/Tooltip';
 import styles from './ToolPicker.module.css';
 
 export const TOOL_LABELS: Record<ToolId, MessageId> = {
@@ -210,45 +211,46 @@ export function ToolPicker({ tool, onTool, map: mapProp, place, onPlace }: ToolP
 			data-moving={moving ? '' : undefined}
 			style={style}
 		>
-			<button
-				type="button"
-				className={styles.grip}
-				data-grip=""
-				aria-label={t('tools.move')}
-				title={t('tools.move')}
-				onPointerDown={begin}
-				onPointerMove={follow}
-				onPointerUp={(event) => end(event, false)}
-				onPointerCancel={(event) => end(event, true)}
-				onKeyDown={onGripKey}
-			>
-				<svg aria-hidden="true" width="8" height="16" viewBox="0 0 8 16" fill="currentColor">
-					<circle cx="2" cy="3" r="1.2" />
-					<circle cx="6" cy="3" r="1.2" />
-					<circle cx="2" cy="8" r="1.2" />
-					<circle cx="6" cy="8" r="1.2" />
-					<circle cx="2" cy="13" r="1.2" />
-					<circle cx="6" cy="13" r="1.2" />
-				</svg>
-			</button>
+			<Tooltip label={t('tools.move')}>
+				<button
+					type="button"
+					className={styles.grip}
+					data-grip=""
+					aria-label={t('tools.move')}
+					onPointerDown={begin}
+					onPointerMove={follow}
+					onPointerUp={(event) => end(event, false)}
+					onPointerCancel={(event) => end(event, true)}
+					onKeyDown={onGripKey}
+				>
+					<svg aria-hidden="true" width="8" height="16" viewBox="0 0 8 16" fill="currentColor">
+						<circle cx="2" cy="3" r="1.2" />
+						<circle cx="6" cy="3" r="1.2" />
+						<circle cx="2" cy="8" r="1.2" />
+						<circle cx="6" cy="8" r="1.2" />
+						<circle cx="2" cy="13" r="1.2" />
+						<circle cx="6" cy="13" r="1.2" />
+					</svg>
+				</button>
+			</Tooltip>
 			{TOOL_IDS.map((id) => {
 				const Icon = TOOL_ICONS[id];
 				const name = t(TOOL_LABELS[id]);
 				const key = TOOL_KEYS[id].toUpperCase();
 				return (
-					<button
-						key={id}
-						type="button"
-						className={styles.key}
-						aria-label={name}
-						title={t('tools.keyTitle', { tool: name, key })}
-						aria-pressed={tool === id}
-						aria-keyshortcuts={key}
-						data-tool={id}
-						onClick={() => onTool(id)}
-					>
-						<Icon size={18} />
-					</button>
+					<Tooltip key={id} label={name} keys={key}>
+						<button
+							type="button"
+							className={styles.key}
+							aria-label={name}
+							aria-pressed={tool === id}
+							aria-keyshortcuts={key}
+							data-tool={id}
+							onClick={() => onTool(id)}
+						>
+							<Icon size={18} />
+						</button>
+					</Tooltip>
 				);
 			})}
 		</div>

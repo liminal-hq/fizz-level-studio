@@ -10,17 +10,22 @@ import {
 	languageWords,
 	levelCellLine,
 	levelGhosts,
+	levelLayers,
 	levelSnapshot,
+	levelViewMasked,
 	onLevelChanged,
 	onLevelConflict,
+	onLevelLayers,
 	openLevel,
 	redo,
 	saveLevel,
+	setLayerLocked,
 	undo,
 	type GhostProposal,
 	type LevelConflict,
 	type LevelEdit,
 	type LevelSnapshot,
+	type LevelView,
 	type WordDoc,
 } from '@liminal-hq/fizz-studio-plugin-worlds';
 import type { LevelClient } from './levelClient';
@@ -149,6 +154,22 @@ export class TauriLevelClient implements LevelClient, WorldsClient {
 
 	ghosts(id: string): Promise<GhostProposal[]> {
 		return levelGhosts(id);
+	}
+
+	viewMasked(id: string, hidden: string[]): Promise<LevelView> {
+		return levelViewMasked(id, hidden);
+	}
+
+	async layers(id: string): Promise<string[]> {
+		return (await levelLayers(id)).locked;
+	}
+
+	async setLayerLocked(id: string, layer: string, locked: boolean): Promise<string[]> {
+		return (await setLayerLocked(id, layer, locked)).locked;
+	}
+
+	onLayersChanged(listener: (id: string, locked: string[]) => void): () => void {
+		return subscribe(() => onLevelLayers((layers) => listener(layers.id, layers.locked)));
 	}
 
 	onChanged(listener: (snapshot: LevelSnapshot) => void): () => void {

@@ -13,8 +13,10 @@
 // not started listening yet simply misses it (the panel window asks again with `hello`).
 
 import { emit, listen } from '@tauri-apps/api/event';
+import type { ZoneId } from '@liminal-hq/fizz-studio-protocol/generated/ZoneId';
 import type { Brush } from '../../tools/brush';
-import type { Cell, ToolId } from '../../tools/tool';
+import type { ThingEditResult, ThingEditSpec } from '../../inspector/thingEdit';
+import type { Cell, Thing, ToolId } from '../../tools/tool';
 
 /** The one event every message travels on. */
 export const PANEL_BRIDGE_EVENT = 'panel://bridge';
@@ -33,6 +35,12 @@ export interface EditorShare {
 	ghostsShown: boolean;
 	/** A script line to mark; `serial` changes each time one is asked for. */
 	focus: { line: number; serial: number } | null;
+	/** The ids of the layers hidden on the canvas. */
+	hiddenLayers: string[];
+	/** What Inspect or the Objects list selected, or null: the Inspector in a window of its own draws it. */
+	selectedThing: Thing | null;
+	/** The word of the thing deleted last, until something is selected again. */
+	deletedName: string | null;
 }
 
 /** The palette state a panel window may set; the main window applies it through the editor's own setters. */
@@ -52,10 +60,32 @@ export interface BridgeTopics {
 	'palette/set': PaletteChoice;
 	/** A panel window to the main window: the person chose an object, so reveal its cell. */
 	'objects/choose': Cell;
+	/** A panel window to the main window: the person chose this thing in the Objects list, so select it. */
+	'objects/select': Thing;
+	/**
+	 * A torn-off Inspector to the main window: change the selected thing. The main window applies it
+	 * in its own queue, with every other edit, and answers with `inspector/result` and the same
+	 * `serial`.
+	 */
+	'inspector/edit': { serial: number; spec: ThingEditSpec; mergeKey: string };
+	/** The main window to the torn-off Inspector: what became of the change with this serial. */
+	'inspector/result': { serial: number; result: ThingEditResult };
+	/** A torn-off Inspector to the main window: the run of changes is over, so end its undo step. */
+	'inspector/endStep': null;
 	/** A panel window to the main window: show this script line (from 1). */
 	'script/show': { line: number };
 	/** A panel window to the main window: show or hide Claude's proposals over the level. */
 	'proposals/shown': { shown: boolean };
+	/** A panel window to the main window: hide or show these layers on the canvas. */
+	'layers/hidden': { hidden: string[] };
+	/**
+	 * A panel window to the main window: the panel was dragged back and let go over this place in the
+	 * dock (a dock, a tab group in it, and the place among its tabs; null is the end). The main
+	 * window docks it there, which closes the panel's window.
+	 */
+	dockBackTo: { panel: string; zone: ZoneId; group: number | null; index: number | null };
+	/** A panel window to the main window: the panel being dragged is over this region (null: none), so show where it would land. */
+	dockHint: { panel: string; region: string | null };
 }
 
 export type BridgeTopic = keyof BridgeTopics;

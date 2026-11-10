@@ -3,16 +3,17 @@
 // (c) Copyright 2026 Liminal HQ, Scott Morris
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
-use fizz_studio_level::{new_level_text, new_world_text, step_name};
+use fizz_studio_level::{new_level_text, new_world_text};
 use fizz_studio_protocol::{
-    GhostProposal, LevelEdit, LevelError, LevelSnapshot, LevelTarget, NewLevelRequest, ProjectInfo,
-    ProjectKind, RecoveryEntry, WordDoc,
+    GhostProposal, LevelEdit, LevelError, LevelSnapshot, LevelTarget, LevelView, NewLevelRequest,
+    ProjectInfo, ProjectKind, RecoveryEntry, WordDoc,
 };
-use fizz_studio_session::{Author, Request};
+use fizz_studio_session::{Author, Request, SessionError};
 use fizz_studio_world::{write_atomic, Project, ProjectKind as FoundKind, WORLD_FILE};
 use tauri::{AppHandle, Runtime, State};
 
-use crate::open::{announce, io_error, session_error, Worlds};
+use crate::open::{announce, announce_layers, io_error, session_error, OpenLevel, Worlds};
+use crate::LevelLayers;
 
 fn text(path: &std::path::Path) -> String {
     path.to_string_lossy().into_owned()
@@ -57,19 +58,38 @@ pub fn level_apply<R: Runtime>(
     merge_key: Option<String>,
 ) -> Result<LevelSnapshot, LevelError> {
     let snapshot = worlds.with(&id, |level| {
-        let mut request = Request::new(based_on, step_name(&edit), edit);
-        if let Some(key) = merge_key {
-            request = request.merging(key);
+        let make = |level: &OpenLevel, based_on: u64| {
+            let name = level.session.document().describe(&edit);
+            let mut request = Request::new(based_on, name, edit.clone());
+            if let Some(key) = &merge_key {
+                request = request.merging(key.clone());
+            }
+            request
+        };
+        let mut result = level.session.apply(&level.writer, make(level, based_on));
+        // A change to a thing names its statement by text, so it can still land on a newer revision
+        // when that statement is still there; the engine says `gone` when it is not. The appended
+        // edits keep the plain refusal.
+        if let (Err(SessionError::StaleRevision { current, .. }), true) =
+            (&result, is_thing_edit(&edit))
+        {
+            let current = *current;
+            result = level.session.apply(&level.writer, make(level, current));
         }
-        level
-            .session
-            .apply(&level.writer, request)
-            .map_err(session_error)?;
+        result.map_err(session_error)?;
         level.last_author = Author::Person;
         Ok(level.snapshot())
     })?;
     announce(&app, &snapshot);
     Ok(snapshot)
+}
+
+/// Whether an edit changes a hand-written thing in place, which is found again by its text.
+fn is_thing_edit(edit: &LevelEdit) -> bool {
+    matches!(
+        edit,
+        LevelEdit::MoveThing { .. } | LevelEdit::FaceThing { .. } | LevelEdit::DeleteThing { .. }
+    )
 }
 
 /// Ends the stroke in progress, so the next edit starts a new step.
@@ -252,4 +272,39 @@ pub fn level_ghosts(
 #[tauri::command]
 pub fn level_snapshot(worlds: State<'_, Worlds>, id: String) -> Result<LevelSnapshot, LevelError> {
     worlds.with(&id, |level| Ok(level.snapshot()))
+}
+
+/// The layers of an open level that are locked, by id. Read-only.
+#[tauri::command]
+pub fn level_layers(worlds: State<'_, Worlds>, id: String) -> Result<LevelLayers, LevelError> {
+    worlds.with(&id, |level| Ok(level.layers()))
+}
+
+/// Locks or unlocks a layer of an open level and keeps the choice in its sidecar. A locked layer
+/// refuses every change to it, whoever makes it. Every window hears `level://layers`.
+#[tauri::command]
+pub fn level_set_layer_locked<R: Runtime>(
+    app: AppHandle<R>,
+    worlds: State<'_, Worlds>,
+    id: String,
+    layer: String,
+    locked: bool,
+) -> Result<LevelLayers, LevelError> {
+    let layers = worlds.with(&id, |level| level.set_layer_locked(&layer, locked))?;
+    announce_layers(&app, &layers);
+    Ok(layers)
+}
+
+/// The level drawn without the statements of the `hidden` layers, as if they were not in the
+/// script, behind a layer's eye. Read-only: nothing is saved, the session is untouched, and the
+/// layers stay listed so a hidden one can be shown again. Hiding nothing answers the ordinary view.
+#[tauri::command]
+pub fn level_view_masked(
+    worlds: State<'_, Worlds>,
+    id: String,
+    hidden: Vec<String>,
+) -> Result<LevelView, LevelError> {
+    worlds.with(&id, |level| {
+        Ok(level.session.document().view_without(&hidden))
+    })
 }

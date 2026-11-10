@@ -4,8 +4,68 @@
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
 import { createContext, useContext, useSyncExternalStore } from 'react';
-import type { PanelId } from '../panels/float/panelSpecs';
+import type { ToolbarMode } from '@liminal-hq/fizz-studio-protocol/generated/ToolbarMode';
+import type { ZoneId } from '@liminal-hq/fizz-studio-protocol/generated/ZoneId';
+import { PANEL_SPECS, type PanelId } from '../panels/float/panelSpecs';
 import type { Brush } from '../tools/brush';
+import type { MessageId } from '../i18n/messages';
+import type { ThingKind, ToolId } from '../tools/tool';
+
+/**
+ * What the selection commands need to know about the thing Inspect or Objects selected. `reason`
+ * says why the thing cannot be changed, when it cannot.
+ */
+export interface SelectionFacts {
+	/** What is selected, or null. */
+	kind: ThingKind | null;
+	/** The thing can be moved, turned or deleted (a Fizz 1 item or enemy a hand-written line placed). */
+	editable: boolean;
+	/** An enemy that has a facing to turn. */
+	canFlip: boolean;
+	/** An item or enemy that can be deleted: the start and a generated item cannot. */
+	canDelete: boolean;
+	/** The thing is on a script line the Script panel can show. */
+	hasLine: boolean;
+	/** Why the thing cannot be changed, as a catalogue message; null while it can. */
+	reason: MessageId | null;
+	/**
+	 * The id of the locked layer the thing's script line lies in, or null when its layer is open (or
+	 * it has none). Delete, Flip and the nudges are dimmed with the lock's reason while it is set.
+	 */
+	lockedLayer: string | null;
+}
+
+/** A layer of the open level, as the per-layer commands name it. */
+export interface LayerFact {
+	/** The layer's stable id (`terrain`, `treats`, and so on): the name a lock is kept under. */
+	id: string;
+	/** The layer's name in the person's language. */
+	name: string;
+	/** The first script line (from 1) the layer owns, or null when it owns none. */
+	firstLine: number | null;
+}
+
+/** Where the canvas's keyboard cursor is, for the commands that act on the cell under it. */
+export interface CursorFacts {
+	/** The cursor is on a cell of the level. */
+	inside: boolean;
+	/** The tile word on the cursor's cell, or null outside the level. */
+	tile: string | null;
+	/** The id of the layer whose statement last set the cell, or null when none did. */
+	layer: string | null;
+}
+
+export const NO_SELECTION: SelectionFacts = {
+	kind: null,
+	editable: false,
+	canFlip: false,
+	canDelete: false,
+	hasLine: false,
+	reason: null,
+	lockedLayer: null,
+};
+
+export const NO_CURSOR: CursorFacts = { inside: false, tile: null, layer: null };
 
 /** What the menu needs to know to enable, disable and check its rows. */
 export interface CommandFacts {
@@ -33,6 +93,41 @@ export interface CommandFacts {
 	brushes: readonly Brush[];
 	/** How many lines the open level's script has; Go to line accepts 1 to this. */
 	lineCount: number;
+	/** The canvas zoom and whether it can still change either way; null until a level canvas publishes it. */
+	zoom: { level: number; canIn: boolean; canOut: boolean } | null;
+	/** The brush the tools paint with; null with no editor open. */
+	brush: Brush | null;
+	/** The tool in use; null with no editor open. */
+	tool: ToolId | null;
+	/** The spacing between painted cells. */
+	spacing: number;
+	/** The active workspace and the names of all of them. */
+	workspace: { active: string; names: readonly string[] };
+	/** Where each panel is: a dock, floating over the level, in a window of its own, or hidden. */
+	placeOf: Record<PanelId, ZoneId | 'float' | 'window' | 'hidden'>;
+	/** The panel the keyboard focus was last in, for the focused-panel commands. */
+	focusedPanel: PanelId | null;
+	/** The layers that are locked in the open level, by id (the Layers panel publishes them; this app only reads them). */
+	locks: readonly string[];
+	/** The layers hidden on the canvas in this window, by id (the editor publishes them; they are a view, not saved). */
+	hiddenLayers: readonly string[];
+	/** The layers of the open level, in file order; empty for a level that has none (a Fizz 2 level). */
+	layers: readonly LayerFact[];
+	/** The keyboard cursor, for Pick, Paint and Erase here. */
+	cursor: CursorFacts;
+	/** The selected thing and what may be done to it. */
+	selection: SelectionFacts;
+	/** The menu bar is on (the `ui.menu_bar` setting). */
+	menuBar: boolean;
+	/** The commands row under the menus (the `ui.toolbar` setting). */
+	toolbar: ToolbarMode;
+	/** The ribbon is folded to its tabs (the `ui.ribbon_folded` setting). */
+	ribbonFolded: boolean;
+}
+
+/** A record with one entry per panel, so a new panel needs no edit here. */
+export function perPanel<T>(value: T): Record<PanelId, T> {
+	return Object.fromEntries(PANEL_SPECS.map((spec) => [spec.id, value])) as Record<PanelId, T>;
 }
 
 export const NO_FACTS: CommandFacts = {
@@ -45,10 +140,25 @@ export const NO_FACTS: CommandFacts = {
 	author: null,
 	levelFirst: false,
 	maximised: null,
-	panels: { palette: false, objects: false, history: false, proposals: false, script: false },
-	away: { palette: false, objects: false, history: false, proposals: false, script: false },
+	panels: perPanel(false),
+	away: perPanel(false),
 	brushes: [],
 	lineCount: 0,
+	zoom: null,
+	brush: null,
+	tool: null,
+	spacing: 1,
+	workspace: { active: '', names: [] },
+	placeOf: perPanel('hidden'),
+	focusedPanel: null,
+	locks: [],
+	hiddenLayers: [],
+	layers: [],
+	cursor: NO_CURSOR,
+	selection: NO_SELECTION,
+	menuBar: false,
+	toolbar: 'classic',
+	ribbonFolded: false,
 };
 
 /**
@@ -71,9 +181,11 @@ export interface CommandBridge {
 	setHandlers(handlers: CommandHandlers): () => void;
 }
 
-function samePanels(a: CommandFacts['panels'], b: CommandFacts['panels']): boolean {
+function samePanels(a: Record<PanelId, boolean>, b: Record<PanelId, boolean>): boolean {
 	return (Object.keys(a) as PanelId[]).every((id) => a[id] === b[id]);
 }
+
+const sameJson = (a: unknown, b: unknown) => a === b || JSON.stringify(a) === JSON.stringify(b);
 
 const sameBrushes = (a: readonly Brush[], b: readonly Brush[]) =>
 	a === b ||
@@ -109,7 +221,22 @@ export function createCommandBridge(): CommandBridge {
 				next.levelFirst === was.levelFirst &&
 				next.maximised === was.maximised &&
 				samePanels(next.panels, was.panels) &&
-				samePanels(next.away, was.away);
+				samePanels(next.away, was.away) &&
+				next.spacing === was.spacing &&
+				next.tool === was.tool &&
+				next.focusedPanel === was.focusedPanel &&
+				next.menuBar === was.menuBar &&
+				next.toolbar === was.toolbar &&
+				next.ribbonFolded === was.ribbonFolded &&
+				sameJson(next.zoom, was.zoom) &&
+				sameJson(next.brush, was.brush) &&
+				sameJson(next.workspace, was.workspace) &&
+				sameJson(next.placeOf, was.placeOf) &&
+				sameJson(next.locks, was.locks) &&
+				sameJson(next.hiddenLayers, was.hiddenLayers) &&
+				sameJson(next.layers, was.layers) &&
+				sameJson(next.cursor, was.cursor) &&
+				sameJson(next.selection, was.selection);
 			if (!same) set({ ...snapshot, facts: next });
 		},
 		setHandlers(handlers) {

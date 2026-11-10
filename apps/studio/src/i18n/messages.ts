@@ -56,22 +56,12 @@ export const enMessages = {
 	'tools.inspect': 'Inspect',
 	// translator: A hint shown while the Stamp tool has nothing copied yet.
 	'tools.stampEmpty': 'Outline an area with Select, then choose Stamp to paste it.',
-	// translator: The accessible name of the row above the level that holds Save, Close level, the brush chip and the Panels menu.
-	'tools.bar': 'Editor toolbar',
 	// translator: Label of the grip a person drags, or moves with the arrow keys, to move the floating group of tools over the level.
 	'tools.move': 'Move the tools',
-	// translator: Tooltip of a tool's key. {tool} is the tool’s name, such as “Paint”; {key} is the letter that chooses it, such as “B”.
-	'tools.keyTitle': '{tool} ({key})',
 	// translator: The brush chip in the toolbar. {kind} is the name of the tile, item or enemy that Paint lays down, such as “cheezie”.
 	'brush.chip': 'Brush: {kind}',
 	// translator: The brush chip when the brush is an item that is spaced out. {kind} is the item; {spacing} says how far apart, such as “Every 3 cells”.
 	'brush.chipSpaced': 'Brush: {kind}, {spacing}',
-	// translator: The kind of thing the brush lays down: a tile of the grid.
-	'brush.group.tile': 'Tile',
-	// translator: The kind of thing the brush lays down: an item, a collectable such as a cheezie or a key.
-	'brush.group.item': 'Item',
-	// translator: The kind of thing the brush lays down: an enemy, or a prop the game places like one (a switch, a terminal).
-	'brush.group.enemy': 'Enemy',
 	// translator: Accessible name of the group holding the item spacing control.
 	'spacing.group': 'Item spacing',
 	// translator: Label before the control that sets how many cells apart a dragged row of items is placed.
@@ -101,6 +91,16 @@ export const enMessages = {
 	'canvas.zoomLevel': 'Zoom {zoom}×',
 	// translator: Accessible name of the group holding the canvas’s zoom buttons.
 	'canvas.zoomGroup': 'Canvas zoom',
+	// translator: The zoom factor shown on the zoom control, such as 4×. {zoom} is a whole number from 1 to 16.
+	'canvas.zoomFactor': '{zoom}×',
+	// translator: Short label on the button of the zoom control that fits the whole level in the room there is.
+	'canvas.zoomFitShort': 'Fit',
+	// translator: Verb phrase. Chooses the largest whole zoom that shows the whole level in the room there is.
+	'canvas.zoomFit': 'Fit level',
+	// translator: Tooltip on a disabled Zoom in button: the canvas is already at its largest.
+	'canvas.zoomMax': 'Already at the largest zoom',
+	// translator: Tooltip on a disabled Zoom out button: the canvas is already at its smallest.
+	'canvas.zoomMin': 'Already at the smallest zoom',
 
 	// translator: Accessible name of the list of things placed in the level, such as items and enemy spawns.
 	'objects.list': 'Objects',
@@ -116,6 +116,12 @@ export const enMessages = {
 	'objects.diagnostic': 'Line {line}, {code}: {message}',
 	// translator: Shown in place of the list of objects when the level has none.
 	'objects.none': 'Nothing placed yet',
+	// translator: Label and placeholder of the field above the Objects list that narrows it to the things whose kind, name, or script line match what is typed.
+	'objects.filter': 'Filter things',
+	// translator: Shown in the Objects list when the filter matches nothing. {filter} is what was typed.
+	'objects.noMatch': 'Nothing matches “{filter}”',
+	// translator: The script line a thing in the Objects list is on, counted from 1, shown at the end of its row, such as "line 43".
+	'objects.line': 'line {line}',
 
 	// translator: Heading of the panel that shows the level’s script text.
 	'script.title': 'Script',
@@ -223,6 +229,185 @@ export const enMessages = {
 	// translator: Shown in place of the Palette’s item and enemy lists while the words are loading or unavailable.
 	'palette.unavailable': 'The word list is not available.',
 
+	// translator: Heading of the panel that lists the sections of the level's script (terrain, items, enemies and so on), each with a switch to hide it on the canvas and a lock.
+	'layers.title': 'Layers',
+	// translator: Accessible name of the eye toggle on a layer's row. {layer} is the layer's name (Terrain, Treats, Enemies and so on). Pressed means the layer is hidden. Hiding changes only what the person sees, not the level.
+	'layers.hide': 'Hide {layer} on the canvas',
+	// translator: Accessible name of the lock toggle on a layer's row. {layer} is the layer's name. Pressed means the layer is locked: nothing in it can be changed, by the person or by Claude.
+	'layers.lock': 'Lock {layer}',
+	// translator: Shown under one of Claude's proposals when it would change a locked layer, so it cannot be accepted yet. {layers} is a layer's name or a list of names, such as “Treats and Edits”.
+	'layers.blocked': 'Blocked by a lock: {layers}. Unlock the layer in Layers to accept this.',
+	// translator: Verb phrase on a button. Unlocks every layer that is locked.
+	'layers.unlockAll': 'Unlock all',
+	// translator: Shown when a lock could not be saved to the level's sidecar file, so it stays as it was.
+	'layers.lockFailed': 'That lock could not be saved.',
+	// translator: Verb phrase on a button. Shows every layer that is hidden again.
+	'layers.showAll': 'Show all',
+	// translator: Why Show all cannot be used: no layer is hidden on the canvas.
+	'layers.noneHidden': 'No layer is hidden',
+	// translator: Why Unlock all cannot be used: no layer is locked.
+	'layers.noneLocked': 'No layer is locked',
+	// translator: Tooltip on a layer's name. Choosing it shows the layer's first line in the script.
+	'layers.reveal': 'Show the first line of {layer} in the script',
+	// translator: Short note under the Layers list. Hiding a layer is only for the person's own view.
+	'layers.hideNote':
+		'Hiding is for your view only; Claude always sees the whole level. A locked layer cannot be changed, by you or by Claude.',
+	// translator: Shown in the Layers panel when the level has no sections yet.
+	'layers.none': 'This level has no layers yet.',
+	// translator: Shown in the Layers panel for a level written in the Fizz 2 language, which has no layers yet.
+	'layers.fizz2': 'Layers are not available for Fizz 2 levels yet.',
+	// translator: The name of a layer: the ground, slopes and pools of the level.
+	'layers.name.terrain': 'Terrain',
+	// translator: The name of a layer: the walls at both ends of the level.
+	'layers.name.walls': 'Walls',
+	// translator: The name of a layer: blocks, platforms, ladders and rooms.
+	'layers.name.blocks': 'Blocks',
+	// translator: The name of a layer: the crystals set into the ground.
+	'layers.name.crystals': 'Crystals',
+	// translator: The name of a layer: the exits and doors.
+	'layers.name.markers': 'Markers',
+	// translator: The name of a layer: the items the player collects (cheezies, chocs, cookies, sodas and keys).
+	'layers.name.treats': 'Treats',
+	// translator: The name of a layer: the enemies and props.
+	'layers.name.enemies': 'Enemies',
+	// translator: The name of a layer: the changes made in the studio, which are added to the end of the script.
+	'layers.name.edits': 'Edits',
+	// translator: A short note beside a layer's name that says what it holds: the ground, slopes and pools.
+	'layers.note.terrain': 'Ground, slopes and pools',
+	// translator: A short note beside a layer's name: the walls at both ends of the level.
+	'layers.note.walls': 'The end walls',
+	// translator: A short note beside a layer's name: blocks, platforms and ladders.
+	'layers.note.blocks': 'Blocks, platforms and ladders',
+	// translator: A short note beside a layer's name: crystals set into the ground.
+	'layers.note.crystals': 'Set into the ground',
+	// translator: A short note beside a layer's name: the exits and doors.
+	'layers.note.markers': 'Exits and doors',
+	// translator: A short note beside a layer's name: items to collect.
+	'layers.note.treats': 'Items to collect',
+	// translator: A short note beside a layer's name: enemies and props.
+	'layers.note.enemies': 'Enemies and props',
+	// translator: A short note beside a layer's name: changes made in the studio.
+	'layers.note.edits': 'Made in the studio',
+
+	// translator: Shown when the item, enemy, or start the person had selected is no longer in the level, usually because the script was changed outside the studio.
+	'selection.lost': 'The thing you selected is no longer in the level.',
+
+	// translator: Heading of the panel that shows the one thing selected on the level (an item, an enemy, or the start) with its position, facing and script line, and lets the person change it.
+	'inspector.title': 'Inspector',
+	// translator: The accessible name of the group holding the Inspector's fields about the one thing selected on the level.
+	'inspector.group': 'Selected thing',
+	// translator: Menu row, palette entry, and button that deletes the selected item or enemy. It can be undone.
+	'selection.delete': 'Delete',
+	// translator: Palette entry and button that turns the selected enemy to face the other way: left becomes right and right becomes left.
+	'selection.flip': 'Flip',
+	// translator: Palette entry for moving the selected item, enemy, or start one cell to the left.
+	'selection.nudgeLeft': 'Move the selected thing left',
+	// translator: Palette entry for moving the selected item, enemy, or start one cell to the right.
+	'selection.nudgeRight': 'Move the selected thing right',
+	// translator: Palette entry for moving the selected item, enemy, or start one cell up.
+	'selection.nudgeUp': 'Move the selected thing up',
+	// translator: Palette entry for moving the selected item, enemy, or start one cell down.
+	'selection.nudgeDown': 'Move the selected thing down',
+	// translator: Why a command that changes the selected thing cannot run: nothing is selected, or only a cell is. Inspect is a tool and Q is its key.
+	'selection.needsThing':
+		'Select an item or enemy first: Inspect (Q) one on the level, or choose one in Objects.',
+	// translator: Why Flip cannot run: the selection is an item or the start, which have no facing to turn.
+	'selection.noFacing': 'Only an enemy has a facing to turn.',
+	// translator: Why Show in script cannot run: nothing is selected that sits on a line of the script.
+	'selection.needsLine': 'Select a thing that sits on a script line first.',
+	// translator: Why the selected item cannot be changed: a generator line in the script made it, so the line has to be edited instead.
+	'selection.generated': 'A generator line in the script made this item. Edit that line instead.',
+	// translator: Shown in the Inspector when nothing is selected. "Inspect" is the name of a tool and Q is its key.
+	'inspector.empty':
+		'Nothing selected. Inspect (Q) a thing on the level, or choose one in Objects.',
+	// translator: The Inspector's heading for a selected item or enemy: its name, then what kind of thing it is, such as "Soda · treat". The dot is a separator.
+	'inspector.heading': '{name} · {kind}',
+	// translator: What a selected item is, after its name in the Inspector's heading. Items are the things Ben collects, such as sodas and cheezies.
+	'inspector.kind.item': 'treat',
+	// translator: What a selected enemy is, after its name in the Inspector's heading.
+	'inspector.kind.enemy': 'enemy',
+	// translator: What the start is, after its name in the Inspector's heading. Not shown as a heading on its own.
+	'inspector.kind.start': 'start',
+	// translator: The Inspector's heading for Ben's starting place on the level.
+	'inspector.startName': 'Start',
+	// translator: The Inspector's heading for a selected cell of the level: its place, then the tile in it, such as "Cell 35, 4 · grass". The dot is a separator.
+	'inspector.cell': 'Cell {x}, {y} · {tile}',
+	// translator: Shown at the end of a selected cell's details in the Inspector: tiles are painted with the Paint tool and a brush from the Palette, not changed by number here.
+	'inspector.cellNote': 'Tiles are painted with the Palette, not edited here.',
+	// translator: Label of the layer a selected cell belongs to in the Inspector: the section of the script whose statement last set the cell, such as Terrain or Edits.
+	'inspector.cellLayer': 'Layer',
+	// translator: Label before the script line that last set a selected cell in the Inspector, with the line’s text below it.
+	'inspector.cellSetBy': 'Last set by',
+	// translator: The place of the statement that last set a cell: {layer} is the layer's name such as Terrain, and {line} the line number in the script, such as “Terrain, line 9”.
+	'inspector.cellSetByAt': '{layer}, line {line}',
+	// translator: Shown for a cell with a tile where no statement in the script sets it, so the tile comes from the level itself.
+	'inspector.cellNoLine': 'No line of the script sets this cell.',
+	// translator: Label before the script syntax that writes a tile, such as “fill x=A..B y=A..B”, in the Inspector.
+	'inspector.cellWrittenAs': 'Written as',
+	// translator: Label of the Palette brush that places the selected cell's tile in the Inspector.
+	'inspector.cellBrush': 'Brush',
+	// translator: Button in the Inspector that chooses the Palette brush for the selected cell's tile, so the next paint lays that tile. {tile} is the tile's word, such as grass.
+	'inspector.useBrush': 'Use the {tile} brush',
+	// translator: Shown when the selected cell's tile has no Palette brush to place it with.
+	'inspector.noBrush': 'The Palette has no brush for this tile.',
+	// translator: Shown for a selected cell with nothing painted on it in the Inspector.
+	'inspector.cellEmpty': 'Empty: nothing is painted here.',
+	// translator: Shown under an empty selected cell: the Palette sections whose brushes could be placed on it. {sections} is a list of section names, such as “Terrain and Hazards”, or “Terrain, Hazards and Markers”, joined for the person's language.
+	'inspector.cellPlace': 'Brushes you can place here, from the Palette: {sections}.',
+	// translator: Shown under an empty selected cell: which layer a paint on it would write to. {layer} is the layer's name, such as Edits. Paints are added to the end of the script.
+	'inspector.cellPaintLayer': 'A paint here is added to {layer}, at the end of the script.',
+	// translator: Shown in the Inspector when the layer of the selected cell is locked: nothing in it can be changed, by the person or by Claude.
+	'inspector.cellLocked':
+		'This layer is locked. It cannot be changed, by you or by Claude. Unlock it in Layers.',
+	// translator: Shown in the Inspector when the layer of the selected cell is hidden on the canvas. Hiding changes only what the person sees.
+	'inspector.cellHidden': 'This layer is hidden on the canvas. Hiding is for your view only.',
+	// translator: Short badge after a layer's name in the Inspector: the layer is locked.
+	'inspector.badgeLocked': 'Locked',
+	// translator: Short badge after a layer's name in the Inspector: the layer is hidden on the canvas.
+	'inspector.badgeHidden': 'Hidden',
+	// translator: The accessible name of the list of facts about the selected cell in the Inspector (its layer, the line that set it, and its brush).
+	'inspector.cellFacts': 'About this cell',
+	// translator: The label of a thing's horizontal position, in cells from the left, in the Inspector. A single letter.
+	'inspector.x': 'x',
+	// translator: The label of a thing's vertical position, in cells up from the bottom, in the Inspector. A single letter.
+	'inspector.y': 'y',
+	// translator: Shown beside an enemy's height when the script gives it none, so it stands on whatever ground is under it.
+	'inspector.ground': 'Stands on the ground',
+	// translator: The label of the direction an enemy faces in the Inspector.
+	'inspector.facing': 'Facing',
+	// translator: A direction an enemy faces: towards the left of the screen.
+	'inspector.left': 'Left',
+	// translator: A direction an enemy faces: towards the right of the screen.
+	'inspector.right': 'Right',
+	// translator: Shown in place of an enemy's facing when it is a rider, which carries its own direction and so has none to set.
+	'inspector.noFacing': 'A rider has no facing',
+	// translator: The script line, counted from 1, that holds the selected thing, such as "Line 43".
+	'inspector.line': 'Line {line}',
+	// translator: Button in the Inspector that scrolls the Script panel to the line that holds the selected thing.
+	'inspector.showInScript': 'Show in script',
+	// translator: Shown for an item that a generator statement made, which cannot be changed one by one. {generator} is the statement's word, such as pogo-cache; {line} is its script line.
+	'inspector.generated': 'Made by the {generator} on line {line}: edit that line in the script.',
+	// translator: Name of the button that moves the selected thing one cell down the {axis} axis (towards zero); {axis} is the letter x or y.
+	'inspector.decrease': 'Decrease {axis}',
+	// translator: Name of the button that moves the selected thing one cell up the {axis} axis (away from zero); {axis} is the letter x or y.
+	'inspector.increase': 'Increase {axis}',
+	// translator: Button in the Inspector that makes an enemy stand on whatever ground is under it again, instead of at a fixed height.
+	'inspector.onGround': 'On the ground',
+	// translator: Accessible name of the pair of buttons that choose which way an enemy faces.
+	'inspector.facingGroup': 'Facing',
+	// translator: Button in the Inspector that removes the selected item or enemy from the level script. The change can be undone.
+	'inspector.delete': 'Delete',
+	// translator: Shown beside the disabled Delete button when the start is selected: a level cannot be without a start.
+	'inspector.deleteStart': 'A level needs a start.',
+	// translator: Shown in the Inspector after the person deleted a thing. {name} is the thing's word, such as soda; Ctrl+Z is the Undo shortcut.
+	'inspector.deleted': 'Deleted {name}. Ctrl+Z puts it back.',
+	// translator: Shown under the Inspector's fields when the selected thing shares its cell with another item or enemy. It is only a warning: the game allows it.
+	'inspector.overlap': 'Another thing is on this cell.',
+	// translator: Shown in the Inspector when a change was refused because the line it would change is no longer the one that was selected, usually because the script was changed first.
+	'inspector.gone': 'That line changed. Select the thing again.',
+	// translator: Shown in the Inspector for a Fizz 2 level, whose things cannot yet be changed from the Inspector. Fizz 2 is the name of a game.
+	'inspector.fizz2': 'Things in a Fizz 2 level are changed in its script for now.',
+
 	// translator: Heading of the panel that shows what Claude has proposed and the person has not yet answered.
 	'ghosts.title': 'Proposals',
 	// translator: Label of the switch that shows or hides Claude’s proposed changes as faint cells on the canvas.
@@ -259,6 +444,28 @@ export const enMessages = {
 
 	// translator: Verb phrase on a menu item. Opens the command palette, a search box that finds and runs any command. The three dots mean it asks for more input.
 	'appMenu.commandPalette': 'Command palette…',
+	// translator: A switch in the View menu. Shows or hides the menu bar (File, Edit, View, Window, Help) under the title bar.
+	'appMenu.menuBar': 'Menu bar',
+	// translator: A submenu of the Window menu. Lists the workspaces, each a saved arrangement of the panels, to switch between.
+	'appMenu.workspace': 'Workspace',
+	// translator: Menu row. Lets the panel the person last used float over the level.
+	'appMenu.floatFocused': 'Float the focused panel',
+	// translator: Menu row. Moves the panel the person last used into a window of its own.
+	'appMenu.tearOffFocused': 'Tear off the focused panel',
+	// translator: Menu row. Brings every panel that is in a window of its own back into the main window.
+	'appMenu.dockAllBack': 'Dock every window back',
+	// translator: Tooltip on a disabled Window row: no panel has been used yet.
+	'appMenu.noFocusedPanel': 'Click a panel first',
+	// translator: Tooltip on a disabled row: no panel is in a window of its own.
+	'appMenu.noWindows': 'No panel is in a window of its own',
+	// translator: Name of a workspace, a saved arrangement of the panels for painting the level. Also a menu row that switches to it.
+	'workspace.paint': 'Paint',
+	// translator: Name of a workspace, a saved arrangement of the panels for writing the level’s script. Also a menu row that switches to it.
+	'workspace.script': 'Script',
+	// translator: Name of a workspace, a saved arrangement of the panels for reviewing Claude’s proposals. Also a menu row that switches to it.
+	'workspace.review': 'Review',
+	// translator: Tooltip on a disabled workspace row: that workspace is the one in use.
+	'workspace.current': 'This workspace is open',
 	// translator: The name of the command palette dialog, read aloud by a screen reader. It is a search box listing every command.
 	'cmdPalette.title': 'Command palette',
 	// translator: Accessible name of the search field in the command palette.
@@ -328,34 +535,146 @@ export const enMessages = {
 	'dock.zone.right': 'Right dock',
 	// translator: Name of the dock below the level, where panels sit as tabs. Used as a region name.
 	'dock.zone.bottom': 'Bottom dock',
-	// translator: Verb phrase on an icon button. Moves a panel into the dock on the left of the level. {title} is the panel’s name.
+	// translator: Verb phrase. Names the command that moves a panel into the dock on the left of the level. {title} is the panel’s name.
 	'dock.dockLeft': 'Dock {title} left',
-	// translator: Verb phrase on an icon button. Moves a panel into the dock on the right of the level. {title} is the panel’s name.
+	// translator: Verb phrase. Names the command that moves a panel into the dock on the right of the level. {title} is the panel’s name.
 	'dock.dockRight': 'Dock {title} right',
-	// translator: Verb phrase on an icon button. Moves a panel into the dock below the level. {title} is the panel’s name.
+	// translator: Verb phrase. Names the command that moves a panel into the dock below the level. {title} is the panel’s name.
 	'dock.dockBottom': 'Dock {title} bottom',
-	// translator: Verb phrase on an icon button. Lets a docked panel float over the level. {title} is the panel’s name.
+	// translator: Verb phrase. Names the command that lets a panel float over the level. {title} is the panel’s name.
 	'dock.float': 'Float {title}',
 
-	// translator: Verb phrase on an icon button. Moves a panel out of the main window into a window of its own. {title} is the panel’s name.
-	'dock.tearOff': 'Tear off {title} into its own window',
-
-	// translator: Verb phrase on an icon button. Folds the open left dock into a thin rail that shows each panel’s icon and title.
-	'dock.fold.left': 'Fold the left dock',
-	// translator: Verb phrase on an icon button. Opens the folded left dock again.
-	'dock.unfold.left': 'Unfold the left dock',
+	// translator: Accessible name and tooltip of the ⋮ button in a panel’s header, which opens that panel’s menu. {title} is the panel’s name.
+	'dock.menu.button': '{title} menu',
+	// translator: Tooltip on the rail entry of the panel that is showing in an open dock. Choosing it again folds the dock. {title} is the panel’s name.
+	'dock.rail.hintOpen': '{title}, open; choose again to fold',
+	// translator: Tooltip on the rail entry of a folded dock’s panel. Choosing it opens the dock. {title} is the panel’s name.
+	'dock.rail.hintFolded': '{title}, folded; choose to open',
+	// translator: Name of the Assets panel, shown dimmed on the rail because it is not built yet.
+	'dock.assets': 'Assets',
+	// translator: Accessible name of the row of tabs in the Script panel’s header, one tab for each open script.
+	'scriptTabs.label': 'Scripts',
+	// translator: Accessible name of a script tab’s close button. {name} is the script’s file name. Closing a tab hides the Script panel; it does not close the level.
+	'scriptTabs.close': 'Close {name}',
+	// translator: Accessible name of a script tab’s close button when the script has changes that are not saved. {name} is the script’s file name.
+	'scriptTabs.closeDirty': 'Close {name}, unsaved changes',
+	// translator: Tooltip of the tab of a script that is open in a window of its own. Choosing it brings that window forward. {name} is the script’s file name.
+	'scriptTabs.away': '{name}, open in its own window; choose to bring it forward',
+	// translator: Accessible name and tooltip of the button that lists every script tab when they do not all fit in a narrow header.
+	'scriptTabs.more': 'More tabs',
+	// translator: Command palette entry. Shows the Script panel with the level’s script tab.
+	'scriptTabs.activate': 'Show the level script tab',
+	// translator: Command palette entry. Closes the level’s script tab, which hides the Script panel. The level stays open.
+	'scriptTabs.closeCommand': 'Close the level script tab',
+	// translator: Label of a Preferences setting. The commands row is the row of buttons under the menus: the classic toolbar, the ribbon, or nothing.
+	'toolbar.setting.label': 'Commands row',
+	// translator: Description of the commands row setting in Preferences.
+	'toolbar.setting.description':
+		'The classic toolbar is one row of buttons. The ribbon groups the commands under tabs. None leaves the menus and the command palette.',
+	// translator: A choice of the commands row setting: one row of buttons. Keep it short.
+	'toolbar.setting.classic': 'Toolbar',
+	// translator: A choice of the commands row setting: commands grouped under tabs, as in an office program. Keep it short.
+	'toolbar.setting.ribbon': 'Ribbon',
+	// translator: A choice of the commands row setting: no commands row. Keep it short.
+	'toolbar.setting.hidden': 'None',
+	// translator: A switch in the View menu and the app menu. Shows the classic toolbar, one row of buttons under the menus.
+	'toolbar.classic': 'Toolbar',
+	// translator: A switch in the View menu and the app menu. Shows the ribbon, the commands grouped under tabs.
+	'toolbar.ribbon': 'Ribbon',
+	// translator: Command palette entry. Hides the commands row (the toolbar or the ribbon) under the menus.
+	'toolbar.hidden': 'Hide the toolbar and ribbon',
+	// translator: Command palette entry and ribbon button. Folds the ribbon to its tabs, or opens it again.
+	'toolbar.foldRibbon': 'Fold the ribbon',
+	// translator: Command palette entry. Shows the Palette panel, where the brush is chosen.
+	'toolbar.showPalette': 'Show the Palette',
+	// translator: Command palette entry and ribbon button. Shows the Script panel, where the script's problems are listed.
+	'toolbar.showScript': 'Show the Script and its problems',
+	// translator: Accessible name of the ribbon, the commands grouped under tabs.
+	'ribbon.label': 'Ribbon',
+	// translator: Accessible name of the panel of buttons under the ribbon tab that is chosen.
+	'ribbon.toolbar': 'Ribbon controls',
+	// translator: Accessible name of the row of tabs of the ribbon.
+	'ribbon.tabs': 'Ribbon tabs',
+	// translator: Button on a folded ribbon that keeps its panel open while it is open.
+	'ribbon.pin': 'Keep the ribbon open',
+	// translator: Button on a folded ribbon that lets its panel close again.
+	'ribbon.unpin': 'Let the ribbon close',
+	// translator: Prefix of the accessible name of a button that makes a number smaller. {label} follows it in the ribbon; this is the word before it.
+	'ribbon.decrease': 'Decrease',
+	// translator: Prefix of the accessible name of a button that makes a number larger.
+	'ribbon.increase': 'Increase',
+	// translator: The File button at the left of the ribbon’s tabs. It opens a menu of New, Open, Save, Close, Preferences and Quit. Keep it short.
+	'ribbon.file': 'File',
+	// translator: Name of the first ribbon tab: the everyday commands. Keep it short.
+	'ribbon.tab.home': 'Home',
+	// translator: Name of a ribbon tab: commands about the open level. Keep it short.
+	'ribbon.tab.level': 'Level',
+	// translator: Name of a ribbon tab: what is on screen and where. Keep it short.
+	'ribbon.tab.view': 'View',
+	// translator: Name of a ribbon tab that appears while the Script panel is the one in use. Keep it short.
+	'ribbon.tab.script': 'Script',
+	// translator: Name of a group of ribbon buttons: New, Open, Save and Close.
+	'ribbon.group.file': 'File',
+	// translator: Name of a group of ribbon buttons: Undo and Redo.
+	'ribbon.group.history': 'History',
+	// translator: Name of a group of ribbon buttons: the tools that edit the level.
+	'ribbon.group.tools': 'Tools',
+	// translator: Name of a group of ribbon buttons: the brush the tools paint with.
+	'ribbon.group.brush': 'Brush',
+	// translator: Name of a group of ribbon buttons: the Layers panel of the level.
+	'ribbon.group.layers': 'Layers',
+	// translator: Name of a group of ribbon buttons that act on the selected thing: delete, flip, show in script.
+	'ribbon.group.selection': 'Selection',
+	// translator: Name of a group of ribbon buttons: checking the script for problems.
+	'ribbon.group.checks': 'Checks',
+	// translator: Name of a group of ribbon buttons: zooming the level.
+	'ribbon.group.zoom': 'Zoom',
+	// translator: Name of a group of ribbon buttons: showing and hiding the panels.
+	'ribbon.group.panels': 'Panels',
+	// translator: Name of a group of ribbon buttons: how the panels are arranged.
+	'ribbon.group.layout': 'Layout',
+	// translator: Name of a group of ribbon buttons: the menu bar, the toolbar and the ribbon themselves.
+	'ribbon.group.chrome': 'Window',
+	// translator: Name of a group of ribbon buttons: the workspaces, saved arrangements of the panels.
+	'ribbon.group.workspaces': 'Workspaces',
+	// translator: Name of a group of ribbon buttons: the script’s problems.
+	'ribbon.group.problems': 'Problems',
+	// translator: Name of a group of ribbon buttons: closing or tearing off the script tab.
+	'ribbon.group.tabs': 'Tabs',
+	// translator: Tooltip and name of the button at the right of the ribbon’s tabs that folds the ribbon to its tabs.
+	'ribbon.fold': 'Fold the ribbon to its tabs',
+	// translator: Tooltip and name of the button at the right of the ribbon’s tabs that opens a folded ribbon.
+	'ribbon.unfold': 'Open the ribbon',
+	// translator: Accessible name of the group of buttons that switch the workspace. A workspace is a saved arrangement of the panels.
+	'workspace.label': 'Workspace',
+	// translator: Label of the button that opens the command palette, like a search field. Keep it short.
+	'workspace.search': 'Search commands',
+	// translator: Accessible name of the classic toolbar, the row of buttons under the menus.
+	'toolbar.label': 'Commands',
+	// translator: Accessible name of the group of buttons on the toolbar that show and hide the panels.
+	'toolbar.panels': 'Panels',
+	// translator: Tooltip on the brush chip of the toolbar. Choosing it shows the Palette, where the brush is chosen.
+	'toolbar.brushTip': 'The brush. Choose to show the Palette.',
+	// translator: Tooltip on the dimmed Assets entry of the rail: the panel will come in a later version.
+	'dock.assets.later': 'Assets are coming later',
+	// translator: A row in a panel’s own menu. Moves that panel into the dock on the left of the level. The panel is already named by the menu.
+	'dock.menu.left': 'Dock left',
+	// translator: A row in a panel’s own menu. Moves that panel into the dock on the right of the level.
+	'dock.menu.right': 'Dock right',
+	// translator: A row in a panel’s own menu. Moves that panel into the dock below the level.
+	'dock.menu.bottom': 'Dock bottom',
+	// translator: A row in a panel’s own menu. Lets that panel float over the level.
+	'dock.menu.float': 'Float',
+	// translator: A row in a panel’s own menu. Moves that panel out of the main window into a window of its own.
+	'dock.menu.tearOff': 'Tear off',
+	// translator: A row in the menu of a panel that is in a window of its own. Brings it back into the main window.
+	'dock.menu.dockBack': 'Dock back',
+	// translator: Tooltip on a disabled row of a panel’s menu: the panel is already in that place.
+	'dock.menu.here': 'Already here',
 	// translator: Name of the thin strip along the left edge of the window beside the left dock. It holds one button for each panel in the dock, showing its icon and title.
 	'dock.rail.left': 'Left rail',
-	// translator: Verb phrase on an icon button. Folds the open right dock into a thin rail that shows each panel’s icon and title.
-	'dock.fold.right': 'Fold the right dock',
-	// translator: Verb phrase on an icon button. Opens the folded right dock again.
-	'dock.unfold.right': 'Unfold the right dock',
 	// translator: Name of the thin strip along the right edge of the window beside the right dock. It holds one button for each panel in the dock, showing its icon and title.
 	'dock.rail.right': 'Right rail',
-	// translator: Verb phrase on an icon button. Folds the open bottom dock into a thin rail that shows each panel’s icon and title.
-	'dock.fold.bottom': 'Fold the bottom dock',
-	// translator: Verb phrase on an icon button. Opens the folded bottom dock again.
-	'dock.unfold.bottom': 'Unfold the bottom dock',
 	// translator: Name of the thin strip along the bottom edge of the window beside the bottom dock. It holds one button for each panel in the dock, showing its icon and title.
 	'dock.rail.bottom': 'Bottom rail',
 	// translator: Name of a panel shown briefly over the level from a folded dock’s rail. {title} is the panel’s name.
@@ -379,14 +698,25 @@ export const enMessages = {
 	'dock.drag.floated': '{title} is floating over the level.',
 	// translator: Announced to screen readers when a drag of a panel is cancelled and the panel stays where it was. {title} is the panel’s name.
 	'dock.drag.cancelled': 'Move cancelled. {title} stays where it was.',
-	// translator: Name and tooltip of a button in a panel’s header. Makes the panel fill the editor’s whole workspace, with the level and the other panels hidden behind it. This is not the window’s own maximise button. {title} is the panel’s name.
+	// translator: Small line under a panel’s name on the card that follows the pointer while the panel is dragged out of the window. Releasing turns the panel into a window of its own.
+	'tearoff.ghost.tearOff': 'Release to tear off',
+	// translator: Small line under a panel’s name on the card that follows the pointer while a panel in its own window is dragged. The pointer is not over a place in the main window that takes it.
+	'tearoff.ghost.drag': 'Drag onto the editor to dock',
+	// translator: Small line under a panel’s name on the card that follows the pointer while a panel in its own window is dragged over the main window. Releasing docks it there.
+	'tearoff.ghost.dock': 'Release to dock here',
+	// translator: Announced to screen readers when a panel was dragged out into a window of its own. {title} is the panel’s name.
+	'tearoff.drag.torn': '{title} is now in a window of its own.',
+	// translator: Announced to screen readers when dragging a panel out of the window is not possible on this desktop. The panel’s own menu has a Tear off row that works everywhere.
+	'tearoff.drag.unavailable':
+		'This desktop cannot drag a panel into a window. Use the panel’s ⋮ menu, then Tear off.',
+	// translator: Announced to screen readers when a drag that would have torn a panel off into a window was cancelled. {title} is the panel’s name.
+	'tearoff.drag.cancelled': 'Tear off cancelled. {title} stays where it was.',
+	// translator: Announced to screen readers when a panel in a window of its own was dragged back into the main window. {title} is the panel’s name.
+	'tearoff.drag.dockedBack': '{title} is back in the main window.',
+	// translator: Name and tooltip of a button in a panel’s header (the tooltip adds the shortcut keys as keycaps). Makes the panel fill the editor’s whole workspace, with the level and the other panels hidden behind it. This is not the window’s own maximise button. {title} is the panel’s name.
 	'panel.maximise': 'Maximise {title}',
-	// translator: Tooltip of the button that maximises a panel. {title} is the panel’s name and {keys} the keys that do the same, such as “Ctrl+Shift+M”.
-	'panel.maximise.tip': 'Maximise {title} ({keys})',
 	// translator: Name and tooltip of a button in a maximised panel’s header. Puts the panel back where it was in the layout. {title} is the panel’s name.
 	'panel.restore': 'Restore {title}',
-	// translator: Tooltip of the button that restores a maximised panel. {title} is the panel’s name and {keys} the keys that do the same, such as “Ctrl+Shift+M”.
-	'panel.restore.tip': 'Restore {title} ({keys})',
 	// translator: Menu item and command in the View menu. Makes a panel fill the editor’s workspace. {panel} is the panel’s name.
 	'view.maximise': 'Maximise {panel}',
 	// translator: Menu item and command in the View menu, shown while a panel is maximised. Puts the panel back in the layout. {panel} is the panel’s name.
@@ -477,6 +807,12 @@ export const enMessages = {
 	'shortcuts.maximise': 'Maximise or restore the focused panel',
 	// translator: Row in the keyboard shortcuts window. Puts every panel back where it starts.
 	'shortcuts.resetLayout': 'Reset layout',
+	// translator: A row of the Keyboard shortcuts table. Makes the level canvas show larger cells.
+	'shortcuts.zoomIn': 'Zoom in',
+	// translator: A row of the Keyboard shortcuts table. Makes the level canvas show smaller cells.
+	'shortcuts.zoomOut': 'Zoom out',
+	// translator: A row of the Keyboard shortcuts table. Chooses the largest whole zoom that shows the whole level.
+	'shortcuts.zoomFit': 'Fit level',
 	// translator: Row in the keyboard shortcuts window. Opens the app’s help.
 	'shortcuts.help': 'Help',
 	// translator: Row in the keyboard shortcuts window. Shows or hides this window.
@@ -485,6 +821,14 @@ export const enMessages = {
 	'menuBar.label': 'Application menu',
 	// translator: Accessible name of the button that holds the menus that do not fit in the menu bar.
 	'menuBar.more': 'More menus',
+	// translator: Row in the keyboard shortcuts window. Deletes the selected item or enemy from the level script; it can be undone.
+	'shortcuts.delete': 'Delete the selected item or enemy',
+	// translator: Row in the keyboard shortcuts window. Turns the selected enemy to face the other way.
+	'shortcuts.flip': 'Turn the selected enemy round',
+	// translator: Row in the keyboard shortcuts window. Moves the selected item, enemy, or start one cell while the level has focus; with nothing selected the arrows move the cursor.
+	'shortcuts.nudge': 'Move the selected thing one cell',
+	// translator: Row in the keyboard shortcuts window. Shows the script line of the selected thing in the Script panel.
+	'shortcuts.showInScript': 'Show the selected thing in the script',
 	// translator: A line shown in a panel’s own window while the main window has no level open, so the panel has nothing to show.
 	'panelWindow.noLevel': 'Open a level in the main window to use this panel.',
 
@@ -501,6 +845,10 @@ export const enMessages = {
 
 	// translator: A banner shown when the level’s file was changed by something other than the studio.
 	'editor.editedOutside': 'This level was changed outside the studio.',
+	// translator: Shown when a change was refused because it would alter a locked layer. {layers} is one layer's name (such as Treats). The layer list is in the Layers panel.
+	'level.locked': '{layers} is locked. Unlock it in Layers to change it.',
+	// translator: Shown when a change was refused because it would alter several locked layers. {layers} is a list of layer names, such as “Treats and Edits”.
+	'level.lockedMany': '{layers} are locked. Unlock them in Layers to change them.',
 	// translator: A note above the grid of a Fizz 2 level. “The game” is Lieutenant Fizz 2; “flat view” is a plain drawing of the tiles.
 	'level.flatFallback':
 		'The game’s own drawing of this level is not available yet, so this is the flat view.',
@@ -791,8 +1139,6 @@ export const enMessages = {
 	'main.closeFailed': 'The level could not be closed.',
 	// translator: Verb. A button that hides a message.
 	'main.dismiss': 'Dismiss',
-	// translator: Accessible name of the group of buttons that act on the open level.
-	'main.levelActions': 'Level actions',
 	// translator: Verb. A button that writes the level to its file.
 	'main.save': 'Save',
 	// translator: Verb phrase on a button. Closes the open level and returns to the start screen.
@@ -808,6 +1154,9 @@ export const enMessages = {
 	// translator: A banner explaining that the level’s file changed outside the studio on the same lines as unsaved changes.
 	'main.conflict':
 		'The file changed outside the studio on lines you also changed. The text below marks where.',
+	// translator: A banner explaining that the file changed outside the studio in a layer that is locked, so the studio kept its own text. {layers} is the layer's name, or a list of names. The text below is the outside version.
+	'main.conflictLocked':
+		'The file changed outside the studio in {layers}, which is locked, so the studio kept its own text. The text below is the outside version. Unlock the layer in Layers and change it again to bring it in.',
 	// translator: Heading of the start-screen section that offers levels whose unsaved changes survived a crash.
 	'main.recovered': 'Recovered changes',
 	// translator: Explains the recovered-changes section.
@@ -830,6 +1179,100 @@ export const enMessages = {
 	'main.discardFailed': 'Could not discard the recovery copy of {path}.',
 	// translator: Accessible name of the box holding the text with conflict markers.
 	'main.conflictText': 'Text with conflict markers',
+
+	// ---- Context menus (the right-click menus of the level, the chrome, the text fields and the script) ----
+	// translator: Header row of the menu on a thing in the level. {name} is the thing’s name (such as “Gloop”), then its position on the grid, then the line of the script it is written on.
+	'context.header': '{name} · x {x}, y {y} · line {line}',
+	// translator: Header row of the menu on a cell whose script line is not known yet. {name} is the tile’s name (such as “Grass”), then its position on the grid.
+	'context.headerNoLine': '{name} · x {x}, y {y}',
+	// translator: Accessible name of the menu on an empty cell or a tile of the level.
+	'context.menu.cell': 'Cell menu',
+	// translator: Accessible name of the menu on a thing in the level or a row of the Objects list. {name} is the thing’s name, such as “Gloop”.
+	'context.menu.thing': '{name} menu',
+	// translator: Accessible name of the menu on a row of the Layers panel. {layer} is the layer’s name, such as “Treats”.
+	'context.menu.layer': '{layer} layer menu',
+	// translator: Accessible name of the menu on a brush of the Palette. {brush} is the brush’s word, such as “grass”.
+	'context.menu.brush': '{brush} brush menu',
+	// translator: Accessible name of the menu on a panel’s header, tab or rail button. {title} is the panel’s name, such as “Script”.
+	'context.menu.panel': '{title} menu',
+	// translator: Accessible name of the menu on the level script’s tab.
+	'context.menu.scriptTab': 'Script tab menu',
+	// translator: Accessible name of the menu in the script editor.
+	'context.menu.script': 'Script menu',
+	// translator: Accessible name of the menu on the commands row (the toolbar, the ribbon or the row of menus).
+	'context.menu.commands': 'Commands menu',
+	// translator: Accessible name of the menu on the workspace switcher.
+	'context.menu.workspace': 'Workspace menu',
+	// translator: Accessible name of the menu on the zoom control.
+	'context.menu.zoom': 'Zoom menu',
+	// translator: Accessible name of the menu on the tool picker.
+	'context.menu.tools': 'Tools menu',
+	// translator: Accessible name of the menu on the History panel.
+	'context.menu.history': 'History menu',
+	// translator: Accessible name of the menu in a text field.
+	'context.menu.textField': 'Text menu',
+	// translator: Row of a text field’s menu. Verb. Takes back the last change to the text.
+	'context.text.undo': 'Undo',
+	// translator: Row of a text field’s menu. Verb. Does a taken-back change to the text again.
+	'context.text.redo': 'Redo',
+	// translator: Row of a text field’s menu. Verb. Removes the selected text and keeps it on the clipboard.
+	'context.text.cut': 'Cut',
+	// translator: Row of a text field’s menu. Verb. Puts the selected text on the clipboard.
+	'context.text.copy': 'Copy',
+	// translator: Row of a text field’s menu. Verb. Inserts the clipboard’s text.
+	'context.text.paste': 'Paste',
+	// translator: Row of a text field’s menu. Verb. Selects all the text in the field.
+	'context.text.selectAll': 'Select all',
+	// translator: Why a row of a text field’s menu is dimmed: the field cannot be changed.
+	'context.text.readOnly': 'This field cannot be changed.',
+	// translator: Why Cut or Copy is dimmed in a text field’s menu: no text is selected.
+	'context.text.noSelection': 'Select some text first.',
+	// translator: Why Select all is dimmed in a text field’s menu: the field is empty.
+	'context.text.empty': 'The field is empty.',
+	// translator: Name of the command that opens the context menu (the right-click menu) of whatever has the keyboard focus. Appears in the command palette.
+	'appMenu.contextMenu': 'Open the context menu',
+	// translator: Row in the keyboard shortcuts window. Opens the right-click menu of the focused thing; the Menu key does the same.
+	'shortcuts.contextMenu': 'Open the context menu (the Menu key does too)',
+	// translator: Menu row and command name. Verb. Makes the tile under the cursor the brush, like the Pick tool.
+	'canvas.pickHere': 'Pick this tile',
+	// translator: Menu row and command name. Verb. Paints with the current brush on the cell under the cursor. {brush} is the brush’s word, such as “grass”.
+	'canvas.paintHere': 'Paint {brush} here',
+	// translator: Menu row and command name. Verb. Erases the cell under the cursor, like the Erase tool.
+	'canvas.eraseHere': 'Erase here',
+	// translator: Why Pick, Paint or Erase here is dimmed: the cursor is not on a cell of the level.
+	'canvas.cursorOutside': 'Move the cursor onto the level first.',
+	// translator: Menu row and command name. Verb. Scrolls the canvas so the selected thing is in view.
+	'selection.reveal': 'Show on the canvas',
+	// translator: Command name. Verb. Shows the Inspector panel and brings it forward.
+	'toolbar.showInspector': 'Show the Inspector',
+	// translator: Menu row and command name. Verb. Hides one layer on the canvas. {layer} is the layer’s name, such as “Treats”. Hiding is for the person’s own view only.
+	'layers.hideOne': 'Hide {layer}',
+	// translator: Menu row and command name. Verb. Shows a layer that was hidden on the canvas. {layer} is the layer’s name.
+	'layers.showOne': 'Show {layer}',
+	// translator: Menu row and command name. Hides every layer on the canvas except this one. {layer} is the layer’s name.
+	'layers.only': 'Show only {layer}',
+	// translator: Menu row and command name. Verb. Locks a layer so nothing can change it. {layer} is the layer’s name.
+	'layers.lockOne': 'Lock {layer}',
+	// translator: Menu row and command name. Verb. Unlocks a locked layer so it can change again. {layer} is the layer’s name.
+	'layers.unlockOne': 'Unlock {layer}',
+	// translator: Short menu row on a layer’s own menu. Verb. Shows the first line of that layer in the script. The layer is already named by the menu.
+	'layers.revealOne': 'Show its first line in the script',
+	// translator: Why Show only is dimmed: this layer is already the only one shown.
+	'layers.onlyHere': 'This is the only layer shown.',
+	// translator: Why Show its first line in the script is dimmed: the layer owns no line of the script.
+	'layers.noLine': 'This layer has no line in the script.',
+	// translator: Menu row and command name in the script editor. Verb. Copies the selected script text to the clipboard.
+	'script.copy': 'Copy',
+	// translator: Menu row and command name in the script editor. Verb. Selects all of the script’s text.
+	'script.selectAll': 'Select all',
+	// translator: Menu row and command name in the script editor. Verb. Opens the box that searches the script.
+	'script.find': 'Find',
+	// translator: Menu row and command name in the script editor. Verb. Folds every foldable block of the script out of sight.
+	'script.foldAll': 'Fold all',
+	// translator: Menu row and command name in the script editor. Verb. Opens every folded block of the script.
+	'script.unfoldAll': 'Unfold all',
+	// translator: Why Copy is dimmed in the script editor: no script text is selected.
+	'script.copyNeedsSelection': 'Select some of the script first.',
 } as const;
 
 export type MessageId = keyof typeof enMessages;

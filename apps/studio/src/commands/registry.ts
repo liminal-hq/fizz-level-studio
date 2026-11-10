@@ -13,6 +13,12 @@ import { TOOL_KEYS } from '../tools/shortcuts';
 import { TOOL_IDS, type ToolId } from '../tools/tool';
 import type { Brush } from '../tools/brush';
 import type { BridgeSnapshot, CommandFacts } from './commandBridge';
+import { canvasCommands } from './canvasCommands';
+import { layerCommands } from './layerCommands';
+import { scriptCommands } from './scriptCommands';
+import { selectionCommands } from './selectionCommands';
+import { formatChord, type KeyChord } from './keyChords';
+import type { ZoneId } from '@liminal-hq/fizz-studio-protocol/generated/ZoneId';
 
 export type MenuName = 'file' | 'edit' | 'view' | 'window' | 'help';
 
@@ -52,6 +58,17 @@ export const PALETTE_GROUP_LABELS: Record<PaletteGroup, MessageId> = {
 	goto: 'cmdPalette.group.goto',
 };
 
+/** Why a command is disabled: a catalogue message, or one with the values its `{tokens}` take. */
+export type CommandReason = MessageId | { id: MessageId; values: Record<string, string | number> };
+
+/** The text of a reason. */
+export const reasonText = (reason: CommandReason): string =>
+	typeof reason === 'string' ? t(reason) : t(reason.id, reason.values);
+
+/** The catalogue message of a reason, whichever form it takes. */
+export const reasonId = (reason: CommandReason): MessageId =>
+	typeof reason === 'string' ? reason : reason.id;
+
 export interface CommandDef {
 	id: string;
 	/** The menu that lists the command; a palette-only command has none. */
@@ -71,8 +88,20 @@ export interface CommandDef {
 	argument?: 'line';
 	/** The icon on the command's menu row. Every menu command has one; a palette-only command (no `menu`) is exempt. */
 	icon?: IconId;
-	/** The keys, as shown on the row; the keys themselves are handled by the screens. */
+	/**
+	 * The keys the app-wide dispatcher (`commandForKey`) runs the command on. The first chord is the one
+	 * the rows show. A command whose keys belong to a screen's own focus scope (the tool letters, Tab)
+	 * lists none and gives `shortcut` instead.
+	 */
+	keys?: KeyChord[];
+	/** The keys as shown on the row, for a command whose keys a screen handles itself. Prefer `keys`. */
 	shortcut?: string;
+	/** A shorter label for where the context already names the panel: "Dock left" in a panel's own menu, where the palette says "Dock Script left". */
+	shortLabel?: MessageId;
+	/** The command has a button on the classic toolbar, drawn with this icon. */
+	toolbar?: { icon: IconId };
+	/** What the command is: an `action` (the default), a `toggle` (checked or not) or one of a `radio` set (the checked one is the current choice). */
+	kind?: 'action' | 'toggle' | 'radio';
 	/** When the command can run, given what the screens published. */
 	enabled: (facts: CommandFacts) => boolean;
 	/** A checked row, for the panels. */
@@ -82,8 +111,8 @@ export interface CommandDef {
 	 * palette's detail. Without it, a disabled command says to open a level first when none is open,
 	 * and that it is not available right now otherwise.
 	 */
-	reason?: (facts: CommandFacts) => MessageId | undefined;
-	/** The command's own action, when it needs nothing from a screen. Otherwise a screen publishes the handler. */
+	reason?: (facts: CommandFacts) => CommandReason | undefined;
+	/** The command's own action, when it needs nothing from a screen; a handler a screen publishes under the same id runs instead. */
 	run?: (argument?: string) => void;
 }
 
@@ -91,28 +120,22 @@ export interface CommandDef {
 export const commandLabel = (def: CommandDef) =>
 	t(def.label, typeof def.labelValues === 'function' ? def.labelValues() : def.labelValues);
 
+/** The keys a command's rows show: its first chord, else its `shortcut`. */
+export function shortcutOf(def: CommandDef): string | undefined {
+	return def.keys?.[0] ? formatChord(def.keys[0]) : def.shortcut;
+}
+
 /** The palette heading a command is listed under. */
 export function paletteGroupOf(def: CommandDef): PaletteGroup {
 	return def.group ?? def.menu ?? 'view';
 }
 
-/** The keys that open the command palette, as shown on its View row. */
-export const COMMAND_PALETTE_KEYS = 'Ctrl+Shift+P';
+/** The keys that open the command palette, as shown on the search button and its tooltip. */
+export const COMMAND_PALETTE_SHORTCUT = 'Ctrl+Shift+P';
+const COMMAND_PALETTE_CHORD: KeyChord = { key: 'p', mod: true, shift: true, capture: true };
 
 /** The keys that maximise the focused panel or restore it, as shown on its rows and tooltips. */
 export const MAXIMISE_KEYS = 'Ctrl+Shift+M';
-
-/** The keys that quit the app, as shown on its File row; the main window handles the keys. */
-export const QUIT_KEYS = 'Ctrl+Q';
-
-/** The keys of the File rows that start, find and finish a level, handled by the main window. */
-export const NEW_LEVEL_KEYS = 'Ctrl+N';
-export const OPEN_LEVEL_KEYS = 'Ctrl+O';
-export const CLOSE_LEVEL_KEYS = 'Ctrl+W';
-
-/** The Help menu's keys: Help is F1, and the Keyboard shortcuts window is the question mark. */
-export const HELP_KEYS = 'F1';
-export const SHORTCUTS_KEYS = '?';
 
 const always = () => true;
 /** Why a level command is disabled while none is open; the default reason says the same. */
@@ -124,6 +147,7 @@ const hasLevel = (facts: CommandFacts) => facts.hasLevel;
 
 const panelCommand = (id: PanelId, title: MessageId): CommandDef => ({
 	id: `view.panel.${id}`,
+	toolbar: { icon: `panel.${id}` },
 	menu: 'view',
 	group: 'panels',
 	icon: `panel.${id}`,
@@ -150,6 +174,107 @@ const maximiseCommand = (id: PanelId, title: MessageId, restore: boolean): Comma
 	visible: (facts) => facts.editorOpen && (facts.maximised === id) === restore,
 });
 
+export const panelDockCommandId = (id: PanelId, zone: ZoneId) => `panel.${id}.dock.${zone}`;
+export const panelFloatCommandId = (id: PanelId) => `panel.${id}.float`;
+
+const DOCK_LABELS: Record<ZoneId, { label: MessageId; short: MessageId }> = {
+	left: { label: 'dock.dockLeft', short: 'dock.menu.left' },
+	right: { label: 'dock.dockRight', short: 'dock.menu.right' },
+	bottom: { label: 'dock.dockBottom', short: 'dock.menu.bottom' },
+};
+
+/** Where a panel is now: always one of these, so a place row can say it is already there. */
+const placeIs = (facts: CommandFacts, id: PanelId, place: CommandFacts['placeOf'][PanelId]) =>
+	facts.placeOf[id] === place;
+
+/**
+ * The commands that move a panel: dock it left, right or bottom, or float it. They are the rows of the
+ * panel's own menu and the palette's. The row for where the panel already is is checked and disabled.
+ */
+const panelPlaceCommands = (id: PanelId, title: MessageId): CommandDef[] => {
+	const value = () => ({ title: t(title) });
+	const place = (
+		commandId: string,
+		at: CommandFacts['placeOf'][PanelId],
+		icon: IconId,
+		label: MessageId,
+		shortLabel: MessageId,
+	): CommandDef => ({
+		id: commandId,
+		icon,
+		menu: 'window',
+		group: 'panels',
+		label,
+		labelValues: value,
+		shortLabel,
+		kind: 'radio',
+		visible: hasEditor,
+		enabled: (facts) => facts.editorOpen && !placeIs(facts, id, at),
+		checked: (facts) => placeIs(facts, id, at),
+		reason: (facts) => (placeIs(facts, id, at) ? 'dock.menu.here' : undefined),
+	});
+	return [
+		...ZONE_ORDER.map((zone) =>
+			place(
+				panelDockCommandId(id, zone),
+				zone,
+				`dock.${zone}`,
+				DOCK_LABELS[zone].label,
+				DOCK_LABELS[zone].short,
+			),
+		),
+		place(panelFloatCommandId(id), 'float', 'float', 'dock.float', 'dock.menu.float'),
+	];
+};
+
+const ZONE_ORDER: readonly ZoneId[] = ['left', 'right', 'bottom'];
+
+/** The workspaces the app ships, by the command that switches to each. */
+export const WORKSPACE_COMMANDS = [
+	{ id: 'workspace.paint', name: 'Paint', label: 'workspace.paint' },
+	{ id: 'workspace.script', name: 'Script', label: 'workspace.script' },
+	{ id: 'workspace.review', name: 'Review', label: 'workspace.review' },
+] as const satisfies readonly { id: string; name: string; label: MessageId }[];
+
+const workspaceCommand = (entry: (typeof WORKSPACE_COMMANDS)[number]): CommandDef => ({
+	id: entry.id,
+	icon: 'workspace',
+	menu: 'window',
+	group: 'window',
+	label: entry.label,
+	kind: 'radio',
+	visible: (facts) => facts.editorOpen && facts.workspace.names.includes(entry.name),
+	enabled: (facts) => facts.editorOpen && facts.workspace.active !== entry.name,
+	checked: (facts) => facts.workspace.active === entry.name,
+	reason: (facts) => (facts.workspace.active === entry.name ? 'workspace.current' : undefined),
+});
+
+const zoomCommand = (
+	id: 'in' | 'out' | 'fit',
+	icon: IconId,
+	label: MessageId,
+	keys: KeyChord[],
+	can: (zoom: NonNullable<CommandFacts['zoom']>) => boolean,
+): CommandDef => ({
+	id: `view.zoom${id === 'in' ? 'In' : id === 'out' ? 'Out' : 'Fit'}`,
+	icon,
+	menu: 'view',
+	group: 'view',
+	label,
+	keys,
+	// Hidden until the level canvas has published its zoom.
+	visible: (facts) => facts.zoom !== null,
+	enabled: (facts) => facts.zoom !== null && can(facts.zoom),
+	reason: (facts) =>
+		facts.zoom === null
+			? undefined
+			: id === 'in'
+				? 'canvas.zoomMax'
+				: id === 'out'
+					? 'canvas.zoomMin'
+					: undefined,
+});
+
 /**
  * The menu commands. Ids are unique; `panelCommandId` and the handlers use them. Their order is
  * the palette's order within a heading; the menus group them in `appMenuModel`.
@@ -157,35 +282,39 @@ const maximiseCommand = (id: PanelId, title: MessageId, restore: boolean): Comma
 export const COMMANDS: readonly CommandDef[] = [
 	{
 		id: 'file.new',
+		toolbar: { icon: 'new' },
 		icon: 'new',
 		menu: 'file',
 		label: 'main.newLevel',
-		shortcut: NEW_LEVEL_KEYS,
+		keys: [{ key: 'n', mod: true }],
 		enabled: always,
 	},
 	{
 		id: 'file.open',
+		toolbar: { icon: 'open' },
 		icon: 'open',
 		menu: 'file',
 		label: 'main.openLevel',
-		shortcut: OPEN_LEVEL_KEYS,
+		keys: [{ key: 'o', mod: true }],
 		enabled: always,
 	},
 	{
 		id: 'file.save',
+		toolbar: { icon: 'save' },
 		icon: 'save',
 		menu: 'file',
 		label: 'main.save',
-		shortcut: 'Ctrl+S',
+		keys: [{ key: 's', mod: true }],
 		enabled: hasLevel,
 		reason: needsLevel,
 	},
 	{
 		id: 'file.close',
+		toolbar: { icon: 'close' },
 		icon: 'close',
 		menu: 'file',
 		label: 'main.closeLevel',
-		shortcut: CLOSE_LEVEL_KEYS,
+		keys: [{ key: 'w', mod: true }],
 		enabled: hasLevel,
 		reason: needsLevel,
 	},
@@ -194,7 +323,7 @@ export const COMMANDS: readonly CommandDef[] = [
 		icon: 'preferences',
 		menu: 'file',
 		label: 'appMenu.preferences',
-		shortcut: 'Ctrl+,',
+		keys: [{ key: ',', mod: true }],
 		enabled: always,
 		run: () => void openWindow({ kind: 'preferences' }),
 	},
@@ -203,12 +332,13 @@ export const COMMANDS: readonly CommandDef[] = [
 		icon: 'quit',
 		menu: 'file',
 		label: 'appMenu.quit',
-		shortcut: QUIT_KEYS,
+		keys: [{ key: 'q', mod: true }],
 		enabled: always,
 		run: () => void quitClient.request().catch(() => {}),
 	},
 	{
 		id: 'edit.undo',
+		toolbar: { icon: 'undo' },
 		icon: 'undo',
 		menu: 'edit',
 		label: 'history.undo',
@@ -218,6 +348,7 @@ export const COMMANDS: readonly CommandDef[] = [
 	},
 	{
 		id: 'edit.redo',
+		toolbar: { icon: 'redo' },
 		icon: 'redo',
 		menu: 'edit',
 		label: 'history.redo',
@@ -230,6 +361,82 @@ export const COMMANDS: readonly CommandDef[] = [
 		maximiseCommand(spec.id, spec.title, false),
 		maximiseCommand(spec.id, spec.title, true),
 	]),
+	...PANEL_SPECS.flatMap((spec) => panelPlaceCommands(spec.id, spec.title)),
+	...WORKSPACE_COMMANDS.map(workspaceCommand),
+	{
+		id: 'window.floatFocused',
+		icon: 'float',
+		menu: 'window',
+		group: 'window',
+		label: 'appMenu.floatFocused',
+		visible: hasEditor,
+		enabled: (facts) => facts.editorOpen && facts.focusedPanel !== null,
+		reason: () => 'appMenu.noFocusedPanel',
+	},
+	{
+		id: 'window.tearOffFocused',
+		icon: 'tearOff',
+		menu: 'window',
+		group: 'window',
+		label: 'appMenu.tearOffFocused',
+		visible: hasEditor,
+		enabled: (facts) =>
+			facts.editorOpen && facts.focusedPanel !== null && !facts.away[facts.focusedPanel],
+		reason: () => 'appMenu.noFocusedPanel',
+	},
+	{
+		id: 'window.dockAllBack',
+		icon: 'dockBack',
+		menu: 'window',
+		group: 'window',
+		label: 'appMenu.dockAllBack',
+		visible: hasEditor,
+		enabled: (facts) => facts.editorOpen && Object.values(facts.away).some(Boolean),
+		reason: () => 'appMenu.noWindows',
+	},
+	zoomCommand(
+		'in',
+		'zoomIn',
+		'canvas.zoomIn',
+		[
+			{ key: '=', mod: true },
+			{ key: '+', mod: true, shift: 'any' },
+		],
+		(zoom) => zoom.canIn,
+	),
+	zoomCommand('out', 'zoomOut', 'canvas.zoomOut', [{ key: '-', mod: true }], (zoom) => zoom.canOut),
+	zoomCommand('fit', 'zoomFit', 'canvas.zoomFit', [{ key: '0', mod: true }], () => true),
+	{
+		id: 'view.toolbar.classic',
+		icon: 'toolbar',
+		menu: 'view',
+		group: 'view',
+		label: 'toolbar.classic',
+		kind: 'toggle',
+		visible: always,
+		enabled: always,
+		checked: (facts) => facts.toolbar === 'classic',
+	},
+	{
+		id: 'view.toolbar.ribbon',
+		icon: 'ribbon',
+		menu: 'view',
+		group: 'view',
+		label: 'toolbar.ribbon',
+		kind: 'toggle',
+		enabled: always,
+		checked: (facts) => facts.toolbar === 'ribbon',
+	},
+	{
+		id: 'view.menuBar',
+		icon: 'menuBar',
+		menu: 'view',
+		group: 'view',
+		label: 'appMenu.menuBar',
+		kind: 'toggle',
+		enabled: always,
+		checked: (facts) => facts.menuBar,
+	},
 	{
 		id: 'view.levelFirst',
 		icon: 'levelFirst',
@@ -257,7 +464,7 @@ export const COMMANDS: readonly CommandDef[] = [
 		icon: 'commandPalette',
 		menu: 'view',
 		label: 'appMenu.commandPalette',
-		shortcut: COMMAND_PALETTE_KEYS,
+		keys: [COMMAND_PALETTE_CHORD],
 		enabled: always,
 	},
 	{
@@ -265,7 +472,7 @@ export const COMMANDS: readonly CommandDef[] = [
 		icon: 'help',
 		menu: 'help',
 		label: 'appMenu.helpTopic',
-		shortcut: HELP_KEYS,
+		keys: [{ key: 'F1' }],
 		enabled: always,
 		run: () => void openWindow({ kind: 'about' }),
 	},
@@ -274,7 +481,7 @@ export const COMMANDS: readonly CommandDef[] = [
 		icon: 'shortcuts',
 		menu: 'help',
 		label: 'appMenu.shortcuts',
-		shortcut: SHORTCUTS_KEYS,
+		keys: [{ key: '?', shift: 'any', unlessTyping: true }],
 		enabled: always,
 	},
 	{
@@ -319,6 +526,62 @@ export const PALETTE_COMMANDS: readonly CommandDef[] = [
 		}),
 	),
 	{
+		// Opens the context menu of whatever has the keyboard focus; the window's menu host publishes the handler.
+		id: 'view.contextMenu',
+		icon: 'contextMenu',
+		group: 'view',
+		label: 'appMenu.contextMenu',
+		keys: [{ key: 'F10', shift: true }, { key: 'ContextMenu' }],
+		enabled: always,
+	},
+	{
+		id: 'view.toolbar.hidden',
+		icon: 'toolbar',
+		group: 'view',
+		label: 'toolbar.hidden',
+		visible: (facts) => facts.toolbar !== 'hidden',
+		enabled: always,
+	},
+	{
+		id: 'view.ribbon.fold',
+		icon: 'ribbon',
+		group: 'view',
+		label: 'toolbar.foldRibbon',
+		kind: 'toggle',
+		visible: (facts) => facts.toolbar === 'ribbon',
+		enabled: always,
+		checked: (facts) => facts.ribbonFolded,
+	},
+	{
+		id: 'panel.palette.show',
+		icon: 'panel.palette',
+		group: 'panels',
+		label: 'toolbar.showPalette',
+		enabled: (facts) => facts.editorOpen,
+	},
+	{
+		id: 'panel.script.show',
+		icon: 'panel.script',
+		group: 'panels',
+		label: 'toolbar.showScript',
+		enabled: (facts) => facts.editorOpen,
+	},
+	{
+		id: 'script.tab.level.activate',
+		icon: 'panel.script',
+		group: 'panels',
+		label: 'scriptTabs.activate',
+		enabled: (facts) => facts.editorOpen,
+	},
+	{
+		id: 'script.tab.level.close',
+		icon: 'close',
+		group: 'panels',
+		label: 'scriptTabs.closeCommand',
+		enabled: (facts) => facts.editorOpen && facts.panels.script,
+		reason: () => 'view.maximiseNeedsPanel',
+	},
+	{
 		id: 'goto.line',
 		group: 'goto',
 		label: 'cmdPalette.gotoLine',
@@ -357,6 +620,7 @@ export function panelWindowCommands(facts: CommandFacts): CommandDef[] {
 					menu: 'window',
 					group: 'panels',
 					label: 'cmdPalette.dockPanelBack',
+					shortLabel: 'dock.menu.dockBack',
 					labelValues: { panel },
 					visible: hasEditor,
 					enabled: (now) => now.editorOpen && now.away[spec.id],
@@ -367,6 +631,7 @@ export function panelWindowCommands(facts: CommandFacts): CommandDef[] {
 					menu: 'window',
 					group: 'panels',
 					label: 'cmdPalette.tearOffPanel',
+					shortLabel: 'dock.menu.tearOff',
 					labelValues: { panel },
 					visible: hasEditor,
 					enabled: (now) => now.editorOpen && !now.away[spec.id],
@@ -375,8 +640,21 @@ export function panelWindowCommands(facts: CommandFacts): CommandDef[] {
 }
 
 /**
- * Every command now: the menu's, the palette's own, a brush for each the level offers and a Tear
- * off or Dock back for each panel.
+ * The commands a feature registers beside the fixed lists: the Layers panel's Show all and
+ * Unlock all, and the selection's Delete, Flip, Show in script and nudges. A feature adds its builder here and nothing else in the registry changes.
+ */
+export function extraCommands(facts: CommandFacts): CommandDef[] {
+	return [
+		...layerCommands(facts),
+		...selectionCommands(),
+		...canvasCommands(facts),
+		...scriptCommands(),
+	];
+}
+
+/**
+ * Every command now: the menu's, the palette's own, a brush for each the level offers, a Tear
+ * off or Dock back for each panel and the features' extras.
  */
 export function allCommands(facts: CommandFacts): CommandDef[] {
 	return [
@@ -384,6 +662,7 @@ export function allCommands(facts: CommandFacts): CommandDef[] {
 		...PALETTE_COMMANDS,
 		...brushCommands(facts.brushes),
 		...panelWindowCommands(facts),
+		...extraCommands(facts),
 	];
 }
 
@@ -420,7 +699,7 @@ export function viewOf(def: CommandDef, snapshot: BridgeSnapshot): CommandView {
 		visible: def.visible?.(facts) ?? true,
 		enabled,
 		checked: def.checked?.(facts),
-		reason: enabled ? undefined : t(def.reason?.(facts) ?? defaultReason(facts)),
+		reason: enabled ? undefined : reasonText(def.reason?.(facts) ?? defaultReason(facts)),
 	};
 }
 
@@ -428,6 +707,6 @@ export function viewOf(def: CommandDef, snapshot: BridgeSnapshot): CommandView {
 export function runCommand(id: string, snapshot: BridgeSnapshot, argument?: string): boolean {
 	const def = allCommands(snapshot.facts).find((command) => command.id === id);
 	if (!def || !viewOf(def, snapshot).enabled) return false;
-	(def.run ?? snapshot.handlers[id])?.(argument);
+	(snapshot.handlers[id] ?? def.run)?.(argument);
 	return true;
 }

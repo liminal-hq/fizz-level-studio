@@ -12,6 +12,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { PanelPlaced } from '@liminal-hq/fizz-studio-protocol/generated/PanelPlaced';
+import type { WindowPlacement } from '@liminal-hq/fizz-studio-protocol/generated/WindowPlacement';
 import { panelFromLabel } from '../../app/windowKind';
 import { registerFlush } from '../../services/pendingWrites';
 import { panelWindowClient, type PanelWindowClient } from '../../services/panelWindowClient';
@@ -26,8 +27,18 @@ export const PLACE_DELAY_MS = 250;
 export interface PanelWindows {
 	/** Whether each panel is in a window of its own. */
 	away: Record<PanelId, boolean>;
-	/** Opens the panel's window (or brings it forward) and records the panel as away. */
-	tearOff(id: PanelId): void;
+	/**
+	 * Opens the panel's window (or brings it forward) and records the panel as away. `at` is where the
+	 * window opens, in physical pixels (a panel dragged out opens where it was let go); without it the
+	 * window opens where the workspace last had it.
+	 */
+	tearOff(id: PanelId, at?: WindowPlacement | null): void;
+	/**
+	 * Opens the panel's window hidden, for the compositor to drag, and records the panel as away.
+	 * Resolves to the window's label, or null when it could not be opened. A drag that does not
+	 * happen puts the panel back with `dockBack`.
+	 */
+	tearOffHidden(id: PanelId): Promise<string | null>;
 	/** Closes the panel's window and brings the panel back to where it was. */
 	dockBack(id: PanelId): void;
 }
@@ -106,11 +117,12 @@ export function usePanelWindows(
 	}, [client, record]);
 
 	const open = useCallback(
-		(id: PanelId, then?: (placed: PanelPlaced) => void) => {
+		(id: PanelId, then?: (placed: PanelPlaced) => void, at?: WindowPlacement | null) => {
 			if (busy.current.has(id)) return;
 			busy.current.add(id);
-			// The window opens where the active workspace last had it, fitted to the screens now.
-			const remembered = latest.current.workspace.panels[id]?.window ?? null;
+			// The window opens where it was asked to, or where the active workspace last had it, fitted
+			// to the screens now.
+			const remembered = at ?? latest.current.workspace.panels[id]?.window ?? null;
 			client
 				.tearOff(id, remembered)
 				.then((placed) => {
@@ -156,12 +168,36 @@ export function usePanelWindows(
 	}, [known, loaded, workspace, open, close, keep]);
 
 	const tearOff = useCallback(
-		(id: PanelId) =>
-			open(id, (placed) => {
-				const was = latest.current.workspace.panels[id]?.window ?? null;
-				latest.current.sendToWindow(id, recordPlacement(was, placed));
-			}),
+		(id: PanelId, at?: WindowPlacement | null) =>
+			open(
+				id,
+				(placed) => {
+					const was = latest.current.workspace.panels[id]?.window ?? null;
+					latest.current.sendToWindow(id, recordPlacement(was, placed));
+				},
+				at,
+			),
 		[open],
+	);
+	const tearOffHidden = useCallback(
+		(id: PanelId) =>
+			new Promise<string | null>((resolve) => {
+				if (busy.current.has(id)) return resolve(null);
+				busy.current.add(id);
+				const remembered = latest.current.workspace.panels[id]?.window ?? null;
+				client
+					.tearOff(id, remembered, { hidden: true })
+					.then((placed) => {
+						opened.current.add(id);
+						// Away at once: the panel's place is the window while it is dragged, so nothing
+						// that syncs the windows with the workspace closes the window mid-drag.
+						latest.current.sendToWindow(id, recordPlacement(remembered, placed));
+						resolve(placed.label);
+					})
+					.catch(() => resolve(null))
+					.finally(() => busy.current.delete(id));
+			}),
+		[client],
 	);
 	const dockBack = useCallback(
 		(id: PanelId) => close(id, () => latest.current.bringBack(id)),
@@ -176,5 +212,5 @@ export function usePanelWindows(
 		[workspace],
 	);
 
-	return { away, tearOff, dockBack };
+	return { away, tearOff, tearOffHidden, dockBack };
 }

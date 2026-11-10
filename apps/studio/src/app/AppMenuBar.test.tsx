@@ -76,7 +76,7 @@ describe('the application menu bar', () => {
 		fireEvent.keyDown(screen.getByRole('menuitem', { name: /^Undo(?! history)/ }), {
 			key: 'ArrowRight',
 		});
-		expect(await screen.findByRole('menuitemcheckbox', { name: /Palette/ })).toBeInTheDocument();
+		expect(await screen.findByRole('menuitemcheckbox', { name: /Menu bar/ })).toBeInTheDocument();
 	});
 
 	it('opens Help with Alt+H and runs About', async () => {

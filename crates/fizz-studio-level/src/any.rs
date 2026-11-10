@@ -6,7 +6,7 @@
 use fizz_studio_protocol::{LevelEdit, LevelTarget, LevelView};
 use fizz_studio_session::{Document, DocumentError, Edit};
 
-use crate::{Fizz2LevelDocument, LevelDocument};
+use crate::{step_name, Fizz2LevelDocument, LevelDocument};
 
 /// The message key the canvas shows above a Fizz 2 level until the game's own drawing exists.
 pub const FLAT_FALLBACK_BANNER: &str = "level.flatFallback";
@@ -61,12 +61,31 @@ impl AnyLevelDocument {
         }
     }
 
+    /// The level drawn without the statements of the `hidden` layers. A Fizz 2 level has no layers,
+    /// so it is drawn as it is.
+    pub fn view_without(&self, hidden: &[String]) -> LevelView {
+        match self {
+            Self::Fizz1(d) => d.view_without(hidden),
+            Self::Fizz2(d) => d.view(),
+        }
+    }
+
     /// The script line that last changed the cell. Only a Fizz 1 level answers; a Fizz 2 level is
     /// drawn flat until the game's own view exists.
     pub fn cell_line(&self, x: i64, y: i64) -> Option<u32> {
         match self {
             Self::Fizz1(d) => d.cell_line(x, y),
             Self::Fizz2(_) => None,
+        }
+    }
+}
+
+impl AnyLevelDocument {
+    /// The name of the undo step an edit makes, read against the current text.
+    pub fn describe(&self, edit: &LevelEdit) -> String {
+        match self {
+            Self::Fizz1(d) => d.describe(edit),
+            Self::Fizz2(_) => step_name(edit),
         }
     }
 }
@@ -92,6 +111,14 @@ impl Document for AnyLevelDocument {
         match self {
             Self::Fizz1(d) => d.replace(start, end, with),
             Self::Fizz2(d) => d.replace(start, end, with),
+        }
+    }
+
+    /// Only a Fizz 1 level has layers; a Fizz 2 level is never refused for a lock.
+    fn layers_changed(&self, old: &str, new: &str) -> Vec<String> {
+        match self {
+            Self::Fizz1(d) => d.layers_changed(old, new),
+            Self::Fizz2(_) => Vec::new(),
         }
     }
 }

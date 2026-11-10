@@ -3,6 +3,7 @@
 // (c) Copyright 2026 Liminal HQ, Scott Morris
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
+import type { MenuPosition } from '@liminal-hq/fizz-studio-chrome/ContextMenu/types';
 import type { GhostCell } from '@liminal-hq/fizz-studio-protocol/generated/GhostCell';
 import type { LevelView } from '@liminal-hq/fizz-studio-protocol/generated/LevelView';
 import {
@@ -13,24 +14,31 @@ import {
 	useState,
 	type CSSProperties,
 	type KeyboardEvent,
+	type MouseEvent,
 	type PointerEvent,
 	type ReactNode,
 } from 'react';
+import { isContextMenuKey, KEYBOARD_OPEN_GRACE_MS } from '../app/useContextMenu';
 import { t } from '../i18n/messages';
 import type { Cell, PointerPhase, Rect } from '../tools/tool';
 import { drawLevel, readCanvasColours, type DrawContext } from './drawLevel';
 import styles from './LevelCanvas.module.css';
 import { resolveTileColours } from './tileColours';
+import { ZoomControl, type ZoomKind } from './ZoomControl';
 import { wheelAction } from './wheel';
 import {
 	DEFAULT_ZOOM,
 	MAX_ZOOM,
 	MIN_ZOOM,
 	clampScroll,
+	panBy,
+	fitCamera,
 	NO_INSETS,
 	clampZoom,
 	frameViewport,
 	moveCursor,
+	cellOrigin,
+	cellPx,
 	pixelToCell,
 	revealCell,
 	uncoveredRect,
@@ -57,6 +65,11 @@ export interface LevelCanvasProps {
 	selection?: Rect | null;
 	/** The cell of the thing Inspect selected, drawn as an outline and named by `data-inspected`. */
 	inspected?: Cell | null;
+	/**
+	 * True while a thing (not a cell) is selected: the arrows then move the thing, through the
+	 * selection commands, and leave the cursor where it is. Escape deselects, after which they walk the cursor again.
+	 */
+	arrowsMoveThing?: boolean;
 	/** Called on Escape while the canvas has focus and something is inspected, to clear it. */
 	onClearInspected?: () => void;
 	/** Claude's pending proposals to draw as ghosts; leave out to draw none. */
@@ -80,7 +93,36 @@ export interface LevelCanvasProps {
 	 * inside them.
 	 */
 	insets?: Insets;
+	/**
+	 * Asks the canvas to zoom in, out or to fit the level, such as the zoom commands do. A new
+	 * `serial` asks again for the same thing.
+	 */
+	zoomRequest?: { kind: ZoomKind; serial: number } | null;
+	/** Called when the zoom, or whether it can still change either way, changes. */
+	onZoomChange?: (zoom: { level: number; canIn: boolean; canOut: boolean }) => void;
+	/**
+	 * Called when a button of the zoom control is pressed. Without it the canvas zooms itself; with it
+	 * the caller runs the matching command, which comes back as a `zoomRequest`.
+	 */
+	onZoomAction?: (kind: ZoomKind) => void;
+	/** A line of guidance shown after the cell in the status line, such as what Stamp needs. */
+	statusNote?: string;
+	/**
+	 * Called for a right-click on a cell of the level (never on the margin), and for the Menu key or
+	 * Shift+F10 on the cursor's cell. The caller applies the selection rule and opens the menu; `at` is
+	 * the pointer, or the cursor cell's corner for the keyboard, and `focus` is where focus returns.
+	 * A right press never paints. Without it the canvas has no menu.
+	 */
+	onContextCell?: (request: {
+		cell: Cell;
+		at: MenuPosition;
+		keyboard: boolean;
+		focus: HTMLElement;
+	}) => void;
 }
+
+/** The room the tool picker leaves at the bottom of the map for the zoom control. */
+const ZOOM_CONTROL_ROOM = 52;
 
 const NO_CELLS: readonly Cell[] = [];
 const NO_GHOSTS: readonly GhostCell[] = [];
@@ -97,17 +139,29 @@ export function LevelCanvas({
 	paste = null,
 	selection = null,
 	inspected = null,
+	arrowsMoveThing = false,
 	onClearInspected,
 	ghosts = NO_GHOSTS,
 	reveal = null,
 	onCellChosen,
 	overlay,
 	insets = NO_INSETS,
+	zoomRequest = null,
+	onZoomChange,
+	onZoomAction,
+	statusNote,
+	onContextCell,
 }: LevelCanvasProps) {
 	const canvasRef = useRef<HTMLCanvasElement>(null);
 	const frameRef = useRef<HTMLDivElement>(null);
 	const barRef = useRef<HTMLDivElement>(null);
 	const pressed = useRef(false);
+	// When the Menu key or Shift+F10 last opened the menu: the `contextmenu` event the browser fires
+	// after the key is only prevented, so the menu does not open a second time at a stray position.
+	const keyboardOpenedAt = useRef(0);
+	// A drag with the middle button pans the map: the pointer that holds it, and where it last was.
+	const pan = useRef<{ id: number; x: number; y: number } | null>(null);
+	const [panning, setPanning] = useState(false);
 	const [size, setSize] = useState<Size>(FALLBACK_SIZE);
 	const [barHigh, setBarHigh] = useState(0);
 	const [camera, setCamera] = useState<Viewport>({ zoom: DEFAULT_ZOOM, scrollX: 0, scrollY: 0 });
@@ -256,11 +310,48 @@ export function LevelCanvas({
 		setCamera((current) => revealCell(current, reveal.cell, seen, view));
 	}, [reveal, seen, view]);
 
+	// While a stroke or a pan is going no menu may open under it: the host reads this attribute.
+	const markBusy = () =>
+		canvasRef.current?.toggleAttribute(
+			'data-context-busy',
+			pressed.current || pan.current !== null,
+		);
+
+	const endPan = () => {
+		if (!pan.current) return;
+		pan.current = null;
+		setPanning(false);
+		markBusy();
+	};
+
+	// A window that loses focus or hides mid-drag never sees the button come up.
+	useEffect(() => {
+		window.addEventListener('blur', endPan);
+		return () => window.removeEventListener('blur', endPan);
+	}, []);
+
 	const onPointerDown = (event: PointerEvent<HTMLCanvasElement>) => {
-		if (event.button !== 0) return;
+		if (event.button === 1) {
+			// The platform's middle click (autoscroll, paste) is never wanted here.
+			event.preventDefault();
+			// With the left button down too, or a pan already going, the middle button does nothing.
+			if (pressed.current || pan.current || (event.buttons & 1) !== 0) return;
+			event.currentTarget.focus();
+			try {
+				event.currentTarget.setPointerCapture?.(event.pointerId);
+			} catch {
+				// A pointer the browser does not know (a synthetic event) cannot be captured; the pan still works.
+			}
+			pan.current = { id: event.pointerId, x: event.clientX, y: event.clientY };
+			setPanning(true);
+			markBusy();
+			return;
+		}
+		if (event.button !== 0 || pan.current) return;
 		event.currentTarget.focus();
 		event.currentTarget.setPointerCapture?.(event.pointerId);
 		pressed.current = true;
+		markBusy();
 		const cell = cellAt(event);
 		if (inside(cell)) onCursorChange(cell);
 		if (inside(cell)) onCellChosen?.(cell, 'grid');
@@ -268,14 +359,35 @@ export function LevelCanvas({
 	};
 
 	const onPointerMove = (event: PointerEvent<HTMLCanvasElement>) => {
+		const dragging = pan.current;
+		if (dragging) {
+			if (event.pointerId !== dragging.id) return;
+			if ((event.buttons & 4) === 0) {
+				// The button came up where no event could say so.
+				endPan();
+				return;
+			}
+			const dx = event.clientX - dragging.x;
+			const dy = event.clientY - dragging.y;
+			dragging.x = event.clientX;
+			dragging.y = event.clientY;
+			setCamera((current) => panBy(current, dx, dy, seen, view));
+			return;
+		}
 		const cell = cellAt(event);
 		if (inside(cell) && (cell.x !== cursor.x || cell.y !== cursor.y)) onCursorChange(cell);
 		if (pressed.current) onToolEvent('move', cell);
 	};
 
 	const onPointerEnd = (event: PointerEvent<HTMLCanvasElement>) => {
+		if (pan.current) {
+			// Only the middle button's release (or a cancel) ends the pan; another button's does not.
+			if (event.type === 'pointercancel' || event.button === 1) endPan();
+			return;
+		}
 		if (!pressed.current) return;
 		pressed.current = false;
+		markBusy();
 		onToolEvent('up', cellAt(event));
 	};
 
@@ -283,11 +395,89 @@ export function LevelCanvas({
 		const centre = { x: seen.width / 2, y: seen.height / 2 };
 		setCamera(zoomAt(viewport, viewport.zoom + step, centre.x, centre.y, seen, view));
 	};
+	const zoomTo = (kind: ZoomKind) => {
+		if (kind === 'fit') setCamera(fitCamera(view, seen));
+		else zoomBy(kind === 'in' ? 1 : -1);
+	};
+
+	// A zoom the commands asked for; each new serial asks once.
+	const lastZoom = useRef(0);
+	useEffect(() => {
+		if (!zoomRequest || zoomRequest.serial === lastZoom.current) return;
+		lastZoom.current = zoomRequest.serial;
+		if (zoomRequest.kind === 'fit') setCamera(fitCamera(view, seen));
+		else {
+			const centre = { x: seen.width / 2, y: seen.height / 2 };
+			const step = zoomRequest.kind === 'in' ? 1 : -1;
+			setCamera((current) => zoomAt(current, current.zoom + step, centre.x, centre.y, seen, view));
+		}
+	}, [zoomRequest, seen, view]);
+
+	// The zoom is told to whoever keeps the facts, so the zoom commands know when they can run.
+	const zoomLevel = clampZoom(viewport.zoom);
+	const zoomChange = useRef(onZoomChange);
+	zoomChange.current = onZoomChange;
+	useEffect(() => {
+		zoomChange.current?.({
+			level: zoomLevel,
+			canIn: zoomLevel < MAX_ZOOM,
+			canOut: zoomLevel > MIN_ZOOM,
+		});
+	}, [zoomLevel]);
+
+	// A right-click on a cell opens the cell's menu and never paints (`onPointerDown` takes only the
+	// left and middle buttons). A stroke or a pan in progress keeps the press, so nothing opens under it.
+	const onContextMenu = (event: MouseEvent<HTMLCanvasElement>) => {
+		if (!onContextCell) return;
+		if (
+			pressed.current ||
+			pan.current ||
+			Date.now() - keyboardOpenedAt.current < KEYBOARD_OPEN_GRACE_MS
+		) {
+			event.preventDefault();
+			return;
+		}
+		const rect = event.currentTarget.getBoundingClientRect();
+		const cell = pixelToCell(event.clientX - rect.left, event.clientY - rect.top, drawn, view);
+		// The margin round the level has no menu; the host blocks the browser's own.
+		if (!inside(cell)) return;
+		event.preventDefault();
+		onContextCell({
+			cell,
+			at: { x: event.clientX, y: event.clientY },
+			keyboard: false,
+			focus: event.currentTarget,
+		});
+	};
+
+	// The Menu key and Shift+F10 open the menu of the cursor's cell, at the cell's bottom edge.
+	const openAtCursor = (canvas: HTMLCanvasElement) => {
+		if (!onContextCell || !inside(cursor)) return;
+		const rect = canvas.getBoundingClientRect();
+		const origin = cellOrigin(cursor, drawn, view);
+		const size = cellPx(drawn.zoom);
+		keyboardOpenedAt.current = Date.now();
+		onContextCell({
+			cell: cursor,
+			at: { x: rect.left + origin.x + size / 2, y: rect.top + origin.y + size },
+			keyboard: true,
+			focus: canvas,
+		});
+	};
 
 	const onKeyDown = (event: KeyboardEvent<HTMLCanvasElement>) => {
+		if (isContextMenuKey(event.nativeEvent)) {
+			// Handled here, not by the app-wide key, because only the canvas knows where its cursor is.
+			event.preventDefault();
+			event.stopPropagation();
+			openAtCursor(event.currentTarget);
+			return;
+		}
 		if (event.ctrlKey || event.metaKey || event.altKey) return;
 		const { key } = event;
 		if (key === 'ArrowLeft' || key === 'ArrowRight' || key === 'ArrowUp' || key === 'ArrowDown') {
+			// With a thing selected the command that moves it takes the arrow; the cursor stays.
+			if (arrowsMoveThing) return;
 			moveTo(moveCursor(cursor, key, view));
 		} else if (key === 'Home' || key === 'End') {
 			moveTo(moveCursor(cursor, key, view));
@@ -324,7 +514,7 @@ export function LevelCanvas({
 				<div className={styles.frame} ref={frameRef}>
 					<canvas
 						ref={canvasRef}
-						className={styles.canvas}
+						className={panning ? `${styles.canvas} ${styles.panning}` : styles.canvas}
 						tabIndex={0}
 						role="application"
 						aria-label={t('canvas.label', {
@@ -338,36 +528,30 @@ export function LevelCanvas({
 						onPointerMove={onPointerMove}
 						onPointerUp={onPointerEnd}
 						onPointerCancel={onPointerEnd}
+						onLostPointerCapture={endPan}
+						onContextMenu={onContextMenu}
+						onMouseDown={(event) => {
+							if (event.button === 1) event.preventDefault();
+						}}
+						onAuxClick={(event) => {
+							if (event.button === 1) event.preventDefault();
+						}}
 					/>
-					{overlay && (
-						<div className={styles.map} data-map="">
-							{overlay({ w: visible.width, h: visible.height })}
-						</div>
-					)}
+					<div className={styles.map} data-map="">
+						{overlay?.({ w: visible.width, h: Math.max(0, visible.height - ZOOM_CONTROL_ROOM) })}
+						<ZoomControl
+							zoom={zoomLevel}
+							canIn={zoomLevel < MAX_ZOOM}
+							canOut={zoomLevel > MIN_ZOOM}
+							onZoom={onZoomAction ?? zoomTo}
+						/>
+					</div>
 				</div>
 				<div className={styles.bar} ref={barRef} data-canvas-bar="">
 					<span className={styles.status} role="status">
 						{t('canvas.cell', { x: cursor.x, y: cursor.y, tile: word })}
 					</span>
-					<div className={styles.zoom} role="group" aria-label={t('canvas.zoomGroup')}>
-						<button
-							type="button"
-							className={styles.button}
-							disabled={viewport.zoom <= MIN_ZOOM}
-							onClick={() => zoomBy(-1)}
-						>
-							{t('canvas.zoomOut')}
-						</button>
-						<span>{t('canvas.zoomLevel', { zoom: clampZoom(viewport.zoom) })}</span>
-						<button
-							type="button"
-							className={styles.button}
-							disabled={viewport.zoom >= MAX_ZOOM}
-							onClick={() => zoomBy(1)}
-						>
-							{t('canvas.zoomIn')}
-						</button>
-					</div>
+					{statusNote && <span className={styles.note}>{statusNote}</span>}
 				</div>
 			</div>
 		</div>

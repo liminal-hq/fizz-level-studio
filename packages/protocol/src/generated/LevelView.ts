@@ -2,6 +2,7 @@
 import type { ViewDiagnostic } from "./ViewDiagnostic";
 import type { ViewItem } from "./ViewItem";
 import type { ViewMarker } from "./ViewMarker";
+import type { ViewSection } from "./ViewSection";
 import type { ViewSpawn } from "./ViewSpawn";
 import type { ViewStart } from "./ViewStart";
 
@@ -20,4 +21,15 @@ cells: Array<number>, items: Array<ViewItem>, spawns: Array<ViewSpawn>, start: V
 /**
  * The exits and doors, in column order and then from the bottom up.
  */
-markers: Array<ViewMarker>, diagnostics: Array<ViewDiagnostic>, };
+markers: Array<ViewMarker>, 
+/**
+ * The layers of the script in file order, with the derived rows after their header; empty for
+ * a level that has none (a Fizz 2 level, or a script with no readable header).
+ */
+sections: Array<ViewSection>, 
+/**
+ * Which layer wrote each cell, `y * width + x` like `cells`: an index into `sections` for the
+ * layer of the statement that last set the cell, or 255 where no statement did. Empty where
+ * `sections` is.
+ */
+cell_sections: Array<number>, diagnostics: Array<ViewDiagnostic>, };

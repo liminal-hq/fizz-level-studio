@@ -3,7 +3,9 @@
 // (c) Copyright 2026 Liminal HQ, Scott Morris
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
+import { createCommandBridge } from '../commands/commandBridge';
+import { ContextMenuHost } from './ContextMenuHost';
 import type { MessageId } from '../i18n/messages';
 import { t } from '../i18n/messages';
 import styles from './App.module.css';
@@ -13,6 +15,8 @@ import { PanelWindowScreen } from '../panels/PanelWindowScreen';
 import { NewLevelScreen } from './NewLevelScreen';
 import { PreferencesScreen } from '../preferences/PreferencesScreen';
 import { createPanelBridge } from '../panels/windows/panelBridge';
+import { TearGhostScreen } from './TearGhostScreen';
+import { tearoffClient } from '../services/tauriTearoffClient';
 import { windowKindFromLabel } from './windowKind';
 
 interface AppProps {
@@ -32,6 +36,17 @@ function PlaceholderScreen({ titleId, messageId }: { titleId: MessageId; message
 }
 
 export function App({ windowLabel }: AppProps) {
+	// One command bridge and one context menu for the window, whichever screen it shows: the screens
+	// publish their facts and actions into the bridge, and the host reads them to build its rows.
+	const [bridge] = useState(createCommandBridge);
+	return (
+		<ContextMenuHost bridge={bridge}>
+			<Screen windowLabel={windowLabel} />
+		</ContextMenuHost>
+	);
+}
+
+function Screen({ windowLabel }: AppProps) {
 	const kind = windowKindFromLabel(windowLabel);
 	// A main window's end of the channel to its torn-off panels.
 	const panelBridge = useMemo(
@@ -40,7 +55,7 @@ export function App({ windowLabel }: AppProps) {
 	);
 	switch (kind) {
 		case 'main':
-			return <MainScreen panelBridge={panelBridge} />;
+			return <MainScreen panelBridge={panelBridge} tearoff={tearoffClient} />;
 		case 'about':
 			return <PlaceholderScreen titleId="window.about.title" messageId="placeholder.about" />;
 		case 'preferences':
@@ -49,8 +64,10 @@ export function App({ windowLabel }: AppProps) {
 			return <NewLevelScreen />;
 		case 'panel':
 			return <PanelWindowScreen windowLabel={windowLabel} />;
+		case 'tear-ghost':
+			return <TearGhostScreen />;
 		default:
-			// The tear ghost has no screen yet, and an unknown label shows nothing.
+			// An unknown label shows nothing.
 			return null;
 	}
 }

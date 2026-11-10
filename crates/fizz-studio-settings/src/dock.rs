@@ -3,8 +3,8 @@
 // (c) Copyright 2026 Liminal HQ, Scott Morris
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 //
-// The default arrangement puts every panel in exactly one place: Palette docked left; Objects and
-// History as tabs on the right; Script and Proposals as tabs at the bottom. Each workspace varies
+// The default arrangement puts every panel in exactly one place: Palette and Layers docked left; Inspector, Objects
+// and History as tabs on the right; Script and Proposals as tabs at the bottom. Each workspace varies
 // it. `packages/protocol/fixtures/default-dock.json` holds the same data for the frontend, and
 // the tests here check these against it, so the two cannot drift apart.
 
@@ -77,6 +77,7 @@ fn workspace(zones: Zones) -> Workspace {
                 float: floats[id],
                 window: None::<WindowPlacement>,
                 window_from: PlaceKind::Docked,
+                home_spot: None,
             },
         );
     }
@@ -89,8 +90,12 @@ fn workspace(zones: Zones) -> Workspace {
 
 fn base_zones() -> Zones {
     Zones {
-        left: zone(196, false, &[(&["palette"], "palette")]),
-        right: zone(264, false, &[(&["objects", "history"], "objects")]),
+        left: zone(196, false, &[(&["palette", "layers"], "palette")]),
+        right: zone(
+            264,
+            false,
+            &[(&["inspector", "objects", "history"], "inspector")],
+        ),
         bottom: zone(180, false, &[(&["script", "proposals"], "script")]),
     }
 }
@@ -124,7 +129,10 @@ pub fn default_workspace_for(name: &str) -> Workspace {
             right: zone(
                 340,
                 false,
-                &[(&["proposals", "objects", "history"], "proposals")],
+                &[(
+                    &["proposals", "inspector", "objects", "history"],
+                    "proposals",
+                )],
             ),
             bottom: zone(180, true, &[(&["script"], "script")]),
         }),
@@ -149,5 +157,43 @@ pub fn resolve_dock(settings: &Settings) -> DockSettings {
         default_dock()
     } else {
         settings.dock.clone()
+    }
+}
+
+/// Adds to every saved workspace each panel it lacks, so a panel a newer build introduced (Layers)
+/// loads into an older file without a settings version bump. The panel takes its default
+/// rectangle and joins the default zone's group for it, or its home zone when the default does not
+/// dock it there. A workspace that is otherwise unsound is left for validation to refuse.
+pub fn fill_missing_panels(dock: &mut DockSettings) {
+    for (name, workspace) in dock.workspaces.iter_mut() {
+        let shipped = default_workspace_for(name);
+        for id in PANEL_IDS {
+            if workspace.panels.contains_key(id) {
+                continue;
+            }
+            let Some(entry) = shipped.panels.get(id).cloned() else {
+                continue;
+            };
+            let docked_already = workspace
+                .zones
+                .all()
+                .into_iter()
+                .any(|(_, z)| z.groups.iter().any(|g| g.tabs.iter().any(|t| t == id)));
+            if entry.place == PlaceKind::Docked && !docked_already {
+                let zone = match entry.home {
+                    ZoneId::Left => &mut workspace.zones.left,
+                    ZoneId::Right => &mut workspace.zones.right,
+                    ZoneId::Bottom => &mut workspace.zones.bottom,
+                };
+                match zone.groups.first_mut() {
+                    Some(group) => group.tabs.push(id.to_owned()),
+                    None => zone.groups.push(TabGroup {
+                        tabs: vec![id.to_owned()],
+                        active: id.to_owned(),
+                    }),
+                }
+            }
+            workspace.panels.insert(id.to_owned(), entry);
+        }
     }
 }

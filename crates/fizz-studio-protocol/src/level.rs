@@ -20,6 +20,9 @@ pub struct ViewItem {
     /// The script line, counted from 1, of the statement that placed it; `None` where the view
     /// cannot tell.
     pub line: Option<u32>,
+    /// The word of the generator that made it (`Some("pogo-cache")`), or `None` for an item a
+    /// statement placed on its own. A generated item cannot be edited on its own.
+    pub generator: Option<String>,
 }
 
 /// An enemy or object spawn. `y` is `None` where the line gave none and no ground lies under it.
@@ -31,6 +34,8 @@ pub struct ViewSpawn {
     pub y: Option<f64>,
     pub dir: Option<f64>,
     pub ride: bool,
+    /// Whether the script gave no `y=`, so the spawn stands on the ground and `y` was worked out.
+    pub on_ground: bool,
     /// The script line, counted from 1, of the `spawn` statement; `None` where the view cannot tell.
     pub line: Option<u32>,
 }
@@ -71,6 +76,49 @@ pub struct ViewDiagnostic {
     pub message: String,
 }
 
+/// What a layer's eye and lock act on.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "snake_case")]
+#[ts(export, export_to = "../../../packages/protocol/src/generated/")]
+pub enum ViewSectionAffects {
+    /// Tile cells: the ground, walls and blocks. Hiding them needs the masked raster.
+    Cells,
+    /// Things drawn over the cells: items, enemies, exits and doors.
+    Things,
+}
+
+/// Where a layer's row comes from.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "snake_case")]
+#[ts(export, export_to = "../../../packages/protocol/src/generated/")]
+pub enum ViewSectionKind {
+    /// A section header that holds tiles (`terrain`, `blocks`).
+    Tiles,
+    /// A section header that holds things (`treats`, `enemies`) or the `edits` block.
+    Things,
+    /// A row worked out from statements inside other sections (`walls`, `crystals`, `markers`).
+    Derived,
+}
+
+/// One row of the Layers panel: a section of the script, or a group of statements inside one.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[ts(export, export_to = "../../../packages/protocol/src/generated/")]
+pub struct ViewSection {
+    /// A stable word: `terrain`, `walls`, `blocks`, `crystals`, `markers`, `treats`, `enemies` or
+    /// `edits`. It is also the name a lock is kept under.
+    pub id: String,
+    /// The layer's name in English, for a webview that has no name of its own for the id.
+    pub label: String,
+    pub kind: ViewSectionKind,
+    pub affects: ViewSectionAffects,
+    /// The script lines the layer owns, as runs of `[first, last]` counted from 1. A header
+    /// section's runs leave out the lines that a derived row takes.
+    pub lines: Vec<[u32; 2]>,
+    /// How many things the layer holds: statements for a tile layer, items, enemies, exits and
+    /// doors for a thing layer, crystals for Crystals.
+    pub count: u32,
+}
+
 /// The level as the canvas draws it.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS)]
 #[ts(export, export_to = "../../../packages/protocol/src/generated/")]
@@ -87,14 +135,28 @@ pub struct LevelView {
     pub start: Option<ViewStart>,
     /// The exits and doors, in column order and then from the bottom up.
     pub markers: Vec<ViewMarker>,
+    /// The layers of the script in file order, with the derived rows after their header; empty for
+    /// a level that has none (a Fizz 2 level, or a script with no readable header).
+    pub sections: Vec<ViewSection>,
+    /// Which layer wrote each cell, `y * width + x` like `cells`: an index into `sections` for the
+    /// layer of the statement that last set the cell, or 255 where no statement did. Empty where
+    /// `sections` is.
+    pub cell_sections: Vec<u8>,
     pub diagnostics: Vec<ViewDiagnostic>,
 }
 
 /// A run of cells on one axis, `[from, to]` inclusive.
 pub type CellRange = [u32; 2];
 
-/// What the person asks of a level. Each is appended to the script's `edits` block; no line already
-/// written is ever rewritten. `x` by `y` is a cross product, as in the language.
+/// What the person asks of a level.
+///
+/// `Paint`, `Clear`, `Place`, `Row` and `Spawn` are appended to the script's `edits` block, and no
+/// line already written is touched; `x` by `y` is a cross product, as in the language.
+///
+/// `MoveThing`, `FaceThing` and `DeleteThing` change a hand-written thing in place: the engine
+/// finds its statement, rewrites only that statement (keeping its spacing and comment where it can),
+/// and never reorders the level's items or spawns. They refuse, with a reason, a thing they cannot
+/// change safely (a generated item, an exit or door, a rider's facing, the start's deletion).
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS)]
 #[serde(tag = "kind", rename_all = "kebab-case")]
 #[ts(export, export_to = "../../../packages/protocol/src/generated/")]
@@ -123,6 +185,51 @@ pub enum LevelEdit {
     },
     /// An enemy or prop on one cell, such as `drone x=88 y=7`.
     Spawn { enemy: String, x: u32, y: u32 },
+    /// Moves an item (whole cells, `y` required), a spawn (`y: None` stands it on the ground there)
+    /// or the start to `x`, `y`.
+    MoveThing {
+        thing: ThingRef,
+        x: f64,
+        y: Option<f64>,
+    },
+    /// Turns a spawn to face left or right. A rider has no facing.
+    FaceThing { thing: ThingRef, facing: Facing },
+    /// Removes an item or a spawn. The start cannot be removed: a level needs one.
+    DeleteThing { thing: ThingRef },
+}
+
+/// What kind of thing a [`ThingRef`] names.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "snake_case")]
+#[ts(export, export_to = "../../../packages/protocol/src/generated/")]
+pub enum ThingKind {
+    Item,
+    Spawn,
+    Start,
+}
+
+/// Which way a spawn faces: `dir=-1` is left and `dir=1` is right.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "snake_case")]
+#[ts(export, export_to = "../../../packages/protocol/src/generated/")]
+pub enum Facing {
+    Left,
+    Right,
+}
+
+/// A thing in the level as the caller drew it, with enough to find it again if the text changed.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS)]
+#[ts(export, export_to = "../../../packages/protocol/src/generated/")]
+pub struct ThingRef {
+    pub kind: ThingKind,
+    /// Index into the unmasked `LevelView.items` or `.spawns` the caller drew from; 0 for the start.
+    pub index: u32,
+    /// The thing's line in that view, and that line's text exactly as the caller saw it.
+    pub line: u32,
+    pub expect: String,
+    /// Where the caller saw it, for finding it again after an outside change.
+    pub x: f64,
+    pub y: Option<f64>,
 }
 
 /// Which game's language a level is written in.
@@ -213,6 +320,11 @@ pub enum LevelError {
     Invalid { message: String },
     /// The file could not be read or written.
     Io { message: String },
+    /// The change would alter locked layers, so it was not made. The ids are the layers it touches.
+    Locked { layers: Vec<String> },
+    /// The thing an edit names is no longer on its line: the text changed since the caller drew it.
+    /// Select the thing again.
+    Gone { line: u32 },
 }
 
 /// One word of the language, documented, for the Palette and for completion in the Script panel.
@@ -226,7 +338,12 @@ pub struct WordDoc {
     pub kind: String,
     pub syntax: String,
     pub example: String,
+    /// The note, which for a tile starts with its group and a colon (`Ground and solids: Solid
+    /// ground.`), as the Palette's hover shows it.
     pub note: String,
+    /// The group the language files a tile under, such as `Ground and solids` or `Slopes`; empty
+    /// for every other kind of word.
+    pub group: String,
 }
 
 /// What a proposed line does to a cell.
@@ -263,6 +380,9 @@ pub struct GhostProposal {
     pub lines: Vec<String>,
     /// The cells the lines would change, clipped to the level and in line order.
     pub cells: Vec<GhostCell>,
+    /// The layers the lines would touch, by id in panel order (always including `edits`), so the
+    /// panel can say that a lock now blocks the proposal.
+    pub layers: Vec<String>,
 }
 
 /// A recovery copy left by a session that did not close cleanly: an unsaved level and when the
@@ -278,4 +398,69 @@ pub struct RecoveryEntry {
     pub name: String,
     /// When the copy was kept, in milliseconds since the Unix epoch.
     pub saved_at_ms: u64,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    fn thing() -> ThingRef {
+        ThingRef {
+            kind: ThingKind::Spawn,
+            index: 2,
+            line: 41,
+            expect: "  gloop x=35,62,85".into(),
+            x: 62.0,
+            y: None,
+        }
+    }
+
+    #[test]
+    fn the_thing_edits_have_the_wire_shape_the_webview_sends() {
+        let wire = json!({
+            "kind": "move-thing",
+            "thing": {
+                "kind": "spawn", "index": 2, "line": 41,
+                "expect": "  gloop x=35,62,85", "x": 62.0, "y": null
+            },
+            "x": 63.0,
+            "y": null
+        });
+        let edit: LevelEdit = serde_json::from_value(wire.clone()).unwrap();
+        assert_eq!(
+            edit,
+            LevelEdit::MoveThing {
+                thing: thing(),
+                x: 63.0,
+                y: None
+            }
+        );
+        assert_eq!(serde_json::to_value(&edit).unwrap(), wire);
+
+        let face = LevelEdit::FaceThing {
+            thing: thing(),
+            facing: Facing::Right,
+        };
+        let value = serde_json::to_value(&face).unwrap();
+        assert_eq!(value["kind"], "face-thing");
+        assert_eq!(value["facing"], "right");
+        assert_eq!(serde_json::from_value::<LevelEdit>(value).unwrap(), face);
+
+        let delete = LevelEdit::DeleteThing { thing: thing() };
+        let value = serde_json::to_value(&delete).unwrap();
+        assert_eq!(value["kind"], "delete-thing");
+        assert_eq!(value["thing"]["kind"], "spawn");
+        assert_eq!(serde_json::from_value::<LevelEdit>(value).unwrap(), delete);
+    }
+
+    #[test]
+    fn a_thing_kind_is_snake_case_and_gone_names_its_line() {
+        assert_eq!(serde_json::to_value(ThingKind::Start).unwrap(), "start");
+        assert_eq!(serde_json::to_value(Facing::Left).unwrap(), "left");
+        assert_eq!(
+            serde_json::to_value(LevelError::Gone { line: 7 }).unwrap(),
+            json!({ "kind": "gone", "line": 7 })
+        );
+    }
 }

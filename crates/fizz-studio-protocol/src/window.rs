@@ -11,7 +11,15 @@ use ts_rs::TS;
 
 /// Every panel the editor has, in the order the Panels menu lists them. A panel window may be made
 /// for any of these and for nothing else; the settings crate keeps a dock entry for each.
-pub const PANEL_IDS: [&str; 5] = ["palette", "objects", "history", "proposals", "script"];
+pub const PANEL_IDS: [&str; 7] = [
+    "palette",
+    "layers",
+    "inspector",
+    "objects",
+    "history",
+    "proposals",
+    "script",
+];
 
 /// Which window, by what it is: the part of a label that is not decoration.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, TS)]

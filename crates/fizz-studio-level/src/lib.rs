@@ -9,8 +9,11 @@ mod any;
 mod document;
 mod fizz2;
 mod fizz2_view;
+mod layers;
+mod locks;
 mod new;
 mod proposals;
+mod things;
 mod view;
 mod words;
 
@@ -20,12 +23,17 @@ mod fizz2_tests;
 mod new_tests;
 #[cfg(test)]
 mod tests;
+#[cfg(test)]
+mod things_tests;
 
 pub use any::{open_level_text, AnyLevelDocument};
 pub use document::{step_name, LevelDocument};
 pub use fizz2::Fizz2LevelDocument;
+pub use layers::{layers_changed, LAYER_ORDER};
+pub use locks::{locked_layers, sidecar_with_locks};
 pub use new::{
     default_ground, is_slug, new_level_text, new_world_text, pack_name, validate_new_level,
     HEIGHT_RANGE, WIDTH_RANGE,
 };
 pub use proposals::{pending_ghosts, sidecar_path, word_docs};
+pub use things::{apply_thing_edit, ThingOutcome};

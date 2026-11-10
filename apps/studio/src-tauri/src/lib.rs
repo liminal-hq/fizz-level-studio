@@ -7,6 +7,7 @@ pub mod close_gate;
 pub mod effects;
 pub mod launch;
 pub mod logging;
+pub mod native_menu;
 pub mod panel_place;
 pub mod quit;
 pub mod quit_round;
@@ -79,6 +80,9 @@ pub fn run() {
         // The webview asks the OS plugin for its platform, so the window frame can adapt.
         .plugin(tauri_plugin_os::init())
         .plugin(tauri_plugin_dialog::init())
+        // The text-field menu's Paste reads the clipboard here: a webview refuses a script's own
+        // `paste` command, so the menu reads the text and inserts it itself.
+        .plugin(tauri_plugin_clipboard_manager::init())
         // A release build drops the native WebView context menu, devtools, and the reload
         // shortcuts, so only the studio's own menus appear; a debug build keeps them. `Shift`+`Tab`
         // stays free, since blocking it would break reverse keyboard focus navigation.
@@ -114,6 +118,7 @@ pub fn run() {
             windows::tear_off_panel,
             windows::close_panel,
             launch::app_launch_paths,
+            native_menu::app_native_menu_allowed,
             quit::app_quit,
             quit::app_quit_answer,
             quit::app_quit_confirm,
@@ -216,5 +221,14 @@ mod tests {
             .expect("the plugins register side by side");
         // The tear-off plugin makes its ghost once the event loop runs, which the mock never does.
         assert!(app.get_webview_window("tear-ghost").is_none());
+    }
+
+    #[test]
+    fn the_clipboard_plugin_registers() {
+        // The text-field menu's Paste reads the clipboard through it.
+        mock_builder()
+            .plugin(tauri_plugin_clipboard_manager::init())
+            .build(mock_context(noop_assets()))
+            .expect("the clipboard plugin registers");
     }
 }

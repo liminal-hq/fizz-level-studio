@@ -3,6 +3,7 @@
 // (c) Copyright 2026 Liminal HQ, Scott Morris
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
+import { useSurfaceMenu } from '../app/useSurfaceMenu';
 import { t } from '../i18n/messages';
 import styles from './HistoryPanel.module.css';
 
@@ -37,8 +38,9 @@ export function HistoryPanel({
 	onUndo,
 	onRedo,
 }: HistoryPanelProps) {
+	const panelMenu = useSurfaceMenu<HTMLDivElement>(() => ({ kind: 'history' }));
 	return (
-		<div className={styles.panel}>
+		<div className={styles.panel} {...panelMenu}>
 			<div className={styles.buttons}>
 				<button
 					type="button"
